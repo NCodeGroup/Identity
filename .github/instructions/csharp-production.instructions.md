@@ -129,7 +129,7 @@ than inlining the rationale.
   routes a CORS preflight to the endpoint, which refuses it, since routing's own 405 endpoint has no marker, and a
   preflight that selects no endpoint (an unmapped method) gets no policy either. Do not use `DisableCors()` /
   `DisableCorsAttribute` or any other `ICorsMetadata`: the endpoint middleware throws for an endpoint carrying CORS
-  metadata when no CORS middleware ran, so it fails every request a production host without CORS serves. See [ADR-1109](../../docs/decisions/1109-fapi-behavioral-rules-and-discovery-validation-details.md).
+  metadata when no CORS middleware ran, so it fails every request a production host without CORS serves. See [ADR-1148](../../docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md).
 - 👁 **Extensibility is the default: a vocabulary is open unless it is provably closed.** The family exists to be
   extended — by consumers and by sibling packages — without editing it, so every set of named values (kinds, types,
   modes, scopes, formats, methods, reasons, statuses, plans) is **open** by default and modeled as:
@@ -458,7 +458,7 @@ than inlining the rationale.
   `ISecurityProfileCeilingBuilder`, which accepts only a setting whose merge is a lattice operation
   (`SettingDescriptor.HasLatticeMerge`); a setting a profile must constrain gets a lattice merge, never a projection
   (`Replace`/`Keep`), which a child would override or which would ignore the ceiling. See
-  [ADR-1148](../../docs/decisions/1148-security-profiles-accumulate-down-the-settings-cascade.md).
+  [ADR-1148](../../docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md).
 - 👁 **A setting declares the scopes it applies to.** Every descriptor sets the required `AppliesTo` — the names of the
   scopes whose effective settings the runtime reads it from (`OpenIdSettingScopes.Tenant` for discovery and the
   tenant-wide services, `.Client` for the protocol endpoints, `.ResourceServer` for the bounds a resource server puts on
@@ -487,7 +487,7 @@ than inlining the rationale.
   configuration is the root's own settings, so a selected profile's default replaces the baseline and never a
   configured value. Every `Expand` names its scope, and a default applies only to a setting that applies within that
   scope. See
-  [ADR-1148](../../docs/decisions/1148-security-profiles-accumulate-down-the-settings-cascade.md).
+  [ADR-1148](../../docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md).
 - 👁 **Sibling scopes combine; a cascade merges.** When two scopes that are not parent and child govern one operation —
   an access token is bound by its client **and** every resource server it targets — join their effective settings with
   `IReadOnlySettingCollection.Combine`, never `Merge`: it accepts only lattice merges, so the result binds both and does

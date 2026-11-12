@@ -80,13 +80,13 @@ value that a ceiling lowers is a coherence violation, reported wherever a droppe
   ceiling already lowers that value.
 - A client that selects `fapi2` or `fapi1-advanced` cannot register an `authorization_code_lifetime` or a `clock_skew`
   above the profile's ceiling of 60 seconds
-  ([ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)).
+  ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)).
 - **Breaking:** `SettingDescriptor` declares the abstract `HasMeetMerge`, which a type that derives from it implements.
 - This implements issue [#262](https://github.com/NCodeGroup/identity/issues/262).
 
 ## References
 
-- [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md) — a profile's ceilings are merged down
+- [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md) — a profile's ceilings are merged down
   the cascade.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — a closed vocabulary only where it is provably
   closed.

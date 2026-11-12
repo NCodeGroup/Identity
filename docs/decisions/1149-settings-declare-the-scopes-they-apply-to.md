@@ -31,7 +31,7 @@ ADR-1140 for values:
 
 - `security_profiles` on a resource server is accepted and stored, but a resource-server document is merged unexpanded
   and every requirement is evaluated against a client's settings, so the profile neither tightens nor enforces anything
-  there ([ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)).
+  there ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)).
 - A client setting on a resource server (`require_pkce`, `access_token_lifetime`) and a tenant-wide setting on a client
   (`session_idle_timeout`, `subject_claim_types`, discovery metadata such as `service_documentation`) are the same
   class: accepted, stored, and never read.
@@ -136,7 +136,7 @@ anywhere else is rejected at every entry point, exactly as an unregistered name 
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md) — the closed vocabulary of names (extended: and of scopes).
 - [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) — value domains, checked at the same entry
   points.
-- [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md) — security profiles (amended: a resource
+- [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md) — security profiles (amended: a resource
   server selects none).
 - [ADR-1075](1075-runtime-consumption-of-resource-server-secrets.md) — the settings a targeted resource server governs.
 - [ADR-1040](1040-effective-settings-preview-endpoints.md) and

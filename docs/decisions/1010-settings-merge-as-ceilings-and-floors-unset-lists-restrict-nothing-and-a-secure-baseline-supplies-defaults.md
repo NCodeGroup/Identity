@@ -64,7 +64,7 @@ A floor is a requirement that a narrower scope can raise and never lower.
   `claims_supported_is_strict` and the `federated_identity_*` requirements merge as `Or`.
 - Minimums such as `user_code_length`, polling intervals and `password_min_length` merge as `Max`.
 - `security_profiles` is the one `Union` list
-  ([ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)).
+  ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)).
 - Values without restriction semantics merge as `Replace`.
 
 A narrower scope therefore never loosens a broader scope's security setting.
@@ -137,7 +137,7 @@ omits settings that are unset.
 
 - `NCode.Identity.Settings.Abstractions`: `SettingMerge`, `SettingDescriptor<TValue>`.
 - `RootSettingsCollectionDataSource`, `IDefaultSettingsProvider`, `DefaultSettingsProvider`.
-- [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md): the one `Union` list.
+- [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md): the one `Union` list.
 - [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md): algorithm lists that decide
   what the server accepts.
 - [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the cascade's

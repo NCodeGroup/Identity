@@ -20,7 +20,7 @@ tenant. Telemetry could not separate the traffic of a load-test tenant from prod
 
 The family already has the pieces a declaration needs: tenant settings that cascade from the server
 ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)), security profiles that accumulate down the cascade as
-ceilings, defaults and requirements ([ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)), and a
+ceilings, defaults and requirements ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)), and a
 tenant branding document that the interactive pages embed
 ([ADR-1194](1194-a-tenant-brands-its-interactive-surface-through-settings.md)). The open questions were what the
 declaration is (free text, or a vocabulary), what it defaults to, where the guardrails apply, and what telemetry may
@@ -143,7 +143,7 @@ tenant that declares nothing is `production`.**
 
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — pre-release posture
 - [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) — hosted platform environment model
-- [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md) — security profiles accumulate down the
+- [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md) — security profiles accumulate down the
   cascade
 - [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md) — settings declare their scopes
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — vocabularies are open unless provably closed

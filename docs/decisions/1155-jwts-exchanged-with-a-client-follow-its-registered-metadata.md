@@ -57,7 +57,7 @@ never compresses.**
    is registered, and no UserInfo protection and no ID token encryption unless registered.
 2. **The `*_values_supported` lists are ceilings.** They merge by `Intersect` and apply to tenants and clients, so a
    client's effective lists carry its tenant's lists and the ceiling of every security profile it selects
-   ([ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)). A registered value must be in its list.
+   ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)). A registered value must be in its list.
    Dynamic client registration rejects one that is not with `invalid_client_metadata`, checking the tenant's effective
    default `id_token_signed_response_alg` as well. The management API's client create and settings update merge the
    client's document onto its tenant's effective settings, as the runtime does, and reject a registered ID token,
@@ -128,7 +128,7 @@ never compresses.**
   algorithm it registered.
 - A tenant whose ceiling excludes `RS256` sets `id_token_signed_response_alg` for its clients, or each client registers
   one; otherwise registration and a management write are refused. A security profile supplies a permitted default
-  ([ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md) decision 7), so a client under FAPI 2.0
+  ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md) decision 7), so a client under FAPI 2.0
   that registers none gets `PS256`. A tenant or server write that narrows a list beneath a client's registered value
   is refused, at the cost of reading every client the write governs — every client of every tenant for a server
   write. A seeded client — including one the conformance seeder reads from configuration — registers no response
@@ -165,7 +165,7 @@ never compresses.**
   lists apply to clients), [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) (amended: an unset list at a
   trust boundary permits nothing), [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md),
   [ADR-1085](1085-ciba-grant.md) and [ADR-1090](1090-durable-outbound-delivery-dispatch-adapter.md) (amended: no
-  encrypted CIBA requests), [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md).
+  encrypted CIBA requests), [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md).
 - Code: `NCode.Identity.OpenId.Authentication.Clients.DefaultClientJwtCredentialSelector`, `ClientJwtProtectionSettings`,
   `NCode.Identity.OpenId.Authentication.Clients.Coherence.ResponseAlgorithmCoherenceRule`,
   `NCode.Identity.OpenId.Authentication.Settings.PermittedAlgorithmExtensions`,

@@ -21,7 +21,7 @@ of** the client's ([ADR-1075](1075-runtime-consumption-of-resource-server-secret
 - **A client's bound stopped applying to encryption.** `access_token_encryption_required`, or narrowed
   `access_token_encryption_{alg,enc}_values_supported` — set on the client or by the ceiling of a security profile it
   selects — did not bind once a resource server was targeted, although a profile's ceiling binds every scope below the
-  one that selects it ([ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)).
+  one that selects it ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)).
 - **A resource server could constrain nothing but encryption.** It could not require a sender-constrained token,
   shorten the token's lifetime, or limit its signing algorithms. Auth0 exposes all three per API, and RFC 9728 lets a
   protected resource state `dpop_bound_access_tokens_required`. ADR-1149 rejected letting a resource server select a
@@ -34,7 +34,7 @@ of** the client's ([ADR-1075](1075-runtime-consumption-of-resource-server-secret
   client's list excludes the resource server's keys — a token that resource server cannot decrypt. RFC 9068 §4 has a
   resource server decrypt with "the keys and algorithms that the resource server specified".
 - **FAPI 2.0's sender-constraint rule was a requirement object,** because no setting expressed "the token must be
-  bound" ([ADR-1109](1109-fapi-behavioral-rules-and-discovery-validation-details.md)).
+  bound" ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)).
 
 ## Decision
 
@@ -164,10 +164,10 @@ the request is refused. Nothing is silently weakened or redirected.**
   [RFC 8705](https://www.rfc-editor.org/rfc/rfc8705); [RFC 7800](https://www.rfc-editor.org/rfc/rfc7800) and the IANA
   JWT Confirmation Methods registry; [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728) §2; FAPI 2.0 Security Profile.
 - [ADR-1075](1075-runtime-consumption-of-resource-server-secrets.md) (amended: settings combine, and the recipient
-  rule); [ADR-1109](1109-fapi-behavioral-rules-and-discovery-validation-details.md) (amended: the sender constraint is
+  rule); [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md) (amended: the sender constraint is
   a ceiling); [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md) (extended: the settings that apply to
   resource servers); [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — the merge lattice;
-  [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md) — profile ceilings;
+  [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md) — profile ceilings;
   [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md) — `server_error` for an
   unsatisfiable configuration.
 - Code: `NCode.Identity.Settings.IReadOnlySettingCollection.Combine`, `DefaultSettingCollection`,

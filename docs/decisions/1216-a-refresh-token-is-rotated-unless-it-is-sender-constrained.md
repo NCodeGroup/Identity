@@ -47,11 +47,11 @@ client, and the `refresh_token_rotation_policy` setting replaces the `refresh_to
 4. **The FAPI 2.0 profile defaults to `unbound`.** `Fapi2SecurityProfile.ApplyDefaultSettings` sets
    `refresh_token_rotation_policy` to `unbound`, so an `always` at the server does not rotate the clients of a FAPI 2.0
    tenant unless that tenant or a client chooses `always`
-   ([ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md) decision 7).
+   ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md) decision 7).
 5. **The merge is `Replace`.** A child replaces the value of its parent, as `refresh_token_reuse_policy` does, so a
    tenant cannot force `always` on its clients through a floor. The floor that matters is decision 2, and a profile
    default needs a setting that does not merge with a lattice operation
-   ([ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)).
+   ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)).
 6. **The domain is closed.** The value selects a behavior that the server enforces, so an unknown value fails closed
    ([ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md),
    [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)), like the sibling policies of the refresh token.
@@ -91,7 +91,7 @@ client, and the `refresh_token_rotation_policy` setting replaces the `refresh_to
 
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — the merge polarity that the flag used and the policy replaces.
 - [ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md) — the reuse detection of a rotated token.
-- [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md) — a profile supplies defaults for the
+- [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md) — a profile supplies defaults for the
   settings that do not merge with a lattice operation.
 - [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) and
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — a closed domain fails closed.

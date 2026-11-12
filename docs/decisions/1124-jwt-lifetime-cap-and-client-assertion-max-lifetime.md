@@ -43,7 +43,7 @@ client assertions use it through a lattice-bounded setting.**
   pass it as the `MaxLifetime`, so an over-long assertion is rejected as `invalid_client` (audit reason
   `assertion_invalid`; the logged validation failure names the exceeded maximum).
 - **FAPI 2.0 pins the default.** The `fapi2` profile injects a five-minute `client_assertion_max_lifetime` ceiling
-  ([ADR-1108](1108-fapi-security-profile-merge-lattice-ceiling-injection.md)), so raising the server-wide value for other
+  ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)), so raising the server-wide value for other
   clients never extends to a FAPI client. FAPI 2.0 defines no client-assertion lifetime, so the profile does not go below
   the default: doing so would reject spec-conformant FAPI clients with no normative basis. The existing 60-second FAPI
   `clock_skew` ceiling now also covers the `iat` half of §5.3.2.1.

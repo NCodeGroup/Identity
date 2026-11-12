@@ -122,7 +122,7 @@ the status every other OAuth error response uses.
 - [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) — setting domains; PKCE methods move from a
   fixed vocabulary to the registered transformations, and narrowing a domain ships with a data migration.
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — `require_pkce` is a floor.
-- [ADR-1108](1108-fapi-security-profile-merge-lattice-ceiling-injection.md) — the FAPI 2.0 profile requires PKCE.
+- [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md) — the FAPI 2.0 profile requires PKCE.
 - OAuth 2.1 (draft-ietf-oauth-v2-1-16) §4.1.1, §4.1.2.1, §4.1.3, §7.5.1.1, §7.5.2; RFC 9700 §2.1.1, §4.8.2;
   RFC 7636 §4.1, §4.2, §4.4.1, §4.6; RFC 7591 §2; RFC 6749 §5.2; RFC 9126 §2.3.
 - Code: `NCode.Identity.OpenId.Authentication.Pkce.CodeChallengeRequirement`,

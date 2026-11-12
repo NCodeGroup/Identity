@@ -1373,7 +1373,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `authorization_response_iss_parameter_supported` (RFC 9207, default `true`), and the authorization response redirect
   uses 303 See Other (FAPI 2.0 §5.2.2, OAuth 2.1) for every client. The operator-configured `clock_skew` setting governs
   validation of signed request objects and client assertions, and the FAPI 2.0 profile caps it at 60 seconds through the
-  merge lattice ([ADR-1109](docs/decisions/1109-fapi-behavioral-rules-and-discovery-validation-details.md)).
+  merge lattice ([ADR-1148](docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)).
 
 - **The OP serves Pushed Authorization Requests (RFC 9126) at `pushed_authorization_request_endpoint` (`/oauth2/par`)**
   (issue [#46](https://github.com/NCodeGroup/identity/issues/46),
@@ -3324,7 +3324,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Security profiles are an open registry of ceilings, defaults and requirement objects**
   ([#54](https://github.com/NCodeGroup/identity/issues/54),
-  [ADR-1109](docs/decisions/1109-fapi-behavioral-rules-and-discovery-validation-details.md)). A profile is an
+  [ADR-1148](docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)). A profile is an
   `ISecurityProfile` (its name, its ceiling settings, its default settings and its composed `Requirements`);
   `ISecurityProfileCatalog` is the single registry that resolves the selected profiles, expands their settings, and runs
   their requirements for a given enforcement phase through `EvaluateRequirementsAsync<TContext>`. Each requirement is a
@@ -3347,7 +3347,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   support is off. Ceilings merge at every scope, because a bound only narrows. FAPI 2.0 defaults
   `id_token_signed_response_alg` and `introspection_signed_response_alg` to `PS256`, so a client under the profile that
   registers no algorithm is signed with an algorithm the profile permits
-  ([ADR-1148](docs/decisions/1148-security-profiles-accumulate-down-the-settings-cascade.md),
+  ([ADR-1148](docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md),
   [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md),
   [#259](https://github.com/NCodeGroup/identity/issues/259)).
 
@@ -3360,7 +3360,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   profile. `Expand(scopeSettings, scopeName)` and `Expand(scopeSettings, scopeName, baselineSettings)` take the name of
   the scope whose settings they expand, `OpenIdSettingScopes.Platform` at the platform's root, as the overload that takes a
   settings document does, and an unregistered scope name is refused with an `ArgumentException`
-  ([ADR-1148](docs/decisions/1148-security-profiles-accumulate-down-the-settings-cascade.md), issues
+  ([ADR-1148](docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md), issues
   [#233](https://github.com/NCodeGroup/identity/issues/233) and
   [#259](https://github.com/NCodeGroup/identity/issues/259)).
 
@@ -4701,7 +4701,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   preflight to the endpoint itself, which refuses it with `405` and no CORS headers; `UseDeveloperCors` answers no
   preflight that selects no endpoint, such as one for a method a front-channel path does not map. A host that adds its
   own CORS middleware skips both
-  ([ADR-1109](docs/decisions/1109-fapi-behavioral-rules-and-discovery-validation-details.md)).
+  ([ADR-1148](docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)).
 
 - **Authorization responses carry only wire parameters.** The authorization response executor applies
   `ShouldSerialize(…, SerializationFormat.OpenId)`, the contract the JSON serializer uses, so internal `$`-prefixed
@@ -5746,7 +5746,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   by `SettingDescriptor.HasLatticeMerge`), so no child scope can override it and several profiles combine in any order;
   a ceiling on a setting that a child could override, or whose merge would ignore it, fails when a scope selects the
   profile. A requirement's error description reads "a selected security profile"
-  ([ADR-1148](docs/decisions/1148-security-profiles-accumulate-down-the-settings-cascade.md)).
+  ([ADR-1148](docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)).
 
 - **A client value that a ceiling lowers is incoherent.** `RegisteredValueCoherenceRule` checks every setting a client
   registers whose merge is a meet (`Min`, `And` or `Intersect`, which the abstract `SettingDescriptor.HasMeetMerge`
@@ -5761,7 +5761,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **A tenant or client opts into the FAPI 2.0 Security Profile by selecting `fapi2`**
   ([#54](https://github.com/NCodeGroup/identity/issues/54),
-  [ADR-1108](docs/decisions/1108-fapi-security-profile-merge-lattice-ceiling-injection.md)). Listing `fapi2`
+  [ADR-1148](docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)). Listing `fapi2`
   (`OpenIdConstants.SecurityProfiles.Fapi2`) in `security_profiles` expands the profile into concrete ceiling settings
   at the scope that selects it, and the floor/ceiling merge lattice carries them down the platform → team → tenant → client
   cascade un-loosenably, so discovery and request-time enforcement read one source of truth: signing restricted to

@@ -1603,7 +1603,7 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
 1. **A `bff` client profile at the OP.** Should the NCode OP offer a registered security profile that provisions a BFF
    client correctly in one step? It would set confidential `private_key_jwt`, PAR required, DPoP required,
    `backchannel_logout_session_required`, rotation with `revoke_all`, and a refresh-token absolute lifetime aligned
-   with the BFF session, in the spirit of the FAPI ceiling ([ADR-1108](decisions/1108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
+   with the BFF session, in the spirit of the FAPI ceiling ([ADR-1148](decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)).
    Decided: no; a profile is a ceiling, not a provisioning template, so a BFF client registers explicit metadata and a
    deployment that wants a ceiling selects `fapi2`
    ([ADR-1294](decisions/1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md)).

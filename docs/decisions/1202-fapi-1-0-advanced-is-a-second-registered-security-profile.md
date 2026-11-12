@@ -7,7 +7,7 @@
 ## Context
 
 FAPI 2.0 is the OpenID Foundation's recommendation for new deployments, and `fapi2` is the family's primary profile
-([ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)). FAPI 1.0 Part 2: Advanced (Final, 2021)
+([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)). FAPI 1.0 Part 2: Advanced (Final, 2021)
 is still certified, and UK Open Banking, Australia's Consumer Data Right, and Brazil's Open Finance still mandate it.
 A tenant serving those ecosystems needs it.
 
@@ -54,9 +54,9 @@ outer parameter such as `response_mode` could change a signed request.
    access tokens. It is a default and not a ceiling, so an operator can turn it off, and the coherence rule
    ([ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md)) then reports each client that the
    profile makes require binding. At the server root the default replaces the descriptor's `false` but never a value
-   that the configuration sets ([ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)). The default
+   that the configuration sets ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)). The default
    applies where a server or a tenant selects the profile; a client that selects it alone takes its tenant's support
-   ([ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)). A client that wants DPoP selects
+   ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)). A client that wants DPoP selects
    `fapi2`.
 4. **Defaults.** PS256 is the default for signed ID tokens, introspection responses, and authorization responses,
    because the protocol default (RS256) is outside the ceiling.

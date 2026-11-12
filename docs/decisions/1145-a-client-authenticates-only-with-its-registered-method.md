@@ -1,8 +1,7 @@
 # 1145. A client authenticates only with its registered method
 
 - **Status:** Accepted (amends [ADR-1046](1046-api-reference-openapi-document-and-scalar.md),
-  [ADR-1063](1063-dynamic-client-registration.md), [ADR-1108](1108-fapi-security-profile-merge-lattice-ceiling-injection.md),
-  [ADR-1109](1109-fapi-behavioral-rules-and-discovery-validation-details.md),
+  [ADR-1063](1063-dynamic-client-registration.md), [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md),
   [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md), and
   [ADR-1144](1144-authorization-codes-are-bound-to-pkce-by-default.md); extended by
   [ADR-1168](1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md): a client bound to a resource

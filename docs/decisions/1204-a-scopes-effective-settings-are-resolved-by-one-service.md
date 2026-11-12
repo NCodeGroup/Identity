@@ -13,7 +13,7 @@
 A scope's effective settings are the server's settings with the tenant's settings merged onto them, and then the
 client's or the resource server's merged onto those. Before a document merges, the ceilings and defaults of every
 security profile it selects are expanded into it, so a client that selects `fapi2` carries that profile's limits
-whatever its own document says ([ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)). A resource
+whatever its own document says ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)). A resource
 server selects no security profile ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)).
 
 The live providers materialize this merge for a request. Code that runs outside a materialized tenant or client needs

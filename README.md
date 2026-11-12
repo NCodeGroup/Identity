@@ -57,7 +57,7 @@ Two consequences worth knowing up front:
 - **Settings are a merge lattice, not a flag soup.** Platform, team, tenant, resource-server and client settings merge through
   declared rules (a floor cannot be raised by a child, a ceiling cannot be exceeded), so a tenant cannot configure its
   way out of a platform- or team-level security decision
-  ([ADR-1108](docs/decisions/1108-fapi-security-profile-merge-lattice-ceiling-injection.md)).
+  ([ADR-1148](docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)).
 
 ## What works today
 

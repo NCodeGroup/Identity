@@ -3,7 +3,7 @@
 - **Status:** Accepted (amends
   [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md),
   [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
-  [ADR-1109](1109-fapi-behavioral-rules-and-discovery-validation-details.md) and
+  [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md) and
   [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md))
 - **Date:** 2026-11-02
 - **Deciders:** NCode Group
@@ -16,7 +16,7 @@ namespace `NCode.Identity.OpenId.Authentication.Endpoints`: `ContentSecurityPoli
 `ContentSecurityPolicyDirectives`, `ContentSecurityPolicySources`, `HtmlPageSecurityPolicy` and
 `HtmlPageSecurityResponseExtensions.SetHtmlPageSecurity`. Its context gives the reason: the packages that write pages
 share only Abstractions ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
-[ADR-1109](1109-fapi-behavioral-rules-and-discovery-validation-details.md)'s 2026-10-21 amendment puts the front-channel
+[ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)'s 2026-10-21 amendment puts the front-channel
 marker in the same package: `IOpenIdEndpointFrontChannelMetadata`, `OpenIdEndpointFrontChannelMetadata` and
 `WithOpenIdFrontChannel()`, which keep the CORS middleware off an endpoint the user agent navigates to and refuse a
 CORS preflight to it.
@@ -46,7 +46,7 @@ framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a s
   and `OpenIdEndpointFrontChannelMetadata` are `IFrontChannelEndpointMetadata` and `FrontChannelEndpointMetadata`;
   `OpenIdFrontChannelEndpointConventionBuilderExtensions` is `FrontChannelEndpointConventionBuilderExtensions`, and its
   `WithOpenIdFrontChannel()` and `Endpoint.IsOpenIdFrontChannel` are `WithFrontChannel()` and `Endpoint.IsFrontChannel`.
-  The behavior ADR-1109's amendment describes, the CORS branch and the refused preflight, is unchanged, and the
+  The behavior ADR-1148's amendment describes, the CORS branch and the refused preflight, is unchanged, and the
   interactive bundle's asset route keeps the marker as
   [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md) decision
   1 says, through `WithFrontChannel()`. The `OpenId` prefix is dropped because the marker names no OpenID concept.
@@ -87,7 +87,7 @@ framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a s
 - `src/NCode.Identity.AspNetCore/`
 - `tests/NCode.Identity.AspNetCore.Tests/`
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)
-- [ADR-1109](1109-fapi-behavioral-rules-and-discovery-validation-details.md)
+- [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)
 - [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md)
 - [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)
 - [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)

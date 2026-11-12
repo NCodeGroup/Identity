@@ -16,8 +16,7 @@ The [backend-for-frontend design](../backend-for-frontend.md) §11.1 asked wheth
 registered `bff` security profile that provisions a BFF client in one step: confidential `private_key_jwt`, PAR
 required, DPoP required, `backchannel_logout_session_required`, rotation, and a refresh-token absolute lifetime aligned
 with the BFF session. In this family a security profile is a **ceiling** over security settings, merged down the
-settings cascade ([ADR-1108](1108-fapi-security-profile-merge-lattice-ceiling-injection.md),
-[ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)): it forbids weaker values, it does not
+settings cascade ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)): it forbids weaker values, it does not
 provision a client. The BFF itself must work against any standards-compliant provider (design goal G3). Phase 2 (issue
 #394) settles the question.
 
@@ -76,8 +75,8 @@ The reasons:
 ## References
 
 - [Backend-for-frontend design](../backend-for-frontend.md) §3.1 (G3), §5.1 and §11.1
-- [ADR-1108](1108-fapi-security-profile-merge-lattice-ceiling-injection.md) — profiles as a merge-lattice ceiling
-- [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md) — profiles down the cascade
+- [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md) — profiles as a merge-lattice ceiling
+- [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md) — profiles down the cascade
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
 - [ADR-1275](1275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md) — PAR
 - [ADR-1288](1288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md) — mTLS client authentication

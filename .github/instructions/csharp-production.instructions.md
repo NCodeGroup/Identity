@@ -1243,7 +1243,7 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
   fails the build of a packable project that depends on `Microsoft.Extensions.Telemetry.Abstractions` (which
   `Microsoft.Extensions.Http.Resilience` brings) or sets `DisableMicrosoftExtensionsLoggingSourceGenerator`; bound
   outbound calls with `Polly.Core` instead. See
-  [ADR-1385](../../docs/decisions/1385-no-shipping-package-switches-off-its-consumers-logging-generator.md).
+  [ADR-1385](../../docs/decisions/1385-no-shipping-package-replaces-its-consumers-logging-generator-or-carries-microsoft-extensions-http-resilience.md).
 - 👁 **A message template is a constant with named placeholders** — template
   [Logging](csharp.instructions.md#logging); a value that also feeds an error or a response is defined once (§6).
 - 👁 **Event IDs are named `const`s in a per-package `Logging/EventIds.cs`** — template

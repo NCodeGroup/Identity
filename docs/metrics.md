@@ -130,7 +130,7 @@ several round trips.
 Counters, unit `{retry}`. `ncode.identity.outbound_http.retries` (meter `NCode.Identity.OpenId.Authentication`) is
 recorded each time the guarded outbound client sends a call to a caller-supplied URL again after a transient failure
 ([ADR-1315](decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md),
-[ADR-1385](decisions/1385-no-shipping-package-switches-off-its-consumers-logging-generator.md)), and
+[ADR-1385](decisions/1385-no-shipping-package-replaces-its-consumers-logging-generator-or-carries-microsoft-extensions-http-resilience.md)), and
 `ncode.identity.openid_client.retries` (meter `NCode.Identity.OpenId.Client`) each time the OpenID protocol client sends
 a call to an OpenID Provider again
 ([ADR-1336](decisions/1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)). Only a GET or HEAD

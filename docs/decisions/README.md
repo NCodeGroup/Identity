@@ -100,7 +100,7 @@ The records are grouped by area; within an area they are in number order.
 | [1307](./1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md) | identity-platform records its decisions and pending work in this repository | Accepted |
 | [1309](./1309-c-files-carry-a-two-line-spdx-header-that-the-build-checks.md) | C# files carry a two-line SPDX header that the build checks | Accepted |
 | [1355](./1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md) | General ASP.NET Core helpers live in a dependency-free package | Superseded |
-| [1385](./1385-no-shipping-package-switches-off-its-consumers-logging-generator.md) | No shipping package switches off its consumers' logging generator | Accepted |
+| [1385](./1385-no-shipping-package-replaces-its-consumers-logging-generator-or-carries-microsoft-extensions-http-resilience.md) | No shipping package replaces its consumers' logging generator or carries Microsoft.Extensions.Http.Resilience | Accepted |
 | [1386](./1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md) | Primitives are benchmarked in a project the build compiles and nothing runs | Accepted |
 | [1428](./1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md) | A package translates the exceptions it owns into protocol errors | Accepted |
 | [1486](./1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md) | An analyzer in every project reports a field that could be an auto-property | Accepted |

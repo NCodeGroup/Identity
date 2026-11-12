@@ -191,7 +191,7 @@ so a bare ADR number names one record. Ten family records override template reco
 - [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) supersedes
   two points of project-template ADR-0145: a client-supplied document's fetch limits stay settings that a tenant or
   client can only lower, and revocation data is fetched over `http`, where RFC 5280 publishes it.
-- [ADR-1385](docs/decisions/1385-no-shipping-package-switches-off-its-consumers-logging-generator.md) supersedes
+- [ADR-1385](docs/decisions/1385-no-shipping-package-replaces-its-consumers-logging-generator-or-carries-microsoft-extensions-http-resilience.md) supersedes
   project-template ADR-0145's choice of `Microsoft.Extensions.Http.Resilience` for every shipping package, so the
   guarded outbound client and the OpenID protocol client bound their calls through `Polly.Core` alone, and the build
   fails a shipping package that would replace its consumers' logging generator.

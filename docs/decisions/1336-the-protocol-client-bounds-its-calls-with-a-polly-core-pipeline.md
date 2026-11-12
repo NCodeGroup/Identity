@@ -1,7 +1,7 @@
 # 1336. The protocol client bounds its calls with a Polly.Core pipeline
 
 - **Status:** Accepted (amended by
-  [ADR-1385](1385-no-shipping-package-switches-off-its-consumers-logging-generator.md): Polly.Extensions and
+  [ADR-1385](1385-no-shipping-package-replaces-its-consumers-logging-generator-or-carries-microsoft-extensions-http-resilience.md): Polly.Extensions and
   Polly.RateLimiting are no longer pinned, because no package brings them)
 - **Date:** 2026-11-01
 - **Deciders:** NCode Group

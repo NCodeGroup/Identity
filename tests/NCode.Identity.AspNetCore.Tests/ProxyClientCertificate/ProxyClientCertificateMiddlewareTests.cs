@@ -131,9 +131,7 @@ public sealed class ProxyClientCertificateMiddlewareTests : IDisposable
     [InlineData("/health/ready/")]
     [InlineData("/health/livez")]
     [InlineData("/health")]
-    public async Task InvokeAsync_WhenAPathOnlyResemblesAProbePath_RefusesWithForbidden(
-        string path
-    )
+    public async Task InvokeAsync_WhenAPathOnlyResemblesAProbePath_RefusesWithForbidden(string path)
     {
         using var authority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=ca",

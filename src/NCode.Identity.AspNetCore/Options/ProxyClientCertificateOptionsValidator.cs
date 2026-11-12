@@ -83,7 +83,8 @@ internal sealed class ProxyClientCertificateOptionsValidator
 
     private static void ValidateCertificateAuthorityPath(string? path, List<string> failures)
     {
-        const string pathName = $"{Prefix}:{nameof(ProxyClientCertificateOptions.CertificateAuthorityPath)}";
+        const string pathName =
+            $"{Prefix}:{nameof(ProxyClientCertificateOptions.CertificateAuthorityPath)}";
 
         if (string.IsNullOrWhiteSpace(path))
         {

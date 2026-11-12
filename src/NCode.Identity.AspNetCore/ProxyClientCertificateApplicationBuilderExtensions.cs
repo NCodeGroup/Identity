@@ -33,8 +33,8 @@ public static class ProxyClientCertificateApplicationBuilderExtensions
         {
             ArgumentNullException.ThrowIfNull(app);
 
-            var options = app.ApplicationServices
-                .GetRequiredService<IOptions<ProxyClientCertificateOptions>>()
+            var options = app
+                .ApplicationServices.GetRequiredService<IOptions<ProxyClientCertificateOptions>>()
                 .Value;
 
             return options.Required ? app.UseMiddleware<ProxyClientCertificateMiddleware>() : app;

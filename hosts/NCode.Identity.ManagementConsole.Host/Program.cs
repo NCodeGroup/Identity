@@ -57,7 +57,9 @@ builder.Services.AddProxyClientCertificate(builder.Configuration);
 // Request the proxy's client certificate on Kestrel's HTTPS endpoints when 'ProxyClientCertificate:Required' is true.
 var proxyClientCertificate = builder.Configuration.GetProxyClientCertificateOptions();
 builder.WebHost.ConfigureKestrel(kestrel =>
-    kestrel.ConfigureHttpsDefaults(https => https.RequestProxyClientCertificate(proxyClientCertificate))
+    kestrel.ConfigureHttpsDefaults(https =>
+        https.RequestProxyClientCertificate(proxyClientCertificate)
+    )
 );
 
 builder.Services.AddHealthChecks();

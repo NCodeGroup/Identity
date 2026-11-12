@@ -199,10 +199,8 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
     [Fact]
     public void IsTrusted_WhenTheAnchorFileIsRewritten_UsesTheNewAnchors()
     {
-        using var firstAuthority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
-            "CN=first",
-            Now
-        );
+        using var firstAuthority =
+            ProxyClientCertificateTestCertificates.CreateCertificateAuthority("CN=first", Now);
         using var secondAuthority =
             ProxyClientCertificateTestCertificates.CreateCertificateAuthority("CN=second", Now);
         using var firstLeaf = CreateClientLeaf(firstAuthority);

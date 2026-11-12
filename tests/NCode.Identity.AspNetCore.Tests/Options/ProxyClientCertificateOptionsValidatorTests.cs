@@ -57,7 +57,10 @@ public sealed class ProxyClientCertificateOptionsValidatorTests : IDisposable
     {
         var result = Validator.Validate(
             name: null,
-            new ProxyClientCertificateOptions { CertificateAuthorityPath = WriteCertificateAuthority() }
+            new ProxyClientCertificateOptions
+            {
+                CertificateAuthorityPath = WriteCertificateAuthority(),
+            }
         );
 
         Assert.True(result.Failed);

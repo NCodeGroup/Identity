@@ -30,7 +30,9 @@ public static class ProxyClientCertificateConfiguration
             ArgumentNullException.ThrowIfNull(configuration);
 
             var options = new ProxyClientCertificateOptions();
-            var section = configuration.GetSection(ProxyClientCertificateOptions.DefaultSectionName);
+            var section = configuration.GetSection(
+                ProxyClientCertificateOptions.DefaultSectionName
+            );
             section.BindStrictly(options);
 
             return options;

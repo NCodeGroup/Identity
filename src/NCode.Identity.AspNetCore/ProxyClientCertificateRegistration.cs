@@ -43,7 +43,9 @@ public static class ProxyClientCertificateRegistration
             ArgumentNullException.ThrowIfNull(serviceCollection);
             ArgumentNullException.ThrowIfNull(configuration);
 
-            var section = configuration.GetSection(ProxyClientCertificateOptions.DefaultSectionName);
+            var section = configuration.GetSection(
+                ProxyClientCertificateOptions.DefaultSectionName
+            );
 
             // ValidateOnStart materializes the options as the host starts, so a requirement that cannot be honored
             // stops the host before it accepts traffic (ADR-1137).

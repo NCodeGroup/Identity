@@ -173,14 +173,14 @@ lines from the pull request title and description they write. See
 
 When the user authorizes a push (says "push"), it pushes the current **topic branch** — never `main`, which accepts
 changes only by pull request through the merge queue
-([ADR-1261](../../docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md),
+([ADR-1261](../../docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md),
 [ADR-1263](../../docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)) — and opens its
 pull request against `main` as a **draft** if none exists (a push to an open pull request's branch updates it). For a
 plan, `/ship-plan` does both, as the [Landing](../../AGENTS.md#landing) section of `AGENTS.md` says: its `draft: yes`
 opens the pull request as a draft, and its `gate` runs gate 4 below before each push. Without a plan, push the branch
 and run `gh pr create --draft`. The agent stops there: it never marks the pull request ready for review and never
 enables auto-merge, because the user self-reviews the draft and that step is the approval
-([ADR-1269](../../docs/decisions/1269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)). Run these gates
+([ADR-1261](../../docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md)). Run these gates
 **before** pushing:
 
 1. **Finish the plan.** If a `PLAN.md` exists, every step is `[x]`, its review (`/review-plan-diff`) has run with

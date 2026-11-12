@@ -65,7 +65,7 @@ See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-th
   runs only the tests its change reaches. A merge goes through the **merge queue**, which runs the full gate on the
   merged result and squash-merges it, so a branch need not be up to date with `main`. An approval requirement is added
   when a second maintainer exists
-  ([ADR-1261](docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md), which supersedes
+  ([ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md), which supersedes
   the unprotected trunk of [ADR-1125](docs/decisions/1125-trunk-based-development-on-main.md);
   [ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) for the gate
   tiers and the merge queue).

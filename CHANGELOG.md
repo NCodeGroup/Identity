@@ -3806,8 +3806,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1170](docs/decisions/1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md#dual-runtime-customization-contract).
 
 - **Pull requests into `main` squash-merge through the merge queue.**
-  [ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) records the
-  decision and supersedes project-template ADR-0013; ADR-1261, ADR-1263 and ADR-1269 refine project-template ADR-0005
+  [ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md) records the
+  decision and supersedes project-template ADR-0013; ADR-1261, ADR-1263 and ADR-1261 refine project-template ADR-0005
   and ADR-0006.
 
 - **CI runs show their results on GitHub.** The run summary page opens with the Definition of Done verdict and a

@@ -175,7 +175,7 @@ in place
 ([project-template ADR-0012](docs/decisions/project-template/0012-the-templates-records-are-numbered-below-1000-a-projects-from-1000.md)),
 so a bare ADR number names one record. Ten family records override template records:
 
-- [ADR-1261](docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md) supersedes
+- [ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md) supersedes
   project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue.
 - [ADR-1306](docs/decisions/1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) supersedes
   project-template ADR-0007, because a Markdown file links an issue by its address, which GitHub doesn't autolink in a
@@ -298,7 +298,7 @@ needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI
   `/ship-plan` (every tool has it): it runs the [Landing](#landing) section's `gate`, pushes the plan's branch and
   opens a pull request against `main`, as a draft because that section sets `draft: yes`: a pull request stays a draft
   until its author reviews it
-  ([ADR-1269](docs/decisions/1269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)). The squash merge takes
+  ([ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md)). The squash merge takes
   its subject from the pull request title, which `/ship-plan` takes from the plan's title, so a plan's title is a
   conventional commit subject, such as `# Plan: build: update project-template to v0.23.0`. `/continue-plan` shows
   where every open plan stands and the command to run next. In Claude Code, `/run-issues #<number> …` takes issues, or
@@ -376,13 +376,13 @@ after that many rounds of review feedback, `/run-issues` and `/run-feedback` rec
 PowerShell command that sets up the shell the workflow's commands run in, which `/ship-plan`, `/run-issues`,
 `/address-feedback` and `/run-feedback` dot-source before the gate. Here the `main`
 ruleset already requires pull requests through the merge queue
-([ADR-1261](docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), so `protect`
+([ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md)), so `protect`
 is `none`; releases are tagged on `release/vX.Y` lines, never one per plan
 ([GOVERNANCE.md](GOVERNANCE.md#releases-branches--tags)), so `release` is `none` and `tag-release.yml` publishes
 nothing; the family has released nothing and
 stores nothing a reader must keep ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)), so
 `pre-release` is `untracked`; a pull request stays a draft until
-its author reviews it ([ADR-1269](docs/decisions/1269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)),
+its author reviews it ([ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md)),
 so `draft` is `yes`; `gate` is the push protocol's local pre-push gate
 ([ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)); NCode
 Review reviews every pull request (`.github/workflows/code-review.yml`), so `review-bots` is `ncode-review`; nothing
@@ -428,7 +428,7 @@ from the root [`version.json`](version.json). See [`CONTRIBUTING.md`](CONTRIBUTI
 
 This family is **greenfield and pre-release**: all work lands on the single `main` trunk through pull requests
 ([project-template ADR-0004](docs/decisions/project-template/0004-trunk-based-development-on-the-default-branch.md),
-[ADR-1261](docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), breaking changes are
+[ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md)), breaking changes are
 acceptable (prefer a clean cutover over compatibility shims, and expect `PublicAPI.Unshipped.txt` churn), and the design
 follows an **Auth0-parity-plus** philosophy — familiar Auth0 shapes with more flexible, data-driven controls. See
 [ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md). Because of this posture, **default to the

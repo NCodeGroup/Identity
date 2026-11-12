@@ -93,14 +93,12 @@ The records are grouped by area; within an area they are in number order.
 | [1188](./1188-general-time-helpers-live-in-a-dependency-free-package.md) | General time helpers live in a dependency-free package | Superseded |
 | [1190](./1190-hashing-names-the-framework-algorithm-and-binary-encodings-are-registered-strategies.md) | Hashing names the framework algorithm, and binary encodings are registered strategies | Accepted |
 | [1197](./1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) | Telemetry has one owner per signal, bounded attributes, and spans that mirror their histograms | Accepted |
-| [1261](./1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md) | main accepts changes only through pull requests that pass the gate | Accepted |
+| [1261](./1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md) | The main branch takes only reviewed pull requests, squash-merged by the merge queue past required checks | Accepted |
 | [1262](./1262-minimal-api-request-delegates-are-generated-at-compile-time.md) | Minimal-API request delegates are generated at compile time | Accepted |
 | [1263](./1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) | Feature branches run a fast gate and the merge queue runs the full gate | Accepted |
 | [1264](./1264-pending-work-is-tracked-as-github-issues.md) | Pending work is tracked as GitHub issues | Superseded |
 | [1266](./1266-text-is-encoded-and-decoded-only-through-strict-encodings.md) | Text is encoded and decoded only through strict encodings | Accepted |
-| [1269](./1269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md) | A pull request stays a draft until its author reviews it | Accepted |
 | [1302](./1302-prerelease-packages-publish-from-a-prerelease-tag-or-a-manual-run-on-main-through-trusted-publishing.md) | Prerelease packages publish from a prerelease tag or a manual run on main, through trusted publishing | Accepted |
-| [1304](./1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) | Pull requests into main merge by squash through the merge queue | Accepted |
 | [1305](./1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md) | Shipped versions are serviced from release lines beside the trunk | Accepted |
 | [1306](./1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) | Pending work is tracked as GitHub issues, linked by address in repository files | Accepted |
 | [1307](./1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md) | identity-platform records its decisions and pending work in this repository | Accepted |

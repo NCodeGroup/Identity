@@ -3,7 +3,7 @@
 - **Status:** Accepted (amended by [ADR-1430](1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md): the End-to-end check is a sixth required check)
 - **Date:** 2026-10-25
 - **Deciders:** NCode Group
-- **Refines:** [project-template ADR-0005](project-template/0005-the-default-branch-accepts-changes-only-through-pull-requests.md); its merge method is [ADR-1304](1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md)
+- **Refines:** [project-template ADR-0005](project-template/0005-the-default-branch-accepts-changes-only-through-pull-requests.md); its merge method is [ADR-1261](1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md)
 
 ## Context
 
@@ -17,7 +17,7 @@ with all tests, but its cost still grows with the whole suite, not with the chan
 Most changes touch a few projects. A change to `src/NCode.Identity.Time` reaches 5 test projects through the project graph, and a
 docs-only change reaches none, yet every gate runs every test.
 
-[ADR-1261](1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md) requires a pull request into
+[ADR-1261](1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md) requires a pull request into
 `main` to pass its checks on a branch up to date with `main`. That strict rule makes every pull request re-run the whole
 gate after each update of its branch, and each merge puts every other open pull request behind `main` again. The rule
 exists for a real reason: two pull requests, each green against an older `main`, can break `main` together.
@@ -119,7 +119,7 @@ ADR-1261 stands.
 
 ## References
 
-- [ADR-1261](1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md) — the protected trunk, whose
+- [ADR-1261](1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md) — the protected trunk, whose
   strict up-to-date requirement this supersedes.
 - [ADR-1262](1262-minimal-api-request-delegates-are-generated-at-compile-time.md) — the compile-time delegates that
   shorten the test stage.

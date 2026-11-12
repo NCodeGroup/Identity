@@ -20,7 +20,7 @@ Both need Docker and real browsers, and a browser download is roughly 500 MB. Th
 ([`build/dod.ps1`](../../build/dod.ps1)) is the one gate that developers, agents and CI run, and a container runtime
 must not become a prerequisite of it, for the reason given in
 [ADR-1071](1071-aspire-local-dev-orchestrator.md). The suites therefore run in their own gate, which has its own check
-([ADR-1261](1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md) decision 5).
+([ADR-1261](1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md) decision 5).
 
 ## Decision
 
@@ -127,7 +127,7 @@ run the BFF in Chromium, Firefox and WebKit against a containerized Keycloak.**
 
 ## References
 
-- [ADR-1261](1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md),
+- [ADR-1261](1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md),
   [ADR-1263](1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md),
   [ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md),
   [ADR-1431](1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md),

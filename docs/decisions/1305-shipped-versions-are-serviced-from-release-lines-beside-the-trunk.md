@@ -31,7 +31,7 @@ Each shipped `major.minor` is serviced from a long-lived release line beside the
    rulesets that protect the lines and tags.
 4. **Neither a second contributor nor the first stable release brings back an integration branch.** A second
    maintainer adds an approval requirement to the pull request rule
-   ([ADR-1261](1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)); the first stable release
+   ([ADR-1261](1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md)); the first stable release
    cuts the first release line.
 5. **Deployment is gated by an environment, not a branch.** Promotion to a hosted environment goes through a GitHub
    deployment environment with its own required reviewers and secrets, so the approval is recorded against the
@@ -58,7 +58,7 @@ Each shipped `major.minor` is serviced from a long-lived release line beside the
 - [project-template ADR-0004](project-template/0004-trunk-based-development-on-the-default-branch.md) — the trunk this
   record refines.
 - [ADR-1125](1125-trunk-based-development-on-main.md) — the record this supersedes; its unprotected trunk was already
-  superseded by [ADR-1261](1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md).
+  superseded by [ADR-1261](1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md).
 - [ADR-1263](1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) — the gates, rulesets
   and backports of the release lines.
 - [`GOVERNANCE.md`](../../GOVERNANCE.md#releases-branches--tags) and [`version.json`](../../version.json).

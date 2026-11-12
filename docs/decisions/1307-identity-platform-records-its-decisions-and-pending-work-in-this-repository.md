@@ -39,7 +39,7 @@ identity-platform, whose `AGENTS.md` lists them as overrides, that supersedes th
    history: the pull request's title, a conventional commit subject, and its description become the one commit on
    `main`, and agent attribution is avoided in both
    ([project-template ADR-0018](project-template/0018-agent-attribution-is-avoided-not-enforced.md)); the merge
-   method's reasons are [ADR-1304](1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md)'s.
+   method's reasons are [ADR-1261](1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md)'s.
 
 In this repository, the record refines project-template ADR-0010 and ADR-1306: `docs/decisions/` and the issues also
 serve identity-platform.
@@ -66,7 +66,7 @@ serve identity-platform.
 
 - [ADR-1132](1132-platform-infrastructure-as-code-is-public-on-github.md) — identity-platform is a repository of its
   own.
-- [ADR-1304](1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) and
+- [ADR-1261](1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md) and
   [ADR-1306](1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) — this repository's merge
   method and pending-work records.
 - identity-platform's [`AGENTS.md`](https://github.com/NCodeGroup/identity-platform/blob/main/AGENTS.md), which lists

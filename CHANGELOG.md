@@ -2842,8 +2842,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   starts and on every configuration change
   ([#614](https://github.com/NCodeGroup/identity/issues/614),
   [#651](https://github.com/NCodeGroup/identity/issues/651),
-  [ADR-1439](docs/decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md),
-  [ADR-1446](docs/decisions/1446-a-set-of-frontends-that-names-an-unregistered-key-ring-is-refused.md),
+  [ADR-1439](docs/decisions/1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md),
   [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)).
 
 - **The management console reads its session from its BFF.** The `RuntimeConfig` union and `loadBffRuntimeConfig`, the

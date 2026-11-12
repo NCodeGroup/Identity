@@ -21,7 +21,7 @@ must never hold a secret.
 
 The management console is a host and an origin of its own
 ([ADR-1437](1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)). Its key rings are
-PEM files ([ADR-1439](1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)). Its image is built
+PEM files ([ADR-1439](1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md)). Its image is built
 and published beside the host's, and an operator deploys both from one release. Issue
 [#610](https://github.com/NCodeGroup/identity/issues/610) asks for the console in the chart.
 
@@ -114,7 +114,7 @@ release the host or the console would refuse.**
   [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md),
   [ADR-1437](1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md),
-  [ADR-1439](1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)
+  [ADR-1439](1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md)
 - `charts/ncode-identity-host`, `.github/workflows/host-chart.yml`
 - Issues [#87](https://github.com/NCodeGroup/identity/issues/87),
   [#610](https://github.com/NCodeGroup/identity/issues/610)

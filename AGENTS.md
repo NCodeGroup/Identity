@@ -105,7 +105,7 @@ compiles it and no gate tests it
   ([ADR-1382](docs/decisions/1382-the-bffs-browser-security-headers-and-its-client-key-endpoint-are-each-opt-in-for-the-host.md));
   `NCode.Identity.Bff.Server` is its turnkey composition root (`AddIdentityBff(configuration)`), which also loads the
   key rings that `Bff:KeyRings` names from PEM files
-  ([ADR-1439](docs/decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)); the opt-in
+  ([ADR-1439](docs/decisions/1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md)); the opt-in
   `NCode.Identity.Bff.Blazor` (`AddBffBlazorLibrary()`, `AsBffComponents()`) and `NCode.Identity.Bff.Blazor.Client`
   (`AddBffBlazorClient()`) serve Blazor's interactive server and WebAssembly render modes over the same session, and
   server-rendered pages and SignalR hubs use the core

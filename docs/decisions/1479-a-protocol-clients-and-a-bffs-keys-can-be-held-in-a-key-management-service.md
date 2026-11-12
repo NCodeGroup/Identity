@@ -9,7 +9,7 @@
 A protocol client's key ring is a keyed `ISecretKeyCollectionProvider`
 ([ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md)), and a BFF loads its
 key rings from PEM files
-([ADR-1439](1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)). Without a key management
+([ADR-1439](1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md)). Without a key management
 service (KMS), the private halves of the client-assertion, DPoP and decryption keys live in the memory of every
 replica.
 
@@ -88,7 +88,7 @@ every key ring when the host starts.**
    The row decides each remote key's use, so one client-authentication ring holds a signing key and a decryption key
    side by side, and `/bff/jwks` publishes both halves with their `use`.
 7. **A remote key is resolved, read and proved as its ring loads, and a failure stops the host.** The ring loads as
-   [ADR-1439](1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md) describes:
+   [ADR-1439](1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md) describes:
    `BffKeyRingLoader` (`IHostedLifecycleService.StartingAsync`) loads every `Bff:KeyRings` entry into `BffKeyRings`,
    and the keyed `ISecretKeyCollectionProvider` registered per entry returns the loaded ring. A remote key is resolved,
    read and proved before its ring loads, so a key that the deployment's identity cannot read or use stops the host
@@ -98,7 +98,7 @@ every key ring when the host starts.**
    ring's keyed provider resolves once `StartingAsync` has run: a service that resolves it earlier, such as an eager
    singleton or an options validator, gets an `InvalidOperationException` that names the ring. The BFF resolves a ring
    only when a request uses it, and the set check of
-   [ADR-1446](1446-a-set-of-frontends-that-names-an-unregistered-key-ring-is-refused.md) asks only whether the ring is
+   [ADR-1439](1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md) asks only whether the ring is
    registered (`IClientKeyRingProvider.HasKeyRing`), so nothing resolves a ring before it loads.
 8. **A ring's KMS key is the operator's.** Neither the BFF nor the protocol client creates, tags or destroys a KMS
    key, so neither needs `SecretProtection:RemoteKeys:Deployment`, and no stored secret names a key ring's key: it is
@@ -145,9 +145,9 @@ every key ring when the host starts.**
 
 - [ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md)
 - [ADR-1286](1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md)
-- [ADR-1439](1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)
+- [ADR-1439](1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md)
 - [ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)
-- [ADR-1446](1446-a-set-of-frontends-that-names-an-unregistered-key-ring-is-refused.md)
+- [ADR-1439](1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md)
 - [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)
 - [ADR-1472](1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md)
 - [ADR-1474](1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md)

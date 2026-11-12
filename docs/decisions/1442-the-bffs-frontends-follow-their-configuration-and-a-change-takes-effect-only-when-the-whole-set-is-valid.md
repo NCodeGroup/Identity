@@ -4,7 +4,7 @@
   [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md) decisions 7, 8 and 11
   and [ADR-1433](1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md) decision 4; decision 4
   amended by
-  [ADR-1446](1446-a-set-of-frontends-that-names-an-unregistered-key-ring-is-refused.md): the library also registers
+  [ADR-1439](1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md): the library also registers
   `BffKeyRingCheck`; decision 1 amended by
   [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md):
   every key ring loads when the host starts)
@@ -45,7 +45,7 @@ derives from its options reads the current set.**
    options: the last configuration change that validated as a whole. The `Bff:KeyRings` entries are the exception:
    `AddBffConfiguration` registers a keyed provider for each entry present when it is called, and every key ring loads
    once, when the host starts, so a change adds, removes and re-reads no key ring until the process starts
-   again ([ADR-1439](1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md),
+   again ([ADR-1439](1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md),
    [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)).
    `AddBffConfiguration` registers the section's `IOptionsChangeTokenSource<BffOptions>`, so a source that reloads
    drives the catalog.

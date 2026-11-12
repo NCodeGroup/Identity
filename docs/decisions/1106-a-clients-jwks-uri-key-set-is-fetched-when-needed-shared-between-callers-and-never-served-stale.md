@@ -34,7 +34,7 @@ shared between concurrent callers, remembered when the fetch fails, and never se
 
 2. **A client has one source of public keys.** Without a `jwks_uri` the resolver returns the client's stored keys. With
    one it returns the client's shared (non-asymmetric) secrets plus the keys published there, and never the stored
-   public keys, as [ADR-1161](1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md) decides.
+   public keys, as [ADR-1161](1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md) decides.
 
 3. **The URI is validated and the fetch is bounded.** The URI must be absolute `https` and pass `jwks_uri_allowed_hosts`.
    The set is fetched through the guarded client of
@@ -101,7 +101,7 @@ shared between concurrent callers, remembered when the fetch fails, and never se
 - [project-template ADR-0145](project-template/0145-outbound-calls-are-bounded-and-caller-supplied-urls-are-guarded.md),
   decisions 4 and 5
 - [ADR-1104](1104-import-public-asymmetric-secret-material.md),
-  [ADR-1161](1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md),
+  [ADR-1161](1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md),
   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md),
   [ADR-1350](1350-a-shared-fetch-is-single-flight-through-one-helper.md)
 - Issues [#54](https://github.com/NCodeGroup/identity/issues/54) and

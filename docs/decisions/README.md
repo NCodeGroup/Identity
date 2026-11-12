@@ -234,11 +234,10 @@ The records are grouped by area; within an area they are in number order.
 | [1111](./1111-complete-outbound-fetch-ssrf-coverage.md) | Complete outbound-fetch SSRF coverage and bound the `request_uri` fetch | Accepted |
 | [1145](./1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md) | A client authenticates only with its registered method, which a registered descriptor names | Accepted |
 | [1155](./1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md) | JWTs exchanged with a client follow its registered metadata within its effective ceilings | Accepted |
-| [1161](./1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md) | A client's public keys have one source and are imported under one policy | Accepted |
+| [1161](./1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md) | Every owner's public keys have one source and are imported under one key policy | Accepted |
 | [1172](./1172-forwarded-client-certificates-are-decoded-by-a-registered-format.md) | Forwarded client certificates are decoded by a registered format | Accepted |
 | [1173](./1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md) | `tls_client_auth` certificates chain to configured trust anchors | Accepted |
 | [1176](./1176-dpop-proofs-are-a-jose-building-block.md) | DPoP proofs are a JOSE building block | Accepted |
-| [1186](./1186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md) | Every owner's keys are imported and updated under the client-key policy | Accepted |
 | [1252](./1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md) | A revocation list retrieval is shared, a failed one is remembered, and soft-fail is opt-in | Accepted |
 | [1259](./1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md) | Revocation is checked by registered sources, OCSP before every CRL form | Accepted |
 | [1315](./1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) | Outbound calls to caller-supplied URLs share one guarded, bounded client | Accepted |
@@ -248,7 +247,6 @@ The records are grouped by area; within an area they are in number order.
 | [1387](./1387-the-client-assertion-audience-and-the-dpop-htu-are-compared-with-the-tenants-published-urls.md) | The client-assertion audience and the DPoP `htu` are compared with the tenant's published URLs | Accepted |
 | [1399](./1399-failed-client-authentications-are-limited-per-remote-address-by-default.md) | Failed client authentications are limited per remote address by default | Accepted |
 | [1400](./1400-the-revocation-sources-are-described-and-configuration-selects-and-orders-them.md) | The revocation sources are described, and configuration selects and orders them | Accepted |
-| [1497](./1497-a-registered-key-set-names-a-key-without-a-kid-by-its-thumbprint.md) | A registered key set names a key without a kid by its thumbprint | Accepted |
 
 ### Secrets and keys
 

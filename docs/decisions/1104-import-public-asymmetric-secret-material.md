@@ -1,7 +1,7 @@
 # 1104. Import of caller-supplied public asymmetric secret material (BYOK)
 
 - **Status:** Accepted (client keys amended by
-  [ADR-1161](1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md): a client's key is
+  [ADR-1161](1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md): a client's key is
   imported under one client-key policy, keeps its own `kid`, and registration no longer stores the `jwks` document;
   import formats amended by [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md): a format is an open name
   each key type declares, see decision 6; amended by

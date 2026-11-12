@@ -433,7 +433,7 @@ internal sealed class DefaultSecretValidator(
     }
 
     /// <inheritdoc />
-    // See ADR-1161 and ADR-1186.
+    // See ADR-1161.
     public ManagementError? ValidateUpdate(PersistedSecret secret, UpdateSecretRequest request)
     {
         ArgumentNullException.ThrowIfNull(secret);

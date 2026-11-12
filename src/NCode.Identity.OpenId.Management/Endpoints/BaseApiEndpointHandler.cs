@@ -384,7 +384,7 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
     /// <param name="imported">The imported key.</param>
     /// <param name="owner">The kind of owner, such as <c>client</c> or <c>tenant</c>, for the problem detail.</param>
     /// <returns>The conflict result, or <c>null</c> when the <c>kid</c> is free.</returns>
-    // See ADR-1161 and ADR-1186.
+    // See ADR-1161.
     internal static IResult? KeyIdConflictOrDefault(
         IEnumerable<PersistedSecret> secrets,
         PersistedSecret imported,

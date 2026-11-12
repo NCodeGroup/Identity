@@ -1171,8 +1171,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   identifier). Key types are matched by their JSON Web Key `kty` through `ISecretKeyTypeDescriptor.JwkKeyType` and
   `ISecretKeyTypeCatalog.TryGetByJwkKeyType`, so a client may register `OKP` (EdDSA) and `AKP` (ML-DSA) keys as well as
   RSA and EC, and the key-to-algorithm rule is `IAlgorithmCollection.ValidateKeyAlgorithm` (`KeyAlgorithmDeclaration`)
-  ([ADR-1497](docs/decisions/1497-a-registered-key-set-names-a-key-without-a-kid-by-its-thumbprint.md),
-  [ADR-1161](docs/decisions/1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)).
+  ([ADR-1161](docs/decisions/1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md)).
 
 - **A client secret is stored as a one-way verifier or as the UTF-8 bytes of the string it reveals, and a cryptographic
   key as raw bytes.** A symmetric `PersistedSecret` serves three purposes with three storage shapes: a shared secret an
@@ -1552,7 +1551,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   checking that it carries the key's public key, so a client that registers its keys as `jwks` or publishes them at a
   `jwks_uri` authenticates with a certificate listed there (RFC 8705 §2.2), and a key whose `x5c` is empty, malformed,
   or carries another key is refused
-  ([ADR-1161](docs/decisions/1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)).
+  ([ADR-1161](docs/decisions/1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md)).
 
 - **`DistinguishedName` matches a distinguished name as RFC 4517 `distinguishedNameMatch` does.**
   `DistinguishedName.TryParse` reads an RFC 4514 string and what an operator pastes: whitespace around `=`, `,`, and
@@ -1601,7 +1600,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **A `kid` is the client's own name for its key, unique among that client's keys.** Any number of clients, in any
   tenants, register keys with the same `kid`; the management import keeps a JSON Web Key's `kid`, so a client that signs
   with it matches its key; and a registration update (RFC 7592) that changes `jwks` sets the client's keys to the ones
-  it lists ([ADR-1161](docs/decisions/1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)).
+  it lists ([ADR-1161](docs/decisions/1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md)).
 
 - **OAuth 2.0 Dynamic Client Registration (RFC 7591/7592).** The `registration_endpoint` (`POST /oauth2/register`),
   advertised in discovery, accepts a JSON client-metadata document and returns the assigned `client_id`, a one-time
@@ -2351,7 +2350,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Every key the management API reports carries its `kid`.** `SecretResource` and `CreatedSecretResource` have a
   required `KeyId`: the `kid` the key was imported with, or its secret identifier when it has none
-  ([ADR-1186](docs/decisions/1186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md)).
+  ([ADR-1161](docs/decisions/1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md)).
 
 - **A secret is created with the key parameters its validation resolved.** `ISecretValidator.ValidateCreate` returns a
   `SecretCreateValidation` that carries the resolved `SecretKeyGenerationParameters`, and the endpoints generate the key
@@ -4504,7 +4503,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **A JWT signed with a certificate key is checked against the certificate's validity in UTC.** Client assertions,
   request objects and CIBA requests signed with an expired certificate fail, and current ones pass, whatever the host's
   time zone. A client key registered or published with an `x5c` certificate is subject to this certificate-lifetime
-  check ([ADR-1161](docs/decisions/1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)).
+  check ([ADR-1161](docs/decisions/1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md)).
 
 - **RFC 7519 `NumericDate` values are read strictly and never fault the server.** `NCode.Identity.Json.DateCoercion` offers the
   non-throwing `TryFromNumericDate(long)`, `TryFromNumericDate(double)` (fractional seconds, kept to tick precision as
@@ -4914,14 +4913,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   key added while a `jwks_uri` is set. Registration imports the keys of a `jwks` as the client's secrets, every
   registration response projects them back from the stored keys, and a registration update (RFC 7592) sets the client's
   public keys to its `jwks`, or removes them when it switches to a `jwks_uri`
-  ([ADR-1161](docs/decisions/1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)).
+  ([ADR-1161](docs/decisions/1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md)).
 
 - **A client's key set carries only consistent public keys.** A key carrying any private or symmetric member (`d`, `p`,
   `q`, `dp`, `dq`, `qi`, `oth`, `k`, `priv`) is refused at registration, at the management import, and by every key-type
   descriptor, and a `jwks_uri` set that publishes one is refused as a whole, so no private or symmetric key material is
   stored in settings or echoed back. A key's `use`, `key_ops`, and `alg` must agree with each other and with the key at
   every entry point, including the management update of a client key's metadata
-  ([ADR-1161](docs/decisions/1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)).
+  ([ADR-1161](docs/decisions/1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md)).
 
 - **`tls_client_auth` validates the presented certificate's chain in the server and fails closed.** Matching a
   registered subject is not enough, and the server never trusts a TLS terminator to have validated the chain, so a
@@ -5468,7 +5467,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `use`, `key_ops` or `alg` contradicts it is refused with a `400` that says why, and a `kid` already used by another of
   the owner's keys is a `409 Conflict`. Their update endpoints check `use` and `alg` against the key through
   `ISecretValidator.ValidateUpdate` and keep the key's `kid`
-  ([ADR-1186](docs/decisions/1186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md)).
+  ([ADR-1161](docs/decisions/1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md)).
 
 - **A system resource server holds no keys.** The management API refuses to create or import a secret for a system
   resource server with `409 Conflict`, and issuance ignores any key stored on one

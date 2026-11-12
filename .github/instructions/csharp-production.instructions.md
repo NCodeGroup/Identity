@@ -636,7 +636,7 @@ than inlining the rationale.
   code; the route group describes `401`, `403`, `412`, `415`, its `409` and `503`, and the binding `400`. A handler's
   `Map_Always_DeclaresAndDescribesEveryProblemARouteAnswers`, `ManagementRouteProblemDeclarationTests`,
   `ManagementRequestBindingTests` and `ManagementOpenApiDocumentTests` pin them. See
-  [ADR-1186](../../docs/decisions/1186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md),
+  [ADR-1161](../../docs/decisions/1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md),
   [ADR-1483](../../docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md),
   [ADR-1481](../../docs/decisions/1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md),
   [ADR-1067](../../docs/decisions/1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md) and
@@ -1025,7 +1025,7 @@ invariants, the Law of Demeter, and no call nested in another call's arguments. 
   `jwks_uri`), and never use a key's `kid` as its secret identifier: a `kid` is the owner's name for the key
   (`PersistedSecret.KeyId`), while a secret identifier is globally unique. Match a key type by its JSON Web Key `kty`
   through `ISecretKeyTypeCatalog.TryGetByJwkKeyType`, never a `switch` over `kty` values. See
-  [ADR-1161](../../docs/decisions/1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md).
+  [ADR-1161](../../docs/decisions/1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md).
 - 👁 **Read a client's certificate only through `IClientCertificateResolver`.** It is the one place that knows where the
   deployment's certificate comes from: the connection under direct TLS, and behind a proxy only the trusted forwarded
   header, decoded by the `IClientCertificateHeaderDecoder` registered for the configured format. Never read

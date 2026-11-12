@@ -12,7 +12,7 @@
 
 Four paths set the password of a local account: the management API's create and reset
 ([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)), the
-self-service change ([ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md)), and the
+self-service change ([ADR-1230](1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md)), and the
 developer and conformance seeders. Each of them accepts any non-empty value, so an account can hold a password that
 anyone guesses at the first attempt (issue [#292](https://github.com/NCodeGroup/identity/issues/292)).
 
@@ -147,7 +147,7 @@ lists.**
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — the composition root wires the defaults.
 - [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) — the domains of the length settings.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — the error codes are an open vocabulary.
-- [ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md) — the self-service change.
+- [ADR-1230](1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md) — the self-service change.
 - [ADR-1237](1237-failed-password-attempts-are-limited-per-account.md) — the limit on failed attempts.
 - Code: `NCode.Identity.OpenId.Authentication.Passwords.IPasswordPolicy`,
   `NCode.Identity.OpenId.Authentication.Passwords.DefaultPasswordPolicy`,

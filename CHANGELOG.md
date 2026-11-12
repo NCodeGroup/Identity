@@ -2055,7 +2055,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   sends back-channel logout, revokes every grant issued under no session (`GrantFilter.WithoutSession`), and keeps the
   current session and the consents. A credential backend offers the change by registering `IInteractivePasswordChanger`,
   which returns an `InteractivePasswordChangeResult`, as the local accounts do
-  ([ADR-1230](docs/decisions/1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md), issue
+  ([ADR-1230](docs/decisions/1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md), issue
   [#290](https://github.com/NCodeGroup/identity/issues/290)).
 
 - **A tenant brands its login, consent, and account pages.** The interactive surface registers the tenant settings

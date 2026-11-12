@@ -148,7 +148,7 @@ includes, that the interactive sign-in sends before it creates a session, and wh
   time it runs. Each self-service request validates and touches its session.
 - A client that disconnects after a committed change does not keep the other sessions active.
 - A self-service password change keeps the current session
-  ([ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md)).
+  ([ADR-1230](1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md)).
 
 ## References
 

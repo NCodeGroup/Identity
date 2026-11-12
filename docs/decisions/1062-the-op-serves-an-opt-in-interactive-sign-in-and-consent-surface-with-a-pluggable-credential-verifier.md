@@ -92,7 +92,7 @@ The surface is the leaf package pair `NCode.Identity.OpenId.Authentication.Inter
   ([ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md)). It registers
   `LocalAccountInteractiveCredentialVerifier`, which verifies through secure buffers and issues a self-issued
   principal, and `LocalAccountInteractivePasswordChanger`
-  ([ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md)).
+  ([ADR-1230](1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md)).
 - An LDAP, external-IdP or passwordless backend registers its own `IInteractiveCredentialVerifier`.
 
 ### Extensibility seams
@@ -148,7 +148,7 @@ a full browser round trip needs the bundle built.
   [ADR-1081](1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md):
   the principal, the standing check and the consent the login and consent pages use.
 - [ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) and
-  [ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md): the local-account backend
+  [ADR-1230](1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md): the local-account backend
   and the password changer.
 - [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md) and
   [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md):

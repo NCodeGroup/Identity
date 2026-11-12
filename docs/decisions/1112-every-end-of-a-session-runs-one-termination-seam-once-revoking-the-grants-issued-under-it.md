@@ -80,7 +80,7 @@ only once it has claimed the session, and which revokes every grant issued under
    committing attempt read, after the save, so a payload that cannot be read never keeps a session active.
    `DefaultSessionService` dispatches the termination only when its call claimed the session, through one private
    helper, `TerminateOnceAsync`, which claims, dispatches and reports whether it claimed. The paths are
-   `ISessionService.RevokeAsync`, `RevokeAllExceptAsync` ([ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md)
+   `ISessionService.RevokeAsync`, `RevokeAllExceptAsync` ([ADR-1230](1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md)
    states what it revokes), the eviction, the RP-initiated logout (through `RevokeAsync`) and the termination of an
    ended session ([ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md),
    [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)).
@@ -169,7 +169,7 @@ check rejects them.
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md),
   [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md) and
-  [ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md) — the decisions this one
+  [ADR-1230](1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md) — the decisions this one
   builds on.
 - Issues [#63](https://github.com/NCodeGroup/identity/issues/63),
   [#286](https://github.com/NCodeGroup/identity/issues/286),

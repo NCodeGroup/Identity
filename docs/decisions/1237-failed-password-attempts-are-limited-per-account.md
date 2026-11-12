@@ -15,7 +15,7 @@
 ## Context
 
 The interactive sign-in, the password grant and the self-service change of a password
-([ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md)) verify a password as often
+([ADR-1230](1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md)) verify a password as often
 as they are asked, so a password can be guessed without end (issue [#293](https://github.com/NCodeGroup/identity/issues/293)). The request rate limiter
 ([ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)) counts requests per tenant, per
 address and per client, never per account, so a guesser that spreads its attempts across addresses is not limited by
@@ -146,7 +146,7 @@ of its first failure ends, with exactly the answer that a wrong password gets.**
   increment.
 - [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) — the lockout of
   ASP.NET Core Identity is a disabled account.
-- [ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md) — the self-service change.
+- [ADR-1230](1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md) — the self-service change.
 - [ADR-1236](1236-a-password-is-judged-by-one-policy-wherever-it-is-set.md) — the password policy.
 - Code: `NCode.Identity.OpenId.Authentication.Passwords.IPasswordAttemptLimiter`,
   `NCode.Identity.OpenId.Authentication.Passwords.DefaultPasswordAttemptLimiter`,

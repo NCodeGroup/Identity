@@ -311,7 +311,7 @@ The records are grouped by area; within an area they are in number order.
 | [1193](./1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md) | The interactive surface uses the tenant route, host-only cookies and one shared single-page bundle helper | Accepted |
 | [1194](./1194-a-tenant-brands-its-interactive-surface-through-settings.md) | A tenant brands its interactive surface through settings | Accepted |
 | [1229](./1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) | A blocked, disabled or deleted end user loses its sessions and is refused with access_denied | Accepted |
-| [1230](./1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md) | An end user changes their password and keeps only the current session | Accepted |
+| [1230](./1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md) | An end user changes their password through an optional seam and keeps only the current session | Accepted |
 | [1236](./1236-a-password-is-judged-by-one-policy-wherever-it-is-set.md) | A password is judged by one policy wherever it is set | Accepted |
 | [1237](./1237-failed-password-attempts-are-limited-per-account.md) | Failed password attempts are limited per account | Accepted |
 | [1238](./1238-a-password-is-judged-hashed-and-verified-in-its-nfc-form.md) | A password is judged, hashed and verified in its NFC form | Accepted |

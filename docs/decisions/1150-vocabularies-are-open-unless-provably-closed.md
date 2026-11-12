@@ -59,7 +59,7 @@ These are open, and each stays open:
 - `SecretKeyImportFormats`: each key type declares the formats it parses, because a registered key type parses its own
   formats ([ADR-1104](1104-import-public-asymmetric-secret-material.md)).
 - The framework's `HashAlgorithmName` and the `BinaryEncodings` names of registered encoders
-  ([ADR-1190](1190-hashing-names-the-framework-algorithm-and-encodings-are-registered.md)).
+  ([ADR-1190](1190-hashing-names-the-framework-algorithm-and-binary-encodings-are-registered-strategies.md)).
 - Setting scopes: registered `SettingScopeDescriptor` data whose cascade a catalog derives
   ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)), so the settings framework serves any entity an
   extension adds.
@@ -120,7 +120,7 @@ The outcome sets of one library-owned operation each also pass: `PasswordVerific
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md): registered setting names reject unregistered input.
 - [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md): the setting scopes, the case that motivated this rule.
 - [ADR-1098](1098-session-lifecycle-termination-seam.md), [ADR-1104](1104-import-public-asymmetric-secret-material.md)
-  and [ADR-1190](1190-hashing-names-the-framework-algorithm-and-encodings-are-registered.md): the open vocabularies they
+  and [ADR-1190](1190-hashing-names-the-framework-algorithm-and-binary-encodings-are-registered-strategies.md): the open vocabularies they
   hold.
 - RFC 7515, RFC 7516, RFC 7518, RFC 9052 and RFC 9101: the specifications behind the enums that pass.
 - Convention: [`csharp-production.instructions.md`](../../.github/instructions/csharp-production.instructions.md) §2.

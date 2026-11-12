@@ -91,7 +91,7 @@ The records are grouped by area; within an area they are in number order.
 | [1150](./1150-vocabularies-are-open-unless-provably-closed.md) | Vocabularies are open unless provably closed | Accepted |
 | [1170](./1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md) | Agent work is planned on Claude Opus and executed step by step on Claude Sonnet | Accepted |
 | [1188](./1188-general-time-helpers-live-in-a-dependency-free-package.md) | General time helpers live in a dependency-free package | Superseded |
-| [1190](./1190-hashing-names-the-framework-algorithm-and-encodings-are-registered.md) | Hashing names the framework algorithm, and binary encodings are registered strategies | Accepted |
+| [1190](./1190-hashing-names-the-framework-algorithm-and-binary-encodings-are-registered-strategies.md) | Hashing names the framework algorithm, and binary encodings are registered strategies | Accepted |
 | [1197](./1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) | Protocol metrics have one owner per signal and only bounded dimensions | Accepted |
 | [1261](./1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md) | main accepts changes only through pull requests that pass the gate | Accepted |
 | [1262](./1262-minimal-api-request-delegates-are-generated-at-compile-time.md) | Minimal-API request delegates are generated at compile time | Accepted |

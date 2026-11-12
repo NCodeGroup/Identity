@@ -37,7 +37,7 @@ other member from its caller as an argument.**
 3. **Only whole digests of framework hashes are named.** Truncated registry names (`sha-256-128` and the like) are never
    produced: an RFC 7638 thumbprint is the whole digest, and a truncated key identifier weakens the binding. `sha3-224`,
    `blake2*` and `k12-*` are not mapped, because the package hashes with `IncrementalHash`, which computes only
-   framework algorithms ([ADR-1190](1190-hashing-names-the-framework-algorithm-and-encodings-are-registered.md)). A
+   framework algorithms ([ADR-1190](1190-hashing-names-the-framework-algorithm-and-binary-encodings-are-registered-strategies.md)). A
    caller whose runtime computes one of them passes its name to the overload.
 4. **A typed set.** `JsonWebKeySet(JsonElement, IEnumerable<JsonWebKeyTypeDescriptor>)` and
    `JsonWebKeySet.Parse(string, IEnumerable<JsonWebKeyTypeDescriptor>)` read a set with the caller's descriptors.
@@ -87,7 +87,7 @@ other member from its caller as an argument.**
 
 - [ADR-1119](1119-first-class-jwk-jwks-and-thumbprint.md) — first-class JWK, JWKS and thumbprint
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
-- [ADR-1190](1190-hashing-names-the-framework-algorithm-and-encodings-are-registered.md) — hashing names the framework
+- [ADR-1190](1190-hashing-names-the-framework-algorithm-and-binary-encodings-are-registered-strategies.md) — hashing names the framework
   algorithm
 - [ADR-1271](1271-a-key-type-registers-its-json-web-key-rules.md) — a key type registers its JSON Web Key rules
 - RFC 7517 §5 — JWK Set Format

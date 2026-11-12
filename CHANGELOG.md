@@ -1207,7 +1207,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IBinaryEncoder`, and `EncodeBinary`, `GenerateKey` and `HashValue` take the name as a `string`. `AddCryptographyLibrary`
   registers the three built-in encoders, a package adds one, such as Base32, by registering another, and an unregistered
   or duplicate encoding name is rejected
-  ([ADR-1190](docs/decisions/1190-hashing-names-the-framework-algorithm-and-encodings-are-registered.md),
+  ([ADR-1190](docs/decisions/1190-hashing-names-the-framework-algorithm-and-binary-encodings-are-registered-strategies.md),
   [ADR-1150](docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md)).
 
 - **The OAuth and OpenID Connect wire vocabulary lives in a dependency-free package.**

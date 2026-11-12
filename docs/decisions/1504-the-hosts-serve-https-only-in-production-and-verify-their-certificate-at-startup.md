@@ -6,7 +6,7 @@
   [ADR-1258](1258-the-server-sends-strict-transport-security-outside-development.md) and
   [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md);
   amended by
-  [ADR-1505](1505-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md):
+  [ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md):
   the controller verifies the pods against the chart's ingress Secret and authenticates to them with its client
   certificate)
 - **Date:** 2026-11-11
@@ -69,7 +69,7 @@ not a deployment shape.** Development, Staging, Conformance and every other envi
    `existingSecret` (a `kubernetes.io/tls` Secret that also holds `ca.crt`), the cert-manager `issuerRef`, and an
    optional `ingressSecret` (a Secret the operator created, which is then the only Secret the controller verifies the
    pods against; the console's own value falls back to the server's, and without either the controller reads the
-   chart's ingress Secret, never a serving Secret, see [ADR-1505](1505-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)). By
+   chart's ingress Secret, never a serving Secret, see [ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)). By
    default the chart creates a cert-manager `Certificate` per component from a private CA that it also creates (a
    self-signed Issuer, a CA Certificate and a CA Issuer), with an ECDSA P-256 key. The container port is 8443, the
    probes use `scheme: HTTPS`, the Service is `https` on port 443 with `appProtocol: https`, and the Ingress backend
@@ -94,7 +94,7 @@ not a deployment shape.** Development, Staging, Conformance and every other envi
 - **Parse Kestrel's certificate configuration.** Rejected: it duplicates Kestrel's schema and sees none of the
   certificates that code or a selector supplies. The handshake reads what the endpoint serves.
 - **Require a client certificate from the proxy.** Decided in
-  [ADR-1505](1505-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md).
+  [ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md).
 
 ## Consequences
 
@@ -106,7 +106,7 @@ not a deployment shape.** Development, Staging, Conformance and every other envi
 - A TLS-terminating proxy has to speak HTTPS to the pod and, to meet the preferred trust tier, verify the pod's
   certificate.
 - The controller's verification Secret is the chart's ingress Secret, never a serving Secret
-  ([1505](1505-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
+  ([1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
 - The HTTPS redirect of the pipeline applies outside Production only.
 - The unit tests of the inspectors and the probe, the check against real Kestrel, the Production gate and the chart's CI
   gate prove the wiring.

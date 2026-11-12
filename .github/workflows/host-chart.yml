@@ -10,8 +10,8 @@
 # The pods serve HTTPS only: the probes, the Service and the Ingress backend use it, a cert-manager Certificate issues
 # the certificate, and the chosen controller verifies it (ADR-1504). The pods can require the ingress controller's
 # client certificate, and the chart's ingress certificate and its Secret are checked. The job installs the chart in kind
-# behind each controller (ADR-1505).
-# Publishing the chart belongs to the release workflow.
+# behind each controller (ADR-1506).
+# The Publish artifacts workflow publishes the chart (ADR-1505).
 name: Host chart
 
 on:

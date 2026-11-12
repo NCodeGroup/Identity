@@ -69,7 +69,7 @@ serviceCollection.AddGuardedHttpLogging();
 serviceCollection.AddTrustedForwardedHeaders(configuration);
 
 // The pods can require the reverse proxy's client certificate on the proxy-to-pod hop, as configured by the
-// 'ProxyClientCertificate' section (ADR-1505). Inert unless 'ProxyClientCertificate:Required' is true.
+// 'ProxyClientCertificate' section (ADR-1506). Inert unless 'ProxyClientCertificate:Required' is true.
 serviceCollection.AddProxyClientCertificate(configuration);
 
 // Send Strict-Transport-Security on every HTTPS response outside Development, as configured by the
@@ -200,7 +200,7 @@ if (secretProtectionCommand is not null)
 
 // MUST be the first middleware, before even the forwarded headers: it refuses a request whose connection does not carry
 // the reverse proxy's client certificate (except the liveness and readiness probes) before anything else reads it. A
-// no-op unless 'ProxyClientCertificate:Required' is true (ADR-1505).
+// no-op unless 'ProxyClientCertificate:Required' is true (ADR-1506).
 app.UseProxyClientCertificate();
 
 // Right after the proxy check: everything downstream that reads the scheme or host — the HTTPS redirect, request

@@ -1,7 +1,7 @@
 # 1172. Forwarded client certificates are decoded by a registered format
 
 - **Status:** Accepted (amended by
-  [ADR-1505](1505-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md):
+  [ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md):
   a connection whose certificate the host verified as the proxy's is never read as an end client's)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
@@ -53,7 +53,7 @@ the only source of the certificate, and a value that cannot be decoded fails the
    a re-encrypting hop. A deployment that accepts direct TLS does not configure a forwarded header, which a direct
    client could set. Without a forwarded header, a connection whose certificate the host verified as the proxy's
    (`IProxyClientCertificateFeature`,
-   [ADR-1505](1505-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md))
+   [ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md))
    is never read as an end client's either.
 5. **A value that cannot be decoded is `invalid_request`, never "no certificate".** The resolver logs a warning naming
    the header and the format and throws `invalid_request` (`400`). Every consumer today fails closed without a

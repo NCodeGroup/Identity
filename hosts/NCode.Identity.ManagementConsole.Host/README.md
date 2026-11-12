@@ -29,7 +29,7 @@ that chains to the authorities in `ProxyClientCertificate__CertificateAuthorityP
 usage, is valid and has a subject listed in `ProxyClientCertificate__AllowedSubjects__0`, `__1` and so on, except
 `/health/live` and `/health/ready`, which the kubelet sends without a certificate. It is off by default, and the keys
 are refused while `Required` is false
-([ADR-1505](../../docs/decisions/1505-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
+([ADR-1506](../../docs/decisions/1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
 
 The image starts in the `Production` environment, which refuses to start until the deployment provides:
 

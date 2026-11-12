@@ -51,7 +51,7 @@ builder.Services.AddStrictTransportSecurity(builder.Configuration);
 builder.Services.AddTransportSecurity(builder.Environment);
 
 // The pods can require the reverse proxy's client certificate on the proxy-to-pod hop, as configured by the
-// 'ProxyClientCertificate' section (ADR-1505). Inert unless 'ProxyClientCertificate:Required' is true.
+// 'ProxyClientCertificate' section (ADR-1506). Inert unless 'ProxyClientCertificate:Required' is true.
 builder.Services.AddProxyClientCertificate(builder.Configuration);
 
 // Request the proxy's client certificate on Kestrel's HTTPS endpoints when 'ProxyClientCertificate:Required' is true.
@@ -66,7 +66,7 @@ var app = builder.Build();
 
 // MUST be the first middleware: it refuses a request whose connection does not carry the reverse proxy's client
 // certificate (except the liveness and readiness probes) before anything else reads it. A no-op unless
-// 'ProxyClientCertificate:Required' is true (ADR-1505).
+// 'ProxyClientCertificate:Required' is true (ADR-1506).
 app.UseProxyClientCertificate();
 
 // Right after the proxy check: everything downstream that reads the scheme or host observes the original request

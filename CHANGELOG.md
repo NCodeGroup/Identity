@@ -388,7 +388,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   installs the chart in a kind cluster behind ingress-nginx and Traefik and proves the pods are Ready over HTTPS, that
   the controller verifies their certificate and that a controller holding the wrong CA is refused
   ([ADR-1179](docs/decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md),
-  [ADR-1505](docs/decisions/1505-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
+  [ADR-1506](docs/decisions/1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
 
 - **The host chart deploys the management console on a host of its own.** With `managementConsole.enabled`,
   `charts/ncode-identity-host` runs the console host under the restricted Pod Security Standard with its own
@@ -4195,6 +4195,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#573](https://github.com/NCodeGroup/identity/issues/573),
   [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md)).
 
+- **Every merge to `main` and every release tag publishes the host image, the management console image and the chart.**
+  The three artifacts share one version on GHCR, are signed and carry build provenance, and a verification job pulls
+  them anonymously; a stable version also tags both images `latest`, and the images' assemblies report the version
+  they were published at ([#773](https://github.com/NCodeGroup/identity/issues/773),
+  [ADR-1505](docs/decisions/1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)).
+
 ### Security
 
 - **HTTP logging writes a body only for an endpoint that opts in, and never a credential.** `AddGuardedHttpLogging()`
@@ -4361,7 +4367,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#789](https://github.com/NCodeGroup/identity/issues/789),
   [#790](https://github.com/NCodeGroup/identity/issues/790),
   [#791](https://github.com/NCodeGroup/identity/issues/791),
-  [ADR-1505](docs/decisions/1505-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
+  [ADR-1506](docs/decisions/1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
 
 - **The Data Protection key ring is encrypted at rest under a root key outside the database.** The host persists the key
   ring to the same database as the secrets it unprotects, and encrypts it under the platform master key, whose root key

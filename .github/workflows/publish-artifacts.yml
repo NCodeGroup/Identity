@@ -1,0 +1,293 @@
+# Publish artifacts - publishes the host image, the management console image and the host chart to GHCR (issue #773, ADR-1505).
+#
+# Every push to main (and a manual run on main) and every release tag v*.*.* publishes three artifacts at one version:
+# the host image, the management console image and the host chart. The version comes from build/artifact-version.ps1:
+# `<version.json prerelease>.<first-parent commit count>`, for example 0.0.1-alpha.57, on main, and the tag itself on a
+# release tag.
+#
+# The signing identity of every signature and attestation is this workflow on main or on the release tag:
+# https://github.com/NCodeGroup/identity/.github/workflows/publish-artifacts.yml@refs/heads/main
+# https://github.com/NCodeGroup/identity/.github/workflows/publish-artifacts.yml@refs/tags/<tag>
+#
+# Package visibility and the Actions access of a package are owner settings in GitHub that no workflow can change; see
+# the chart README, section "Published artifacts".
+name: Publish artifacts
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*.*.*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One publication at a time; a second waits rather than racing the first to the registry.
+concurrency:
+  group: publish-artifacts
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: Compute the version
+    if: github.repository == 'NCodeGroup/identity' && (github.ref == 'refs/heads/main' || github.ref_type == 'tag')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      stable: ${{ steps.version.outputs.stable }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The version height counts the commit history, which a shallow clone truncates.
+          fetch-depth: 0
+          persist-credentials: false
+
+      # A tag must name a commit that main or a release line already holds, so a tag pushed on an unreviewed commit
+      # publishes nothing.
+      - name: Check the tagged commit is on a protected line
+        if: github.ref_type == 'tag'
+        shell: pwsh
+        run: |
+          $lines = @(git for-each-ref --format='%(refname)' refs/remotes/origin/main 'refs/remotes/origin/release/v*')
+          $onLine = $lines | Where-Object { git merge-base --is-ancestor HEAD $_; $LASTEXITCODE -eq 0 }
+          if (-not $onLine) { throw "The tag names a commit that is on neither main nor a release line." }
+
+      - name: Compute the version
+        id: version
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+        run: |
+          $version = ./build/artifact-version.ps1 -Tag $env:TAG
+          $stable = if ($version.Contains('-')) { 'false' } else { 'true' }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "stable=$stable" >> $env:GITHUB_OUTPUT
+          $kind = if ($stable -eq 'true') { 'stable' } else { 'prerelease' }
+          "Publishing **$version** ($kind)." >> $env:GITHUB_STEP_SUMMARY
+
+  publish:
+    name: Publish
+    needs: version
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    outputs:
+      host-digest: ${{ steps.host.outputs.digest }}
+      console-digest: ${{ steps.console.outputs.digest }}
+      chart-digest: ${{ steps.chart.outputs.digest }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Log in to GHCR
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+
+      # The caches are read-only here: they are the ones host-image.yml and console-image.yml write.
+      # The tag `latest` follows stable versions only; a prerelease never moves it.
+      - name: Publish the host image
+        id: host
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: hosts/NCode.Identity.OpenId.Host/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          build-args: VERSION=${{ env.VERSION }}
+          push: true
+          tags: |
+            ghcr.io/ncodegroup/ncode-identity-host:${{ env.VERSION }}
+            ${{ needs.version.outputs.stable == 'true' && 'ghcr.io/ncodegroup/ncode-identity-host:latest' || '' }}
+          sbom: true
+          provenance: false
+          cache-from: type=gha,scope=host-image
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ env.VERSION }}
+            org.opencontainers.image.licenses=Apache-2.0
+            org.opencontainers.image.title=ncode-identity-host
+
+      - name: Publish the management console image
+        id: console
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: hosts/NCode.Identity.ManagementConsole.Host/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          build-args: VERSION=${{ env.VERSION }}
+          push: true
+          tags: |
+            ghcr.io/ncodegroup/ncode-identity-management-console:${{ env.VERSION }}
+            ${{ needs.version.outputs.stable == 'true' && 'ghcr.io/ncodegroup/ncode-identity-management-console:latest' || '' }}
+          sbom: true
+          provenance: false
+          cache-from: type=gha,scope=console-image
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.version=${{ env.VERSION }}
+            org.opencontainers.image.licenses=Apache-2.0
+            org.opencontainers.image.title=ncode-identity-management-console
+
+      - name: Sign the images
+        shell: pwsh
+        env:
+          HOST: ${{ steps.host.outputs.digest }}
+          CONSOLE: ${{ steps.console.outputs.digest }}
+        run: |
+          cosign sign --yes "ghcr.io/ncodegroup/ncode-identity-host@$env:HOST"
+          if ($LASTEXITCODE -ne 0) { throw "cosign sign failed." }
+          cosign sign --yes "ghcr.io/ncodegroup/ncode-identity-management-console@$env:CONSOLE"
+          if ($LASTEXITCODE -ne 0) { throw "cosign sign failed." }
+
+      - name: Attest the host image
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ghcr.io/ncodegroup/ncode-identity-host
+          subject-digest: ${{ steps.host.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest the console image
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ghcr.io/ncodegroup/ncode-identity-management-console
+          subject-digest: ${{ steps.console.outputs.digest }}
+          push-to-registry: true
+
+      - name: Set up Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.3.1
+
+      - name: Package and push the chart
+        id: chart
+        shell: pwsh
+        run: |
+          helm package charts/ncode-identity-host --version $env:VERSION --app-version $env:VERSION --destination chart-out
+          if ($LASTEXITCODE -ne 0) { throw 'helm package failed.' }
+          $output = helm push "chart-out/ncode-identity-host-$($env:VERSION).tgz" oci://ghcr.io/ncodegroup/charts 2>&1
+          if ($LASTEXITCODE -ne 0) { throw "helm push failed: $output" }
+          $digest = ($output | Select-String -Pattern 'Digest: (sha256:[0-9a-f]{64})').Matches[0].Groups[1].Value
+          "digest=$digest" >> $env:GITHUB_OUTPUT
+
+      - name: Sign the chart
+        shell: pwsh
+        env:
+          CHART: ${{ steps.chart.outputs.digest }}
+        run: |
+          cosign sign --yes "ghcr.io/ncodegroup/charts/ncode-identity-host@$env:CHART"
+          if ($LASTEXITCODE -ne 0) { throw "cosign sign failed." }
+
+      - name: Attest the chart
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ghcr.io/ncodegroup/charts/ncode-identity-host
+          subject-digest: ${{ steps.chart.outputs.digest }}
+          push-to-registry: true
+
+  verify:
+    name: Verify the published artifacts
+    needs: [version, publish]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # There is no registry login on purpose: every pull is anonymous, so a private package fails here.
+    permissions:
+      contents: read
+      attestations: read
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      HOST: ${{ needs.publish.outputs.host-digest }}
+      CONSOLE: ${{ needs.publish.outputs.console-digest }}
+      CHART: ${{ needs.publish.outputs.chart-digest }}
+      IDENTITY: https://github.com/NCodeGroup/identity/.github/workflows/publish-artifacts.yml@${{ github.ref }}
+      PACKAGE_HINT: "If the package is private, make it public and give this repository write access under the package's 'Manage Actions access' (chart README, 'Published artifacts')."
+
+    steps:
+      - name: Set up Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.3.1
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
+
+      - name: Both architectures are published
+        shell: pwsh
+        run: |
+          foreach ($image in 'ncode-identity-host', 'ncode-identity-management-console') {
+            try {
+              $raw = docker buildx imagetools inspect --raw "ghcr.io/ncodegroup/${image}:$env:VERSION"
+              if ($LASTEXITCODE -ne 0) { throw "docker buildx imagetools inspect failed for $image." }
+              $index = $raw | ConvertFrom-Json
+            }
+            catch {
+              throw "$($_.Exception.Message) $env:PACKAGE_HINT"
+            }
+            $platforms = @($index.manifests.platform | ForEach-Object { "$($_.os)/$($_.architecture)" })
+            foreach ($platform in 'linux/amd64', 'linux/arm64') {
+              if ($platforms -notcontains $platform) { throw "$image is missing the platform $platform." }
+            }
+          }
+
+      - name: Signatures verify
+        shell: pwsh
+        run: |
+          $refs = @(
+            "ncode-identity-host@$env:HOST",
+            "ncode-identity-management-console@$env:CONSOLE",
+            "charts/ncode-identity-host@$env:CHART"
+          )
+          foreach ($ref in $refs) {
+            cosign verify "ghcr.io/ncodegroup/$ref" --certificate-identity "$env:IDENTITY" --certificate-oidc-issuer https://token.actions.githubusercontent.com > $null
+            if ($LASTEXITCODE -ne 0) { throw "$ref has no valid signature." }
+          }
+
+      - name: Provenance attestations verify
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $refs = @(
+            "ncode-identity-host@$env:HOST",
+            "ncode-identity-management-console@$env:CONSOLE",
+            "charts/ncode-identity-host@$env:CHART"
+          )
+          foreach ($ref in $refs) {
+            gh attestation verify "oci://ghcr.io/ncodegroup/$ref" --repo NCodeGroup/identity --signer-workflow NCodeGroup/identity/.github/workflows/publish-artifacts.yml > $null
+            if ($LASTEXITCODE -ne 0) { throw "$ref has no valid provenance attestation." }
+          }
+
+      - name: The chart pulls anonymously
+        shell: pwsh
+        run: |
+          try {
+            helm pull oci://ghcr.io/ncodegroup/charts/ncode-identity-host --version $env:VERSION --destination pulled
+            if ($LASTEXITCODE -ne 0) { throw "helm pull failed." }
+          }
+          catch {
+            throw "$($_.Exception.Message) $env:PACKAGE_HINT"
+          }
+          $chart = helm show chart "pulled/ncode-identity-host-$($env:VERSION).tgz"
+          if ($chart -notcontains "version: $env:VERSION") { throw "The pulled chart is not version $env:VERSION." }
+          if ($chart -notcontains "appVersion: $env:VERSION") { throw "The pulled chart has the wrong appVersion." }

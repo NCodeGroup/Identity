@@ -1,4 +1,4 @@
-# 1505. The ingress controller holds a client certificate the pods can require and never read as an end client's
+# 1506. The ingress controller holds a client certificate the pods can require and never read as an end client's
 
 - **Status:** Accepted (amends
   [ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md) and

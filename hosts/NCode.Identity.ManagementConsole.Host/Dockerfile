@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 #
 # The production image of NCode.Identity.ManagementConsole.Host (ADR-1458). Build it from the repository root; it takes
-# no build argument:
+# one optional build argument, VERSION, the version the assemblies report (the publishing workflow passes it):
 #
 #   docker buildx build --platform linux/amd64,linux/arm64 \
 #     --file hosts/NCode.Identity.ManagementConsole.Host/Dockerfile .
@@ -30,6 +30,11 @@ ARG TARGETARCH
 ENV NBGV_GitEngine=Disabled
 WORKDIR /source
 COPY . .
+# The published version, when the publishing workflow gives one, replaces the version in version.json, which is the
+# only version input here because the git engine is disabled. build/stamp-version.ps1 refuses a malformed version and
+# fails unless version.json then holds it. A CI image build passes none and keeps version.json's.
+ARG VERSION=""
+RUN if [ -n "$VERSION" ]; then pwsh -NoProfile -File build/stamp-version.ps1 -Version "$VERSION"; fi
 # A multi-arch build runs this stage once per target at the same time. The NuGet cache is locked, not shared, because
 # NuGet extracts a package through a temporary file that a concurrent restore of the same package cannot see.
 RUN --mount=type=cache,id=nuget,target=/root/.nuget/packages,sharing=locked \

@@ -103,7 +103,7 @@ descriptor names each method.**
     with an `x5c` certificate (RFC 8705 §2.2). `tls_client_auth` requires exactly one of `tls_client_auth_subject_dn`,
     `_san_dns`, `_san_uri`, `_san_ip` or `_san_email` (RFC 8705 §2.1.2); those parameters are refused for every other
     method and reported in the registration, read and update responses. A registering client never supplies trust anchors:
-    its certificate chains to the tenant's anchors ([ADR-1173](1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md)).
+    its certificate chains to the tenant's anchors ([ADR-1173](1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md)).
 14. **Only a method that requires a secret is issued one**, through `IClientSecretIssuer`
     ([ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)), so a key- or
     certificate-based client holds no second, weaker credential. An update that changes the method keeps the stored secret
@@ -160,7 +160,7 @@ descriptor names each method.**
   [RFC 9700](https://datatracker.ietf.org/doc/html/rfc9700) §2.5.
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md): an
   unset `*_supported` list is unrestricted; an empty one restricts.
-- [ADR-1107](1107-mutual-tls-client-authentication.md): the mutual-TLS handlers own a request only for a client registered
+- [ADR-1173](1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md): the mutual-TLS handlers own a request only for a client registered
   for their method.
 - [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md): the
   security profile's ceiling.

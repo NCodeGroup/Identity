@@ -19,7 +19,7 @@ makes its limits options validated when the host starts, and
 revocation check, a correctness guard, fail closed. This record applies them to the certificate revocation list
 retrieval of the `tls_client_auth` checker, and decides the one opt-in that relaxes the second.
 
-The checker of [ADR-1173](1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md) (issue [#255](https://github.com/NCodeGroup/identity/issues/255)) has
+The checker of [ADR-1173](1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md) (issue [#255](https://github.com/NCodeGroup/identity/issues/255)) has
 four weaknesses:
 
 - It retrieves a list once per concurrent check, so a burst of requests for one list repeats one download.
@@ -96,7 +96,7 @@ configured time, and `online_soft_fail` is a revocation mode that a tenant or cl
 
 ## References
 
-- [ADR-1173](1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md): `tls_client_auth` certificates
+- [ADR-1173](1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md): `tls_client_auth` certificates
   chain to configured trust anchors.
 - [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md): replicas share single-use
   state through an atomic expiring key set.

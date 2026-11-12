@@ -11,7 +11,7 @@
 ## Context
 
 The server checks the revocation status of every certificate below the trust anchor of a `tls_client_auth` chain
-([ADR-1173](1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md)), and it shares, bounds and
+([ADR-1173](1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md)), and it shares, bounds and
 remembers each retrieval
 ([ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md)). A
 checker that reads only complete, direct CRLs signed by the issuing certificate answers `Unknown` for five common PKI
@@ -161,7 +161,7 @@ built-in `crl` source processes CRLs as RFC 5280 §6.3.3 describes.**
 - RFC 6960, the Online Certificate Status Protocol: <https://www.rfc-editor.org/rfc/rfc6960>
 - RFC 5019, the lightweight OCSP profile: <https://www.rfc-editor.org/rfc/rfc5019>
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md): vocabularies are open unless provably closed.
-- [ADR-1173](1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md): `tls_client_auth` certificates
+- [ADR-1173](1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md): `tls_client_auth` certificates
   chain to configured trust anchors.
 - [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md): client-authentication
   methods are named by registered descriptors.

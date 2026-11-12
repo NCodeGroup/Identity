@@ -1538,7 +1538,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Mutual-TLS client authentication (`tls_client_auth` / `self_signed_tls_client_auth`)** (issue
   [#54](https://github.com/NCodeGroup/identity/issues/54),
-  [ADR-1107](docs/decisions/1107-mutual-tls-client-authentication.md)). A confidential client can authenticate with a
+  [ADR-1173](docs/decisions/1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md)). A confidential client can authenticate with a
   mutual-TLS client certificate (RFC 8705 §2), the second FAPI-permitted strong client-authentication mechanism beside
   `private_key_jwt`. `self_signed_tls_client_auth` matches the presented certificate against one the client registered
   by SHA-256 thumbprint; `tls_client_auth` matches its subject distinguished name or a subject alternative name
@@ -1565,7 +1565,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   the registered `tls_client_auth_subject_dn`, and the setting rule accepts the RFC 4514 forms an operator pastes, such
   as `CN=client,O=Example`. A value written with `;` separators or in the `/C=US/O=Example` form does not parse, matches
   no certificate and is refused by the setting rule
-  ([ADR-1173](docs/decisions/1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md), issue
+  ([ADR-1173](docs/decisions/1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md), issue
   [#209](https://github.com/NCodeGroup/identity/issues/209)).
 
 - **A forwarded client certificate is decoded by a registered format, and every format reads the whole chain the client
@@ -4930,7 +4930,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   usage, validity, and `tls_client_auth_revocation_mode`. A `tls_client_auth` client with no trust anchors does not
   authenticate. The replaceable `IClientCertificateChainValidator` performs the check, and a failure is audited as
   `client_certificate_untrusted`
-  ([ADR-1173](docs/decisions/1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md)).
+  ([ADR-1173](docs/decisions/1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md)).
 
 - **Behind a proxy, a forwarded certificate that cannot be decoded fails the request, and the connection's certificate
   is never taken for the client's.** When a forwarded certificate header is configured it is the only source: an absent
@@ -4966,7 +4966,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   certificate chains to the same trust anchor and is not revoked; a list signed with RSASSA-PSS verifies. A list that is
   not DER, not current, not properly signed, or not understood is `Unknown`. Log events 2050 and 2061 name the
   revocation source and record the `Location`
-  ([ADR-1173](docs/decisions/1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md),
+  ([ADR-1173](docs/decisions/1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md),
   [ADR-1252](docs/decisions/1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md),
   [ADR-1259](docs/decisions/1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md),
   [ADR-1400](docs/decisions/1400-the-revocation-sources-are-described-and-configuration-selects-and-orders-them.md),

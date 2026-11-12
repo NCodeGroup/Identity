@@ -21,7 +21,7 @@ The header belongs to the transport, not to a page
 decision 7). Three facts decide where it is sent:
 
 - The host terminates TLS itself when it authenticates clients by mutual TLS
-  ([ADR-1173](1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md)), so no proxy in front of it
+  ([ADR-1173](1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md)), so no proxy in front of it
   sends the header.
 - Behind a TLS-terminating proxy the host sees plain HTTP. It knows that a request arrived over HTTPS only from the
   `X-Forwarded-Proto` header of a proxy that `ReverseProxy` trusts, which `UseReverseProxy` applies first.

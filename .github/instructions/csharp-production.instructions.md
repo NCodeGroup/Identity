@@ -743,7 +743,7 @@ than inlining the rationale.
   `IOutboundHttpForgeryGuard` connect callback, and the platform `X509Chain` retrieves nothing.** Use
   `RevocationMode.NoCheck` and `DisableCertificateDownloads`; revocation goes through
   `IClientCertificateRevocationChecker`. See
-  [ADR-1173](../../docs/decisions/1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md).
+  [ADR-1173](../../docs/decisions/1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md).
 - 👁 **A retrieval that concurrent requests share runs once, on its own terms** — template
   [Outbound Calls](csharp.instructions.md#outbound-calls); it also takes its own copy of any disposable input a caller
   owns, such as a chain's certificates (`DefaultClientCertificateRevocationChecker`,

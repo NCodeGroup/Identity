@@ -456,7 +456,7 @@ Verified against Traefik v3.7 documentation and source:
   the client's `tls_client_auth_trust_anchors` (tenant- or client-scoped PEM CAs, custom root trust, `clientAuth` EKU,
   validity, `tls_client_auth_revocation_mode`) before matching the subject, and trusts no certificate when no anchor is
   configured. The proxy only requests and forwards the certificate
-  ([ADR-1173](decisions/1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md)).
+  ([ADR-1173](decisions/1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md)).
 - **[#86](https://github.com/NCodeGroup/identity/issues/86) — the mTLS alias host routes to its tenant (resolved).** The alias is the tenant property
   `MtlsEndpointAliasAuthority`; `DynamicByHost` routes its derived host as well as the issuer's, and validation keeps
   both hosts unique ([ADR-1165](decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)). Each tenant's

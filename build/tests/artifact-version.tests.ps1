@@ -72,6 +72,19 @@ try {
     $testCount++
     Write-Host 'PASS: height orders as semantic version'
 
+    Assert-Equal 'tag with prerelease counter' '0.0.1-alpha.3' ([string](& $script -VersionJson $alpha -Tag 'v0.0.1-alpha.3'))
+    Assert-Equal 'tag equal to the base prerelease' '0.0.1-alpha' ([string](& $script -VersionJson $alpha -Tag 'v0.0.1-alpha'))
+
+    $line = New-VersionFile 'line' '1.0'
+    Assert-Equal 'stable tag on the line' '1.0.3' ([string](& $script -VersionJson $line -Tag 'v1.0.3'))
+    Assert-Throws 'tag off the line is refused' { & $script -VersionJson $line -Tag 'v1.1.0' } 'not on the 1.0 line'
+    Assert-Throws 'tag without v prefix is refused' { & $script -VersionJson $line -Tag '1.0.3' } 'not a version tag'
+    Assert-Throws 'tag with height is refused' { & $script -VersionJson $line -Tag 'v1.0.3' -Height '5' } 'not both'
+
+    $null = [System.Management.Automation.SemanticVersion]::Parse([string](& $script -VersionJson $line -Tag 'v1.0.3'))
+    $testCount++
+    Write-Host 'PASS: tag version parses as semantic version'
+
     $own = [string](& $script -Height '1')
     $null = [System.Management.Automation.SemanticVersion]::Parse($own)
     $testCount++

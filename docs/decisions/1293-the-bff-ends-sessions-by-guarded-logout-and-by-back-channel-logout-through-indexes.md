@@ -29,7 +29,7 @@ indexes, ends them, and only then records the token.**
 1. **The logout guard.** Each session holds a random logout guard in its encrypted payload, and `/bff/user` returns
    `logoutUrl` as `/bff/logout?sid=<guard>`; that URL is the only place the guard leaves the server. Logout is a top-level
    navigation, so it cannot carry the anti-forgery header
-   ([ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md)); the guard stands in
+   ([ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md)); the guard stands in
    for it, so a cross-site page cannot log the user out. The `sid` parameter must appear once and equal the guard,
    compared with `CryptographicOperations.FixedTimeEquals`; otherwise logout answers `400` and the session stays.
 2. **The return URL.** `returnUrl` is optional, defaults to `/`, must appear at most once and must be allow-listed in

@@ -146,7 +146,7 @@ second, equally valid token and revokes nothing.
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.5 and §5.6
 - [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)
 - [ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md)
-- [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md)
+- [ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md)
 - RFC 6749 §4.4, RFC 8693, RFC 9449, RFC 9700
 - `src/NCode.Identity.Bff/Tokens/`, `src/NCode.Identity.Bff/RemoteApis/`
 - Issue [#395](https://github.com/NCodeGroup/identity/issues/395)

@@ -17,7 +17,7 @@ Four things need a decision: how the packages are named (§11.5), how a session 
 how the login is bound to the browser that started it, and what the session principal holds. The refresh, the cookie
 acceptance rules and logout have their own records
 ([ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md),
-[ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md),
+[ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md),
 [ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)), and a
 deployment serves several frontends, each with its own cookies and sessions
 ([ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)).
@@ -60,7 +60,7 @@ without the cookie.**
    keys are `bff:sid:`, `bff:sub:` or `bff:client:` plus base64url(SHA-256) of the length-prefixed issuer and value,
    with `bff:clients` listing the clients, so a value an attacker supplies cannot make a key ambiguous or unbounded.
    Any adapter exception surfaces as `BffStoreUnavailableException`, which is answered with `503`, never `401`
-   ([ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md)).
+   ([ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md)).
 7. **The login transaction** (issuer, redirect URI, PKCE verifier, nonce, return URL, the DPoP `jkt`, `max_age` and the
    frontend) is stored under base64url(HKDF(state, `ncode.bff.login.id`)) and encrypted under HKDF(initiator secret,
    `ncode.bff.login.payload`), with the store key as associated data. The initiator secret is 32 random bytes in the
@@ -75,7 +75,7 @@ without the cookie.**
 8. **The session cookie** is `__Host-Http-bff.<frontend>`: `Secure`, `HttpOnly`, `Path=/`, no `Domain`, `SameSite=Strict`
    by default (`Lax` selectable, `None` refused, design D4), and a `Max-Age` that ends with the session. A page reached
    without its Strict cookie reloads itself once
-   ([ADR-1444](1444-a-bff-page-reached-without-its-strict-session-cookie-reloads-itself-once.md)).
+   ([ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md)).
 9. **Lifetimes.** `Session:AbsoluteLifetime` is 8 hours and `Session:IdleTimeout` 1 hour, per frontend. The stored value
    expires at the earlier of the idle and absolute expiry, and the index members at the absolute expiry. The idle window
    slides on API, page and hub requests and on connection activity

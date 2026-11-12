@@ -333,7 +333,7 @@ The records are grouped by area; within an area they are in number order.
 | [1258](./1258-the-server-sends-strict-transport-security-outside-development.md) | The server sends Strict-Transport-Security outside Development | Accepted |
 | [1290](./1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md) | The BFF keeps each session as an encrypted server-side record under a cookie handle | Accepted |
 | [1291](./1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md) | The BFF refreshes a session's token single-flight under a lease its winner releases by owner token | Accepted |
-| [1292](./1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md) | The BFF accepts its cookie only with a static header and Fetch Metadata | Accepted |
+| [1292](./1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md) | The BFF's cookie authenticates only guarded endpoints, which refuse cross-site requests and reload cookieless navigations | Accepted |
 | [1293](./1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md) | The BFF ends sessions by guarded logout and by back-channel logout through indexes | Accepted |
 | [1294](./1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md) | A BFF client is registered with explicit metadata, not a bff security profile | Accepted |
 | [1311](./1311-the-bff-logs-out-by-a-form-post-that-carries-the-sessions-logout-guard.md) | The BFF logs out by a form post that carries the session's logout guard | Accepted |
@@ -343,7 +343,6 @@ The records are grouped by area; within an area they are in number order.
 | [1433](./1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md) | A BFF host refuses to start when an endpoint's BFF metadata is incomplete | Accepted |
 | [1434](./1434-open-tabs-learn-that-a-bff-session-ended-from-its-next-answer-not-a-pushed-event.md) | Open tabs learn that a BFF session ended from its next answer, not a pushed event | Accepted |
 | [1435](./1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md) | Server-rendered and Blazor hosts use the BFF session through pages, hubs and two opt-in Blazor packages | Accepted |
-| [1436](./1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md) | A BFF page accepts a form post only with Fetch Metadata and a valid antiforgery token | Accepted |
 | [1437](./1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md) | The management console is a confidential client served by a BFF host of its own | Accepted |
 | [1438](./1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md) | The management console holds no token and reads its session from its BFF | Accepted |
 | [1439](./1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md) | A BFF loads the key rings its configuration names from PEM files | Accepted |
@@ -351,7 +350,6 @@ The records are grouped by area; within an area they are in number order.
 | [1441](./1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md) | A BFF connection ends with its session even when idle, and a Blazor Web App proves it | Accepted |
 | [1442](./1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md) | The BFF's frontends follow their configuration, and a change takes effect only when the whole set is valid | Accepted |
 | [1443](./1443-a-bff-session-ends-when-its-frontend-is-removed-or-registered-as-another-client.md) | A BFF session ends when its frontend is removed or registered as another client | Accepted |
-| [1444](./1444-a-bff-page-reached-without-its-strict-session-cookie-reloads-itself-once.md) | A BFF page reached without its Strict session cookie reloads itself once | Accepted |
 | [1445](./1445-a-self-revalidating-hub-keeps-its-connection-when-the-session-ends-and-every-watcher-learns-the-end-at-once.md) | A self-revalidating hub keeps its connection when the session ends, and every watcher learns the end at once | Accepted |
 | [1446](./1446-a-set-of-frontends-that-names-an-unregistered-key-ring-is-refused.md) | A set of frontends that names an unregistered key ring is refused | Accepted |
 | [1447](./1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md) | Forwarded-header trust and Strict-Transport-Security are general ASP.NET Core helpers each host composes | Accepted |

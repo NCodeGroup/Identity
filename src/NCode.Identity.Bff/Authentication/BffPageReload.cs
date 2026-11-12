@@ -23,7 +23,7 @@ namespace NCode.Identity.Bff.Authentication;
 /// same-origin navigation that carries the cookie, and the <c>SameSite=Lax</c> marker cookie limits the reload to once.
 /// </remarks>
 /// <param name="cookies">The BFF cookies, which hold the session cookie and the reload marker.</param>
-// See ADR-1444 and ADR-1256.
+// See ADR-1292 and ADR-1256.
 internal sealed class BffPageReload(BffCookies cookies)
 {
     private const string SecFetchModeHeaderName = "Sec-Fetch-Mode";

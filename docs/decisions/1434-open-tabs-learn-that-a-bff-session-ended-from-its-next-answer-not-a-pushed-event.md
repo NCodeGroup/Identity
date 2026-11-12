@@ -17,7 +17,7 @@ example through a server-sent-events endpoint, or is the next guarded call's `40
 A push endpoint would have to keep every guarantee of the BFF's other endpoints:
 
 - It is guarded by the session cookie, the anti-forgery header and Fetch Metadata
-  ([ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md)). A browser's
+  ([ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md)). A browser's
   `EventSource` cannot send a custom header, so the endpoint needs `fetch` streaming or a second guard.
 - It carries no token in the stream.
 - It bounds the number of connections per session, because HTTP/1.1 allows six connections per origin and a few open
@@ -77,6 +77,6 @@ between tabs.**
 
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.7, §5.8 and §11
 - [ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md),
-  [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md),
+  [ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md),
   [ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)
 - Issue [#523](https://github.com/NCodeGroup/identity/issues/523)

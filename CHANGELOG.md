@@ -5549,11 +5549,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#603](https://github.com/NCodeGroup/identity/issues/603),
   [#604](https://github.com/NCodeGroup/identity/issues/604),
   [ADR-1290](docs/decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
-  [ADR-1292](docs/decisions/1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md),
+  [ADR-1292](docs/decisions/1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md),
   [ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md),
-  [ADR-1436](docs/decisions/1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md),
+  [ADR-1292](docs/decisions/1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md),
   [ADR-1441](docs/decisions/1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md),
-  [ADR-1444](docs/decisions/1444-a-bff-page-reached-without-its-strict-session-cookie-reloads-itself-once.md)).
+  [ADR-1292](docs/decisions/1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md)).
 
 - **BFF logout is a form POST.** `POST /bff/logout` takes `sid` and `returnUrl` in a form body and is the only logout
   method; `/bff/user` returns `logoutUrl` as the path alone and the logout guard as `logoutSid`, a reserved field

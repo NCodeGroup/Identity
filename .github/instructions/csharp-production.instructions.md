@@ -698,7 +698,7 @@ than inlining the rationale.
 - 👁 **A cookie authentication handler authenticates only the endpoints its guard checked.** The BFF's handler
   authenticates the cookie on a guarded endpoint (an API, `/bff/user`, a page) and returns no result everywhere else, so
   a cookie the browser attaches to an unguarded endpoint is never a credential there. See
-  [ADR-1292](../../docs/decisions/1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md).
+  [ADR-1292](../../docs/decisions/1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md).
 - 👁 **The interactive surface serves a cookie only while the session it names is active.** An interactive endpoint
   authenticates its cookie through the handler's `AuthenticateSessionAsync`, never `AuthenticateAsync` directly, and a
   refusal that resumes a parked authorization request answers it through `IContinueRefusalService`, which delivers the

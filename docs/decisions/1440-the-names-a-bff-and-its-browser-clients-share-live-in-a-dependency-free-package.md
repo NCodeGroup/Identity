@@ -16,7 +16,7 @@ names that cross between them:
 - the claim types that carry the logout form's action and guard;
 - the paths of the endpoints the BFF maps for each frontend;
 - the defaults of the anti-forgery header that same-origin calls carry
-  ([ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md)).
+  ([ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md)).
 
 The WebAssembly client runs in the browser. It cannot reference `NCode.Identity.Bff.Abstractions`, which needs the
 ASP.NET Core shared framework, so a name defined there is out of the client's reach. An implementation package keeps
@@ -74,6 +74,6 @@ runtime. The server packages and the client package both read them from there.**
 
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1276](1276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md),
-  [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md),
+  [ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md),
   [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md)
 - Issue [#605](https://github.com/NCodeGroup/identity/issues/605)

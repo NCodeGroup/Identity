@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amends
   [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md) and
-  [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md) decision 1 and
+  [ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md) decision 1 and
   [ADR-1433](1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md); decision 4
   amended by [ADR-1441](1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md):
   an idle hub connection ends with its session; decisions 5 and 6 amended by [ADR-1440](1440-the-names-a-bff-and-its-browser-clients-share-live-in-a-dependency-free-package.md):
@@ -25,7 +25,7 @@ Five facts shape the answer:
   in interactive components, and the hub's response has started by the time a component runs. The circuit keeps the
   principal that the hub connection carried when it opened.
 - A browser `WebSocket` cannot send a custom header, so the anti-forgery header of
-  [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md) cannot guard a hub.
+  [ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md) cannot guard a hub.
 - The session record is keyed and encrypted under the cookie handle
   ([ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)), so only the
   handle opens it. Nothing that lacks the handle can find a session by `sub` or `sid`.
@@ -42,7 +42,7 @@ WebAssembly client never holds a token.**
    `AddBffAccessTokenHandler`. The session principal carries the logout form's action and guard as `bff_logout_url` and
    `bff_logout_sid` (`BffClaimTypes`), so a page renders the logout form from `HttpContext.User` in every render mode.
    The two claim types are reserved and dropped from provider claims. A page accepts a form post as
-   [ADR-1436](1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md) decides.
+   [ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md) decides.
 2. **Hubs are guarded endpoints.** A hub carries `[BffHub]` or `AsBffHub()`. It accepts any method and refuses a request
    when Fetch Metadata shows a cross-site request or when an `Origin` is neither the frontend's `PublicOrigin` nor a
    trusted origin. A challenge is a `401` problem and a forbid is a `403` problem. A hub request slides the session. An
@@ -111,11 +111,11 @@ WebAssembly client never holds a token.**
 
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.6, §5.14 and §11
 - [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
-  [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md),
+  [ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md),
   [ADR-1311](1311-the-bff-logs-out-by-a-form-post-that-carries-the-sessions-logout-guard.md),
   [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md),
   [ADR-1433](1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md),
   [ADR-1434](1434-open-tabs-learn-that-a-bff-session-ended-from-its-next-answer-not-a-pushed-event.md),
-  [ADR-1436](1436-a-bff-page-accepts-a-form-post-only-with-fetch-metadata-and-a-valid-antiforgery-token.md)
+  [ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md)
 - [RFC 10017](https://datatracker.ietf.org/doc/html/rfc10017)
 - Issue [#524](https://github.com/NCodeGroup/identity/issues/524)

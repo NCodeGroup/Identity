@@ -214,6 +214,18 @@
         }
       }
     },
+    "apiReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "documentEnabled": {
+          "type": "boolean"
+        },
+        "pageEnabled": {
+          "type": "boolean"
+        }
+      }
+    },
     "database": {
       "type": "object",
       "additionalProperties": false,

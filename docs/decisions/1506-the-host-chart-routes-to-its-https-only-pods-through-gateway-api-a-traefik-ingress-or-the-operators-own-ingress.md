@@ -77,7 +77,9 @@ verification Secret.
   ConfigMap it wrote.
 - The Gateway API mode requires Gateway API v1.4 or later, for `BackendTLSPolicy` at `gateway.networking.k8s.io/v1`.
 - The chart refuses an enabled Ingress without `ingress.controller`, and an enabled HTTPRoute without `parentRefs`,
-  without `hostnames` (the server's) or without a CA ConfigMap.
+  without `hostnames` (the server's) or without a CA ConfigMap. It refuses `backendTls.caPublisher` with a server
+  certificate from another CA, and with a console certificate in `managementConsole.backendTls.existingSecret` when
+  `managementConsole.backendTls.caConfigMap` is empty, because the publisher writes only the chart's private CA.
 - Each mode stays correct for one controller family, and a controller the chart does not configure uses
   `ingress.controller: other`.
 

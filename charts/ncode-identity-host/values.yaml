@@ -387,7 +387,8 @@ managementConsole:
   backendTls:
     existingSecret: ""
     # A ConfigMap in the release namespace that holds only ca.crt, for the router to verify the console's pods. Empty
-    # uses backendTls.caConfigMap.
+    # uses the server's CA ConfigMap, so the chart requires it when existingSecret is set and backendTls.caPublisher is
+    # enabled.
     caConfigMap: ""
   service:
     type: ClusterIP

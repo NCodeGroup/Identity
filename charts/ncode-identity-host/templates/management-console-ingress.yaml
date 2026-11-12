@@ -8,7 +8,7 @@ metadata:
     {{- include "identity-host.managementConsole.labels" . | nindent 4 }}
   {{- $annotations := deepCopy .Values.managementConsole.ingress.annotations }}
   {{- if eq .Values.backendTls.ingressController "ingress-nginx" }}
-  {{- $annotations = merge $annotations (include "identity-host.backendTls.ingressNginxAnnotations" (dict "root" . "service" (include "identity-host.managementConsole.fullname" .) "secretName" (include "identity-host.managementConsole.backendTls.secretName" .)) | fromYaml) }}
+  {{- $annotations = merge $annotations (include "identity-host.backendTls.ingressNginxAnnotations" (dict "root" . "service" (include "identity-host.managementConsole.fullname" .)) | fromYaml) }}
   {{- end }}
   {{- with $annotations }}
   annotations:

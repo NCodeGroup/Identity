@@ -150,13 +150,11 @@ The records are grouped by area; within an area they are in number order.
 | --- | --- | --- |
 | [1018](./1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) | Tenant selection is shared and tenant-bound rows are scoped at the persistence layer | Accepted |
 | [1024](./1024-control-plane-and-per-tenant-planes.md) | Deployment model: one control plane with logical tenant isolation; physical isolation is a separate deployment | Accepted |
-| [1036](./1036-unified-openid-request-environment.md) | A single OpenID request environment for every HTTP surface | Accepted |
-| [1037](./1037-tenant-cache-probe-before-store-load.md) | The tenant cache is probed before the store is read on the resolution hot path | Accepted |
+| [1036](./1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md) | One factory materializes every OpenID context, for a request, an addressed tenant or a job | Accepted |
 | [1045](./1045-tenant-provisioning-and-seeding-pipeline.md) | Tenant provisioning and seeding are one mediator-driven pipeline | Accepted |
 | [1048](./1048-durable-audit-delivery-outbox.md) | Durable audit delivery: an outbox with at-least-once, publish-after-commit semantics | Proposed |
 | [1053](./1053-host-configured-hooks-on-the-openid-environment.md) | Host-configured behavioral hooks are surfaced on the OpenID environment | Accepted |
 | [1090](./1090-durable-outbound-delivery-dispatch-adapter.md) | Durable outbound delivery via a generic job-dispatch adapter (BYO orchestration) | Accepted |
-| [1100](./1100-explicit-tenant-context-materialization.md) | Explicit-tenant OpenID context materialization for admin operations | Accepted |
 | [1129](./1129-the-tenant-issuer-is-the-single-authoritative-origin.md) | The tenant's issuer is the single authoritative origin | Accepted |
 | [1138](./1138-protocol-endpoints-are-served-under-the-tenant-route.md) | The protocol endpoints are served under the tenant route, and an issuer is its tenant's base address | Accepted |
 | [1159](./1159-a-tenant-is-named-by-its-creator.md) | A tenant is named by its creator | Accepted |

@@ -116,7 +116,7 @@ audited `IFederatedIdentityLinkingPolicy` — never a fuzzy heuristic:
   action, because that is where account-takeover risk concentrates.
 - The join claim, the set of link-trusted connections, the verified-email requirement, and an explicit-only mode are all
   configurable. These knobs, and the resolution source/issuer claims, are tenant settings with server defaults on the
-  shared request environment ([ADR-1036](1036-unified-openid-request-environment.md)), so a tenant overrides the server
+  shared request environment ([ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md)), so a tenant overrides the server
   default at runtime.
 
 ### Authority references the principal

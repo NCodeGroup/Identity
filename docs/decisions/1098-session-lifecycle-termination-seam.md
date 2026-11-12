@@ -95,7 +95,7 @@ seam (as `DefaultTokenService` drives the claims seam).
   `ISessionService.ValidateAndTouchAsync`); an invalid/idle-expired session self-heals by prompting for login, exactly
   like a stale cookie, rather than dead-ending with `access_denied`.
 - A tenant-addressed **admin** management surface for sessions (`api/tenants/{tenantId}/sessions`) is **delivered**
-  ([ADR-1100](1100-explicit-tenant-context-materialization.md)): the management endpoints are addressed by a route
+  ([ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md)): the management endpoints are addressed by a route
   `{tenantId}` while `ISessionService` is bound to the ambient `OpenIdContext.Tenant`, so the admin surface materializes
   a full context for the addressed tenant (`IOpenIdContextFactory.CreateForTenantAsync`) and delegates to
   `ISessionService`, running the full termination seam (grant revocation, back-channel logout, auditing) in that

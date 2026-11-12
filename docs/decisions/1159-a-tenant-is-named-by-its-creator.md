@@ -62,7 +62,7 @@ domain (`{tenant}.{region}.auth0.com`); a separate friendly name is for display 
   address, and every client of the API needs two calls for one intent.
 - **An opaque identifier plus a separate, unique, caller-chosen slug that path tenants are routed by** (the Keycloak realm
   shape). Rejected: a second identity to keep unique and in step with the first, a store lookup on every path-routed
-  request (losing the store-free cache probe of [ADR-1037](1037-tenant-cache-probe-before-store-load.md)), and the opaque
+  request (losing the store-free cache probe of [ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md)), and the opaque
   identifier buys a tenant nothing — its issuer is already an immutable public identity.
 - **A wider character set or mixed case.** Rejected: not valid as a hostname label, and with case-insensitive store
   identity two spellings would name one tenant.

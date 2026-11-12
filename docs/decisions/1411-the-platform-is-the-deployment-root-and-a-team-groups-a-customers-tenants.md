@@ -9,7 +9,7 @@
   [ADR-1031](1031-control-plane-management-resource-server-and-root-tenant-seeding.md),
   [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md),
   [ADR-1034](1034-persisted-role-assignments-and-ownership.md),
-  [ADR-1036](1036-unified-openid-request-environment.md),
+  [ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md),
   [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md),
   [ADR-1042](1042-management-api-route-driven-tenant-scope.md),
   [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md),

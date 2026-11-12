@@ -2401,7 +2401,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **`/api/tenants/{tenantId}/sessions` lets an administrator list and revoke a subject's sessions** (issue
   [#63](https://github.com/NCodeGroup/identity/issues/63),
-  [ADR-1100](docs/decisions/1100-explicit-tenant-context-materialization.md)). `GET ?subjectId=…` lists a subject's
+  [ADR-1036](docs/decisions/1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md)). `GET ?subjectId=…` lists a subject's
   active sessions as `SessionResource`; `DELETE /{sessionId}` revokes one session and `DELETE ?subjectId=…` every
   session the subject holds. Each revocation runs the full session-termination seam (grant revocation, back-channel
   logout and session auditing) in the addressed tenant's security domain and attributes the acting administrator
@@ -3431,7 +3431,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `OpenIdTenantOptions.TenantCacheLifetime` (`OpenId:Tenant:TenantCacheLifetime`, 15 minutes) is an absolute lifetime
   counted from materialization, however often the tenant is used, so a replica that missed a tenant's change
   announcement serves the tenant at most that long
-  ([ADR-1037](docs/decisions/1037-tenant-cache-probe-before-store-load.md),
+  ([ADR-1036](docs/decisions/1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md),
   [ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
   [#249](https://github.com/NCodeGroup/identity/issues/249)).
 
@@ -3448,7 +3448,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#409](https://github.com/NCodeGroup/identity/issues/409)).
 
 - **An `OpenIdContext` can be materialized for an explicit, route-addressed tenant**
-  ([ADR-1100](docs/decisions/1100-explicit-tenant-context-materialization.md)).
+  ([ADR-1036](docs/decisions/1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md)).
   `IOpenIdContextFactory.CreateForTenantAsync` and `IOpenIdTenantFactory.CreateTenantByIdAsync` build the context from
   the tenant's own configured issuer, independent of the request's tenant-resolution strategy. Each is paired by name
   with its request-driven counterpart, `CreateForRequestAsync` and `CreateTenantForRequestAsync`; "Resolve" is reserved

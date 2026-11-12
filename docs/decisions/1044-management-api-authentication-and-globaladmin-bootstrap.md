@@ -37,7 +37,7 @@ Three things the model assumes are not yet realized, and no ADR covers them:
   call is denied. The missing piece is authentication, not a second enforcement mechanism.
 - **The signing keys are per-tenant and resolved late.** A token is signed with the resolved tenant's keys under the
   tenant's issuer, and the tenant is materialized by the OpenID request-environment endpoint filter
-  ([ADR-1036](1036-unified-openid-request-environment.md)) that runs _inside_ endpoint execution — after ASP.NET Core's
+  ([ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md)) that runs _inside_ endpoint execution — after ASP.NET Core's
   authentication and authorization middleware. A pre-routing bearer middleware therefore cannot know which keys or
   issuer to validate against; authentication has to happen where the tenant is known.
 - **No principal ever carries `GlobalAdmin`.** The realm is a `role` claim, but no issued token is ever stamped with
@@ -62,7 +62,7 @@ resource-based authorization is retained; authentication populates the principal
 ### Inbound authentication — validate self-issued management tokens inside the environment
 
 Because the signing keys and issuer are per-tenant and the tenant is resolved by the request-environment endpoint filter
-([ADR-1036](1036-unified-openid-request-environment.md)), management authentication runs as a step in that environment
+([ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md)), management authentication runs as a step in that environment
 (an endpoint filter on the `/api` route group, ordered after the environment filter that publishes the
 `IOpenIdContextFeature`), not as pre-routing middleware. The step reads the `Authorization: Bearer` token and validates a
 token the server itself issued, reusing the same validation path as token introspection
@@ -156,7 +156,7 @@ registration on `IdentityServerBuilder`), and the host configures the renderer.
   could build on. The composition root owning cross-cutting wiring is the established pattern
   ([ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
 - **Pre-routing JWT bearer middleware as the host default scheme.** Rejected: the per-tenant signing keys and issuer are
-  only known after the request-environment filter resolves the tenant ([ADR-1036](1036-unified-openid-request-environment.md)),
+  only known after the request-environment filter resolves the tenant ([ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md)),
   which runs inside endpoint execution; a scheme that runs before routing cannot select the keys or issuer to validate
   against. Authenticating as an environment step keeps one tenant-resolution flow and reuses the introspection
   validation path ([ADR-1029](1029-token-introspection-endpoint.md)).

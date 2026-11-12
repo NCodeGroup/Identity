@@ -17,7 +17,7 @@ Two forces shape the design.
 
 - The protocol runtime and the management API must never disagree on which tenant a request is, so selection is one
   shared concern, separate from materializing the tenant's contexts
-  ([ADR-1036](1036-unified-openid-request-environment.md) holds materialization).
+  ([ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md) holds materialization).
 - A scope decision made after a row has been read is too late. A resource is addressed by a globally unique opaque
   identifier ([ADR-1014](1014-server-generated-opaque-resource-ids.md)), so its tenant is knowable only by reading the
   row, and no check before the fetch can gate the specific resource. A logging statement, an early return or a later
@@ -125,7 +125,7 @@ unscoped. Direct construction in tests and tooling passes an explicit unscoped a
 - `NCode.Identity.OpenId.Core`: `DefaultAmbientTenantAccessor`
 - `NCode.Identity.OpenId.Persistence.EntityFramework`: `OpenIdDbContext`
 - `NCode.Identity.OpenId.Management`: `TenantScopeEndpointFilter`
-- [ADR-1036](1036-unified-openid-request-environment.md), [ADR-1042](1042-management-api-route-driven-tenant-scope.md),
+- [ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md), [ADR-1042](1042-management-api-route-driven-tenant-scope.md),
   [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md),
   [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md)
 - [project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md), decision 5:

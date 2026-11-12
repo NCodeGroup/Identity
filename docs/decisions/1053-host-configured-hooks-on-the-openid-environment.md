@@ -10,7 +10,7 @@ Some host-level customizations are **logic**, not data: a delegate the host can 
 derives a value from a `ClaimsPrincipal`, parses a token, or shapes a claim. Subject-id extraction is the canonical
 example. But it has **two separable dimensions** that were historically conflated: _which_ claim(s) carry the subject
 (a per-tenant **data** choice — a federated tenant may key on a non-standard claim) and _how_ to extract it from a
-`ClaimsPrincipal` (host **logic** — a function, which a data setting cannot express). [ADR-1036](1036-unified-openid-request-environment.md)
+`ClaimsPrincipal` (host **logic** — a function, which a data setting cannot express). [ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md)
 ("settings over start-up options for per-request knobs") governs the data dimension; the logic dimension is genuinely a
 start-up option.
 
@@ -36,7 +36,7 @@ Each dimension lives where it belongs:
   defaulting to `OpenIdConstants.DefaultSubjectClaimTypes` (the short `sub`, then the short `nameid` for handlers
   configured with `MapInboundClaims = false`, then the long-URI `nameidentifier` emitted by `Microsoft.AspNetCore.Identity`
   and the default inbound JWT claim-type map). It subsumes the former single `principal_source_claim` name **and** the
-  old `allowNameId`/`allowUpn` booleans into one data-driven, per-tenant knob ([ADR-1036](1036-unified-openid-request-environment.md)).
+  old `allowNameId`/`allowUpn` booleans into one data-driven, per-tenant knob ([ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md)).
 - **Logic — how to extract (host-level).** `OpenIdEnvironment.GetSubjectId(ClaimsPrincipal, IReadOnlyCollection<string>
 subjectClaimTypes)` is the host-replaceable algorithm (default: the first non-empty claim matching the ordered claim
   types), declared in abstractions and wired in `DefaultOpenIdEnvironment` from the `OpenIdOptions.GetSubjectId`
@@ -60,7 +60,7 @@ A host-configured **behavioral** hook (replaceable logic) is declared on `OpenId
 an `OpenIdOptions` delegate in core, and consumed through the environment — from an in-hand `OpenIdContext` (directly,
 or via a convenience seam such as `OpenIdContext.GetSubjectId`), or from the app-level `IOpenIdEnvironmentProvider` when
 no request context is needed (the environment is app-level, carrying no request or tenant state). A per-tenant **data**
-knob is a setting on the resolved tenant ([ADR-1036](1036-unified-openid-request-environment.md)). When a concern needs
+knob is a setting on the resolved tenant ([ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md)). When a concern needs
 **both** — logic and per-tenant data — the data is a setting, the logic is the environment delegate, and a context
 method combines them; a value a consumer _computes itself_ stays local.
 
@@ -129,4 +129,4 @@ _output_ of resolution, so having `GetSubjectId` return it would be circular.
 - `src/NCode.Identity.OpenId.Management/Auditing/DefaultManagementAuditRecorder.cs` — a cross-package consumer.
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1035](1035-federated-principals-and-identity-resolution.md),
-  [ADR-1036](1036-unified-openid-request-environment.md).
+  [ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md).

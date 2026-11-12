@@ -42,7 +42,9 @@ public sealed class ProxyClientCertificateOptions
 
     /// <summary>
     /// Gets or sets the subject distinguished names, such as <c>CN=ingress</c>, of which the proxy's certificate has
-    /// one. At least one is required while <see cref="Required"/> is <c>true</c>. Empty by default.
+    /// one. At least one is required while <see cref="Required"/> is <c>true</c>. Each entry is compared with the
+    /// certificate's subject by exact match of the distinguished name's canonical text, so case, attribute order and
+    /// string encoding must match. Empty by default.
     /// </summary>
     public string[] AllowedSubjects { get; set; } = [];
 }

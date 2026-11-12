@@ -31,21 +31,32 @@ internal sealed class ProxyClientCertificateVerifier(
     private DateTime AnchorsLastWriteTimeUtc { get; set; }
 
     /// <summary>
-    /// Returns whether the certificate is the proxy's. The anchors are the certificate authorities the operator
-    /// trusts, so an anchor that is itself an issuing certificate authority is trusted without its parents: a chain
-    /// that stops at such an anchor is accepted, while any other chain failure is refused.
+    /// Returns the reason the certificate is not the proxy's, or <see cref="ProxyClientCertificateRefusal.None"/> when it
+    /// is. The checks run in a fixed order: validity period, extended key usage, subject and, last, the chain. The
+    /// anchors are the certificate authorities the operator trusts, so an anchor that is itself an issuing certificate
+    /// authority is trusted without its parents: a chain that stops at such an anchor is accepted, while any other chain
+    /// failure is refused.
     /// </summary>
-    internal bool IsTrusted(X509Certificate2 certificate)
+    internal ProxyClientCertificateRefusal Verify(X509Certificate2 certificate)
     {
+        var now = TimeProvider.GetUtcNow().UtcDateTime;
+        if (
+            now < certificate.NotBefore.ToUniversalTime()
+            || now > certificate.NotAfter.ToUniversalTime()
+        )
+        {
+            return ProxyClientCertificateRefusal.NotYetValidOrExpired;
+        }
+
         if (!HasClientAuthentication(certificate))
         {
-            return false;
+            return ProxyClientCertificateRefusal.MissingClientAuthUsage;
         }
 
         var settings = Options.Value;
         if (!IsAllowedSubject(certificate, settings.AllowedSubjects))
         {
-            return false;
+            return ProxyClientCertificateRefusal.SubjectNotAllowed;
         }
 
         var anchors = GetAnchors(settings);
@@ -54,12 +65,14 @@ internal sealed class ProxyClientCertificateVerifier(
         chain.ChainPolicy.TrustMode = X509ChainTrustMode.CustomRootTrust;
         chain.ChainPolicy.CustomTrustStore.AddRange(anchors);
         chain.ChainPolicy.RevocationMode = X509RevocationMode.NoCheck;
-        chain.ChainPolicy.VerificationTime = TimeProvider.GetUtcNow().UtcDateTime;
+        chain.ChainPolicy.VerificationTime = now;
 
         // the certificate is the peer's, so its authority information access extension is never followed
         chain.ChainPolicy.DisableCertificateDownloads = true;
 
-        return chain.Build(certificate) || IsPartialChainEndingAtAnAnchor(chain, anchors);
+        return chain.Build(certificate) || IsPartialChainEndingAtAnAnchor(chain, anchors)
+            ? ProxyClientCertificateRefusal.None
+            : ProxyClientCertificateRefusal.UntrustedChain;
     }
 
     private static bool IsPartialChainEndingAtAnAnchor(

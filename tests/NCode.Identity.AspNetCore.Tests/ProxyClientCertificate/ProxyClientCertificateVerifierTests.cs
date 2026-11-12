@@ -74,10 +74,10 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
 
     #endregion
 
-    #region IsTrusted Tests
+    #region Verify Tests
 
     [Fact]
-    public void IsTrusted_WhenIssuedByTheAnchorWithClientAuthAndAllowedSubject_ReturnsTrue()
+    public void Verify_WhenIssuedByTheAnchorWithClientAuthAndAllowedSubject_ReturnsNone()
     {
         using var authority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=ca",
@@ -86,11 +86,11 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
         WriteAnchor(authority, Now.UtcDateTime);
         using var leaf = CreateClientLeaf(authority);
 
-        Assert.True(CreateVerifier().IsTrusted(leaf));
+        Assert.Equal(ProxyClientCertificateRefusal.None, CreateVerifier().Verify(leaf));
     }
 
     [Fact]
-    public void IsTrusted_WhenIssuedByAnUntrustedAuthority_ReturnsFalse()
+    public void Verify_WhenIssuedByAnUntrustedAuthority_ReturnsUntrustedChain()
     {
         using var authority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=ca",
@@ -101,11 +101,11 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
         WriteAnchor(authority, Now.UtcDateTime);
         using var leaf = CreateClientLeaf(foreignAuthority);
 
-        Assert.False(CreateVerifier().IsTrusted(leaf));
+        Assert.Equal(ProxyClientCertificateRefusal.UntrustedChain, CreateVerifier().Verify(leaf));
     }
 
     [Fact]
-    public void IsTrusted_WhenSelfSigned_ReturnsFalse()
+    public void Verify_WhenSelfSigned_ReturnsUntrustedChain()
     {
         using var authority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=ca",
@@ -117,11 +117,11 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
             Now
         );
 
-        Assert.False(CreateVerifier().IsTrusted(leaf));
+        Assert.Equal(ProxyClientCertificateRefusal.UntrustedChain, CreateVerifier().Verify(leaf));
     }
 
     [Fact]
-    public void IsTrusted_WhenOnlyServerAuth_ReturnsFalse()
+    public void Verify_WhenOnlyServerAuth_ReturnsMissingClientAuthUsage()
     {
         using var authority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=ca",
@@ -136,11 +136,14 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
             Now.AddDays(30)
         );
 
-        Assert.False(CreateVerifier().IsTrusted(leaf));
+        Assert.Equal(
+            ProxyClientCertificateRefusal.MissingClientAuthUsage,
+            CreateVerifier().Verify(leaf)
+        );
     }
 
     [Fact]
-    public void IsTrusted_WhenNoExtendedKeyUsage_ReturnsFalse()
+    public void Verify_WhenNoExtendedKeyUsage_ReturnsMissingClientAuthUsage()
     {
         using var authority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=ca",
@@ -155,11 +158,14 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
             Now.AddDays(30)
         );
 
-        Assert.False(CreateVerifier().IsTrusted(leaf));
+        Assert.Equal(
+            ProxyClientCertificateRefusal.MissingClientAuthUsage,
+            CreateVerifier().Verify(leaf)
+        );
     }
 
     [Fact]
-    public void IsTrusted_WhenSubjectIsNotAllowed_ReturnsFalse()
+    public void Verify_WhenSubjectIsNotAllowed_ReturnsSubjectNotAllowed()
     {
         using var authority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=ca",
@@ -168,11 +174,14 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
         WriteAnchor(authority, Now.UtcDateTime);
         using var leaf = CreateClientLeaf(authority, "CN=other");
 
-        Assert.False(CreateVerifier().IsTrusted(leaf));
+        Assert.Equal(
+            ProxyClientCertificateRefusal.SubjectNotAllowed,
+            CreateVerifier().Verify(leaf)
+        );
     }
 
     [Fact]
-    public void IsTrusted_WhenExpired_ReturnsFalse()
+    public void Verify_WhenExpired_ReturnsNotYetValidOrExpired()
     {
         using var authority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=ca",
@@ -187,11 +196,14 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
             Now.AddDays(-1)
         );
 
-        Assert.False(CreateVerifier().IsTrusted(leaf));
+        Assert.Equal(
+            ProxyClientCertificateRefusal.NotYetValidOrExpired,
+            CreateVerifier().Verify(leaf)
+        );
     }
 
     [Fact]
-    public void IsTrusted_WhenNotYetValid_ReturnsFalse()
+    public void Verify_WhenNotYetValid_ReturnsNotYetValidOrExpired()
     {
         using var authority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=ca",
@@ -206,11 +218,14 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
             Now.AddDays(30)
         );
 
-        Assert.False(CreateVerifier().IsTrusted(leaf));
+        Assert.Equal(
+            ProxyClientCertificateRefusal.NotYetValidOrExpired,
+            CreateVerifier().Verify(leaf)
+        );
     }
 
     [Fact]
-    public void IsTrusted_WhenTheIssuerIsMissingFromTheAnchors_IsRefused()
+    public void Verify_WhenTheIssuerIsMissingFromTheAnchors_ReturnsUntrustedChain()
     {
         using var authority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=ca",
@@ -228,11 +243,11 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
             caIssuersUrl: "http://127.0.0.1:1/ca.crt"
         );
 
-        Assert.False(CreateVerifier().IsTrusted(leaf));
+        Assert.Equal(ProxyClientCertificateRefusal.UntrustedChain, CreateVerifier().Verify(leaf));
     }
 
     [Fact]
-    public void IsTrusted_WhenTheAnchorsHoldTheRootAndTheIntermediate_AcceptsALeafIssuedByTheIntermediate()
+    public void Verify_WhenTheAnchorsHoldTheRootAndTheIntermediate_AcceptsALeafIssuedByTheIntermediate()
     {
         using var root = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=root",
@@ -247,11 +262,11 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
         WriteAnchors(Now.UtcDateTime, root, intermediate);
         using var leaf = CreateClientLeaf(intermediate);
 
-        Assert.True(CreateVerifier().IsTrusted(leaf));
+        Assert.Equal(ProxyClientCertificateRefusal.None, CreateVerifier().Verify(leaf));
     }
 
     [Fact]
-    public void IsTrusted_WhenTheAnchorIsOnlyTheIntermediate_AcceptsALeafItIssued()
+    public void Verify_WhenTheAnchorIsOnlyTheIntermediate_AcceptsALeafItIssued()
     {
         using var root = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=root",
@@ -266,11 +281,11 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
         WriteAnchor(intermediate, Now.UtcDateTime);
         using var leaf = CreateClientLeaf(intermediate);
 
-        Assert.True(CreateVerifier().IsTrusted(leaf));
+        Assert.Equal(ProxyClientCertificateRefusal.None, CreateVerifier().Verify(leaf));
     }
 
     [Fact]
-    public void IsTrusted_WhenTheAnchorIsOnlyTheRootAndTheIntermediateIsNotSent_IsRefused()
+    public void Verify_WhenTheAnchorIsOnlyTheRootAndTheIntermediateIsNotSent_ReturnsUntrustedChain()
     {
         using var root = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=root",
@@ -285,11 +300,11 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
         WriteAnchor(root, Now.UtcDateTime);
         using var leaf = CreateClientLeaf(intermediate);
 
-        Assert.False(CreateVerifier().IsTrusted(leaf));
+        Assert.Equal(ProxyClientCertificateRefusal.UntrustedChain, CreateVerifier().Verify(leaf));
     }
 
     [Fact]
-    public void IsTrusted_WhenTheAnchorIsAnExpiredIntermediate_IsRefused()
+    public void Verify_WhenTheAnchorIsAnExpiredIntermediate_ReturnsUntrustedChain()
     {
         using var root = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=root",
@@ -304,11 +319,11 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
         WriteAnchor(intermediate, Now.UtcDateTime);
         using var leaf = CreateClientLeaf(intermediate);
 
-        Assert.False(CreateVerifier().IsTrusted(leaf));
+        Assert.Equal(ProxyClientCertificateRefusal.UntrustedChain, CreateVerifier().Verify(leaf));
     }
 
     [Fact]
-    public void IsTrusted_WhenTheAnchorFileIsRewritten_UsesTheNewAnchors()
+    public void Verify_WhenTheAnchorFileIsRewritten_UsesTheNewAnchors()
     {
         using var firstAuthority =
             ProxyClientCertificateTestCertificates.CreateCertificateAuthority("CN=first", Now);
@@ -319,13 +334,13 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
         WriteAnchor(firstAuthority, Now.UtcDateTime);
         var verifier = CreateVerifier();
 
-        Assert.True(verifier.IsTrusted(firstLeaf));
-        Assert.False(verifier.IsTrusted(secondLeaf));
+        Assert.Equal(ProxyClientCertificateRefusal.None, verifier.Verify(firstLeaf));
+        Assert.Equal(ProxyClientCertificateRefusal.UntrustedChain, verifier.Verify(secondLeaf));
 
         WriteAnchor(secondAuthority, Now.UtcDateTime.AddMinutes(1));
 
-        Assert.False(verifier.IsTrusted(firstLeaf));
-        Assert.True(verifier.IsTrusted(secondLeaf));
+        Assert.Equal(ProxyClientCertificateRefusal.UntrustedChain, verifier.Verify(firstLeaf));
+        Assert.Equal(ProxyClientCertificateRefusal.None, verifier.Verify(secondLeaf));
     }
 
     #endregion

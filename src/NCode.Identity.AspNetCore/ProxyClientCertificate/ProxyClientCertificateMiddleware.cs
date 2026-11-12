@@ -37,14 +37,15 @@ internal sealed class ProxyClientCertificateMiddleware(
         var certificate = context.Connection.ClientCertificate;
         if (certificate is null)
         {
-            Logger.ProxyClientCertificateRefused(ProxyClientCertificateLog.MissingReason);
+            Logger.ProxyClientCertificateMissing();
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             return Task.CompletedTask;
         }
 
-        if (!Verifier.IsTrusted(certificate))
+        var refusal = Verifier.Verify(certificate);
+        if (refusal != ProxyClientCertificateRefusal.None)
         {
-            Logger.ProxyClientCertificateRefused(ProxyClientCertificateLog.UntrustedReason);
+            Logger.ProxyClientCertificateRefused(refusal);
             context.Response.StatusCode = StatusCodes.Status403Forbidden;
             return Task.CompletedTask;
         }

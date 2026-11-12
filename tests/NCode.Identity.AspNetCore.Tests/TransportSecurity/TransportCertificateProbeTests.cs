@@ -4,6 +4,7 @@
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using NCode.Identity.AspNetCore.TransportSecurity;
 using Xunit;
@@ -85,6 +86,66 @@ public sealed class TransportCertificateProbeTests
         }
     }
 
+    [Fact]
+    public async Task ReadServedCertificateAsync_WhenTheServerRequiresAClientCertificate_ReturnsTheServedCertificate()
+    {
+        using var certificate = TransportSecurityTestCertificates.CreateValid(Now);
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        try
+        {
+            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            var server = ServeTlsRequiringClientCertificateAsync(
+                listener,
+                certificate,
+                CancellationToken.None
+            );
+            var endpoint = new Uri($"https://127.0.0.1:{port}");
+
+            using var served = await new TransportCertificateProbe().ReadServedCertificateAsync(
+                endpoint,
+                CancellationToken.None
+            );
+
+            Assert.NotNull(served);
+            Assert.Equal(certificate.Thumbprint, served.Thumbprint);
+            await server;
+        }
+        finally
+        {
+            listener.Stop();
+        }
+    }
+
+    [Fact]
+    public async Task ReadServedCertificateAsync_WhenTheCallerCancels_Throws()
+    {
+        var listener = new TcpListener(IPAddress.Loopback, 0);
+        listener.Start();
+        using var serverCancellation = new CancellationTokenSource();
+        try
+        {
+            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            var server = HoldConnectionAsync(listener, serverCancellation.Token);
+            var endpoint = new Uri($"https://127.0.0.1:{port}");
+            using var cancellation = new CancellationTokenSource();
+            cancellation.CancelAfter(TimeSpan.FromMilliseconds(200));
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                new TransportCertificateProbe()
+                    .ReadServedCertificateAsync(endpoint, cancellation.Token)
+                    .AsTask()
+            );
+
+            await serverCancellation.CancelAsync();
+            await server;
+        }
+        finally
+        {
+            listener.Stop();
+        }
+    }
+
     #endregion
 
     #region GetCandidateHosts Tests
@@ -127,6 +188,47 @@ public sealed class TransportCertificateProbeTests
             new SslServerAuthenticationOptions { ServerCertificate = certificate },
             cancellationToken
         );
+    }
+
+    private static async ValueTask ServeTlsRequiringClientCertificateAsync(
+        TcpListener listener,
+        X509Certificate2 certificate,
+        CancellationToken cancellationToken
+    )
+    {
+        using var client = await listener.AcceptTcpClientAsync(cancellationToken);
+        await using var ssl = new SslStream(client.GetStream());
+        try
+        {
+            await ssl.AuthenticateAsServerAsync(
+                new SslServerAuthenticationOptions
+                {
+                    ServerCertificate = certificate,
+                    ClientCertificateRequired = true,
+                },
+                cancellationToken
+            );
+        }
+        catch (Exception exception) when (exception is AuthenticationException or IOException)
+        {
+            // The server rejects the missing client certificate after the client's handshake completed.
+        }
+    }
+
+    private static async ValueTask HoldConnectionAsync(
+        TcpListener listener,
+        CancellationToken cancellationToken
+    )
+    {
+        try
+        {
+            using var client = await listener.AcceptTcpClientAsync(cancellationToken);
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            // The test ends the held connection by cancelling.
+        }
     }
 
     private static async ValueTask CloseConnectionAsync(

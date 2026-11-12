@@ -3771,7 +3771,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Pull requests into `main` squash-merge through the merge queue.**
   [ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md) records the
-  decision and supersedes project-template ADR-0013; ADR-1261, ADR-1263 and ADR-1261 refine project-template ADR-0005
+  decision and supersedes project-template ADR-0013; ADR-1261 and ADR-1263 refine project-template ADR-0005
   and ADR-0006.
 
 - **CI runs show their results on GitHub.** The run summary page opens with the Definition of Done verdict and a

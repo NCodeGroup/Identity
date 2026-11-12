@@ -10,7 +10,7 @@ namespace NCode.Identity.SharedState.Valkey.Options;
 /// configuration section. The server address and credentials are not options: they come from the
 /// <see cref="ConnectionStringName"/> connection string, which accepts every StackExchange.Redis configuration
 /// setting — for example <c>valkey.example:6380,ssl=true,user=identity,password=…</c> for TLS and an access-control
-/// user.
+/// user — or from the <c>ValkeyConnection</c> parts.
 /// </summary>
 [PublicAPI]
 public sealed class ValkeyOptions

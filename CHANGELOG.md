@@ -3125,11 +3125,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   `NCode.Identity.SharedState.Abstractions` defines `IExpiringKeySet`, an atomic add-if-absent set of expiring keys;
   `NCode.Identity.SharedState` provides the in-process adapter `AddIdentityServer()` registers by default (correct for
   one replica), and the opt-in `NCode.Identity.SharedState.Valkey` package adds
-  `SharedStateLibraryBuilder.AddValkey(configuration)`, which uses the `ConnectionStrings:valkey` connection string and
-  binds the `Valkey` section (`KeyPrefix`) strictly. Without the connection string it registers nothing; with it, it
-  registers the Valkey adapters and adds a `valkey` health check tagged `ready`. The reference host calls it, and the
-  Aspire AppHost runs a Valkey container and injects the connection string, so local development uses the same adapter
-  as a multi-replica deployment
+  `SharedStateLibraryBuilder.AddValkey(configuration)`, which takes the Valkey connection as the
+  `ConnectionStrings:valkey` connection string or as the `ValkeyConnection` parts and binds the `Valkey` section
+  (`KeyPrefix`) strictly. Without a connection it registers nothing; with one, it registers the Valkey adapters and
+  adds a `valkey` health check tagged `ready`. The reference host calls it, and the Aspire AppHost runs a Valkey
+  container and injects the connection string, so local development uses the same adapter as a multi-replica
+  deployment
   ([ADR-1164](docs/decisions/1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)).
 
 - **A shared expiring counter set backs rate limiting.** `NCode.Identity.SharedState.Abstractions` provides

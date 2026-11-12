@@ -91,9 +91,11 @@ composition root chooses: in-process for one replica, Valkey for several.**
      The `Valkey` section binds `ValkeyOptions` strictly
      ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)):
      `KeyPrefix`, default `ncode-identity:`, so several deployments can share one server; braces are not allowed in it.
-   - Without the connection string the call registers nothing and the in-process adapters stay. A `Valkey` section
-     without it, a malformed connection string, or one that names no server stops the host at startup; the error never
-     echoes the connection string, which may hold a password.
+   - Without a connection, neither the connection string nor the `ValkeyConnection` parts, the call registers nothing
+     and the in-process adapters stay. A `Valkey` section without a connection, both forms at once, a malformed
+     connection string, one that names no server, parts without `Host`, a `Port` outside 1-65535 and an `Ssl` that is
+     not a boolean stop the host at startup; no error echoes the connection string or a part, which may hold a
+     password.
    - The registration takes the place of every in-process adapter registered before it.
    - The key set adds with `SET key 1 NX PX ttl`, which the server applies atomically, and looks up with `EXISTS`.
    - The value set stores one string: an 8-byte big-endian version followed by the value bytes. Add is `SET NX PX`, get is

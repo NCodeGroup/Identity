@@ -26,21 +26,19 @@ internal sealed class GuardedHttpLoggingOptionsValidator : IValidateOptions<Http
             );
         }
 
-        failures.AddRange(
-            FindCredentialHeaders(
-                options.RequestHeaders,
-                GuardedHttpLoggingDefaults.CredentialRequestHeaders,
-                nameof(options.RequestHeaders)
-            )
+        var requestHeaderFailures = FindCredentialHeaders(
+            options.RequestHeaders,
+            GuardedHttpLoggingDefaults.CredentialRequestHeaders,
+            nameof(options.RequestHeaders)
         );
+        failures.AddRange(requestHeaderFailures);
 
-        failures.AddRange(
-            FindCredentialHeaders(
-                options.ResponseHeaders,
-                GuardedHttpLoggingDefaults.CredentialResponseHeaders,
-                nameof(options.ResponseHeaders)
-            )
+        var responseHeaderFailures = FindCredentialHeaders(
+            options.ResponseHeaders,
+            GuardedHttpLoggingDefaults.CredentialResponseHeaders,
+            nameof(options.ResponseHeaders)
         );
+        failures.AddRange(responseHeaderFailures);
 
         return failures.Count == 0
             ? ValidateOptionsResult.Success

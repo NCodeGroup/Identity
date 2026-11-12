@@ -44,12 +44,11 @@ public static class GuardedHttpLoggingRegistration
                 options.ResponseHeaders.Remove(HeaderNames.Location);
             });
             serviceCollection.AddHttpLoggingInterceptor<GuardedHttpLoggingInterceptor>();
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    IValidateOptions<HttpLoggingOptions>,
-                    GuardedHttpLoggingOptionsValidator
-                >()
-            );
+            var validatorDescriptor = ServiceDescriptor.Singleton<
+                IValidateOptions<HttpLoggingOptions>,
+                GuardedHttpLoggingOptionsValidator
+            >();
+            serviceCollection.TryAddEnumerable(validatorDescriptor);
             serviceCollection.AddOptions<HttpLoggingOptions>().ValidateOnStart();
 
             // The hosting layer's request lines carry the query string, and HTTP logging's records take their place.

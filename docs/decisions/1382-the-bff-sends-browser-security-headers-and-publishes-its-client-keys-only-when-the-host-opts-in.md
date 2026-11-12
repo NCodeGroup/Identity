@@ -72,7 +72,7 @@ Four forces shape both:
    answers `application/json; charset=utf-8` as the OP's JWKS endpoint does, and sends `Cache-Control: no-store` as
    every `/bff` endpoint does, so no shared cache holds a key set that a rotation has replaced.
 8. **The key set is built with the `NCode.Identity.Jwk` model library**
-   ([ADR-1119](1119-first-class-jwk-jwks-and-thumbprint.md)), which `NCode.Identity.Secrets.Abstractions` already
+   ([ADR-1119](1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md)), which `NCode.Identity.Secrets.Abstractions` already
    exposes through `ExportedPublicKey.Jwk`. It is a model, not an implementation, so the BFF still references no
    implementation package, and its dependency test allows it by name.
 
@@ -106,7 +106,7 @@ Four forces shape both:
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.7 and §5.9
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1106](1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md),
-  [ADR-1119](1119-first-class-jwk-jwks-and-thumbprint.md),
+  [ADR-1119](1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md),
   [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md),
   [ADR-1280](1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md),
   [ADR-1286](1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md)

@@ -731,7 +731,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1104](docs/decisions/1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md)) owns per-key-type member production;
   `ExportedPublicKey.Jwk` is a `JsonWebKey`, the JWKS endpoint returns a `JsonWebKeySet`, and the DPoP proof validator
   parses the embedded key into a `JsonWebKey` and thumbprints it with `ComputeThumbprint()`
-  ([ADR-1119](docs/decisions/1119-first-class-jwk-jwks-and-thumbprint.md)).
+  ([ADR-1119](docs/decisions/1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md)).
 
 - **The JWK package names the JSON Web Key vocabulary.** `NCode.Identity.Jwk` has `JsonWebKeyUses`,
   `JsonWebKeyOperations`, `JsonWebKeyTypes`, `JsonWebKeySetParameterNames` and `JsonWebKeyParameterNames`.
@@ -749,7 +749,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `JsonWebKey(JsonObject, JsonWebKeyTypeDescriptor)` constructors. `ISecretKeyTypeDescriptor.JwkKeyType` is a
   `JsonWebKeyTypeDescriptor?`. DPoP proof validation, client key import and provider key import build typed keys, so a
   contributed key type's thumbprint and private members work
-  ([ADR-1271](docs/decisions/1271-a-key-type-registers-its-json-web-key-rules.md)).
+  ([ADR-1119](docs/decisions/1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md)).
 
 - **A JSON Web Key Set types the keys of contributed key types and skips a key without a usable `kty`.** The constructor
   `JsonWebKeySet(JsonElement, IEnumerable<JsonWebKeyTypeDescriptor>)` and `JsonWebKeySet.Parse(string,
@@ -759,14 +759,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   Web Key form). A set deserialized through `System.Text.Json` uses the standard descriptors only. Every constructor and
   `Parse` overload that reads JSON skips an array member that is not a JSON object or whose `kty` is the empty string,
   missing or not a string, and reads the rest of the set, so one malformed key cannot poison the whole set
-  ([ADR-1281](docs/decisions/1281-the-jwk-package-takes-contributed-key-types-and-hash-names-from-its-caller.md),
+  ([ADR-1119](docs/decisions/1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md),
   [#329](https://github.com/NCodeGroup/identity/issues/329)).
 
 - **A JWK Thumbprint URI names every registered hash the framework computes.** `JsonWebKey.ComputeThumbprintUri` takes
   the hash's name from the IANA Named Information Hash Algorithm Registry (RFC 9278 §4) and covers SHA-256, SHA-384,
   SHA-512, SHA3-256, SHA3-384 and SHA3-512 (`sha-256` … `sha3-512`). `ComputeThumbprintUri(HashAlgorithmName, string)`
   takes the registry name of any other hash; a truncated hash name is never produced
-  ([ADR-1281](docs/decisions/1281-the-jwk-package-takes-contributed-key-types-and-hash-names-from-its-caller.md),
+  ([ADR-1119](docs/decisions/1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md),
   [#328](https://github.com/NCodeGroup/identity/issues/328)).
 
 - **`NCode.Identity.Jwt(.Abstractions)` encodes and validates JWTs through segregated services and ASP.NET Core-style
@@ -4493,7 +4493,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **An `AKP` JWK thumbprint covers `alg`.** The thumbprint is computed over `alg`, `kty` and `pub`, as RFC 9964 §6
   requires, so two `AKP` keys that differ only in algorithm have different thumbprints
-  ([ADR-1271](docs/decisions/1271-a-key-type-registers-its-json-web-key-rules.md)).
+  ([ADR-1119](docs/decisions/1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md)).
 
 - **A JWT signed with a certificate key is checked against the certificate's validity in UTC.** Client assertions,
   request objects and CIBA requests signed with an expired certificate fail, and current ones pass, whatever the host's

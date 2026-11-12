@@ -273,7 +273,7 @@ The records are grouped by area; within an area they are in number order.
 | --- | --- | --- |
 | [1117](./1117-eddsa-clean-room-implementation-opt-in-package.md) | EdDSA (Ed25519 / Ed448) is a clean-room implementation in an opt-in package | Accepted |
 | [1118](./1118-ml-dsa-post-quantum-signatures-ship-in-the-core-libraries-over-the-bcl-mldsa-type.md) | ML-DSA post-quantum signatures ship in the core libraries over the BCL MLDsa type | Accepted |
-| [1119](./1119-first-class-jwk-jwks-and-thumbprint.md) | First-class JWK / JWKS / thumbprint live in a dedicated logic-bearing package | Accepted |
+| [1119](./1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md) | A DI-free JWK package models keys, sets and thumbprints, and key types register their rules | Accepted |
 | [1120](./1120-jwt-validation-requirements-and-handlers.md) | JWT validation is modeled as ASP.NET Core-style requirements and handlers | Accepted |
 | [1121](./1121-claim-dates-parse-by-declared-type-through-shared-date-coercion.md) | Claim dates parse only by declared type, through the shared `DateCoercion` policy | Accepted |
 | [1122](./1122-jwt-claim-values-map-to-json-by-declared-type.md) | JWT claim values map to and from JSON by declared type, in one symmetric mapper | Accepted |
@@ -281,7 +281,6 @@ The records are grouped by area; within an area they are in number order.
 | [1126](./1126-ecdh-es-concat-kdf-digest-is-sha-256-and-oracles-must-be-rfc-conforming.md) | The ECDH-ES Concat KDF digest is SHA-256, and third-party oracles must be RFC-conforming | Accepted |
 | [1154](./1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) | JWTs are validated as signed tokens under explicit algorithm and key policy | Accepted |
 | [1270](./1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) | The OpenID protocol client uses the family's JOSE stack and named key rings | Accepted |
-| [1271](./1271-a-key-type-registers-its-json-web-key-rules.md) | A key type registers its JSON Web Key rules | Accepted |
 | [1272](./1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md) | Signature algorithms are fully specified and bound to their curve | Accepted |
 | [1273](./1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md) | The protocol client validates ID tokens under an asymmetric algorithm policy | Accepted |
 | [1274](./1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) | The protocol client validates logout tokens and rejects replays | Accepted |
@@ -290,7 +289,6 @@ The records are grouped by area; within an area they are in number order.
 | [1277](./1277-a-whole-number-json-value-is-accepted-with-a-zero-fraction.md) | A whole-number JSON value is accepted with a zero fraction | Accepted |
 | [1278](./1278-token-validation-failures-carry-a-machine-readable-code.md) | Token validation failures carry a machine-readable code | Accepted |
 | [1280](./1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md) | The protocol client decrypts ID and logout tokens with its key ring | Accepted |
-| [1281](./1281-the-jwk-package-takes-contributed-key-types-and-hash-names-from-its-caller.md) | The JWK package takes contributed key types and hash names from its caller | Accepted |
 | [1282](./1282-the-jose-library-does-not-implement-rsa1-5.md) | The JOSE library does not implement RSA1_5 | Accepted |
 | [1284](./1284-a-logout-token-is-recorded-only-after-the-client-handles-it.md) | A logout token is recorded only after the client handles it | Accepted |
 | [1285](./1285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md) | The OpenID protocol client needs no ASP.NET Core runtime | Accepted |

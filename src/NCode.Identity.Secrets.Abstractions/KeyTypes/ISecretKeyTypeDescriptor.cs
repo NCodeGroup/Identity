@@ -35,7 +35,7 @@ public interface ISecretKeyTypeDescriptor
     /// JSON Web Key is matched to its descriptor by <see cref="JsonWebKeyTypeDescriptor.Name"/>. A key type a package
     /// contributes supplies its own descriptor.
     /// </summary>
-    // See ADR-1271.
+    // See ADR-1119.
     JsonWebKeyTypeDescriptor? JwkKeyType { get; }
 
     /// <summary>

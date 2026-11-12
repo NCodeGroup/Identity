@@ -67,7 +67,7 @@ key type, such as `NCode.Identity.Jose.EdDsa` with its `OKP` keys, must be able 
 4. **The `epk` is a JSON Web Key of the recipient key's type, written and read through that type's descriptors.** The
    algorithm finds the key type's `ISecretKeyTypeDescriptor` and its `JsonWebKeyTypeDescriptor`
    ([ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
-   [ADR-1271](1271-a-key-type-registers-its-json-web-key-rules.md)); a key type without a JSON Web Key form cannot
+   [ADR-1119](1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md)); a key type without a JSON Web Key form cannot
    carry an ephemeral key and is refused.
    - Writing, the descriptor exports the ephemeral public key and only the type's required members (RFC 7638 §3.2) are
      kept, so the `epk` holds the minimum that represents the key and never a private member
@@ -166,7 +166,7 @@ key type, such as `NCode.Identity.Jose.EdDsa` with its `OKP` keys, must be able 
   [ADR-1126](1126-ecdh-es-concat-kdf-digest-is-sha-256-and-oracles-must-be-rfc-conforming.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
-  [ADR-1271](1271-a-key-type-registers-its-json-web-key-rules.md)
+  [ADR-1119](1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md)
 - Issue [#327](https://github.com/NCodeGroup/identity/issues/327)
 - `KeyedAlgorithm`, `AlgorithmKeyType`, `KeyAlgorithmDeclaration`, `KeyGenerationDeclaration` and `IEcdhKeyAgreement`
   in `NCode.Identity.Jose.Abstractions`; `AsymmetricSecretKey.CurveName` in `NCode.Identity.Secrets.Abstractions`;

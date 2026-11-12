@@ -1,0 +1,41 @@
+# The management-console release routed by Gateway API with the chart's private CA: an HTTPRoute and a BackendTLSPolicy
+# for the server and for the console, with no Ingress. A post-install hook Job publishes the CA's ca.crt to the
+# <release>-ca ConfigMap that the BackendTLSPolicy verifies the pods against.
+allowedHosts:
+  - id.example.com
+tenantResolution:
+  staticSingle:
+    issuer: https://id.example.com
+database:
+  existingSecret: identity-database
+secretProtection:
+  rootKeyProvider: local
+  local:
+    keySecret: identity-root-key
+  recovery:
+    publicKeyConfigMap: identity-recovery-key
+backendTls:
+  caPublisher:
+    enabled: true
+httpRoute:
+  enabled: true
+  parentRefs:
+    - name: shared-gateway
+      namespace: gateway-system
+      sectionName: https
+  hostnames:
+    - id.example.com
+managementConsole:
+  enabled: true
+  host: manage.example.com
+  keyRings:
+    client:
+      pemSecret: identity-mgmt-client-key
+    dpop:
+      pemSecret: identity-mgmt-dpop-key
+  httpRoute:
+    enabled: true
+    parentRefs:
+      - name: shared-gateway
+        namespace: gateway-system
+        sectionName: https

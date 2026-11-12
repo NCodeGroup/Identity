@@ -476,14 +476,6 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "ingressController": {
-          "type": "string",
-          "enum": [
-            "ingress-nginx",
-            "traefik",
-            "none"
-          ]
-        },
         "existingSecret": {
           "type": "string"
         },
@@ -501,6 +493,46 @@
               "type": "string",
               "minLength": 1,
               "pattern": "^[A-Za-z0-9._-]+$"
+            }
+          }
+        },
+        "caConfigMap": {
+          "type": "string"
+        },
+        "caPublisher": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "image": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "repository": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "tag": {
+                  "type": "string"
+                },
+                "digest": {
+                  "type": "string",
+                  "pattern": "^(sha256:[0-9a-f]{64})?$"
+                },
+                "pullPolicy": {
+                  "type": "string",
+                  "enum": ["Always", "IfNotPresent", "Never"]
+                }
+              }
+            },
+            "activeDeadlineSeconds": {
+              "type": "integer",
+              "minimum": 30
+            },
+            "resources": {
+              "type": "object"
             }
           }
         },
@@ -597,6 +629,14 @@
         "enabled": {
           "type": "boolean"
         },
+        "controller": {
+          "type": "string",
+          "enum": [
+            "",
+            "traefik",
+            "other"
+          ]
+        },
         "className": {
           "type": "string"
         },
@@ -650,6 +690,57 @@
           "items": {
             "type": "object"
           }
+        }
+      }
+    },
+    "httpRoute": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "parentRefs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "group": {
+                "type": "string"
+              },
+              "kind": {
+                "type": "string"
+              },
+              "namespace": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "sectionName": {
+                "type": "string"
+              },
+              "port": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 65535
+              }
+            },
+            "required": [
+              "name"
+            ]
+          }
+        },
+        "hostnames": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "annotations": {
+          "type": "object"
         }
       }
     },
@@ -933,6 +1024,9 @@
             },
             "ingressSecret": {
               "type": "string"
+            },
+            "caConfigMap": {
+              "type": "string"
             }
           }
         },
@@ -973,6 +1067,50 @@
               "items": {
                 "type": "object"
               }
+            }
+          }
+        },
+        "httpRoute": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "parentRefs": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "group": {
+                    "type": "string"
+                  },
+                  "kind": {
+                    "type": "string"
+                  },
+                  "namespace": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "sectionName": {
+                    "type": "string"
+                  },
+                  "port": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              }
+            },
+            "annotations": {
+              "type": "object"
             }
           }
         },

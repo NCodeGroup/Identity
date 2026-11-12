@@ -1,0 +1,43 @@
+# The management-console release routed by Gateway API: an HTTPRoute and a BackendTLSPolicy for the server and for the
+# console, with no Ingress.
+allowedHosts:
+  - id.example.com
+tenantResolution:
+  staticSingle:
+    issuer: https://id.example.com
+database:
+  existingSecret: identity-database
+secretProtection:
+  rootKeyProvider: local
+  local:
+    keySecret: identity-root-key
+  recovery:
+    publicKeyConfigMap: identity-recovery-key
+backendTls:
+  caConfigMap: identity-ca
+  certManager:
+    issuerRef:
+      name: corp-ca
+      kind: ClusterIssuer
+httpRoute:
+  enabled: true
+  parentRefs:
+    - name: shared-gateway
+      namespace: gateway-system
+      sectionName: https
+  hostnames:
+    - id.example.com
+managementConsole:
+  enabled: true
+  host: manage.example.com
+  keyRings:
+    client:
+      pemSecret: identity-mgmt-client-key
+    dpop:
+      pemSecret: identity-mgmt-dpop-key
+  httpRoute:
+    enabled: true
+    parentRefs:
+      - name: shared-gateway
+        namespace: gateway-system
+        sectionName: https

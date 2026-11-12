@@ -1,6 +1,6 @@
 # A production release for a kind cluster. The image is built from the repository and loaded into the cluster's nodes,
-# so it is never pulled. The workflow sets ingress.className and backendTls.ingressController for the controller under
-# test, and creates the database and root key Secrets this release names.
+# so it is never pulled. Traefik routes to the pods through the release's ServersTransport; the workflow creates the
+# database and root key Secrets this release names.
 image:
   repository: ncode-identity-host
   tag: kind
@@ -23,6 +23,8 @@ secretProtection:
     deployment: ci-kind
 ingress:
   enabled: true
+  controller: traefik
+  className: traefik
   hosts:
     - host: id.example.com
       paths:

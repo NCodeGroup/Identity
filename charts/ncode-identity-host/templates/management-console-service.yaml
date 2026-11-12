@@ -5,7 +5,7 @@ metadata:
   name: {{ include "identity-host.managementConsole.fullname" . }}
   labels:
     {{- include "identity-host.managementConsole.labels" . | nindent 4 }}
-  {{- if eq .Values.backendTls.ingressController "traefik" }}
+  {{- if and .Values.managementConsole.ingress.enabled (eq .Values.ingress.controller "traefik") }}
   annotations:
     {{- include "identity-host.backendTls.traefikServiceAnnotations" (dict "root" . "name" (include "identity-host.managementConsole.fullname" .)) | nindent 4 }}
   {{- end }}

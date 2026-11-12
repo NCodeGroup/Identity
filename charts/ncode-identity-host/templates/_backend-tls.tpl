@@ -22,11 +22,11 @@ the CA that signed the pods' certificates.
 {{- end }}
 
 {{/*
-The name of the Secret from which an ingress controller reads the CA that verifies the pods' certificate and its own
-client certificate. Takes a dict with root and service (the Service's name). For the management console it is
-managementConsole.backendTls.ingressSecret, else backendTls.ingressSecret, else the chart's ingress Secret; for the
-server it is backendTls.ingressSecret, else the chart's ingress Secret. The pods' serving Secret is never a fallback,
-so the controller never reads the pods' private key.
+The name of the ingress controller's Secret for a Service: its ca.crt verifies the pods' certificate and its tls.crt and
+tls.key are the controller's client certificate. Takes a dict with root and service (the Service's name). For the
+management console it is managementConsole.backendTls.ingressSecret, else backendTls.ingressSecret, else the chart's
+ingress Secret; for the server it is backendTls.ingressSecret, else the chart's ingress Secret. The pods' serving
+Secret is never a fallback, so the controller never reads the pods' private key.
 */}}
 {{- define "identity-host.backendTls.verificationSecretName" -}}
 {{- $root := .root }}
@@ -38,14 +38,33 @@ so the controller never reads the pods' private key.
 {{- end }}
 
 {{/*
-Prints true when the chart issues the ingress Secret: the ingress controller is not none and an enabled Ingress has no
-ingressSecret of the operator's. Prints nothing otherwise.
+Prints true when a component's route uses the ingress controller's Secret, and nothing otherwise: a Traefik Ingress
+verifies the pods against it, and any route presents its client certificate when backendTls.clientCertificate.required
+is true. Takes a dict with root and console (true for the management console).
 */}}
-{{- define "identity-host.backendTls.ingressCertificateNeeded" -}}
-{{- if ne .Values.backendTls.ingressController "none" }}
-{{- if or (and .Values.ingress.enabled (not .Values.backendTls.ingressSecret)) (and .Values.managementConsole.enabled .Values.managementConsole.ingress.enabled (not .Values.managementConsole.backendTls.ingressSecret) (not .Values.backendTls.ingressSecret)) }}
+{{- define "identity-host.backendTls.controllerSecretUsed" -}}
+{{- $values := .root.Values }}
+{{- $ingress := $values.ingress.enabled }}
+{{- $route := or $values.ingress.enabled $values.httpRoute.enabled }}
+{{- if .console }}
+{{- $console := $values.managementConsole }}
+{{- $ingress = and $console.enabled $console.ingress.enabled }}
+{{- $route = and $console.enabled (or $console.ingress.enabled $console.httpRoute.enabled) }}
+{{- end }}
+{{- if or (and $ingress (eq $values.ingress.controller "traefik")) (and $route $values.backendTls.clientCertificate.required) }}
 {{- print "true" }}
 {{- end }}
+{{- end }}
+
+{{/*
+Prints true when the chart issues the ingress Secret: a component's route uses the controller's Secret and no
+ingressSecret of the operator's names it. Prints nothing otherwise.
+*/}}
+{{- define "identity-host.backendTls.ingressCertificateNeeded" -}}
+{{- $server := and (include "identity-host.backendTls.controllerSecretUsed" (dict "root" . "console" false)) (not .Values.backendTls.ingressSecret) }}
+{{- $console := and (include "identity-host.backendTls.controllerSecretUsed" (dict "root" . "console" true)) (not .Values.managementConsole.backendTls.ingressSecret) (not .Values.backendTls.ingressSecret) }}
+{{- if or $server $console }}
+{{- print "true" }}
 {{- end }}
 {{- end }}
 
@@ -169,20 +188,6 @@ one that chains to the mounted ca.crt and whose subject is CN=<backendTls.client
 {{- end }}
 
 {{/*
-The Ingress annotations that make the ingress-nginx controller speak HTTPS to a Service, verify its pods' certificate
-and authenticate to them, all through the Secret that identity-host.backendTls.verificationSecretName chooses: the
-proxy-ssl-secret Secret holds the CA in ca.crt and the controller's client certificate in tls.crt and tls.key. Takes a
-dict with root and service.
-*/}}
-{{- define "identity-host.backendTls.ingressNginxAnnotations" -}}
-nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
-nginx.ingress.kubernetes.io/proxy-ssl-verify: "on"
-nginx.ingress.kubernetes.io/proxy-ssl-secret: {{ printf "%s/%s" .root.Release.Namespace (include "identity-host.backendTls.verificationSecretName" .) | quote }}
-nginx.ingress.kubernetes.io/proxy-ssl-name: {{ include "identity-host.backendTls.serverName" . | quote }}
-nginx.ingress.kubernetes.io/proxy-ssl-server-name: "on"
-{{- end }}
-
-{{/*
 The Service annotations that make the Traefik controller speak HTTPS to a Service through the release's
 ServersTransport, which verifies the pods' certificate and, when backendTls.clientCertificate.required is true,
 presents the controller's client certificate. Takes a dict with root and name (the ServersTransport's name).
@@ -190,6 +195,79 @@ presents the controller's client certificate. Takes a dict with root and name (t
 {{- define "identity-host.backendTls.traefikServiceAnnotations" -}}
 traefik.ingress.kubernetes.io/service.serversscheme: https
 traefik.ingress.kubernetes.io/service.serverstransport: {{ printf "%s-%s@kubernetescrd" .root.Release.Namespace .name | quote }}
+{{- end }}
+
+{{/*
+The name of the ConfigMap that holds the CA a Gateway API implementation verifies a Service's pods against:
+backendTls.caConfigMap, or <release>-ca when backendTls.caPublisher.enabled publishes it; the management console's
+Service takes managementConsole.backendTls.caConfigMap first. Empty when none is set. Takes a dict with root and service
+(the Service's name).
+*/}}
+{{- define "identity-host.backendTls.caConfigMap" -}}
+{{- $server := .root.Values.backendTls.caConfigMap }}
+{{- if and (not $server) .root.Values.backendTls.caPublisher.enabled }}
+{{- $server = printf "%s-ca" (include "identity-host.fullname" .root) }}
+{{- end }}
+{{- if eq .service (include "identity-host.managementConsole.fullname" .root) }}
+{{- .root.Values.managementConsole.backendTls.caConfigMap | default $server }}
+{{- else }}
+{{- $server }}
+{{- end }}
+{{- end }}
+
+{{/*
+The BackendTLSPolicy that makes a Gateway API implementation speak HTTPS to a Service and verify its pods' certificate
+against the CA ConfigMap. Takes a dict with root, service (the Service's name) and labels (the rendered label block).
+*/}}
+{{- define "identity-host.backendTls.policy" -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ .service }}
+  labels:
+    {{- .labels | nindent 4 }}
+spec:
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: {{ .service }}
+      sectionName: https
+  validation:
+    caCertificateRefs:
+      - group: ""
+        kind: ConfigMap
+        name: {{ include "identity-host.backendTls.caConfigMap" . }}
+    hostname: {{ include "identity-host.backendTls.serverName" . | quote }}
+{{- end }}
+
+{{/*
+The HTTPRoute that sends every path to a Service's HTTPS port. Takes a dict with root, service (the Service's name),
+labels (the rendered label block), annotations (a map), parentRefs (a list), hostnames (a list) and port.
+*/}}
+{{- define "identity-host.httpRoute" -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .service }}
+  labels:
+    {{- .labels | nindent 4 }}
+  {{- with .annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    {{- toYaml .parentRefs | nindent 4 }}
+  hostnames:
+    {{- toYaml .hostnames | nindent 4 }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: {{ .service }}
+          port: {{ .port }}
 {{- end }}
 
 {{/*
@@ -206,12 +284,42 @@ Refuses a certificate the chart's Certificate could not describe to cert-manager
 {{- if and (eq $certManager.privateKey.algorithm "RSA") (lt (int $certManager.privateKey.size) 2048) }}
 {{- fail "backendTls.certManager.privateKey.size must be at least 2048 for an RSA key." }}
 {{- end }}
-{{- if and (ne .Values.backendTls.ingressController "none") (not $certManager.issuerRef.name) }}
-{{- if and .Values.ingress.enabled .Values.backendTls.existingSecret (not .Values.backendTls.ingressSecret) }}
-{{- fail "backendTls.ingressSecret is required when backendTls.existingSecret is set without backendTls.certManager.issuerRef: the chart does not know the CA that signed your certificate." }}
+{{- $console := .Values.managementConsole }}
+{{- $consoleOn := $console.enabled }}
+{{- if and (or .Values.ingress.enabled (and $consoleOn $console.ingress.enabled)) (not .Values.ingress.controller) }}
+{{- fail "ingress.controller must be traefik or other when an Ingress is enabled: the pods serve HTTPS only, so the controller must speak HTTPS to the Service and verify the pods' certificate." }}
 {{- end }}
-{{- if and .Values.managementConsole.enabled .Values.managementConsole.ingress.enabled .Values.managementConsole.backendTls.existingSecret (not .Values.managementConsole.backendTls.ingressSecret) (not .Values.backendTls.ingressSecret) }}
-{{- fail "managementConsole.backendTls.ingressSecret or backendTls.ingressSecret is required when managementConsole.backendTls.existingSecret is set without backendTls.certManager.issuerRef: the chart does not know the CA that signed your certificate." }}
+{{- if .Values.httpRoute.enabled }}
+{{- if not .Values.httpRoute.parentRefs }}
+{{- fail "httpRoute.parentRefs must name a Gateway listener when httpRoute.enabled is true: an HTTPRoute without a parent attaches to nothing." }}
+{{- end }}
+{{- if not .Values.httpRoute.hostnames }}
+{{- fail "httpRoute.hostnames must not be empty when httpRoute.enabled is true: the route needs a host to match." }}
+{{- end }}
+{{- if not (include "identity-host.backendTls.caConfigMap" (dict "root" . "service" (include "identity-host.fullname" .))) }}
+{{- fail "backendTls.caConfigMap must be set, or backendTls.caPublisher.enabled with the chart's private CA, when httpRoute.enabled is true: the BackendTLSPolicy verifies the pods' certificate against the CA in that ConfigMap." }}
+{{- end }}
+{{- end }}
+{{- if and .Values.backendTls.caPublisher.enabled (or .Values.backendTls.certManager.issuerRef.name .Values.backendTls.existingSecret) }}
+{{- fail "backendTls.caPublisher.enabled publishes the chart's private CA to the server's CA ConfigMap, so the server must take its certificate from that CA: backendTls.certManager.issuerRef.name and backendTls.existingSecret must be empty." }}
+{{- end }}
+{{- if and .Values.backendTls.caPublisher.enabled $consoleOn $console.backendTls.existingSecret (not $console.backendTls.caConfigMap) }}
+{{- fail "managementConsole.backendTls.caConfigMap must name the CA of managementConsole.backendTls.existingSecret when backendTls.caPublisher.enabled is true: the console's CA ConfigMap otherwise falls back to the one the publisher writes, which holds only the chart's private CA." }}
+{{- end }}
+{{- if and $consoleOn $console.httpRoute.enabled }}
+{{- if not $console.httpRoute.parentRefs }}
+{{- fail "managementConsole.httpRoute.parentRefs must name a Gateway listener when managementConsole.httpRoute.enabled is true: an HTTPRoute without a parent attaches to nothing." }}
+{{- end }}
+{{- if not (include "identity-host.backendTls.caConfigMap" (dict "root" . "service" (include "identity-host.managementConsole.fullname" .))) }}
+{{- fail "managementConsole.backendTls.caConfigMap or backendTls.caConfigMap must be set when managementConsole.httpRoute.enabled is true: the BackendTLSPolicy verifies the console pods' certificate against the CA in that ConfigMap." }}
+{{- end }}
+{{- end }}
+{{- if not $certManager.issuerRef.name }}
+{{- if and (include "identity-host.backendTls.controllerSecretUsed" (dict "root" . "console" false)) .Values.backendTls.existingSecret (not .Values.backendTls.ingressSecret) }}
+{{- fail "backendTls.ingressSecret is required when backendTls.existingSecret is set without backendTls.certManager.issuerRef and a route uses the ingress controller's Secret: the chart does not know the CA that signed your certificate." }}
+{{- end }}
+{{- if and (include "identity-host.backendTls.controllerSecretUsed" (dict "root" . "console" true)) $console.backendTls.existingSecret (not $console.backendTls.ingressSecret) (not .Values.backendTls.ingressSecret) }}
+{{- fail "managementConsole.backendTls.ingressSecret or backendTls.ingressSecret is required when managementConsole.backendTls.existingSecret is set without backendTls.certManager.issuerRef and a route uses the ingress controller's Secret: the chart does not know the CA that signed your certificate." }}
 {{- end }}
 {{- end }}
 {{- end }}

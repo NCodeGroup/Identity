@@ -1,0 +1,6 @@
+{{- if .Values.httpRoute.enabled }}
+# The Gateway verifies the pods against the CA ConfigMap that backendTls.caConfigMap names.
+{{ include "identity-host.httpRoute" (dict "root" . "service" (include "identity-host.fullname" .) "labels" (include "identity-host.labels" .) "annotations" .Values.httpRoute.annotations "parentRefs" .Values.httpRoute.parentRefs "hostnames" .Values.httpRoute.hostnames "port" .Values.service.port) }}
+---
+{{ include "identity-host.backendTls.policy" (dict "root" . "service" (include "identity-host.fullname" .) "labels" (include "identity-host.labels" .)) }}
+{{- end }}

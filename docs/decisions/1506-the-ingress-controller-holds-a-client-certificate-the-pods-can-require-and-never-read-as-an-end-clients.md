@@ -2,7 +2,9 @@
 
 - **Status:** Accepted (amends
   [ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md) and
-  [ADR-1172](1172-forwarded-client-certificates-are-decoded-by-a-registered-format.md))
+  [ADR-1172](1172-forwarded-client-certificates-are-decoded-by-a-registered-format.md); amended by
+  [ADR-1507](1507-the-host-chart-routes-to-its-https-only-pods-through-gateway-api-a-traefik-ingress-or-the-operators-own-ingress.md):
+  the chart issues the ingress Secret when a route uses it, and has no ingress-nginx mode)
 - **Date:** 2026-11-11
 - **Deciders:** NCode Group
 

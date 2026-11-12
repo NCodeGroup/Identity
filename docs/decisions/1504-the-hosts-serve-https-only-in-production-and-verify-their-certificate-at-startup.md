@@ -8,7 +8,9 @@
   amended by
   [ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md):
   the controller verifies the pods against the chart's ingress Secret and authenticates to them with its client
-  certificate)
+  certificate; and by
+  [ADR-1507](1507-the-host-chart-routes-to-its-https-only-pods-through-gateway-api-a-traefik-ingress-or-the-operators-own-ingress.md):
+  the chart routes through Gateway API, a Traefik Ingress or the operator's own ingress, and has no ingress-nginx mode)
 - **Date:** 2026-11-11
 - **Deciders:** NCode Group
 

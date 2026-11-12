@@ -18,7 +18,7 @@ change is.
 
 Whether a change affects a tenant depends on the tenant's own document: its overrides and the security profiles it
 selects decide which of the server's settings reach it
-([ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service.md)). A comparison at the server cannot say
+([ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md)). A comparison at the server cannot say
 which tenants a change reaches, so the test compares the tenant's effective settings before and after the change.
 
 ## Decision
@@ -96,7 +96,7 @@ handler reaches only the tenants and clients that the difference affects.**
 
 - [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md) — the keys a tenant holds and the command that
   seeds them.
-- [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service.md) — the effective settings a tenant
+- [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md) — the effective settings a tenant
   resolves.
 - [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md) — the coherence rules a change can
   affect.

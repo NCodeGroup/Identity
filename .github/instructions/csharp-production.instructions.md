@@ -452,7 +452,7 @@ than inlining the rationale.
   Never hand-merge a deserialized document, and never take platform settings from this replica's poll for a seed or a
   check. Only the platform factory and the root settings source
   call the catalog directly
-  ([ADR-1204](../../docs/decisions/1204-a-scopes-effective-settings-are-resolved-by-one-service.md)).
+  ([ADR-1204](../../docs/decisions/1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md)).
   `security_profiles` accumulates down the cascade (`Union`), so enforcement evaluates the requirements of every profile
   in the effective settings and never picks "the" profile. A profile contributes its ceiling through
   `ISecurityProfileCeilingBuilder`, which accepts only a setting whose merge is a lattice operation

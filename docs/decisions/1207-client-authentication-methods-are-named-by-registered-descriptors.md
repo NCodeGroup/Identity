@@ -19,7 +19,7 @@ by the `OpenIdOptions` validators, so composing the host constructed every handl
 options validation. A handler that depended, however indirectly, on a service whose constructor reads
 `IOptions<OpenIdOptions>.Value` deadlocked host composition, and the container could not detect the cycle because its
 last edge is a runtime `GetServices` call
-([ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service.md)). The factories that read the options on
+([ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md)). The factories that read the options on
 use avoid the cycle, but only by a convention that nothing enforced.
 
 Dynamic registration had a second copy of the vocabulary. It named the methods that verify a shared secret in a
@@ -75,7 +75,7 @@ review (issue [#251](https://github.com/NCodeGroup/identity/issues/251)) found b
   name.
 - `DefaultOpenIdEnvironmentFactory` and `DefaultOpenIdServerFactory` keep reading `IOptions<OpenIdOptions>.Value` on
   use, never in a constructor. Options validation constructs no handler, so the cycle of
-  [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service.md) cannot arise through the handlers.
+  [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md) cannot arise through the handlers.
 - The domain of the client-authentication settings follows the registered descriptors, not the registered handlers. This
   amends [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md).
 - This implements issue [#251](https://github.com/NCodeGroup/identity/issues/251).

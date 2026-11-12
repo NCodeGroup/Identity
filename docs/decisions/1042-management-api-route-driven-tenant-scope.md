@@ -116,7 +116,7 @@ Everything follows from that rule:
   dynamic-by-path param-name coupling is gone.
 - A tenant-bound create derives its owning tenant from the ambient scope (the route `{tenantId}`), keeping ADR-1018's
   "the request carries no tenant identifier in the body" property while making the owning tenant explicit in the path.
-- [ADR-1040](1040-effective-settings-preview-endpoints.md)'s rationale for the tenant effective-settings endpoint being
+- [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md)'s rationale for the tenant effective-settings endpoint being
   "deliberately not by-id" is superseded: all three effective-settings endpoints are now by-id and form one hierarchy.
 - The server/root-tenant identity duplication (the `(Server, rootTenantId)` node is typed `Server` but keyed by the
   root _tenant_ id) is left intact; unifying it is a separate, optional follow-up.
@@ -140,6 +140,6 @@ Everything follows from that rule:
   [ADR-1031](1031-control-plane-management-resource-server-and-root-tenant-seeding.md),
   [ADR-1034](1034-persisted-role-assignments-and-ownership.md) — the control-plane / workload split and the authorization
   anchor the plane-aware routing follows.
-- [ADR-1040](1040-effective-settings-preview-endpoints.md) — the effective-settings endpoints, whose tenant "not by-id"
+- [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md) — the effective-settings endpoints, whose tenant "not by-id"
   rationale this supersedes.
 - [ADR-1009](1009-endpoint-families-own-their-route-group.md) — endpoint families own their route group.

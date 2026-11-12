@@ -20,7 +20,7 @@
 ## Context
 
 The server's effective settings are its configured settings with its committed settings document merged onto them
-([ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service.md)), and they bound every tenant and client
+([ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md)), and they bound every tenant and client
 below them. Three kinds of change move them: a management write to the document, a reload of
 `OpenId:Server:Settings`, and a deployment whose configuration differs. A review (issues [#248](https://github.com/NCodeGroup/identity/issues/248), [#249](https://github.com/NCodeGroup/identity/issues/249), [#252](https://github.com/NCodeGroup/identity/issues/252) and
 [#263](https://github.com/NCodeGroup/identity/issues/263)) found that none of them reached every replica, every tenant, and every client in a bounded time:
@@ -161,7 +161,7 @@ below them. Three kinds of change move them: a management write to the document,
 - [ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md) — the shared state that holds
   the lease.
 - [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md) — tenant keys and the tenant change command.
-- [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service.md) — the effective settings resolver.
+- [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md) — the effective settings resolver.
 - [ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md) — the replica broadcast port.
 - [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md) — client coherence rules.
 - Code: `NCode.Identity.OpenId.Servers.ServerSettingsReconciliationService`, `DefaultServerSettingsReconciler`,

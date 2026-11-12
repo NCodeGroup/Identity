@@ -83,7 +83,7 @@ anywhere else is rejected at every entry point, exactly as an unregistered name 
    ([ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)).
 9. **Previews show what governs the scope.** A management effective-settings preview lists only the settings that apply
    within the previewed scope
-   ([ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service.md)).
+   ([ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md)).
 10. **A setting meaningful at a scope is read there.** `token_endpoint_auth_signing_alg_values_supported` is enforced
     against the authenticating client's effective settings, which carry the tenant's list and the ceiling of every
     profile the client selects, and a set list permits only what it names
@@ -138,7 +138,7 @@ anywhere else is rejected at every entry point, exactly as an unregistered name 
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md): vocabularies are open unless provably closed.
 - [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md),
   [ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md),
-  [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service.md) and
+  [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md) and
   [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md): the settings that apply to clients and resource servers,
   the previews, and nested teams.
 - Code: `NCode.Identity.Settings.SettingScopeDescriptor`, `ISettingScopeCollection`, `ISettingScopeCollectionProvider`,

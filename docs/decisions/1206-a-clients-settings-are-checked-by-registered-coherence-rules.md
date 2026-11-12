@@ -27,7 +27,7 @@ be of a kind that `redirect_uri_kinds_supported` lists ([ADR-1203](1203-redirect
 method that the client authenticates with must be one that `token_endpoint_auth_methods_supported` lists
 ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md)). The lists come from the settings cascade
 and from the security profiles that a scope selects
-([ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service.md)), so the client's own document does not
+([ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md)), so the client's own document does not
 carry them.
 
 Each place that stores a client checked a different subset of those relations. Dynamic registration, the management API,

@@ -108,7 +108,7 @@ route group.**
 - [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110#name-409-conflict) §15.5.10 — 409 Conflict.
 - [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) — problem details for HTTP APIs.
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md) — configuration the server cannot honor fails loudly.
-- [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service.md) — the resolver.
+- [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md) — the resolver.
 - [ADR-1214](1214-a-management-write-that-loses-a-race-is-answered-412.md) — the endpoint filter on the management route
   group.
 - [ADR-1233](1233-the-management-api-lists-a-tenants-incoherent-clients.md) — the incoherent-client report.

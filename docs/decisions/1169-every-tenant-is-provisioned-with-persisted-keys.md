@@ -108,7 +108,7 @@ key for. The server generates keys only to fill those gaps; it never removes, re
    and the key-management lists it decrypts request objects and access tokens encrypted to it with.
    - The settings materialize only after the seed, so the contributor resolves the tenant's persisted document, expanded
      through its security profiles, onto the server's committed settings through `IEffectiveSettingsResolver`
-     ([ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service.md)), as the materialized tenant does.
+     ([ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md)), as the materialized tenant does.
    - A `fapi2` tenant, whose lists exclude `RS256`, gets no RS256 key. A tenant that later permits a configured
      algorithm gains its key at its next seed (decision 10).
    - The configured set stays the ceiling: a client registering an algorithm outside it, such as `ES384`, still needs

@@ -81,7 +81,7 @@ with it, or the one its strategy derives for it — and that issuer is stored wi
   identifier sits in the host; one template shape serves both built-in strategies and a custom one.
 - **Preview the address at a collection route** (`/api/tenants/check-address`). Rejected: a literal segment under
   `/api/tenants/` collides with a tenant of that name. The sub-resource of the tenant it describes cannot collide, and it
-  mirrors the effective-settings previews ([ADR-1040](1040-effective-settings-preview-endpoints.md)).
+  mirrors the effective-settings previews ([ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md)).
 
 ## Consequences
 

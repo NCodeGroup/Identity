@@ -2249,7 +2249,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   authorization as reading that entity's raw settings and carries no `ETag` (a merged view spans several persisted
   entities). The wire contracts include `PlatformEffectiveSettingsResource`, `TeamEffectiveSettingsResource`,
   `TenantEffectiveSettingsResource` and `ClientEffectiveSettingsResource`. See
-  [ADR-1040](docs/decisions/1040-effective-settings-preview-endpoints.md) and
+  [ADR-1204](docs/decisions/1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md) and
   [ADR-1042](docs/decisions/1042-management-api-route-driven-tenant-scope.md).
 
 - **A management request answers `409` for a stored settings document it cannot honor.** The effective-settings reads, a
@@ -3309,7 +3309,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `EphemeralOpenIdTenantFactory` included, goes through it. Seeds and management previews read the platform's committed
   settings rather than a replica's 5-minute poll of them, and `ITenantStore` and `IClientStore` expose
   `GetSettingsPageAsync`, which a custom store implements. Its default is registered with `TryAddSingleton`, so a host
-  registers its own ([ADR-1204](docs/decisions/1204-a-scopes-effective-settings-are-resolved-by-one-service.md),
+  registers its own ([ADR-1204](docs/decisions/1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md),
   [#230](https://github.com/NCodeGroup/identity/issues/230)).
 
 - **Redirect URI kinds, which a client's settings narrow.** The `redirect_uri_kinds_supported` setting lists the kinds
@@ -4670,7 +4670,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   returns only the settings marked `IsDiscoverable` and the endpoints marked discoverable, and no query-string parameter
   widens it, so an anonymous caller cannot enumerate non-advertised settings or endpoints; the full merged settings view
   is served only by the authenticated effective-settings endpoints of the management API
-  ([ADR-1040](docs/decisions/1040-effective-settings-preview-endpoints.md)).
+  ([ADR-1204](docs/decisions/1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md)).
 
 - **Discovery metadata is secure by default and operator-overridable
   ([ADR-1010](docs/decisions/1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)).** The OpenID Provider advertises no

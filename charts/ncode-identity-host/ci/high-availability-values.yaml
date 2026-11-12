@@ -35,6 +35,8 @@ ingress:
     - secretName: id-example-com-tls
       hosts:
         - id.example.com
+backendTls:
+  ingressController: traefik
 extraEnv:
   - name: Logging__LogLevel__Default
     value: Warning

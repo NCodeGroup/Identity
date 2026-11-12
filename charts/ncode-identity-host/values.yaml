@@ -186,8 +186,28 @@ backendTls:
   existingSecret: ""
   # A ConfigMap in the release namespace that holds only ca.crt, the CA that signs the pods' certificate. The Gateway API
   # mode verifies the pods against it, and the Traefik mode does when it is set. trust-manager makes it, or: kubectl
-  # create configmap <name> --from-file=ca.crt=<ca.pem>
+  # create configmap <name> --from-file=ca.crt=<ca.pem>. Empty with caPublisher.enabled names <release>-ca, which the
+  # publisher writes.
   caConfigMap: ""
+  # An opt-in hook Job that publishes the ca.crt of the chart's private CA to the CA ConfigMap after cert-manager issues
+  # it, so a release that uses the private CA needs no manual ConfigMap. It runs 'kubectl apply -k' and never sees the
+  # CA's private key.
+  caPublisher:
+    enabled: false
+    # The official kubectl image, pinned by tag and by the digest of its multi-architecture index; the digest wins when
+    # set.
+    image:
+      repository: registry.k8s.io/kubectl
+      tag: v1.37.2
+      digest: sha256:fe049faa65ae483ac200009a949a68fa4c9985daea12c9cb1195c9c7965301fc
+      pullPolicy: IfNotPresent
+    activeDeadlineSeconds: 600
+    resources:
+      requests:
+        cpu: 10m
+        memory: 32Mi
+      limits:
+        memory: 64Mi
   certManager:
     # The issuer of the pods' certificate. An empty name makes the chart create a private CA: a self-signed Issuer, a CA
     # Certificate and a CA Issuer, which signs the pods' certificate. Name an Issuer or ClusterIssuer of your own, such

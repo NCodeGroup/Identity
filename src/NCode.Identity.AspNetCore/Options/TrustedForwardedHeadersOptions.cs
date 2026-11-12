@@ -13,9 +13,10 @@ namespace NCode.Identity.AspNetCore.Options;
 /// <remarks>
 /// <para>
 /// An application behind a TLS-terminating proxy sees a plaintext HTTP connection to an internal address. Without these
-/// headers it reads the wrong scheme, host and client address: an HTTPS-only policy (the HTTPS redirect and
-/// Strict-Transport-Security) never applies, host-based tenant selection and the choice among a tenant's own published
-/// origins see the container-internal name, and the client address is the proxy's.
+/// headers it reads the wrong scheme, host and client address: every request reads as plain HTTP, so
+/// Strict-Transport-Security is never sent and the HTTPS redirect cannot tell a request the proxy received over HTTPS
+/// from any other. Host-based tenant selection and the choice among a tenant's own published origins see the
+/// container-internal name, and the client address is the proxy's.
 /// </para>
 /// <para>
 /// Trusting those headers from an untrusted peer is the mirror-image failure: a client that can reach the application

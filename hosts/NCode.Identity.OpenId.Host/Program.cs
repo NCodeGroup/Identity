@@ -204,7 +204,7 @@ if (secretProtectionCommand is not null)
 app.UseProxyClientCertificate();
 
 // Right after the proxy check: everything downstream that reads the scheme, host or client address — the HTTPS
-// redirect, host-based tenant selection, the choice among the tenant's own origins, the rate limits, the
+// redirect, host-based tenant selection, the choice among the tenant's own origins, the per-address rate limit, the
 // failed-client-authentication limit, the audit record's source address and the session's remote address — has to
 // observe the original request rather than the proxy-to-application hop. A no-op unless 'ForwardedHeaders' names a
 // trusted proxy.

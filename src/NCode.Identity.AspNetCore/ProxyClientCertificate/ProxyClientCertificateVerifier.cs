@@ -162,7 +162,7 @@ internal sealed class ProxyClientCertificateVerifier(
 
         return chain.Build(certificate) || IsPartialChainEndingAtAnAnchor(chain, anchors)
             ? ProxyClientCertificateRefusal.None
-            : ProxyClientCertificateRefusal.UntrustedChain;
+            : ProxyClientCertificateRefusal.UnanchoredChain;
     }
 
     private static bool IsPartialChainEndingAtAnAnchor(

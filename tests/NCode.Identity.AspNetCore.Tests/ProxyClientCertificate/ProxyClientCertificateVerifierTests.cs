@@ -92,7 +92,7 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
     }
 
     [Fact]
-    public void Verify_WhenIssuedByAnUntrustedAuthority_ReturnsUntrustedChain()
+    public void Verify_WhenIssuedByAnUntrustedAuthority_ReturnsUnanchoredChain()
     {
         using var authority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=ca",
@@ -103,11 +103,11 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
         WriteAnchor(authority, Now.UtcDateTime);
         using var leaf = CreateClientLeaf(foreignAuthority);
 
-        Assert.Equal(ProxyClientCertificateRefusal.UntrustedChain, CreateVerifier().Verify(leaf));
+        Assert.Equal(ProxyClientCertificateRefusal.UnanchoredChain, CreateVerifier().Verify(leaf));
     }
 
     [Fact]
-    public void Verify_WhenSelfSigned_ReturnsUntrustedChain()
+    public void Verify_WhenSelfSigned_ReturnsUnanchoredChain()
     {
         using var authority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=ca",
@@ -119,7 +119,7 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
             Now
         );
 
-        Assert.Equal(ProxyClientCertificateRefusal.UntrustedChain, CreateVerifier().Verify(leaf));
+        Assert.Equal(ProxyClientCertificateRefusal.UnanchoredChain, CreateVerifier().Verify(leaf));
     }
 
     [Fact]
@@ -227,7 +227,7 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
     }
 
     [Fact]
-    public void Verify_WhenTheIssuerIsMissingFromTheAnchors_ReturnsUntrustedChain()
+    public void Verify_WhenTheIssuerIsMissingFromTheAnchors_ReturnsUnanchoredChain()
     {
         using var authority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=ca",
@@ -245,7 +245,7 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
             caIssuersUrl: "http://127.0.0.1:1/ca.crt"
         );
 
-        Assert.Equal(ProxyClientCertificateRefusal.UntrustedChain, CreateVerifier().Verify(leaf));
+        Assert.Equal(ProxyClientCertificateRefusal.UnanchoredChain, CreateVerifier().Verify(leaf));
     }
 
     [Fact]
@@ -287,7 +287,7 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
     }
 
     [Fact]
-    public void Verify_WhenTheAnchorIsOnlyTheRootAndTheIntermediateIsNotSent_ReturnsUntrustedChain()
+    public void Verify_WhenTheAnchorIsOnlyTheRootAndTheIntermediateIsNotSent_ReturnsUnanchoredChain()
     {
         using var root = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=root",
@@ -302,11 +302,11 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
         WriteAnchor(root, Now.UtcDateTime);
         using var leaf = CreateClientLeaf(intermediate);
 
-        Assert.Equal(ProxyClientCertificateRefusal.UntrustedChain, CreateVerifier().Verify(leaf));
+        Assert.Equal(ProxyClientCertificateRefusal.UnanchoredChain, CreateVerifier().Verify(leaf));
     }
 
     [Fact]
-    public void Verify_WhenTheAnchorIsAnExpiredIntermediate_ReturnsUntrustedChain()
+    public void Verify_WhenTheAnchorIsAnExpiredIntermediate_ReturnsUnanchoredChain()
     {
         using var root = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=root",
@@ -321,7 +321,7 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
         WriteAnchor(intermediate, Now.UtcDateTime);
         using var leaf = CreateClientLeaf(intermediate);
 
-        Assert.Equal(ProxyClientCertificateRefusal.UntrustedChain, CreateVerifier().Verify(leaf));
+        Assert.Equal(ProxyClientCertificateRefusal.UnanchoredChain, CreateVerifier().Verify(leaf));
     }
 
     [Fact]
@@ -344,7 +344,7 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
         );
 
         Assert.Equal(ProxyClientCertificateRefusal.None, verifier.Verify(firstLeaf));
-        Assert.Equal(ProxyClientCertificateRefusal.UntrustedChain, verifier.Verify(secondLeaf));
+        Assert.Equal(ProxyClientCertificateRefusal.UnanchoredChain, verifier.Verify(secondLeaf));
     }
 
     [Fact]
@@ -360,12 +360,12 @@ public sealed class ProxyClientCertificateVerifierTests : IDisposable
         var verifier = CreateVerifier();
 
         Assert.Equal(ProxyClientCertificateRefusal.None, verifier.Verify(firstLeaf));
-        Assert.Equal(ProxyClientCertificateRefusal.UntrustedChain, verifier.Verify(secondLeaf));
+        Assert.Equal(ProxyClientCertificateRefusal.UnanchoredChain, verifier.Verify(secondLeaf));
 
         WriteAnchor(secondAuthority, Now.UtcDateTime.AddMinutes(1));
         Time.Advance(ProxyClientCertificateVerifier.AnchorRefreshInterval);
 
-        Assert.Equal(ProxyClientCertificateRefusal.UntrustedChain, verifier.Verify(firstLeaf));
+        Assert.Equal(ProxyClientCertificateRefusal.UnanchoredChain, verifier.Verify(firstLeaf));
         Assert.Equal(ProxyClientCertificateRefusal.None, verifier.Verify(secondLeaf));
     }
 

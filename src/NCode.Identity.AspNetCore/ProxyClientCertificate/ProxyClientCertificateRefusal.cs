@@ -32,5 +32,5 @@ internal enum ProxyClientCertificateRefusal
     /// <summary>
     /// The certificate does not chain to the configured certificate authorities.
     /// </summary>
-    UntrustedChain,
+    UnanchoredChain,
 }

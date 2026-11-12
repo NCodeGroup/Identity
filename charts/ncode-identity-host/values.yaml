@@ -193,6 +193,10 @@ backendTls:
   # never receives the pods' private key. Empty names the serving Secret, which holds tls.key too, because cert-manager
   # issues no CA-only Secret. Create one with: kubectl create secret generic <name> --from-file=ca.crt=<ca.pem>
   ingressCaSecret: ""
+  # A ConfigMap in the release namespace that holds only ca.crt, the CA that signs the pods' certificate. The Gateway API
+  # mode verifies the pods against it, and the Traefik mode does when it is set. trust-manager makes it, or: kubectl
+  # create configmap <name> --from-file=ca.crt=<ca.pem>
+  caConfigMap: ""
   certManager:
     # The issuer of the pods' certificate. An empty name makes the chart create a private CA: a self-signed Issuer, a CA
     # Certificate and a CA Issuer, which signs the pods' certificate. Name an Issuer or ClusterIssuer of your own, such
@@ -216,6 +220,9 @@ service:
 
 ingress:
   enabled: false
+  # traefik (a ServersTransport and Service annotations) or other (nothing: the operator wires HTTPS to the Service and
+  # the trust in the CA). Required when this Ingress or the console's is enabled.
+  controller: ""
   className: ""
   annotations: {}
   hosts: []
@@ -227,6 +234,17 @@ ingress:
   #  - secretName: id-example-com-tls
   #    hosts:
   #      - id.example.com
+
+# A Gateway API HTTPRoute and a BackendTLSPolicy that verifies the pods against backendTls.caConfigMap.
+httpRoute:
+  enabled: false
+  # The Gateway listeners the route attaches to.
+  parentRefs: []
+  #  - name: shared-gateway
+  #    namespace: gateway-system
+  #    sectionName: https
+  hostnames: []
+  annotations: {}
 
 serviceAccount:
   create: true
@@ -360,6 +378,8 @@ managementConsole:
     # A Secret in the release namespace that holds only ca.crt, for the ingress controller to verify the console's pods.
     # Empty uses backendTls.ingressCaSecret, and then the console's serving Secret.
     ingressCaSecret: ""
+    # A ConfigMap in the release namespace that holds only ca.crt. Empty uses backendTls.caConfigMap.
+    caConfigMap: ""
   service:
     type: ClusterIP
     port: 443
@@ -372,6 +392,11 @@ managementConsole:
     #  - secretName: manage-example-com-tls
     #    hosts:
     #      - manage.example.com
+  # A Gateway API HTTPRoute and a BackendTLSPolicy for the console. Its hostname is managementConsole.host.
+  httpRoute:
+    enabled: false
+    parentRefs: []
+    annotations: {}
   serviceAccount:
     create: true
     name: ""

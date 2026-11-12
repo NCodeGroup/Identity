@@ -385,12 +385,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   `ServersTransport` that verifies them against the Secret `<release>-ingress` that cert-manager issues for the
   controller, or the `ingressSecret` the operator names, or an `Ingress` whose controller the operator wires
   (`httpRoute`, `ingress.controller`), so no router receives a pod's private key. The database connection (a finished
-  connection string, or the parts of a Postgres operator's Secret), the Valkey connection string and the local root key
-  are referenced as existing Secrets and the recovery public key as a ConfigMap, never passed as values. Rendering fails
-  for a release the host would refuse to start (an empty or wildcard `allowedHosts`, a missing database Secret or
-  one named in both forms, a `StaticSingle` issuer that is not `https`, a missing or incomplete root key provider,
-  `ephemeral` or a local provider without its Secret in Production, a Production release with no recovery decision),
-  for more than one replica without Valkey, and for unknown values. Without Valkey the chart uses the `Recreate`
+  connection string, or the parts of a Postgres operator's Secret), the Valkey connection (a finished connection string,
+  or the parts of a Valkey operator's Secret) and the local root key are referenced as existing Secrets and the recovery
+  public key as a ConfigMap, never passed as values. Rendering fails for a release the host would refuse to start (an
+  empty or wildcard `allowedHosts`, a missing database Secret or one named in both forms, a `StaticSingle` issuer that
+  is not `https`, a missing or incomplete root key provider, `ephemeral` or a local provider without its Secret in
+  Production, a Production release with no recovery decision), for more than one replica without Valkey, and for
+  unknown values. Without Valkey the chart uses the `Recreate`
   deployment strategy, which waits for the old pod to terminate before starting the next, so it never runs two replicas
   at once. The `Host chart` CI workflow lints the chart, renders each example release, and checks that each unsafe
   release is refused; the workflow also installs the chart in a kind cluster behind Traefik and proves the pods are
@@ -434,16 +435,21 @@ Until the first stable release, the [Unreleased] section describes the product a
   release (issue [#85](https://github.com/NCodeGroup/identity/issues/85),
   [ADR-1180](docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)).
 
-- **The host assembles its Postgres connection from the parts a Postgres operator's Secret holds.** The `OpenIdDatabase`
-  configuration section (`Host`, `Port`, `Name`, `Username`, `Password`) is an alternative to the
+- **The host assembles its Postgres and Valkey connections from the parts an operator's Secret holds.** The
+  `OpenIdDatabase` configuration section (`Host`, `Port`, `Name`, `Username`, `Password`) is an alternative to the
   `ConnectionStrings:openiddb` connection string: the host and the migration worker assemble the Npgsql connection with
   the password quoted, so any password works, and refuse a configuration that sets both forms or leaves a required part
-  out. The chart's `database.parts` and `migrations.database.parts` pass a Secret's `host`, `port`, `dbname`, `user` and
-  `password` keys, the keys of a CloudNativePG `<cluster>-app` Secret by default, from `secretKeyRef`s, so an operator's
-  Secret works as it is and a rotated password reaches the pods at their next start. Rendering fails for a connection
-  that names both forms or a parts Secret with an empty required key, and the `Host chart` workflow installs a kind
-  release whose database is such a Secret
+  out. The `ValkeyConnection` section (`Host`, `Port` (6379 by default), `Username`, `Password`, `Ssl`) is the same for
+  `ConnectionStrings:valkey`: `AddValkey` builds the StackExchange.Redis options from the parts, so a password that
+  holds `,` or `=` stays a password, and stops the host when both forms are set or the parts lack `Host`. The chart's
+  `database.parts` and `migrations.database.parts` pass a Secret's `host`, `port`, `dbname`, `user` and `password` keys,
+  the keys of a CloudNativePG `<cluster>-app` Secret by default, from `secretKeyRef`s, and `valkey.parts` and
+  `managementConsole.valkey.parts` pass the `host`, `port` and `password` keys of a Valkey operator's Secret and a
+  boolean `ssl` the same way, so an operator's Secret works as it is and a rotated password reaches the pods at their
+  next start. Rendering fails for a connection that names both forms or a parts Secret with an empty required key, and
+  the `Host chart` workflow installs a kind release whose database is such a Secret
   ([ADR-1509](docs/decisions/1509-the-host-chart-passes-a-postgres-operators-secret-as-the-connections-parts-and-the-host-assembles-the-npgsql-connection.md),
+  [ADR-1510](docs/decisions/1510-the-host-chart-passes-a-valkey-servers-address-and-password-as-parts-and-the-adapter-assembles-the-connection.md),
   issue [#780](https://github.com/NCodeGroup/identity/issues/780)).
 
 - **The family builds with repository-wide engineering conventions.** These are Central Package Management, lockstep

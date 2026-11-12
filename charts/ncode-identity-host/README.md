@@ -13,14 +13,16 @@ The chart takes no secret values. It references Secrets you create in the releas
 
 - `database.existingSecret` or `database.parts.existingSecret`: the Postgres database, as a Secret holding the finished
   Npgsql connection string under the `connection-string` key, or as the Secret your Postgres operator writes, with no
-  Secret of your own to build; see [Database](#database).
+  Secret of your own to build; see [Database and Valkey](#database-and-valkey).
 - `secretProtection.local.keySecret`: a Secret holding the local root key under the `key` key (base64url, 32 bytes).
   The root key encrypts every stored secret and the Data Protection key ring, so back it up and never change it in
   place; see [Secret protection](#secret-protection).
 - `secretProtection.recovery.publicKeyConfigMap`: a ConfigMap holding the recovery public key under the
   `recovery-public.pem` key, so losing the root key does not lose every stored secret; see
   [Secret protection](#secret-protection).
-- `valkey.existingSecret`, for more than one replica: the Valkey connection string, under the `connection-string` key.
+- `valkey.existingSecret` or `valkey.parts.existingSecret`, for more than one replica: the Valkey server, as a Secret
+  holding the finished connection string under the `connection-string` key, or as the Secret your Valkey operator
+  writes, with no Secret of your own to build; see [Database and Valkey](#database-and-valkey).
 - `migrations.database`, optional: a connection with the right to change the schema, used only by the migration Job,
   in either form (`existingSecret` or `parts.existingSecret`). It defaults to `database`.
 - cert-manager, unless `backendTls.existingSecret` names a Secret: the chart creates the `Certificate` (and, without
@@ -103,6 +105,8 @@ Rendering fails, before anything is applied, when:
 - neither `database.existingSecret` nor `database.parts.existingSecret` is set, a connection (`database` or
   `migrations.database`) sets both, or a parts Secret leaves `hostKey`, `databaseKey`, `usernameKey` or `passwordKey`
   empty;
+- a Valkey connection (`valkey` or `managementConsole.valkey`) sets both `existingSecret` and `parts.existingSecret`, or
+  its parts Secret leaves `hostKey` empty;
 - the `StaticSingle` strategy has no `https` issuer;
 - `secretProtection.rootKeyProvider` is empty, in any environment, because the host does not start without one;
 - `environment` is `Production` and `secretProtection.rootKeyProvider` is `ephemeral`, which would leave no root key
@@ -134,7 +138,8 @@ Rendering fails, before anything is applied, when:
   names;
 - `environment` is `Production`, `secretProtection.recovery.publicKeyConfigMap` is empty, and
   `secretProtection.recovery.disabled` is not `true`, because losing the root key would then lose every stored secret;
-- `replicaCount` is above 1 without `valkey.existingSecret`, because replicas share single-use state through Valkey;
+- `replicaCount` is above 1 without `valkey.existingSecret` or `valkey.parts.existingSecret`, because replicas share
+  single-use state through Valkey;
 - `managementConsole.enabled` is `true` and `managementConsole.host` is empty or contains `*`;
 - `managementConsole.enabled` is `true` and the console's authority is empty or does not start with `https://`;
 - `managementConsole.enabled` is `true` and a console key ring, `managementConsole.keyRings.client` or `.dpop`, names
@@ -143,8 +148,8 @@ Rendering fails, before anything is applied, when:
   `mgmt-client` or `mgmt-dpop`;
 - a console remote key's `keyId` is not the form its provider reads: an AWS KMS key or alias ARN, a Key Vault or
   Managed HSM key version identifier, or a Cloud KMS crypto key version name;
-- `managementConsole.replicaCount` is above 1 without `managementConsole.valkey.existingSecret`, because replicas share
-  their sessions through Valkey;
+- `managementConsole.replicaCount` is above 1 without `managementConsole.valkey.existingSecret` or
+  `managementConsole.valkey.parts.existingSecret`, because replicas share their sessions through Valkey;
 - `apiReference.pageEnabled` is `true` and `apiReference.documentEnabled` is not, because the page renders the OpenAPI
   document the host serves;
 - a value is unknown or has the wrong type.
@@ -654,7 +659,8 @@ The console's authority defaults to `tenantResolution.staticSingle.issuer` under
 `managementConsole.authority` for any other strategy.
 
 For more than one replica, set `managementConsole.valkey.existingSecret` to a Secret that holds the console's own
-Valkey connection string under the `connection-string` key. Never share the server's Valkey with the console.
+Valkey connection string under the `connection-string` key, or `managementConsole.valkey.parts.existingSecret` to the
+Secret your Valkey operator writes for it; see [Valkey](#valkey). Never share the server's Valkey with the console.
 
 Pass console settings such as `ManagementConsole__Branding__DisplayName` through `managementConsole.extraEnv`.
 
@@ -937,7 +943,7 @@ still requires a management access token
 To serve them on an internal host only, route `/openapi/` and `/scalar/` to the pods only from that host at the
 ingress.
 
-## Database
+## Database and Valkey
 
 The Postgres database takes one of two forms, and a connection never takes both:
 
@@ -981,6 +987,44 @@ or `"`. The Secrets are read when a pod starts, so a rotated password reaches th
 the connection needs beyond the parts, such as a CA bundle, goes through `extraEnv` and `extraVolumes` as under
 [Other settings](#other-settings). The decision is recorded in
 [ADR-1509](../../docs/decisions/1509-the-host-chart-passes-a-postgres-operators-secret-as-the-connections-parts-and-the-host-assembles-the-npgsql-connection.md).
+
+### Valkey
+
+The Valkey connection takes the same two forms, and a connection never takes both:
+
+- `valkey.existingSecret` names a Secret that holds the finished StackExchange.Redis connection string under
+  `valkey.connectionStringKey` (`connection-string` by default). The pods receive it as `ConnectionStrings__valkey`.
+- `valkey.parts.existingSecret` names a Secret that holds the server's address and password, as a Valkey operator writes
+  it. The pods receive each part from a `secretKeyRef` as a `ValkeyConnection__*` environment variable, and the adapter
+  assembles the connection from them.
+
+The key that holds each part is a value, and the defaults name the keys `host`, `port` and `password`:
+
+| Value                      | Default    | Environment variable         | Part                        |
+|----------------------------|------------|------------------------------|-----------------------------|
+| `valkey.parts.hostKey`     | `host`     | `ValkeyConnection__Host`     | the server's host name      |
+| `valkey.parts.portKey`     | `port`     | `ValkeyConnection__Port`     | the server's port, optional |
+| `valkey.parts.usernameKey` | empty      | `ValkeyConnection__Username` | the user, optional          |
+| `valkey.parts.passwordKey` | `password` | `ValkeyConnection__Password` | the password, optional      |
+| `valkey.parts.ssl`         | `false`    | `ValkeyConnection__Ssl`      | TLS when `true`, no key     |
+
+The host key must name a key. An empty `portKey` leaves the port at 6379, and an empty `usernameKey` or `passwordKey`
+leaves that part out.
+
+`managementConsole.valkey.parts` takes the same values for the console's own Valkey. Its keys default to empty and fall
+back to the ones under `valkey.parts`, so a Secret of the same shape needs only its name; its `ssl` is its own value and
+does not fall back. The console's Valkey is never the server's.
+
+For a Valkey operator whose Secret is named `valkey-app`:
+
+```shell
+--set valkey.parts.existingSecret=valkey-app
+```
+
+The adapter builds the connection from the parts, so a password that holds `,` or `=` stays a password. The Secrets are
+read when a pod starts, so a rotated password reaches the pods at their next restart. A setting the connection needs
+beyond the parts goes through `extraEnv`. The decision is recorded in
+[ADR-1510](../../docs/decisions/1510-the-host-chart-passes-a-valkey-servers-address-and-password-as-parts-and-the-adapter-assembles-the-connection.md).
 
 ## Other settings
 

@@ -348,6 +348,11 @@ The image starts in the `Production` environment, which refuses to start until t
   tenant without an issuer fails closed
   ([ADR-1165](../../docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).
 
+More than one replica needs Valkey to share single-use state: set `ConnectionStrings__valkey`, or the parts
+`ValkeyConnection__Host`, `ValkeyConnection__Port`, `ValkeyConnection__Username`, `ValkeyConnection__Password` and
+`ValkeyConnection__Ssl`. Setting both forms, or the parts without `ValkeyConnection__Host`, stops the host at start
+([ADR-1510](../../docs/decisions/1510-the-host-chart-passes-a-valkey-servers-address-and-password-as-parts-and-the-adapter-assembles-the-connection.md)).
+
 The host does not migrate on boot. The image also carries the migration worker, which runs from `/app/migrations` with
 `dotnet NCode.Identity.OpenId.Host.MigrationService.dll` and the same database settings.
 

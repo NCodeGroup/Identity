@@ -43,6 +43,8 @@ public static class HostDatabaseConnection
     private static string[] RequiredParts { get; } =
     [HostPart, NamePart, UsernamePart, PasswordPart];
 
+    private static string[] AllParts { get; } = [.. RequiredParts, PortPart];
+
     /// <summary>
     /// Resolves the Postgres connection string from <paramref name="configuration"/>.
     /// </summary>
@@ -58,9 +60,7 @@ public static class HostDatabaseConnection
         var section = configuration.GetSection(SectionName);
 
         var hasConnectionString = !string.IsNullOrEmpty(connectionString);
-        var hasParts = RequiredParts
-            .Append(PortPart)
-            .Any(part => !string.IsNullOrEmpty(section[part]));
+        var hasParts = AllParts.Any(part => !string.IsNullOrEmpty(section[part]));
 
         if (hasConnectionString && hasParts)
         {

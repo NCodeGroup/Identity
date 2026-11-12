@@ -963,7 +963,8 @@ The key that holds each part is a value, and the defaults are the keys of a Clou
 | `database.parts.usernameKey`   | `user`     | `OpenIdDatabase__Username`  | the role's name             |
 | `database.parts.passwordKey`   | `password` | `OpenIdDatabase__Password`  | the role's password         |
 
-An empty `portKey` leaves the port out, and Npgsql uses 5432. The host, database, user and password keys must name a key.
+An empty `portKey` leaves the port out, and Npgsql uses 5432. The host, database, user and password keys must name a
+key.
 
 For a CloudNativePG cluster named `pg`, its `pg-app` Secret works as it is:
 

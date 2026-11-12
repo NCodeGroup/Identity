@@ -166,6 +166,7 @@ public sealed class HostDatabaseConnectionTests
         );
 
         Assert.Contains("OpenIdDatabase:Port", exception.Message);
+        Assert.DoesNotContain(port, exception.Message);
         Assert.DoesNotContain(Host, exception.Message);
         Assert.DoesNotContain(Name, exception.Message);
         Assert.DoesNotContain(Username, exception.Message);

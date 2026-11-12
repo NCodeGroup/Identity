@@ -278,7 +278,6 @@ The records are grouped by area; within an area they are in number order.
 | [1123](./1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md) | A NumericDate and a whole number a remote party sends are read strictly through shared readers | Accepted |
 | [1126](./1126-the-ecdh-es-concat-kdf-digest-is-sha-256-and-a-test-oracle-must-conform-to-the-rfc.md) | The ECDH-ES Concat KDF digest is SHA-256, and a test oracle must conform to the RFC | Accepted |
 | [1154](./1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md) | JWTs are validated only as signed tokens, by requirements and handlers under the caller's stated policy | Accepted |
-| [1270](./1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) | The OpenID protocol client uses the family's JOSE stack and named key rings | Accepted |
 | [1272](./1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md) | Signature algorithms are fully specified and bound to their curve | Accepted |
 | [1273](./1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) | The protocol client validates ID tokens and their token hashes under OpenID Connect Core | Accepted |
 | [1274](./1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md) | The protocol client validates logout tokens and records each only after the client handles it | Accepted |
@@ -287,7 +286,7 @@ The records are grouped by area; within an area they are in number order.
 | [1278](./1278-token-validation-failures-carry-a-machine-readable-code-set-where-the-failure-is-detected.md) | Token validation failures carry a machine-readable code set where the failure is detected | Accepted |
 | [1280](./1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md) | The protocol client validates and decrypts every provider-issued JWT through one core under registered algorithms | Accepted |
 | [1282](./1282-the-jose-library-implements-neither-none-nor-rsa1-5-and-a-failed-jwe-decryption-reveals-no-cause.md) | The JOSE library implements neither none nor RSA1_5, and a failed JWE decryption reveals no cause | Accepted |
-| [1285](./1285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md) | The OpenID protocol client needs no ASP.NET Core runtime | Accepted |
+| [1285](./1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md) | The protocol client is a framework-free library over the family's JOSE stack and named key rings | Accepted |
 | [1286](./1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md) | The protocol client binds tokens with DPoP whenever the provider supports it | Accepted |
 | [1288](./1288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md) | The protocol client authenticates with a TLS client certificate from its key ring | Accepted |
 | [1299](./1299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md) | UserInfo is read as JSON under the family's claim mapping and merged once at login | Accepted |

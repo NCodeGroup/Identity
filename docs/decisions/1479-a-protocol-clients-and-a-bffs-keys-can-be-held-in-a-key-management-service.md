@@ -7,7 +7,7 @@
 ## Context
 
 A protocol client's key ring is a keyed `ISecretKeyCollectionProvider`
-([ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)), and a BFF loads its
+([ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md)), and a BFF loads its
 key rings from PEM files
 ([ADR-1439](1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)). Without a key management
 service (KMS), the private halves of the client-assertion, DPoP and decryption keys live in the memory of every
@@ -143,7 +143,7 @@ every key ring when the host starts.**
 
 ## References
 
-- [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)
+- [ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md)
 - [ADR-1286](1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md)
 - [ADR-1439](1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md)
 - [ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)

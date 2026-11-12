@@ -12,7 +12,7 @@ never falls back to the front channel when PAR is required. The NCode OP impleme
 ([ADR-1089](1089-a-pushed-authorization-request-is-a-single-use-client-bound-grant-expanded-before-anything-is-trusted.md)).
 `IAuthorizationRequestClient` in `NCode.Identity.OpenId.Client` turns an authorization-code + PKCE `S256` request into
 the URL the browser is redirected to, under RFC 9126. The protocol client is described in
-[ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md).
+[ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md).
 
 ## Decision
 
@@ -92,7 +92,7 @@ client registration demands it, and returns a PAR endpoint's OAuth error as data
 - [ADR-1089](1089-a-pushed-authorization-request-is-a-single-use-client-bound-grant-expanded-before-anything-is-trusted.md) — the OP's PAR endpoint
 - [ADR-1123](1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md) — whole numbers read from a remote party
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
-- [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
+- [ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
 - [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md) — logout-token validation
 - [ADR-1286](1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md) — DPoP
 - RFC 9126 §2.1, §2.2, §2.3, §4, §5 and §6 (pushed authorization requests)

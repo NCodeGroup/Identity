@@ -8,7 +8,7 @@
 
 The backend-for-frontend ([design](../backend-for-frontend.md) §5.1, §5.5 and D7, issue #123) binds its tokens with
 DPoP (RFC 9449): one key ring is shared by the whole BFF, the `jkt` is stored per session, and a `use_dpop_nonce`
-challenge is retried. [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)
+challenge is retried. [ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md)
 and [ADR-1275](1275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md) left DPoP
 to phase 1b. The JOSE stack already provides `IDPoPProofService`
 ([ADR-1176](1176-dpop-proofs-are-created-and-validated-by-a-jose-service.md)), and the OP keeps a refresh token's
@@ -30,7 +30,7 @@ key says so, and it never accepts a downgrade.**
    client metadata `dpop_bound_access_tokens` (RFC 9449 §5.2), as `RequirePushedAuthorizationRequests` mirrors its
    metadata, and makes DPoP required when `true`. A pinned thumbprint (point 4) also makes it required. Required with no
    ring, an empty ring or an unknown pinned key throws `InvalidOperationException`, a configuration error
-   ([ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)). Required while the
+   ([ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md)). Required while the
    provider advertises no usable algorithm throws `OpenIdProviderException`. In every failure nothing is sent.
 3. **Algorithm choice.** The client's order is `ES256`, `PS256`, `ES384`, `PS384`, `ES512`, `PS512`, filtered to the
    provider's advertised list and followed by the provider's other values except `none`, as `PrivateKeyJwtClientAuthenticator`
@@ -83,7 +83,7 @@ key says so, and it never accepts a downgrade.**
 - [ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md) — refresh-token binding
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
 - [ADR-1176](1176-dpop-proofs-are-created-and-validated-by-a-jose-service.md) — the JOSE DPoP service
-- [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
+- [ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
 - [ADR-1275](1275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md) — PAR
 - RFC 9449 §4, §5, §5.2, §7, §8, §10 and §10.1 (DPoP)
 - RFC 7638 (JWK thumbprint)

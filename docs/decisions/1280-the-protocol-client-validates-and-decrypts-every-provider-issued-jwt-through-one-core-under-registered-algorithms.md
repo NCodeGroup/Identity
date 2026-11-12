@@ -26,7 +26,7 @@ The conventions require a received JWT to be validated only through `IJwtValidat
 algorithms and keys
 ([ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md)).
 The decryption keys are the client's own private keys, which the client holds in a named key ring
-([ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)).
+([ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md)).
 
 ## Decision
 
@@ -54,7 +54,7 @@ the client registered encryption, every token must be encrypted.**
    empty content encryption list means `A128CBC-HS256`, the registration default (OpenID Connect Dynamic Client
    Registration §2, as the NCode OP does). A content encryption list without a key management list throws
    `InvalidOperationException`, a configuration error
-   ([ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)). The UserInfo
+   ([ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md)). The UserInfo
    counterparts follow the same rules.
 5. **Only asymmetric key management is permitted.** The internal `ClientDecryptionPolicy` permits the registered key
    management algorithms whose key type is `AsymmetricSecretKey` (RSA-OAEP\*, ECDH-ES\*): never `RSA1_5` (RFC 8725
@@ -67,7 +67,7 @@ the client registered encryption, every token must be encrypted.**
    one is a downgrade.
 7. **The decryption keys are the key ring's asymmetric keys.** They are the `AsymmetricSecretKey`s of
    `registration.KeyRing`
-   ([ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)), passed to the JWT
+   ([ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md)), passed to the JWT
    validator with `UseDecryptionKeys`. A decryption key carries `use` `enc`. A client that registered encryption but has
    no key ring throws `InvalidOperationException`.
 8. **A replicated `iss` header must agree with the issuer.** When the JWE header replicates `iss` (OpenID Connect
@@ -127,7 +127,7 @@ the client registered encryption, every token must be encrypted.**
   the strict NumericDate read that the validators use for `auth_time` and the logout `exp`
 - [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md) —
   JWTs are validated only through `IJwtValidator` under explicit algorithm and key policy
-- [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the client's named
+- [ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md) — the client's named
   key rings
 - [ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) — the
   ID-token claim checks

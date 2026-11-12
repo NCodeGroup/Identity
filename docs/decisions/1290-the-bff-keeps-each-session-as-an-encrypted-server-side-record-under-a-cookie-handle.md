@@ -19,7 +19,7 @@
 The [backend-for-frontend design](../backend-for-frontend.md) (issue #123) makes an ASP.NET Core application the
 confidential OAuth client of its browser frontend: the browser holds only an `HttpOnly` cookie, and the tokens stay on
 the server. Phase 2 (issue #394) builds the core of that library on the protocol client
-([ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)) and on the versioned
+([ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md)) and on the versioned
 expiring values and membership indexes of SharedState
 ([ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)). The design left open how the
 packages are named (§11.5), how a session record is keyed, encrypted and laid out, how the login is bound to the
@@ -133,6 +133,6 @@ without the cookie.**
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — abstractions-only dependencies
 - [ADR-1122](1122-jwt-claim-values-map-to-and-from-json-by-their-declared-type-alone.md) — claim mapping
 - [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) — versioned values and indexes
-- [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
+- [ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
 - RFC 5869 (HKDF), RFC 6265bis (`__Host-` prefix, `SameSite`), RFC 9207 (`iss`), RFC 7636 (PKCE)
 - Issues #123 and #394

@@ -54,7 +54,7 @@ frontends that names a key ring it does not find.**
 
 ## References
 
-- [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md),
+- [ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md),
   [ADR-1439](1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md),
   [ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)
 - `src/NCode.Identity.Bff/Frontends/BffKeyRingCheck.cs`

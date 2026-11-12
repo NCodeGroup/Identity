@@ -2555,8 +2555,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `Microsoft.Extensions.Logging.Abstractions`, `Microsoft.Extensions.Options` and `Microsoft.Extensions.Primitives`
   directly and not the `Microsoft.AspNetCore.App` shared framework, so a console app, worker or function runs it on the
   .NET runtime alone
-  ([ADR-1270](docs/decisions/1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md),
-  [ADR-1285](docs/decisions/1285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md), issues
+  ([ADR-1285](docs/decisions/1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md), issues
   [#123](https://github.com/NCodeGroup/identity/issues/123), [#321](https://github.com/NCodeGroup/identity/issues/321)).
 
 - **The protocol client's calls are bounded and retried.** Every call of `NCode.Identity.OpenId.Client`, mutual-TLS
@@ -2617,7 +2616,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `ClientRegistration.RequirePushedAuthorizationRequests` requires PAR. A PAR error is returned as data. An
   authorization URI percent-encodes every parameter character outside the RFC 3986 unreserved set (`! * ( ) @` included)
   ([ADR-1275](docs/decisions/1275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md),
-  [ADR-1285](docs/decisions/1285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md), issues
+  [ADR-1285](docs/decisions/1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md), issues
   [#123](https://github.com/NCodeGroup/identity/issues/123), [#321](https://github.com/NCodeGroup/identity/issues/321)).
 
 - **The OpenID protocol client validates ID tokens.** `IIdTokenValidator.ValidateAsync` takes a `ClientRegistration` and

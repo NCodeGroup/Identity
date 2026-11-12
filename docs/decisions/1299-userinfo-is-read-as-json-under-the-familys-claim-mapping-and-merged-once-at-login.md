@@ -10,7 +10,7 @@
 
 Some providers keep profile claims (`email`, `name`, groups) out of the ID token and serve them only from the UserInfo
 endpoint (OpenID Connect Core 1.0 §5.3). The protocol client
-([ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)) had no UserInfo
+([ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md)) had no UserInfo
 request, and the BFF built a session's claims from the ID token alone
 ([ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md) decision 10).
 

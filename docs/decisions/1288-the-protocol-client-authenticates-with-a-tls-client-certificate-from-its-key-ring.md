@@ -7,7 +7,7 @@
 ## Context
 
 The backend-for-frontend ([design](../backend-for-frontend.md) §5.1, issue #123) authenticates to the OP with the
-methods the registration names. [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)
+methods the registration names. [ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md)
 shipped `client_secret_basic`, `client_secret_post` and `private_key_jwt`, and
 [ADR-1286](1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md) left mutual TLS as the
 last phase-1b item. RFC 8705 §2 defines two methods: `tls_client_auth` (the OP validates the certificate's PKI chain
@@ -15,7 +15,7 @@ and subject) and `self_signed_tls_client_auth` (the OP matches the certificate a
 Both need the client to present a TLS client certificate on the connection, and RFC 8705 §5 lets the provider publish
 `mtls_endpoint_aliases` that a client using mutual TLS sends requests to. This ADR records where the certificate comes
 from, how it reaches the wire and which endpoint the request targets, for
-`NCode.Identity.OpenId.Client` ([ADR-1285](1285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md) keeps it
+`NCode.Identity.OpenId.Client` ([ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md) keeps it
 free of ASP.NET Core).
 
 ## Decision
@@ -59,7 +59,7 @@ to the provider's `mtls_endpoint_aliases` when it has them.**
    arrays. A key whose certificate does not match its private key is a configuration error, also an
    `InvalidOperationException`.
 6. **Endpoint aliases (RFC 8705 §5).** `OpenIdProviderMetadata.MtlsEndpointAliases` (`mtls_endpoint_aliases`) is parsed
-   at discovery, and every alias must pass the endpoint rule of ADR-1270 D5 (https, or http on loopback) or discovery
+   at discovery, and every alias must pass the endpoint rule of ADR-1285 D5 (https, or http on loopback) or discovery
    fails. When the authenticator uses mTLS and the alias map has the endpoint's metadata name, the request goes to the
    alias. The DPoP proof's `htu`, the DPoP nonce cache and `ClientAuthenticationContext.Endpoint` all use the alias, the
    URL actually called. The sender learns the metadata name from an internal `ProviderEndpoint(MetadataName, Url)`
@@ -96,8 +96,8 @@ to the provider's `mtls_endpoint_aliases` when it has them.**
 
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — pre-release posture
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
-- [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
-- [ADR-1285](1285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md) — no ASP.NET Core runtime
+- [ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
+- [ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md) — no ASP.NET Core runtime
 - [ADR-1286](1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md) — DPoP
 - RFC 8705 §2 and §5 (mutual-TLS client authentication, endpoint aliases)
 - [Backend-for-frontend design](../backend-for-frontend.md) §5.1

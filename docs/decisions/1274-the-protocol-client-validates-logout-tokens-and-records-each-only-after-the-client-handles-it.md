@@ -8,7 +8,7 @@
 
 The backend-for-frontend ([design](../backend-for-frontend.md) §5.8, issue #123) ends a user's sessions when the OP
 sends a back-channel logout request, and it must not act on a `logout_token` before the token is validated.
-[ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) puts logout-token
+[ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md) puts logout-token
 validation, and the `jti` check against the shared state, in the protocol client, and
 [ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) sets the
 signature policy for ID tokens. `NCode.Identity.OpenId.Client` validates a logout token under OpenID Connect
@@ -77,7 +77,7 @@ reports that it handled the token. An invalid token is returned as data.**
    sessions are ended), `TokenId` (the `jti`), `ExpiresAt`, `Subject`, `SessionId`, `FailureCode`, `FailureReason` and
    `IsValid`, shaped like `IdTokenValidationResult`. The request is `LogoutTokenValidationRequest { required string LogoutToken }`,
    which mirrors `IdTokenValidationRequest`, so fields can be added without a signature change. An invalid token is
-   data, in the errors-as-data style of ADR-1270; a provider failure still throws `OpenIdProviderException`, and
+   data, in the errors-as-data style of ADR-1285; a provider failure still throws `OpenIdProviderException`, and
    cancellation still throws `OperationCanceledException`.
 10. **Matching is the BFF's.** Matching `iss`, `sub` and `sid` against a recent ID token (§2.6 steps 9 to 11) belongs to
     the BFF's session lookup, not the protocol client.
@@ -88,7 +88,7 @@ reports that it handled the token. An invalid token is returned as data.**
 
 - **A mode on `IIdTokenValidator`.** A logout token follows different claim rules, so the ID-token contract would need
   conditional requirements. Rejected.
-- **Leaving the replay check to the BFF.** Every consumer would re-implement §2.6 step 8, and the design and ADR-1270
+- **Leaving the replay check to the BFF.** Every consumer would re-implement §2.6 step 8, and the design and ADR-1285
   put the check in the protocol client. Rejected.
 - **A 2-minute maximum lifetime.** It matches the specification's preference but is too strict for OPs that issue
   longer-lived logout tokens. Rejected.
@@ -116,7 +116,7 @@ reports that it handled the token. An invalid token is returned as data.**
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — implementation packages depend only on
   abstractions
 - [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) — the atomic expiring key set
-- [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
+- [ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
 - [ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) — ID-token validation
   and the signature policy
 - [ADR-1280](1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md) — the shared provider-JWT core

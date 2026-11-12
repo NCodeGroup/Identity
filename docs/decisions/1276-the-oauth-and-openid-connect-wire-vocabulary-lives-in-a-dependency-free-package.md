@@ -6,7 +6,7 @@
 
 ## Context
 
-The protocol client ([ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md))
+The protocol client ([ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md))
 and the backend-for-frontend ([design](../backend-for-frontend.md), §4.1) are relying parties: they speak the OAuth 2.0
 and OpenID Connect wire protocol, but they are not part of an OpenID Provider. The design forbids them from depending on
 the OP's packages.
@@ -76,6 +76,6 @@ The placement rule: a wire name goes to `OpenIdProtocol`, and a name only the se
   `NCode.Identity.OpenId.Abstractions`.
 - `tests/NCode.Identity.OpenId.Client.Tests/ProtocolPackageDependencyTests.cs`.
 - Issue #353; RFC 8417.
-- [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md),
+- [ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) and
   [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md).

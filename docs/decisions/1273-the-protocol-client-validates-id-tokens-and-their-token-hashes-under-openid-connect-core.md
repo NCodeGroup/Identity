@@ -8,7 +8,7 @@
 
 The backend-for-frontend ([design](../backend-for-frontend.md), issue #123) must validate the ID token the OP returns
 before it trusts the user's identity. The OpenID protocol client
-([ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)) needs an ID-token
+([ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md)) needs an ID-token
 validator, and issue #335 asks for the `at_hash`, `c_hash` and `s_hash` checks on top of it. The server that issues the
 hash claims and the client that checks them must compute them the same way for every signing algorithm, including
 Ed25519 and Ed448, whose hash is not named by the `alg` suffix.
@@ -89,7 +89,7 @@ Connect claims and the token hashes, and returns an invalid token as data.**
 
 - [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md) — JWT validation
   policy
-- [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
+- [ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
 - [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md) — fully specified signature
   algorithms and their token hash
 - [ADR-1280](1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md) — the shared provider-JWT core

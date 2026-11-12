@@ -93,7 +93,7 @@ compiles it and no gate tests it
   [ADR-1070](docs/decisions/1070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md))
 - **OpenID protocol client** — `NCode.Identity.OpenId.Client(.Abstractions)`: an OAuth 2.0 / OIDC client for server-side
   callers (discovery, JWKS, client authentication, token and revocation requests) built on the family's JOSE stack
-  ([ADR-1270](docs/decisions/1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md))
+  ([ADR-1285](docs/decisions/1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md))
 - **Backend for frontend** — `NCode.Identity.Bff(.Abstractions)`: makes an ASP.NET Core app the confidential client of
   its browser frontend, or several, each a `Bff:Frontends:<name>` entry that a registered rule selects per request
   ([ADR-1432](docs/decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)),

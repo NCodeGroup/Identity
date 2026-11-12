@@ -123,8 +123,7 @@ The records are grouped by area; within an area they are in number order.
 | [1430](./1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md) | End-to-end suites run the BFF in real browsers against a containerized Keycloak in their own gate | Accepted |
 | [1456](./1456-the-hosts-map-their-health-probes-through-one-general-helper.md) | The hosts map their health probes through one general helper | Accepted |
 | [1458](./1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md) | The host chart deploys the server and an opt-in management console and refuses unsafe releases | Accepted |
-| [1485](./1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md) | The host chart holds the console's key rings in a key management service under the console's own identity | Accepted |
-| [1490](./1490-the-host-chart-registers-each-server-remote-key-provider-the-operator-enables-and-its-location-is-optional.md) | The host chart registers each server remote key provider the operator enables, and its location is optional | Accepted |
+| [1485](./1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md) | The host chart enables server KMS vendors and holds console key rings under the console's identity | Accepted |
 | [1495](./1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md) | The hosted platform's hosts live on a platform domain of their own, and a brand domain carries the site, docs and mail | Accepted |
 | [1499](./1499-the-host-accepts-only-tls-1-2-and-1-3-with-aead-cipher-suites.md) | The host accepts only TLS 1.2 and 1.3 with AEAD cipher suites | Accepted |
 

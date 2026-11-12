@@ -6,7 +6,7 @@
 # disabled (ADR-1180). The chart's management console component is checked too: it must render on a host of its own
 # that routes every path to the console, call the management API at its authority's origin, stay opt-in (ADR-1458,
 # ADR-1488), and hold its key rings in a key management service under its own identity (ADR-1485). A server remote key
-# provider is registered only when enabled, with or without its location (ADR-1490).
+# provider is registered only when enabled, with or without its location (ADR-1485).
 # Publishing the chart belongs to the release workflow.
 name: Host chart
 
@@ -98,7 +98,7 @@ jobs:
           refuse --set secretProtection.remoteKeyProviders.googleCloudKms.enabled=true --set secretProtection.remoteKeyProviders.googleCloudKms.keyRing=projects/p/locations/l/keyRings/r/cryptoKeys/k
           refuse --set secretProtection.remoteKeyProviders.azureKeyVault.enabled=true --set secretProtection.azureKeyVault.workloadIdentity.clientId=00000000-0000-0000-0000-000000000000
           refuse --set secretProtection.remoteKeyProviders.awsKms.enabled=yes
-          # A location registers nothing on its own: its vendor is enabled explicitly (ADR-1490).
+          # A location registers nothing on its own: its vendor is enabled explicitly (ADR-1485).
           refuse --set secretProtection.remoteKeyProviders.awsKms.region=us-west-2
           refuse --set secretProtection.remoteKeyProviders.azureKeyVault.vaultUri=https://contoso.vault.azure.net
           refuse --set secretProtection.remoteKeyProviders.googleCloudKms.keyRing=projects/my-project/locations/us-central1/keyRings/ncode-identity-tenant-keys
@@ -144,7 +144,7 @@ jobs:
           }
           # A provider that is not enabled is not registered, and the pods carry none of its credentials.
           reject "$(helm template release "$CHART" --values "$base" --set "$role")" 'AWS_ROLE_ARN' 'RemoteKeyProviders'
-          # Enabled without its location, a provider binds keys and creates none, so it needs no deployment (ADR-1490).
+          # Enabled without its location, a provider binds keys and creates none, so it needs no deployment (ADR-1485).
           binding=$(helm template release "$CHART" --values "$base" --set "$role" --set "$aws.enabled=true" \
             --set secretProtection.remoteKeys.deployment=)
           expect "$binding" 'AWS_ROLE_ARN' 'SecretProtection__RemoteKeyProviders__AwsKms__PendingWindowInDays'

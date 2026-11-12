@@ -390,7 +390,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   service's key form, a half-set console identity, or more than one console replica without the console's own
   Valkey
   ([ADR-1458](docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md),
-  [ADR-1485](docs/decisions/1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md),
+  [ADR-1485](docs/decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md),
   [ADR-1488](docs/decisions/1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md),
   issues [#610](https://github.com/NCodeGroup/identity/issues/610),
   [#712](https://github.com/NCodeGroup/identity/issues/712) and
@@ -1009,7 +1009,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1476](docs/decisions/1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md),
   [ADR-1477](docs/decisions/1477-a-tenants-encryption-keys-can-be-held-in-a-key-management-service-that-decrypts-every-content-key.md),
   [ADR-1489](docs/decisions/1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md),
-  [ADR-1490](docs/decisions/1490-the-host-chart-registers-each-server-remote-key-provider-the-operator-enables-and-its-location-is-optional.md)).
+  [ADR-1485](docs/decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md)).
 
 - **A background job destroys the KMS keys that no stored secret names.** Every key the server creates in a KMS carries
   the deployment that `SecretProtection:RemoteKeys:Deployment` names
@@ -1026,7 +1026,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#654](https://github.com/NCodeGroup/identity/issues/654), [#704](https://github.com/NCodeGroup/identity/issues/704),
   [#725](https://github.com/NCodeGroup/identity/issues/725),
   [ADR-1478](docs/decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md),
-  [ADR-1490](docs/decisions/1490-the-host-chart-registers-each-server-remote-key-provider-the-operator-enables-and-its-location-is-optional.md)).
+  [ADR-1485](docs/decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md)).
 
 - **A management route answers from what it read and declares every problem it answers.** Every management route
   answers `404 Not Found` and `409 Conflict` from the rows it read before writing — a missing resource, a secret

@@ -467,7 +467,7 @@ workload identity. The values are:
 
 The chart renders an enabled provider as `SecretProtection__RemoteKeyProviders__AwsKms__*`, `__AzureKeyVault__*` or
 `__GoogleCloudKms__*`, which registers it as the host registers a provider whose configuration section exists
-([ADR-1490](../../docs/decisions/1490-the-host-chart-registers-each-server-remote-key-provider-the-operator-enables-and-its-location-is-optional.md));
+([ADR-1485](../../docs/decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md));
 it renders `pendingWindowInDays` and `hardwareProtected` whenever the provider is enabled and its location only when
 set, and `hardwareProtected` applies only to the keys the provider creates; a provider that is not enabled renders
 nothing and no tenant can choose it; the deployment renders as `SecretProtection__RemoteKeys__Deployment` with
@@ -617,7 +617,7 @@ Each console key ring, `managementConsole.keyRings.client` (`Bff:KeyRings:mgmt-c
 service holds, or both. A key a key management service holds signs every request the console makes, so the private key
 never reaches the pod
 ([ADR-1479](../../docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md),
-[ADR-1485](../../docs/decisions/1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md)).
+[ADR-1485](../../docs/decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md)).
 A ring has these values:
 
 - `pemSecret`, the Secret holding `mgmt-client.pem` or `mgmt-dpop.pem`;

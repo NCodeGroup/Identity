@@ -80,7 +80,7 @@ release the host or the console would refuse.**
 11. **The chart refuses a console the console would refuse.** Rendering fails when `managementConsole.host` is empty or a
     wildcard, when the authority is not `https://`, when a key ring has no key, and when
     `managementConsole.replicaCount` is above 1 without Valkey. The key rings and key management services are
-    [ADR-1485](1485-the-host-chart-holds-the-consoles-key-rings-in-a-key-management-service-under-the-consoles-own-identity.md)'s.
+    [ADR-1485](1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md)'s.
 12. **CI checks the contract.** The `Host chart` workflow runs `helm lint --strict`, renders every release under `ci/`,
     and checks that each unsafe release fails to render.
 

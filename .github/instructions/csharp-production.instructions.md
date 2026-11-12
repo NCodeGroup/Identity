@@ -95,7 +95,10 @@ than inlining the rationale.
   [Members and Constructors](csharp.instructions.md#members-and-constructors); buffering a collection with `[.. param]`
   or a guard folded into an initializer still fits a primary constructor.
 
-- 👁 **Constants and statics at the top of the type** — template [Layout](csharp.instructions.md#layout).
+- 👁 **Constants and statics at the top of the type** — template [Layout](csharp.instructions.md#layout). In a static
+  class with C# 14 `extension(...)` blocks, the blocks are its instance members: every const, static field, static
+  property and static method, private helpers included, sits before the first `extension(` block, in its own relative
+  order.
 
 ## 2. Public API discipline
 

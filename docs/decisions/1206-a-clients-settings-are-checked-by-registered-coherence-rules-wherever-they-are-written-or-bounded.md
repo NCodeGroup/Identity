@@ -70,7 +70,7 @@ lowers is a violation.**
      contributes the requirement as data.
    - `LogoutChannelCoherenceRule`
      ([ADR-1088](1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md)) and `ClientSecretKeyCoherenceRule`
-     ([ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+     ([ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)).
 3. **A value that a ceiling lowers is a violation.** `SettingDescriptor.HasMeetMerge` is `true` for `Min`, `And` and
    `Intersect`, computed by `SettingMerge.IsMeetOperation`. For each registered setting with `HasMeetMerge` that applies
    within the client scope, `RegisteredValueCoherenceRule` compares the registered and the effective value, naming the

@@ -12,7 +12,7 @@ backchannel authentication endpoints with a credential that a caller can guess o
 supplied, an assertion signed with it, or a certificate matched against a registration. A public client presents no
 credential: its `client_id` is not a secret (RFC 6749 §2.2), so a lookup that fails guesses nothing. The server stores a supplied
 secret as a PBKDF2 verifier and bounds the concurrent derivations
-([ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)), which bounds the processors
+([ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)), which bounds the processors
 a flood of guesses takes, not the number of guesses.
 
 The request rate limits ([ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)) do not bound guessing
@@ -110,7 +110,7 @@ limit until its window ends, the way a rate limit refuses.**
 7. **The limit fails closed.** A counter store that throws propagates its exception, so client authentication fails
    while the shared state is unreachable instead of admitting unlimited guesses; the request rate limiter, a capacity
    guard, fails open. The limit complements the PBKDF2 gate of
-   [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md), which bounds the
+   [ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md), which bounds the
    processors, not the guesses.
 
 ## Options considered
@@ -175,7 +175,7 @@ limit until its window ends, the way a rate limit refuses.**
 - [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md),
   [ADR-1237](1237-failed-password-attempts-are-limited-per-account.md),
   [ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md),
-  [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md).
+  [ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md).
 - Code: `NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationAttemptLimiter`,
   `NCode.Identity.OpenId.Authentication.Clients.DefaultClientAuthenticationAttemptLimiter`,
   `NCode.Identity.OpenId.Authentication.Clients.DefaultClientAuthenticationAttemptSettingDescriptorDataSource`,

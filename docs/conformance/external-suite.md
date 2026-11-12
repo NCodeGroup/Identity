@@ -84,7 +84,7 @@ Each module below exercises OP behavior that a specification requires; the OP be
   client that owns a secret, and a generated `client_secret` authenticates, because the secret is stored in the form
   its client's method needs: a one-way verifier the presented secret is compared with, or the UTF-8 bytes a
   `client_secret_jwt` assertion is keyed from (`IClientSecretIssuer` —
-  [ADR-1391](../decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+  [ADR-1391](../decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)).
 - **`oidcc-refresh-token`** — the consent screen (no-JS form + SPA) pre-selects every requested scope, so a first-time
   `prompt=consent` + `offline_access` consent records `openid`/`offline_access` and the token response carries the
   `id_token` and `refresh_token`.

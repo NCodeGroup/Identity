@@ -1191,8 +1191,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   names the scheme for generated secrets (`GeneratedSecretScheme`, `SecretVerifierSchemes.Sha256` by default) and for
   supplied ones (`SuppliedSecretScheme`, `SecretVerifierSchemes.Pbkdf2Sha256`). Client authentication compares a
   presented secret with its verifier, and `client_secret_jwt` keys its HMAC from the stored bytes
-  ([ADR-1110](docs/decisions/1110-shared-secret-vs-cryptographic-key-storage.md),
-  [#69](https://github.com/NCodeGroup/identity/issues/69), [#163](https://github.com/NCodeGroup/identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+  ([ADR-1391](docs/decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md),
+  [#69](https://github.com/NCodeGroup/identity/issues/69), [#163](https://github.com/NCodeGroup/identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)).
 
 - **Hash algorithms and binary encodings are open vocabularies.** `ICryptoService.HashValue` takes the framework's
   `HashAlgorithmName` and computes the digest with `CryptographicOperations`, so SHA-384 and SHA-3 are available.
@@ -1517,7 +1517,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   with a registered descriptor: the host does not compose when the registered handlers and descriptors differ, and
   options validation constructs no handler
   ([ADR-1145](docs/decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md), issue
-  [#251](https://github.com/NCodeGroup/identity/issues/251), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+  [#251](https://github.com/NCodeGroup/identity/issues/251), [ADR-1391](docs/decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)).
 
 - **JWT-bearer client authentication (`private_key_jwt` / `client_secret_jwt`)** (issue
   [#54](https://github.com/NCodeGroup/identity/issues/54),
@@ -2360,7 +2360,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The management API and its console show how a secret is stored.** `SecretResource.IsVerifier` is `true` for a
   secret stored as a one-way verifier, which authenticates a method that compares the secret and never one that keys
   from it, such as `client_secret_jwt`, and the management console marks such a secret with a `Verifier` chip from the
-  contract's `isVerifier` ([#163](https://github.com/NCodeGroup/identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+  contract's `isVerifier` ([#163](https://github.com/NCodeGroup/identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)).
 
 - **The management API reads an asymmetric secret's public key.** The read-only sub-resource
   `GET /api/…/{tenants|clients|resource-servers}/{ownerId}/secrets/{secretId}/public-key` returns a
@@ -4563,7 +4563,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (600,000, the least a Production host may set), and every verification with a work factor takes a turn of the
   process's `ISecretVerificationGate`, sized by `SecretVerificationGateOptions` (`MaxConcurrency`, `MaxQueueLength`,
   `QueueTimeout`), so a flood of presented secrets neither occupies every processor nor queues without bound
-  ([#163](https://github.com/NCodeGroup/identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+  ([#163](https://github.com/NCodeGroup/identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)).
 
 - **Failed client authentications are limited per remote address by default, without a per-client lockout.** Every
   handler of a client-authentication method that verifies a credential asks `IClientAuthenticationAttemptLimiter`
@@ -4856,7 +4856,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   with `invalid_request`. The developer single-page-application clients register `none`, a conformance client registers
   only its configured method, and the bootstrap administrator registers `client_secret_basic` and presents its secret
   with HTTP Basic, as does the API reference's client-credentials login
-  ([ADR-1145](docs/decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+  ([ADR-1145](docs/decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md), [ADR-1391](docs/decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)).
 
 - **Every client secret is held in the form its client's method needs.** `IClientSecretIssuer` issues every client
   secret, for the management API, dynamic client registration and the seeds, as `ClientAuthenticationMethodDescriptor`'s
@@ -4871,7 +4871,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   that compares its secret cannot register a symmetric request-object algorithm such as `HS256`, and
   `OpenIdConfidentialClient.CredentialId` names the credential that authenticated the client. A verification refused a
   turn of the `ISecretVerificationGate` is answered `503 Service Unavailable` with `temporarily_unavailable` and
-  `Retry-After: 1`, because the secret was never compared ([#163](https://github.com/NCodeGroup/identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+  `Retry-After: 1`, because the secret was never compared ([#163](https://github.com/NCodeGroup/identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)).
 
 - **Client credentials stop authenticating at their expiry, and client secrets have at least 256 bits.** A client secret
   or registered key whose `expiresWhen` has passed does not authenticate its client.
@@ -5457,7 +5457,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   handler decodes it into a pinned, zeroed buffer (threaded as `ReadOnlyMemory<byte>`) and stores it as a PBKDF2
   verifier, because the administrator registers `client_secret_basic`, and the OpenAPI example and
   Scalar prefill that surface the presentable secret appear only in the development environment. See
-  [ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md) and [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md).
+  [ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md) and [ADR-1391](docs/decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md).
 
 - **Every owner's keys are imported and updated under the client-key policy.** The client, tenant and
   resource-server import endpoints use `IClientKeyImporter.TryImportKey`, so a JSON Web Key keeps its `kid`, a key whose

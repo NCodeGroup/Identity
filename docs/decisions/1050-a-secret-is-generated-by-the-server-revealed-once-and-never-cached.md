@@ -56,7 +56,7 @@ replica reloads, under the API's `ETag` and `If-Match` model.
 
 - Every read, list, import, update and effective-settings preview answers the material-free `SecretResource`.
 - The reveal is decided by owner. The client secret create, the rotate and the method-changing settings `PATCH`
-  ([ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)), and the resource-server
+  ([ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)), and the resource-server
   secret create, answer a `CreatedSecretResource`: the `SecretResource` fields plus `SecretMaterial`. A tenant's secret
   create answers a `SecretResource`, so a tenant's key never crosses the API, whatever a handler does.
 - The reveal is also gated by type. `SecretMaterial` is set only for a generated symmetric secret
@@ -149,7 +149,7 @@ no secret and is not marked. A secret-revealing endpoint of an extending package
   [ADR-1049](1049-openid-errors-audited-from-single-funnel.md),
   [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
   [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md),
-  [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md),
+  [ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md),
   [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)
 - Issues [#473](https://github.com/NCodeGroup/identity/issues/473), [#488](https://github.com/NCodeGroup/identity/issues/488)
   and [#492](https://github.com/NCodeGroup/identity/issues/492)

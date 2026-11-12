@@ -12,7 +12,7 @@ namespace NCode.Identity.Secrets.Persistence;
 /// <see cref="ISecretGenerator"/> stores as a new <see cref="PersistedSecret"/>, whether the server generates the secret
 /// or a caller supplies it. A shared secret is always a <c>symmetric</c> secret whose size is that of its UTF-8 octets.
 /// </summary>
-// See ADR-1110 and ADR-1391.
+// See ADR-1391.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class SharedSecretRequest

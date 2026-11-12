@@ -15,7 +15,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// Provides the default implementation of <see cref="IClientSecretIssuer"/>: the registered method's descriptor decides
 /// whether a client is issued a secret and in which form, and <see cref="ISecretGenerator"/> stores it.
 /// </summary>
-// See ADR-1110 and ADR-1391.
+// See ADR-1391.
 internal sealed class DefaultClientSecretIssuer(
     IClientAuthenticationMethodCatalog clientAuthenticationMethodCatalog,
     IEffectiveSettingsResolver effectiveSettingsResolver,

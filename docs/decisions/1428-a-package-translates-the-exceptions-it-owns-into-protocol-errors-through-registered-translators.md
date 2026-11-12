@@ -15,7 +15,7 @@ temporary outage that a retry resolves from a fault. An owner root-key outage, f
 context exists, because a tenant's secrets are unwrapped as the context is created. The server already answers a
 temporary condition with `temporarily_unavailable` and a `Retry-After` header on every protocol endpoint, as the rate
 limits and the client secret verifier do
-([ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+([ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)).
 
 ## Decision
 
@@ -66,6 +66,6 @@ limits and the client secret verifier do
 ## References
 
 - [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
-  [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md),
+  [ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)
 - Issue [#573](https://github.com/NCodeGroup/identity/issues/573)

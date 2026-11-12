@@ -29,7 +29,7 @@ secret in one unit of work. Both authenticate until the rotated secret expires o
 - **Rotation overlaps.** The replacement has the rotated secret's type, `use` and `alg` and the expiry that the
   required `RotateSecretRequest.ExpiresWhen` names. It is validated as a created secret is (`ValidateCreate`) and
   issued through `IClientSecretIssuer` in the form the client's authentication method needs
-  ([ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)). The operator deletes
+  ([ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)). The operator deletes
   the rotated secret with the existing `DELETE` once the holder has switched.
 - **A grace expiry bounds the overlap.** The optional `RotateSecretRequest.RotatedExpiresWhen` sets the rotated
   secret's expiry to the earlier of its current expiry and this value, never earlier than its creation, and bounds its
@@ -91,5 +91,5 @@ secret in one unit of work. Both authenticate until the rotated secret expires o
 - [`SharedSecretPolicy`](../../src/NCode.Identity.Secrets.Persistence.Abstractions/SharedSecretPolicy.cs)
 - [`SecretsManager`](../../frontend/apps/mgmt/src/containers/SecretsManager.tsx)
 - [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md),
-  [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md),
+  [ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md),
   [ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md)

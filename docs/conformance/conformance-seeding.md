@@ -28,7 +28,7 @@ repository, and passed to the host as `ConformanceSeed__` environment variables 
 ([#514](https://github.com/NCodeGroup/identity/issues/514)). The host stores each seeded secret as a PBKDF2 verifier,
 from which the secret cannot be read back, unless its client registers `client_secret_jwt`, which keys its assertion
 from the secret itself, so the host stores that secret reversibly
-([ADR-1391](../decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+([ADR-1391](../decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)).
 
 On every startup the seeder adds each declared client and the test user that the conformance tenant does not hold yet,
 so a second run neither duplicates nor fails. Before storing a client it validates the client's settings against the

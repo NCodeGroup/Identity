@@ -850,7 +850,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         var writer = new ArrayBufferWriter<byte>();
         secretKey.ExportPrivateKey(ref writer);
 
-        // The core contract (ADR-1110): client_secret_jwt keys its HMAC from the UTF-8 bytes of the presented secret, so
+        // The core contract (ADR-1391): client_secret_jwt keys its HMAC from the UTF-8 bytes of the presented secret, so
         // the stored material must be exactly the UTF-8 bytes of the revealed opaque string.
         var expected = SecureEncoding.UTF8.GetBytes(generated.SecretMaterial);
         Assert.Equal(expected, writer.WrittenSpan.ToArray());

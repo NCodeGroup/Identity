@@ -105,7 +105,7 @@ descriptor names each method.**
     method and reported in the registration, read and update responses. A registering client never supplies trust anchors:
     its certificate chains to the tenant's anchors ([ADR-1173](1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md)).
 14. **Only a method that requires a secret is issued one**, through `IClientSecretIssuer`
-    ([ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)), so a key- or
+    ([ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)), so a key- or
     certificate-based client holds no second, weaker credential. An update that changes the method keeps the stored secret
     and issues none; moving a client to a shared-secret method is a management API operation.
 15. **Seeded clients register their method.** The developer single-page applications register `none`; a conformance client

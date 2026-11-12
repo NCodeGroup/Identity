@@ -38,7 +38,7 @@ assertion's signing-key family, verified against the client's keys, and accepted
   and the signature is verified against the keys `IClientKeyResolver` returns. No separate `client_id` parameter is
   required.
 - **`client_secret_jwt` is not FAPI-eligible.** It keys its HMAC from the client's reversible shared secret
-  ([ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)). FAPI deployments use
+  ([ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)). FAPI deployments use
   `private_key_jwt` or mutual TLS.
 - **The `alg` is permitted by the client.** It must be in the client's effective
   `token_endpoint_auth_signing_alg_values_supported` (`GetPermittedAlgorithms`), narrowed to one value by a registered
@@ -96,5 +96,5 @@ assertion's signing-key family, verified against the client's keys, and accepted
   [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md),
   [ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md),
   [ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md),
-  [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md),
+  [ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md),
   [ADR-1399](1399-failed-client-authentications-are-limited-per-remote-address-by-default.md).

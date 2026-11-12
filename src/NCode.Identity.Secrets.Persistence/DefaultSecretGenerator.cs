@@ -31,7 +31,7 @@ namespace NCode.Identity.Secrets.Persistence;
 /// whose key type, provider or algorithm row cannot be resolved, and a key whose public half does not match its row,
 /// throw <see cref="RemoteKeyRefusedException"/>. A provider whose descriptor creates no keys is refused.
 /// </summary>
-// See ADR-1067, ADR-1110, ADR-1391, ADR-1471, ADR-1478 and ADR-1479.
+// See ADR-1067, ADR-1391, ADR-1471, ADR-1478 and ADR-1479.
 internal class DefaultSecretGenerator(
     ISecretKeyTypeCatalog secretKeyTypeCatalog,
     ISecretVerifierSchemeCatalog secretVerifierSchemeCatalog,
@@ -549,7 +549,7 @@ internal class DefaultSecretGenerator(
 
     // The single construction of a shared-secret PersistedSecret, shared by every generate, import and convert method so
     // the stored shape cannot drift between them: a Symmetric secret whose size is that of the secret's UTF-8 octets and
-    // whose stored value is the protected verifier or the protected octets themselves. See ADR-1110 and ADR-1391.
+    // whose stored value is the protected verifier or the protected octets themselves. See ADR-1391.
     private static PersistedSecret CreateSharedSecret(
         SharedSecretRequest request,
         string secretEncoding,

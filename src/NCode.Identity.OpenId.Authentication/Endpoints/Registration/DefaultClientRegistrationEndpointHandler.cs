@@ -1388,7 +1388,7 @@ internal class DefaultClientRegistrationEndpointHandler(
     /// Generates a <c>client_secret</c>, an opaque string the client later presents verbatim, with the policy's minimum
     /// entropy and no expiry, stored by the <see cref="IClientSecretIssuer"/> in the form the client's method needs.
     /// </summary>
-    // See ADR-1110 and ADR-1391.
+    // See ADR-1391.
     private GeneratedSecret GenerateClientSecret(
         ISecretProtector protector,
         string tokenEndpointAuthMethod,

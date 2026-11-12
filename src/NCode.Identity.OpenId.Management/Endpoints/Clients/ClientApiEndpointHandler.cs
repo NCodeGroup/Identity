@@ -1987,7 +1987,7 @@ internal class ClientApiEndpointHandler(
             // A client's symmetric secret is its client_secret, presented verbatim for client_secret_basic/post and
             // used as the HMAC key for client_secret_jwt: the issuer stores it in the form the client's method needs,
             // never as the raw-byte / base64url-reveal crypto-key material GenerateSecret produces (which never UTF-8
-            // round-trips). See ADR-1110 and ADR-1391.
+            // round-trips). See ADR-1391.
             generatedSecret = isSharedSecret
                 ? ClientSecretIssuer.GenerateClientSecret(
                     protector,
@@ -2569,7 +2569,7 @@ internal class ClientApiEndpointHandler(
         GeneratedSecret generatedSecret;
         try
         {
-            // A client's shared secret is its client_secret (ADR-1110), stored in the form the client's method needs
+            // A client's shared secret is its client_secret (ADR-1391), stored in the form the client's method needs
             // (ADR-1391).
             generatedSecret = ClientSecretIssuer.GenerateClientSecret(
                 protector,

@@ -68,27 +68,21 @@ internal sealed class TransportSecurityStartupCheck(
         var addresses = server.Features.Get<IServerAddressesFeature>()?.Addresses ?? [];
         var inspection = TransportEndpointInspector.Inspect(addresses);
 
+        var now = timeProvider.GetUtcNow();
         var failures = new List<string>(inspection.Failures);
         foreach (var endpoint in inspection.TlsEndpoints)
         {
-            using var certificate = await probe.ReadServedCertificateAsync(
-                endpoint,
-                cancellationToken
-            );
+            var result = await probe.ReadServedCertificateAsync(endpoint, cancellationToken);
+            using var certificate = result.Certificate;
             if (certificate is null)
             {
                 failures.Add(
-                    $"The endpoint '{endpoint}' completed no TLS handshake, so its certificate is missing, has no private key or cannot be used."
+                    $"The endpoint '{endpoint}' completed no TLS handshake ({result.FailureReason}), so its certificate is missing, has no private key or cannot be used."
                 );
                 continue;
             }
 
-            foreach (
-                var failure in TransportCertificateInspector.FindFailures(
-                    certificate,
-                    timeProvider.GetUtcNow()
-                )
-            )
+            foreach (var failure in TransportCertificateInspector.FindFailures(certificate, now))
             {
                 failures.Add($"The certificate served at '{endpoint}' {failure}");
             }

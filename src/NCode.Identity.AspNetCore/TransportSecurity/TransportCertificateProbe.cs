@@ -47,29 +47,33 @@ internal sealed class TransportCertificateProbe
     }
 
     /// <summary>
-    /// Connects to the endpoint, completes a TLS handshake and returns the certificate the endpoint serves, or
-    /// <see langword="null"/> when no candidate host completes a handshake. The caller owns the returned certificate.
+    /// Connects to the endpoint, completes a TLS handshake and returns the certificate the endpoint serves. When no
+    /// candidate host completes a handshake, the result carries the reason the last candidate host failed. The caller
+    /// owns the returned certificate.
     /// </summary>
     [SuppressMessage(
         "Performance",
         "CA1822:Mark members as static",
         Justification = "The startup check receives the probe as an injected instance."
     )]
-    internal async ValueTask<X509Certificate2?> ReadServedCertificateAsync(
+    internal async ValueTask<TransportCertificateProbeResult> ReadServedCertificateAsync(
         Uri endpoint,
         CancellationToken cancellationToken
     )
     {
+        var failureReason = "no candidate host";
         foreach (var host in GetCandidateHosts(endpoint))
         {
-            var served = await TryReadAsync(host, endpoint.Port, cancellationToken);
-            if (served is not null)
+            var result = await TryReadAsync(host, endpoint.Port, cancellationToken);
+            if (result.Certificate is not null)
             {
-                return served;
+                return result;
             }
+
+            failureReason = result.FailureReason ?? failureReason;
         }
 
-        return null;
+        return TransportCertificateProbeResult.Failure(failureReason);
     }
 
     [SuppressMessage(
@@ -77,7 +81,7 @@ internal sealed class TransportCertificateProbe
         "CA5359:Do Not Disable Certificate Validation",
         Justification = "The probe reads the certificate the host itself serves on loopback; it sends no data and trusts nothing."
     )]
-    private static async ValueTask<X509Certificate2?> TryReadAsync(
+    private static async ValueTask<TransportCertificateProbeResult> TryReadAsync(
         string host,
         int port,
         CancellationToken cancellationToken
@@ -113,7 +117,11 @@ internal sealed class TransportCertificateProbe
                 token
             );
 
-            return served;
+            return served is null
+                ? TransportCertificateProbeResult.Failure(
+                    $"{host}: the server presented no certificate"
+                )
+                : TransportCertificateProbeResult.Success(served);
         }
         catch (Exception exception)
             when (exception
@@ -125,7 +133,11 @@ internal sealed class TransportCertificateProbe
             )
         {
             served?.Dispose();
-            return null;
+            return TransportCertificateProbeResult.Failure(
+                exception is OperationCanceledException
+                    ? $"{host}: no response within {HandshakeTimeout.TotalSeconds:0} seconds"
+                    : $"{host}: {exception.GetType().Name}: {exception.Message}"
+            );
         }
     }
 }

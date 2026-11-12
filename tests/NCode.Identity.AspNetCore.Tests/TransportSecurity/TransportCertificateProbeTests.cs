@@ -29,12 +29,14 @@ public sealed class TransportCertificateProbeTests
             var server = ServeTlsAsync(listener, certificate, CancellationToken.None);
             var endpoint = new Uri($"https://127.0.0.1:{port}");
 
-            using var served = await new TransportCertificateProbe().ReadServedCertificateAsync(
+            var result = await new TransportCertificateProbe().ReadServedCertificateAsync(
                 endpoint,
                 CancellationToken.None
             );
+            using var served = result.Certificate;
 
             Assert.NotNull(served);
+            Assert.Null(result.FailureReason);
             Assert.Equal(certificate.Thumbprint, served.Thumbprint);
             await server;
         }
@@ -45,7 +47,7 @@ public sealed class TransportCertificateProbeTests
     }
 
     [Fact]
-    public async Task ReadServedCertificateAsync_WhenNothingListens_ReturnsNull()
+    public async Task ReadServedCertificateAsync_WhenNothingListens_ReturnsAFailureReason()
     {
         var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
@@ -53,16 +55,17 @@ public sealed class TransportCertificateProbeTests
         listener.Stop();
         var endpoint = new Uri($"https://127.0.0.1:{port}");
 
-        var served = await new TransportCertificateProbe().ReadServedCertificateAsync(
+        var result = await new TransportCertificateProbe().ReadServedCertificateAsync(
             endpoint,
             CancellationToken.None
         );
 
-        Assert.Null(served);
+        Assert.Null(result.Certificate);
+        Assert.False(string.IsNullOrEmpty(result.FailureReason));
     }
 
     [Fact]
-    public async Task ReadServedCertificateAsync_WhenTheServerClosesTheConnection_ReturnsNull()
+    public async Task ReadServedCertificateAsync_WhenTheServerClosesTheConnection_ReturnsAFailureReason()
     {
         var listener = new TcpListener(IPAddress.Loopback, 0);
         listener.Start();
@@ -72,12 +75,13 @@ public sealed class TransportCertificateProbeTests
             var server = CloseConnectionAsync(listener, CancellationToken.None);
             var endpoint = new Uri($"https://127.0.0.1:{port}");
 
-            var served = await new TransportCertificateProbe().ReadServedCertificateAsync(
+            var result = await new TransportCertificateProbe().ReadServedCertificateAsync(
                 endpoint,
                 CancellationToken.None
             );
 
-            Assert.Null(served);
+            Assert.Null(result.Certificate);
+            Assert.False(string.IsNullOrEmpty(result.FailureReason));
             await server;
         }
         finally
@@ -102,10 +106,11 @@ public sealed class TransportCertificateProbeTests
             );
             var endpoint = new Uri($"https://127.0.0.1:{port}");
 
-            using var served = await new TransportCertificateProbe().ReadServedCertificateAsync(
+            var result = await new TransportCertificateProbe().ReadServedCertificateAsync(
                 endpoint,
                 CancellationToken.None
             );
+            using var served = result.Certificate;
 
             Assert.NotNull(served);
             Assert.Equal(certificate.Thumbprint, served.Thumbprint);

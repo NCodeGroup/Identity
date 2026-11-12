@@ -29,7 +29,7 @@ the spend is answered as a reuse.**
 2. **A spend without a successor revokes the token once.** When rotation is on but the refreshed scopes omit
    `offline_access`, no successor exists, and `IPersistedGrantService.TryRevokeOnceAsync` spends the presented token. It
    returns `false` when the grant is missing, is not active, or the save lost a race
-   ([ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md)).
+   ([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)).
 3. **A lost spend is answered as a reuse.** Whether the spend ran through `ReplaceOnceOrDefault` or
    `TryRevokeOnceAsync`, the answer is the one for a revoked token that is presented again: `invalid_grant` (`400`), the
    `token.refresh.replay` audit event, and, under `refresh_token_reuse_policy = revoke_all`, the revocation of the
@@ -56,7 +56,7 @@ the spend is answered as a reuse.**
 - **Mark the rotation with `ConsumedWhen`.** Rejected: a consumed grant still reads as active to introspection,
   revocation, and listing, whereas a revoked grant is unusable everywhere.
 - **A conditional set-based update that spends the row.** Rejected for the reasons of
-  [ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md).
+  [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md).
 
 ## Consequences
 
@@ -73,9 +73,9 @@ the spend is answered as a reuse.**
 
 - [ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md) — reuse detection and the revocation of the
   rotation family.
-- [ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md) — a lost race is a
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — a lost race is a
   `StoreConcurrencyException`.
-- [ADR-1012](1012-interceptor-managed-concurrency-tokens.md) — the interceptor-managed concurrency tokens that detect
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the interceptor-managed concurrency tokens that detect
   the lost race.
 - [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700) — OAuth 2.0 Security Best Current Practice (§4.14.2).
 - Code: `NCode.Identity.OpenId.Authentication.Endpoints.Token.RefreshToken.DefaultRefreshTokenGrantHandler`,

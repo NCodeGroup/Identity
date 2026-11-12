@@ -9,9 +9,9 @@
 ## Context
 
 A grant row carries a concurrency token that the unit of work checks when it saves
-([ADR-1012](1012-interceptor-managed-concurrency-tokens.md)), and a write that changes a grant after another request
+([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)), and a write that changes a grant after another request
 read it fails as a `StoreConcurrencyException`
-([ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md)). The revocation paths read grants
+([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)). The revocation paths read grants
 and stamp their revocation time, so a write that committed in between, such as a sliding-expiration update, a rotation,
 or another revocation, made the save of the revocation fail:
 
@@ -62,7 +62,7 @@ a race.**
 6. **A spend answers a lost race as a second spend or a reuse.** `ConsumeOnceOrDefault`, `TryRevokeOnceAsync`, and
    `ReplaceOnceOrDefault` spend a grant that must be active, so their outcome depends on what they read. A spend that
    loses to a spend or to a revocation is answered as a second spend or a reuse
-   ([ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md),
+   ([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md),
    [ADR-1211](1211-a-rotated-refresh-token-is-spent-with-its-successor.md)). A refresh-token spend reads again only
    after a write that left the grant active
    ([ADR-1217](1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md)).
@@ -74,7 +74,7 @@ a race.**
 - **A retry in each caller.** Rejected: the revocation endpoint, the logout, the replay of a code, the device user code,
   and the two management revocations would repeat the loop, and a caller that forgets it answers `500` or `412`.
 - **A set-based update.** Rejected for the reasons of
-  [ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md): the Entity Framework InMemory
+  [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md): the Entity Framework InMemory
   provider does not support it, and it bypasses the interceptor-managed concurrency token.
 - **Unbounded retries.** Rejected: a livelock never ends. Each attempt reads again and therefore sees every write that
   committed before it, so a revocation loses again only to a write that lands between its read and its save, and three
@@ -95,9 +95,9 @@ a race.**
 
 ## References
 
-- [ADR-1012](1012-interceptor-managed-concurrency-tokens.md) — the interceptor-managed concurrency tokens that detect
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the interceptor-managed concurrency tokens that detect
   the lost race.
-- [ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md) — a lost race is a
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — a lost race is a
   `StoreConcurrencyException`.
 - [ADR-1211](1211-a-rotated-refresh-token-is-spent-with-its-successor.md) — the lineage revocation that reads again, and
   the spends that answer a lost race as a reuse.

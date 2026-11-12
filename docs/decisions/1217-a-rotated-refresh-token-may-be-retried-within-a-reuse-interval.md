@@ -40,7 +40,7 @@ a reuse.**
    following in one unit of work: it reads the active grants of the lineage
    (`IGrantStore.GetActiveByRefreshTokenLineageAsync`), updates each of them unchanged through
    `IGrantStore.UpdateAsync`, which gives it a new concurrency token through the interceptor
-   ([ADR-1012](1012-interceptor-managed-concurrency-tokens.md)), and adds the successor. A lost race reads again, up to
+   ([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)), and adds the successor. A lost race reads again, up to
    three attempts in total, and a lineage with no active grant returns `null`. A concurrent revocation of the lineage,
    the session, the subject, or the grant conflicts with the branch either way: if the revocation commits first, the
    read of the branch finds nothing active, and if the branch commits first, the retry of the revocation

@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amends [ADR-1010](1010-supported-settings-unset-means-unrestricted.md),
   [ADR-1011](1011-secret-management-api.md),
-  [ADR-1012](1012-interceptor-managed-concurrency-tokens.md),
+  [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md),
   [ADR-1014](1014-server-generated-opaque-resource-ids.md),
   [ADR-1019](1019-collection-endpoints-keyset-pagination.md),
   [ADR-1024](1024-control-plane-and-per-tenant-planes.md),

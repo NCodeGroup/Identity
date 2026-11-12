@@ -47,7 +47,7 @@ tenant ([ADR-1031](1031-control-plane-management-resource-server-and-root-tenant
   (`server`, `tenant`, `client`, `resource_server`, `grant`) and the natural identifier of that node. The server-root
   node uses the `server` type and the root tenant id.
 - Standard `ResourceId` (the assignment's own opaque id, [ADR-1014](1014-server-generated-opaque-resource-ids.md)) and
-  an interceptor-managed `ConcurrencyToken` ([ADR-1012](1012-interceptor-managed-concurrency-tokens.md)).
+  an interceptor-managed `ConcurrencyToken` ([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)).
 
 A unique index over `(TenantId, NormalizedPrincipalId, RoleName, ResourceType, NormalizedResourceId)` makes an
 assignment idempotent; a lookup index over `(TenantId, ResourceType, NormalizedResourceId)` serves both the
@@ -114,7 +114,7 @@ unmanageable.
 - [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) — the tenant-scoped persistence that the
   assignment entity inherits.
 - [ADR-1014](1014-server-generated-opaque-resource-ids.md) — the opaque resource ids the assignment uses.
-- [ADR-1012](1012-interceptor-managed-concurrency-tokens.md) — the interceptor-managed concurrency token the assignment
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the interceptor-managed concurrency token the assignment
   carries.
 - [ADR-1015](1015-management-core-validation-via-validators.md) — the validator seam through which creator-as-owner and
   the one-owner invariant are enforced.

@@ -2928,7 +2928,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   caller catches one type around any store method or `SaveChangesAsync` without a reference to Entity Framework, and a
   store that is not built on Entity Framework reports a lost race the same way; a caller that saves through a
   `DbContext` directly receives Entity Framework's `DbUpdateConcurrencyException`
-  ([ADR-1208](docs/decisions/1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md), issue
+  ([ADR-1012](docs/decisions/1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md), issue
   [#257](https://github.com/NCodeGroup/identity/issues/257)).
 
 - **The persistence model stores resource-server settings and secrets.** `PersistedResourceServerSettings`,
@@ -5208,7 +5208,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   row's concurrency token as a second spend: `invalid_grant` for an authorization code, a device code and a CIBA
   request, `invalid_request_uri` for a pushed request, `401` `invalid_token` for an initial access token, and `400` for
   the `state` of a paused authorization flow at the continue endpoint
-  ([ADR-1208](docs/decisions/1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md), issue
+  ([ADR-1012](docs/decisions/1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md), issue
   [#257](https://github.com/NCodeGroup/identity/issues/257)).
 
 - **A revocation wins a concurrency race.** The revocation endpoint, the device user code, logout and session eviction,

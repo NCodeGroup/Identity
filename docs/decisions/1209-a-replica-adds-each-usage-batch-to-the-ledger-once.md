@@ -33,9 +33,9 @@ the counts, and a failed batch is retried under its number.**
    `LastBatchNumber` in its row of the `TenantUsageCheckpoints` table, in the same unit of work. A batch numbered at or
    below the replica's `LastBatchNumber` was added before, so the store does nothing for it, and a retry of a save that
    committed adds nothing. The checkpoint is unique on `ReplicaId` and carries a concurrency token
-   ([ADR-1012](1012-interceptor-managed-concurrency-tokens.md)), so two units of work that add one replica's batches
+   ([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)), so two units of work that add one replica's batches
    cannot both commit
-   ([ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md)). An empty `usage` and a
+   ([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)). An empty `usage` and a
    `batchNumber` below 1 throw `ArgumentOutOfRangeException`.
 3. **A failed batch is retried in order, and new usage waits.** A batch that fails for any reason stays at the head of
    the replica's queue, with the batches behind it. Every flush retries the queue in order, and drains the recorder into
@@ -59,8 +59,7 @@ the counts, and a failed batch is retried under its number.**
   of the marker counts the batch twice.
 - **A conditional upsert or a set-based increment.** Rejected: not every provider supports it (Entity Framework
   InMemory does not), and it bypasses the concurrency token
-  ([ADR-1012](1012-interceptor-managed-concurrency-tokens.md),
-  [ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md)).
+  ([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)).
 - **Per-replica absolute totals, summed on read.** Rejected: it multiplies the rows, and every read must sum them.
 - **Document the overcount.** Rejected: a billing ledger must not charge for usage twice.
 
@@ -79,10 +78,10 @@ the counts, and a failed batch is retried under its number.**
 
 ## References
 
-- [ADR-1012](1012-interceptor-managed-concurrency-tokens.md) — the interceptor-managed concurrency tokens that make two
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the interceptor-managed concurrency tokens that make two
   units of work conflict.
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — the usage ledger that this decision amends.
-- [ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md) — a lost race is a store-neutral
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — a lost race is a store-neutral
   exception.
 - [project-template ADR-0115](project-template/0115-a-host-logs-to-standard-output.md) — the reference hosts log to standard output, the
   other part of [#245](https://github.com/NCodeGroup/identity/issues/245).

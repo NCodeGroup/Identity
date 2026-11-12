@@ -38,7 +38,7 @@ same filters.**
   bulk revoke with `Operations.Delete`, both against the tenant scope — consistent with the rest of the grant surface.
 - **Store shape.** `IGrantStore.GetPageAsync` takes the optional `subjectId`/`clientId`; a new `RevokeWhereAsync`
   loads the matching active grants, stamps `RevokedWhen`, and returns the count, letting the concurrency-token
-  interceptor ([ADR-1012](1012-interceptor-managed-concurrency-tokens.md)) bump exactly the changed rows. The keyset
+  interceptor ([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)) bump exactly the changed rows. The keyset
   page-building primitives are lifted to `BaseStore` (`BuildPageAsync`, protected cursor codec) so the filtered query
   reuses them without duplicating the mechanics.
 
@@ -72,7 +72,7 @@ same filters.**
 
 ## References
 
-- [ADR-1012](1012-interceptor-managed-concurrency-tokens.md) — the interceptor that bumps row tokens on the grants a
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the interceptor that bumps row tokens on the grants a
   bulk revoke changes.
 - [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) — the query filter that scopes the filtered
   list and bulk revoke to the ambient tenant.

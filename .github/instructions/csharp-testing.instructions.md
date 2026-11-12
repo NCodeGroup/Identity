@@ -194,7 +194,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
 - 👁 **Store and EF behavior is tested against a real provider, not a mocked store** — template
   [Entity Framework Core](csharp-tests.instructions.md#entity-framework-core); a `SavingChanges`-only interceptor never
   runs, because the codebase saves through `SaveChangesAsync`
-  ([ADR-1012](../../docs/decisions/1012-interceptor-managed-concurrency-tokens.md)).
+  ([ADR-1012](../../docs/decisions/1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)).
 - 👁 **A handler that writes through more than one store needs an end-to-end test** — template
   [Entity Framework Core](csharp-tests.instructions.md#entity-framework-core): a store resolves the tenant that owns a
   row with a database query, so a row a tenant owns can be added only after the tenant row commits
@@ -213,7 +213,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   (`TenantStoreContributedEntityRemovalTests`).
 - 👁 **A lost race through the store manager is `StoreConcurrencyException`;** only a test that calls
   `DbContext.SaveChangesAsync` directly sees EF's `DbUpdateConcurrencyException`. See
-  [ADR-1208](../../docs/decisions/1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md).
+  [ADR-1012](../../docs/decisions/1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md).
 - 👁 **Build a stored grant's payload with `TestGrantPayloadProtector.Protect(...)`**
   (which wraps the real `DefaultPersistedPayloadSerializer`), never a bare `JsonSerializer` call. The server stores a
   protected, versioned envelope, so a test that hands the code the bare payload passes while the code fails on every

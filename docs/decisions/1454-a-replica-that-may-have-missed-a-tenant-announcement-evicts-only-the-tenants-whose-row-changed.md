@@ -22,7 +22,7 @@ everything the replica serves, with its store reads, settings providers and key 
 not happen.
 
 A record, settings or secrets write modifies the tenant row, and the interceptor regenerates the row's concurrency token
-on save ([ADR-1012](1012-interceptor-managed-concurrency-tokens.md)). A tenant whose stored token equals the token its
+on save ([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)). A tenant whose stored token equals the token its
 cached copy was materialized with has not changed.
 
 ## Decision
@@ -85,7 +85,7 @@ the store's and evicts only the tenants whose token differs or whose row is gone
   under a root key it controls
 - [ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md) — a
   replica that may have missed a team announcement evicts only the teams whose row changed
-- [ADR-1012](1012-interceptor-managed-concurrency-tokens.md) — the interceptor manages concurrency tokens
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the interceptor manages concurrency tokens
 - [ADR-1080](1080-store-query-methods-push-filtering-to-dbms.md) — store query methods push filtering to the DBMS
 - [ADR-1214](1214-a-management-write-that-loses-a-race-is-answered-412.md) — a management write that loses a
   concurrency race is answered 412

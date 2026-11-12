@@ -52,7 +52,7 @@ Concretely:
   `refresh_token_expiration_policy`.
 - **Revocation path.** `IGrantStore.RevokeByRefreshTokenLineageAsync` soft-revokes every **active** grant in the family
   (idempotent: already-revoked rows are untouched, so the concurrency interceptor bumps only the rows it changes, per
-  [ADR-1012](1012-interceptor-managed-concurrency-tokens.md)). It loads and mutates the matched rows rather than issuing
+  [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)). It loads and mutates the matched rows rather than issuing
   a set-based `ExecuteUpdate`, matching the established bulk-revocation pattern
   ([ADR-1022](1022-grant-filters-and-bulk-revocation.md)) so the interceptor still stamps each changed row;
   `IPersistedGrantService.RevokeByRefreshTokenLineageAsync` wraps it for the grant handler. The handler calls it, after
@@ -93,5 +93,5 @@ Concretely:
 - [ADR-1028](1028-token-revocation-refresh-tokens-only.md) — token revocation revokes refresh tokens only
 - [ADR-1022](1022-grant-filters-and-bulk-revocation.md) — the load-and-mutate bulk-revocation pattern this reuses
 - [ADR-1077](1077-session-scoped-grant-revocation-on-logout.md) — session-scoped grant revocation on logout
-- [ADR-1012](1012-interceptor-managed-concurrency-tokens.md) — the concurrency-token interceptor that stamps changed rows
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the concurrency-token interceptor that stamps changed rows
 - [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — greenfield, secure-by-default, Auth0-parity-plus posture

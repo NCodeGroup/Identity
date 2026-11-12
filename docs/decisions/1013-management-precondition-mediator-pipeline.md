@@ -71,5 +71,5 @@ methods, and their remove methods no longer overload a broad exception to signal
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — seam-vs-capability litmus test that
   places these preconditions in the mediator.
 - [ADR-1011](1011-secret-management-api.md) — the secret/owner management endpoints these preconditions guard.
-- [ADR-1012](1012-interceptor-managed-concurrency-tokens.md) — the concurrency tokens the `If-Match` and race
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the concurrency tokens the `If-Match` and race
   handling rely on.

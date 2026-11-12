@@ -73,7 +73,7 @@ are removed from the public DTOs.
 ## References
 
 - [ADR-1011](1011-secret-management-api.md) — the secret/owner management API whose create paths this governs.
-- [ADR-1012](1012-interceptor-managed-concurrency-tokens.md) — the surrogate row token; ids are eager-assigned
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the surrogate row token; ids are eager-assigned
   on insert alongside it.
 - [ADR-1015](1015-management-core-validation-via-validators.md) — the core validators that assert uniqueness
   (among other preconditions) as a safety net.

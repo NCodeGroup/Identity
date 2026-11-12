@@ -12,7 +12,7 @@ A tenant is seeded each time it is materialized
 ([ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)). Seed contributors write the
 tenant row: a seeded or rolled key adds secrets, and development pruning removes them. The store issues a new secrets
 token for each of those writes, and the interceptor regenerates the row token on save
-([ADR-1012](1012-interceptor-managed-concurrency-tokens.md)).
+([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)).
 
 The tenant a seed reads before its contributors run carries the tokens of the row before the seed. The row token is what
 a replica compares after a missed announcement
@@ -55,7 +55,7 @@ token as the ETag.
 
 ## References
 
-- [ADR-1012](1012-interceptor-managed-concurrency-tokens.md) — the interceptor manages concurrency tokens
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the interceptor manages concurrency tokens
 - [ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md) — a tenant is provisioned
   through one pipeline under every strategy
 - [ADR-1454](1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md) — a

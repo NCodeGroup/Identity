@@ -76,7 +76,7 @@ The records are grouped by area; within an area they are in number order.
 | [1001](./1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) | Behavior is a service, a strategy collection or a mediator seam, chosen by one ladder | Accepted |
 | [1003](./1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md) | The family versions in lockstep from one version.json and ships source-linked symbol packages | Accepted |
 | [1005](./1005-public-api-surface-is-tracked-and-evolves-compatibly.md) | The public API surface is tracked and evolves backward-compatibly | Accepted |
-| [1012](./1012-interceptor-managed-concurrency-tokens.md) | Concurrency tokens are interceptor-managed; the sub-resource version columns stay manual | Accepted |
+| [1012](./1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) | Concurrency tokens are interceptor-managed, and a lost race surfaces as a store-neutral exception | Accepted |
 | [1016](./1016-implementation-packages-depend-only-on-abstractions.md) | Implementation packages depend only on abstractions; composition wires them | Accepted |
 | [1025](./1025-pre-release-posture-and-auth0-parity-plus.md) | Pre-release posture: greenfield, and an Auth0-parity-plus design philosophy | Accepted |
 | [1052](./1052-entity-framework-persistence-is-a-framework-plus-slices.md) | Entity Framework persistence is a reusable framework plus domain slices | Accepted |
@@ -96,7 +96,6 @@ The records are grouped by area; within an area they are in number order.
 | [1188](./1188-general-time-helpers-live-in-a-dependency-free-package.md) | General time helpers live in a dependency-free package | Superseded |
 | [1190](./1190-hashing-names-the-framework-algorithm-and-encodings-are-registered.md) | Hashing names the framework algorithm, and binary encodings are registered strategies | Accepted |
 | [1197](./1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) | Protocol metrics have one owner per signal and only bounded dimensions | Accepted |
-| [1208](./1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md) | A lost concurrency race surfaces as a store-neutral exception | Accepted |
 | [1221](./1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md) | Intervals and retentions are configured and validated when the host starts | Accepted |
 | [1261](./1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md) | main accepts changes only through pull requests that pass the gate | Accepted |
 | [1262](./1262-minimal-api-request-delegates-are-generated-at-compile-time.md) | Minimal-API request delegates are generated at compile time | Accepted |

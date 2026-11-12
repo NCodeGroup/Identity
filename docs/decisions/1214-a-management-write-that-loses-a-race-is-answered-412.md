@@ -13,7 +13,7 @@ loses a concurrency race with `412 Precondition Failed`, from one endpoint filte
 record applies it to the management API.
 
 A store reports a lost concurrency race as a `StoreConcurrencyException`
-([ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md)). The management endpoints let the
+([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)). The management endpoints let the
 exception reach the client as `500`, although the caller can recover by reading the resource again (issue [#261](https://github.com/NCodeGroup/identity/issues/261)).
 
 ## Decision
@@ -26,7 +26,7 @@ Debug (event 3005). No endpoint catches the exception itself.
 
 The filter covers the management API only. A protocol endpoint answers a lost race as its specification requires where a
 spend or rotation handles it
-([ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md),
+([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md),
 [ADR-1211](1211-a-rotated-refresh-token-is-spent-with-its-successor.md)); a revocation reads again and retries
 ([ADR-1215](1215-a-revocation-wins-a-concurrency-race.md)).
 
@@ -35,7 +35,7 @@ spend or rotation handles it
 - **A catch in each handler.** Rejected: every handler, including the handlers of a package, would repeat it, and a
   handler that forgets it answers `500`.
 - **A retry in the server.** Rejected: the write was computed from a stale read, and the caller decides whether it still
-  applies ([ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md)).
+  applies ([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)).
 
 ## Consequences
 
@@ -45,9 +45,9 @@ spend or rotation handles it
 
 ## References
 
-- [ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md) — a lost race is a
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — a lost race is a
   `StoreConcurrencyException`.
-- [ADR-1012](1012-interceptor-managed-concurrency-tokens.md) — the concurrency tokens and the `If-Match` check at the
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the concurrency tokens and the `If-Match` check at the
   edge.
 - [ADR-1015](1015-management-core-validation-via-validators.md) — the management validators that answer a stale
   `If-Match` with `412`.

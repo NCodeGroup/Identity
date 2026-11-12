@@ -89,7 +89,7 @@ internal sealed class EntityStoreManager<TDbContext>(
         {
             await DbContext.SaveChangesAsync(cancellationToken);
         }
-        // See ADR-1208.
+        // See ADR-1012.
         catch (DbUpdateConcurrencyException exception)
         {
             throw new StoreConcurrencyException(

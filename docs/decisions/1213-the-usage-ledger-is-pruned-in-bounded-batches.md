@@ -54,7 +54,7 @@ every provider supports it (issue [#264](https://github.com/NCodeGroup/identity/
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — the usage ledger and its retention.
 - [ADR-1209](1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md) — the checkpoints that the prune removes with
   the days they guard.
-- [ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md) — a lost race is a
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — a lost race is a
   `StoreConcurrencyException`.
 - Code: `NCode.Identity.OpenId.Persistence.EntityFramework.Stores.TenantUsageStore`,
   `NCode.Identity.OpenId.Authentication.Usage.TenantUsagePruneService`.

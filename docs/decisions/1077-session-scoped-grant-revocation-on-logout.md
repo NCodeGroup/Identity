@@ -89,7 +89,7 @@ removed: session revocation is now the session-scoped grant revocation, which is
   verbatim-indexed-key convention that governs the `SessionId` column.
 - [ADR-1076](1076-consent-persistence-and-enforcement.md) — durable consent is its own aggregate, immune to grant
   revocation.
-- [ADR-1012](1012-interceptor-managed-concurrency-tokens.md) — the interceptor that bumps row tokens on the grants a
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the interceptor that bumps row tokens on the grants a
   session-scoped revoke changes.
 - Code: `NCode.Identity.OpenId.Persistence.Stores.IGrantStore` (`RevokeWhereAsync`, `GetPageAsync`),
   `NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant` (`SessionId`),

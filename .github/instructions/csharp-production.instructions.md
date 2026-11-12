@@ -624,7 +624,7 @@ than inlining the rationale.
   Entity Framework to handle a lost race, and a single-use spend that loses is answered as a second spend. A
   management endpoint never catches it: the management route group's `StoreConcurrencyEndpointFilter` answers it
   `412`. See
-  [ADR-1208](../../docs/decisions/1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md) and
+  [ADR-1012](../../docs/decisions/1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) and
   [ADR-1214](../../docs/decisions/1214-a-management-write-that-loses-a-race-is-answered-412.md).
 - 👁 **A management route answers from what it read and declares every problem it answers.** A route answers `404` and
   `409` from the rows it loaded before the write — a secret's identifier with

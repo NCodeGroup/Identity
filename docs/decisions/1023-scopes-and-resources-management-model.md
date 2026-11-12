@@ -29,7 +29,7 @@ a Resource Server with a subset of that Resource Server's scopes.** Auth0 vocabu
 - **`ResourceServer`** (Auth0 "API") — tenant-owned, mirroring the client family: a surrogate `Id`, `TenantId`, an
   opaque-but-operator-meaningful `Identifier` (the audience) with a `NormalizedIdentifier` unique per tenant, a `Name`,
   `IsDisabled`, an open `SettingsJson` bag (signing algorithm, token lifetime, allow-offline-access, …), and an
-  interceptor-managed `ConcurrencyToken` ([ADR-1012](1012-interceptor-managed-concurrency-tokens.md)).
+  interceptor-managed `ConcurrencyToken` ([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)).
 - **`Scope`** (Auth0 "Permission") — a **composition owned by one Resource Server** (like a secret under a client): a
   `Value` with a `NormalizedValue` unique per Resource Server, a `Description`, and its own concurrency token. Because a
   scope belongs to its Resource Server, the same value on two Resource Servers is two distinct scopes.
@@ -86,7 +86,7 @@ corruption.
 
 - [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) — the `scopes_supported` setting this model will
   eventually make authoritative from the database.
-- [ADR-1012](1012-interceptor-managed-concurrency-tokens.md) — interceptor-managed concurrency tokens reused by the new
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — interceptor-managed concurrency tokens reused by the new
   entities.
 - [ADR-1014](1014-server-generated-opaque-resource-ids.md) — opaque server-generated identifiers reused for the new
   resources.

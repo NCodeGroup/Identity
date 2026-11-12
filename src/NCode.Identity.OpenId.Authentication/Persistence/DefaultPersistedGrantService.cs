@@ -237,7 +237,7 @@ internal class DefaultPersistedGrantService(
         catch (StoreConcurrencyException)
         {
             // Another request spent the grant after it was read, so this one is answered as a second spend.
-            // See ADR-1208.
+            // See ADR-1012.
             return null;
         }
 

@@ -12,9 +12,9 @@ that concurrent requests change only through one read-modify-write operation, wh
 caller to the value as stored and retries a lost race. This record applies it to grant payloads.
 
 A grant row carries a concurrency token that the unit of work checks when it saves
-([ADR-1012](1012-interceptor-managed-concurrency-tokens.md)), and a write that changes a grant after another request
+([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)), and a write that changes a grant after another request
 read it fails as a `StoreConcurrencyException`
-([ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md)). The writers of a grant's payload
+([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)). The writers of a grant's payload
 computed the payload from an earlier read of the grant, and `IPersistedGrantService` then read the grant again and
 replaced its payload, so the concurrency token guarded only the time between that second read and the save. A write
 that landed between the two reads was overwritten:
@@ -85,9 +85,9 @@ caller to the grant as it is stored and reads again when its write loses a race.
 
 ## References
 
-- [ADR-1012](1012-interceptor-managed-concurrency-tokens.md) — the interceptor-managed concurrency tokens that detect
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the interceptor-managed concurrency tokens that detect
   the lost race.
-- [ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md) — a lost race is a
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — a lost race is a
   `StoreConcurrencyException`.
 - [ADR-1215](1215-a-revocation-wins-a-concurrency-race.md) — the revocations that read again and retry, up to three
   attempts.

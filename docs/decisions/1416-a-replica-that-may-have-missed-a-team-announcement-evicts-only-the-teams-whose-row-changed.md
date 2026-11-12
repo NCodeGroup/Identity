@@ -23,7 +23,7 @@ Clearing every cached team and tenant whenever the channel may have missed a mes
 replica serves, with its store reads, settings providers and key collections, for changes that mostly did not happen.
 
 Every committed change to a team modifies the team row, and the interceptor regenerates the row's concurrency token on
-save ([ADR-1012](1012-interceptor-managed-concurrency-tokens.md)). `TeamChangedCommand` follows such a commit, so a
+save ([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)). `TeamChangedCommand` follows such a commit, so a
 team whose stored token equals the token its cached copy was materialized with has not changed.
 
 ## Decision
@@ -74,5 +74,5 @@ store's and evicts only the teams whose token differs or whose row is gone, with
 - [ADR-1412](1412-settings-are-reconciled-per-team.md) — settings are reconciled per team
 - [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) — settings converge through
   one reconciliation
-- [ADR-1012](1012-interceptor-managed-concurrency-tokens.md) — the interceptor manages concurrency tokens
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the interceptor manages concurrency tokens
 - [ADR-1080](1080-store-query-methods-push-filtering-to-dbms.md) — store query methods push filtering to the DBMS

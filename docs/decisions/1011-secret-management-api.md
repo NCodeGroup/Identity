@@ -108,7 +108,7 @@ carries a `// Future:` note rather than an implementation.
 - Discovering that the secret store initially had no per-secret write path surfaced a latent, provider-independent
   bug: `ConcurrencyTokenSaveChangesInterceptor` only overrode the synchronous `SavingChanges`, so it never fired
   for the `SaveChangesAsync` the stores use. That is resolved on its own terms in
-  [ADR-1012](1012-interceptor-managed-concurrency-tokens.md); the secret stores rely on the (now working)
+  [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md); the secret stores rely on the (now working)
   interceptor for row tokens and eagerly assign the token on insert so `POST` needs no re-read.
 - **Individual secret `GET`/`PUT`/`DELETE` are authorized against an owner-scoped wrapper.** A
   `PersistedSecret` loaded by id does not itself carry its owner, so authorizing the bare entity would leave
@@ -156,7 +156,7 @@ client entities are tenant-scoped (`ISupportTenantId` / `TenantOwnedResource`), 
 - [ADR-1002](1002-ephemeral-development-keys.md) — development key generation and the data-protection boundary.
 - [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) — the settings cascade the sibling
   settings endpoints read.
-- [ADR-1012](1012-interceptor-managed-concurrency-tokens.md) — how the secret (and every) store's concurrency
+- [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — how the secret (and every) store's concurrency
   token is generated.
 - [ADR-1015](1015-management-core-validation-via-validators.md) — the entity validators that
   authorize and validate every management create/update/delete (including the owner lifecycle above).

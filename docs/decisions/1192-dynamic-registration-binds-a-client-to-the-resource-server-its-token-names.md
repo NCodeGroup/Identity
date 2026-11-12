@@ -74,7 +74,7 @@ nothing.
      to agree with it. The grant row's concurrency token makes the spend atomic across replicas without a shared-state
      adapter: of two registrations that present one token at the same moment, at most one succeeds: the save of the
      other fails on the concurrency token, and the other is answered `invalid_token` as a spent token
-     ([ADR-1208](1208-a-lost-concurrency-race-surfaces-as-a-store-neutral-exception.md)).
+     ([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)).
 
 ## Options considered
 

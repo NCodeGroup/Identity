@@ -4,7 +4,11 @@
   [ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md),
   [ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md),
   [ADR-1258](1258-the-server-sends-strict-transport-security-outside-development.md) and
-  [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md))
+  [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md);
+  amended by
+  [ADR-1506](1506-the-host-chart-routes-to-its-https-only-pods-through-gateway-api-a-traefik-ingress-or-the-operators-own-ingress.md):
+  the chart routes through Gateway API, a Traefik Ingress or the operator's own ingress, verifies the pods against a CA
+  ConfigMap, and has no ingress-nginx mode)
 - **Date:** 2026-11-11
 - **Deciders:** NCode Group
 

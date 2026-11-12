@@ -115,7 +115,7 @@ compiles it and no gate tests it
   ([ADR-1435](docs/decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md));
   `NCode.Identity.ManagementConsole` composes the management console's BFF host, and
   `NCode.Identity.ManagementConsole.Host` is its reference host
-  ([ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md))
+  ([ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md))
 - **Settings, claims and cryptography** — `NCode.Identity.Settings(.Abstractions)`,
   `NCode.Identity.Claims(.Abstractions)` and `NCode.Identity.Cryptography(.Abstractions)`, each registered by its own
   `Add…Library()` and composed under `AddOpenIdCoreLibrary`
@@ -133,7 +133,7 @@ compiles it and no gate tests it
   (the .NET Aspire local-dev orchestrator)
   ([ADR-1073](docs/decisions/1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md),
   [ADR-1180](docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md),
-  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
+  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md),
   [ADR-1071](docs/decisions/1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md))
 - **Build analyzers** — `NCode.Identity.Analyzers`, under `analyzers/`, the repository's own Roslyn analyzers, which
   every project's build loads and no package ships: `NCID0001` reports a field that could be an auto-property

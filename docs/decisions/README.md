@@ -342,7 +342,7 @@ The records are grouped by area; within an area they are in number order.
 | [1433](./1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md) | A BFF host checks every endpoint's BFF metadata at start and again whenever the endpoints change | Accepted |
 | [1434](./1434-open-tabs-learn-that-a-bff-session-ended-from-its-next-answer-not-a-pushed-event.md) | Open tabs learn that a BFF session ended from its next answer, not a pushed event | Accepted |
 | [1435](./1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md) | Server-rendered and Blazor hosts use the BFF session through pages, hubs and opt-in packages | Accepted |
-| [1437](./1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md) | The management console is a confidential client served by a BFF host of its own | Accepted |
+| [1437](./1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md) | The management console is a confidential client whose own BFF host serves only the console | Accepted |
 | [1438](./1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md) | The management console holds no token and reads its session from its BFF | Accepted |
 | [1439](./1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md) | A BFF loads the key rings its configuration names from PEM files | Accepted |
 | [1441](./1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md) | A BFF connection ends with its session even when idle, and a Blazor Web App proves it | Accepted |
@@ -351,6 +351,5 @@ The records are grouped by area; within an area they are in number order.
 | [1445](./1445-a-self-revalidating-hub-keeps-its-connection-when-the-session-ends-and-every-watcher-learns-the-end-at-once.md) | A self-revalidating hub keeps its connection when the session ends, and every watcher learns the end at once | Accepted |
 | [1446](./1446-a-set-of-frontends-that-names-an-unregistered-key-ring-is-refused.md) | A set of frontends that names an unregistered key ring is refused | Accepted |
 | [1447](./1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md) | Forwarded-header trust and Strict-Transport-Security are general ASP.NET Core helpers each host composes | Accepted |
-| [1488](./1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md) | The management console reaches the management API at its authority's origin, and its host serves only the console | Accepted |
 | [1491](./1491-the-familys-logo-is-the-id-mark-between-the-ncode-braces-and-one-script-draws-every-file-of-it.md) | The family's logo is the {id} mark between the NCode braces, and one script draws every file of it | Accepted |
 | [1492](./1492-every-web-app-shows-the-familys-icon-from-hashed-copies-its-host-serves.md) | Every web app shows the family's icon from hashed copies its host serves | Accepted |

@@ -391,7 +391,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   Valkey
   ([ADR-1458](docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md),
   [ADR-1485](docs/decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md),
-  [ADR-1488](docs/decisions/1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md),
+  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md),
   issues [#610](https://github.com/NCodeGroup/identity/issues/610),
   [#712](https://github.com/NCodeGroup/identity/issues/712) and
   [#720](https://github.com/NCodeGroup/identity/issues/720)).
@@ -2827,7 +2827,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#158](https://github.com/NCodeGroup/identity/issues/158),
   [#611](https://github.com/NCodeGroup/identity/issues/611),
   [#745](https://github.com/NCodeGroup/identity/issues/745),
-  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
+  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md),
   [ADR-1447](docs/decisions/1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md),
   [ADR-1253](docs/decisions/1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)).
 
@@ -4160,7 +4160,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   script; its calls carry the `__Host-Http-bff.mgmt` cookie and the anti-forgery header, and the console's origin is
   separate from the OP's login, consent and account pages
   (RFC 10017,
-  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
+  [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md),
   [ADR-1438](docs/decisions/1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)).
 
 - **Management authority comes from role assignments.** No role claim but the bootstrap administrator's `GlobalAdmin`

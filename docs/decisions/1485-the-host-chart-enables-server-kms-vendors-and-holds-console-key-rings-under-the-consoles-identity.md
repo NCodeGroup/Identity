@@ -23,7 +23,7 @@ absent. A chart that renders a provider only when its location is set gives a le
 
 The management console signs client assertions with the key ring `mgmt-client` and DPoP proofs with the key ring
 `mgmt-dpop`
-([ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)). A key ring holds
+([ADR-1437](1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)). A key ring holds
 PEM files, keys that a KMS holds, or both, and the console reads and proves every key when it starts
 ([ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)).
 A console whose keys exist only as PEM files keeps its private keys in the memory of every replica. The console host
@@ -126,7 +126,7 @@ identity of its own in the server's shapes.**
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)
 - [ADR-1260](1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md)
 - [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)
-- [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)
+- [ADR-1437](1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)
 - [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)
 - [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)
 - [ADR-1474](1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md)

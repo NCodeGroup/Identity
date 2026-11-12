@@ -248,7 +248,7 @@ priorityClassName: ""
 
 # The management console, a second Deployment from its own image that serves the console's bundle and its BFF on its own
 # host (ADR-1458). Its host's Ingress routes every path to the console, and the console calls the server's management
-# API at /api on its authority's origin (ADR-1488).
+# API at /api on its authority's origin (ADR-1437).
 managementConsole:
   enabled: false
   # More than one replica requires valkey.existingSecret below.

@@ -11,7 +11,7 @@ The four web apps under `frontend/apps` are served in two ways. `auth` is the si
 host serves it beneath each tenant's route, with a relative base
 ([ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)). `mgmt` is the management console: its
 BFF host serves it at its origin's root, and writes each response's nonce into the page
-([ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)). `conformance` and
+([ADR-1437](1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)). `conformance` and
 `playground` are developer surfaces that run on their own Vite servers.
 
 The brand kit in `brand/favicon/` holds the family's browser icons: an ICO, an SVG and an icon for iOS, with the tile
@@ -102,6 +102,6 @@ into the `assets/` its host already serves.**
 - [ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)
 - [ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)
 - [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)
-- [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)
+- [ADR-1437](1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)
 - [ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)
 - [ADR-1491](1491-the-familys-logo-is-the-id-mark-between-the-ncode-braces-and-one-script-draws-every-file-of-it.md)

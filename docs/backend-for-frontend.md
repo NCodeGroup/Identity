@@ -252,7 +252,7 @@ The flow follows RFC 10017 Figure 1:
 | `NCode.Identity.Bff.Blazor`                     | `NCode.Identity.Bff.Abstractions`                               | The opt-in server half for Blazor: `AddBffBlazorLibrary`, `AsBffComponents`, the revalidating server `AuthenticationStateProvider`, and the circuit handler ([§5.14](#514-server-rendered-and-blazor-hosts)). |
 | `NCode.Identity.Bff.Blazor.Client`              | `NCode.Identity.Bff.Protocol.Abstractions`, `Microsoft.AspNetCore.Components.Authorization`, `Microsoft.Extensions.Http` | The opt-in WebAssembly half, which runs in the browser and holds no token: `AddBffBlazorClient`, the WebAssembly `AuthenticationStateProvider`, and `AddBffAntiforgeryHeader` ([§5.14](#514-server-rendered-and-blazor-hosts)). |
 | `NCode.Identity.Bff.Server`                     | `NCode.Identity.Bff`, and the protocol client, events, secrets, JOSE, JWT and shared-state implementations | The turnkey composition root: `AddIdentityBff(configuration)` composes every library a BFF needs in one call, with in-process shared state by default, and exposes each library's builder (`IIdentityBffBuilder`), as `AddIdentityServer()` does for the OP. The host still registers the key rings its configuration names and, with several replicas, a shared-state adapter. |
-| `NCode.Identity.ManagementConsole`              | `NCode.Identity.Bff.Server`, `NCode.Identity.AspNetCore`                 | The management console's server: `AddManagementConsole` and `MapManagementConsole`, the console's bootstrap document, its page under a nonce CSP and its assets ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)). |
+| `NCode.Identity.ManagementConsole`              | `NCode.Identity.Bff.Server`, `NCode.Identity.AspNetCore`                 | The management console's server: `AddManagementConsole` and `MapManagementConsole`, the console's bootstrap document, its page under a nonce CSP and its assets ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)). |
 | `NCode.Identity.ManagementConsole.Host`         | `NCode.Identity.ManagementConsole`                              | The console's reference host: a composition-only `Program.cs` that serves the console's bundle, its `/bff/*` endpoints and the forwarded management API on one origin.                                                                                                      |
 | `NCode.Identity.SharedState(.Abstractions/.Valkey)` | (existing)                                                   | **Extended** with a versioned, expiring value primitive and expiring membership indexes ([§5.4](#54-state-every-replica-sees)).                                                                                                                                             |
 
@@ -1286,7 +1286,7 @@ same two claims from the document. A page renders the logout form from them in e
 The management console (`frontend/apps/mgmt`) is a BFF frontend. `NCode.Identity.ManagementConsole.Host` serves its
 bundle, its `/bff/*` endpoints and the forwarded management API on one origin, and the console is the confidential
 client `mgmt-console` of the control-plane tenant
-([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)).
+([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)).
 
 **Topology.**
 
@@ -1299,7 +1299,7 @@ client `mgmt-console` of the control-plane tenant
   console host forwards `/management/api/*` to the OP's management API with the user's token.
 - The console's origin serves only the console. The console host reaches the management API at `/api` on its
   authority's origin, the URL the OP compares a DPoP proof's `htu` with, and machine callers call it there too
-  ([ADR-1488](decisions/1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md)).
+  ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)).
 
 `AddManagementConsole(configuration)` composes `AddIdentityBff` and binds the `ManagementConsole` section strictly, and
 `MapManagementConsole()` maps the console's endpoints. The host's `Program.cs` adds only the transport layer every host
@@ -1344,7 +1344,7 @@ names its keys in a KMS that the console reaches through its own workload identi
 host to the console host, and sets `ManagementConsole:ManagementApiUrl` to `/api` on the authority's origin
 ([ADR-1458](decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md),
 [ADR-1485](decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md),
-[ADR-1488](decisions/1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md)).
+[ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)).
 
 **Local development.** The AppHost generates per-machine P-256 keys `mgmt-client.pem` and `mgmt-dpop.pem` beside the
 other development secrets, hands their paths to the console host (`Bff__KeyRings__…`) and the client key's public JWKS
@@ -1567,7 +1567,7 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
 | Endpoint startup check         | The host refuses to start when an endpoint's BFF metadata is incomplete, such as a YARP route that names a token requirement without `AsBffRemoteApis()`; the per-request `502` stays the backstop ([ADR-1433](decisions/1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md)). |
 | Server-rendered and Blazor hosts | Pages that accept a form post with the antiforgery token, hubs as a guarded endpoint kind with connection sessions, and the opt-in `NCode.Identity.Bff.Blazor` and `NCode.Identity.Bff.Blazor.Client` packages ([§5.14](#514-server-rendered-and-blazor-hosts), [ADR-1435](decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md), [ADR-1292](decisions/1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md)). |
 | Key rings                      | `Bff:KeyRings:{name}` registers a keyed `ISecretKeyCollectionProvider` that holds the private keys of its `PemFiles` and the remote keys that a KMS holds (`RemoteKeys:{kid}`), loaded when the host starts ([§5.12](#512-composition-and-configuration), [ADR-1439](decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md), [ADR-1479](decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)). |
-| Management console            | `NCode.Identity.ManagementConsole.Host` serves `apps/mgmt` as the confidential client `mgmt-console` of the control-plane tenant ([§5.15](#515-the-management-console), [ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md), [ADR-1438](decisions/1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)). The Playground stays a public client on purpose.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Management console            | `NCode.Identity.ManagementConsole.Host` serves `apps/mgmt` as the confidential client `mgmt-console` of the control-plane tenant ([§5.15](#515-the-management-console), [ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md), [ADR-1438](decisions/1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)). The Playground stays a public client on purpose.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 ---
 
@@ -1633,7 +1633,7 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
 6. **The reference host as its own BFF.** For [#158](https://github.com/NCodeGroup/identity/issues/158), should the console's BFF run in the OP host process,
    or as a separate host?
    Decided: a separate host, `NCode.Identity.ManagementConsole.Host`, on an origin of its own
-   ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)).
+   ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)).
 
 ---
 

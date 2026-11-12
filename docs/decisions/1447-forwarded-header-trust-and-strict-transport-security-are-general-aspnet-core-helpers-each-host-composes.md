@@ -65,6 +65,6 @@ Issue [#611](https://github.com/NCodeGroup/identity/issues/611) describes the ne
   [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md),
   [ADR-1258](1258-the-server-sends-strict-transport-security-outside-development.md),
   [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
-  [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)
+  [ADR-1437](1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)
 - `src/NCode.Identity.AspNetCore/`
 - Issue [#611](https://github.com/NCodeGroup/identity/issues/611)

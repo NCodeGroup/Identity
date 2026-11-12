@@ -2,7 +2,7 @@
 
 The management console's BFF host. It serves the `apps/mgmt` single-page bundle, runs the `mgmt` frontend of the
 backend-for-frontend, and forwards the console's calls to the OP's management API
-([ADR-1437](../../docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)).
+([ADR-1437](../../docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)).
 
 ## Container image
 

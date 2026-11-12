@@ -8,7 +8,7 @@
 ## Context
 
 The management console is served by a BFF host of its own
-([ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)), so its bundle
+([ADR-1437](1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)), so its bundle
 holds no token and calls the management API with the session cookie.
 
 A bundle that a BFF serves needs three things at boot: the base of the API it calls, the prefix of its BFF's endpoints
@@ -84,5 +84,5 @@ console to its sign-in screen, and the user's click starts the login.**
 ## References
 
 - [ADR-1434](1434-open-tabs-learn-that-a-bff-session-ended-from-its-next-answer-not-a-pushed-event.md)
-- [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)
+- [ADR-1437](1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)
 - [RFC 10017](https://datatracker.ietf.org/doc/html/rfc10017)

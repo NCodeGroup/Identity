@@ -51,7 +51,7 @@ runtime (Docker or Podman) for Postgres and Valkey.
   `http://localhost:5002`.
 - `auth` and `mgmt`, the build-watchers of `apps/auth` and `apps/mgmt`.
 - `console`, the management console's BFF host, on `https://localhost:5005`
-  ([ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)).
+  ([ADR-1437](1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)).
 - `playground` (port 5174) and `conformance` (port 5175), the Vite dev servers.
 
 ### Ordering waits on health
@@ -170,7 +170,7 @@ changes.
 - [ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md): the frontend presentation platform and runtime discovery.
 - [ADR-1152](1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md): the pinned Node and pnpm.
 - [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md): the Postgres database and the migration worker.
-- [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md): the console BFF
+- [ADR-1437](1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md): the console BFF
   host.
 - [ADR-1003](1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md):
   lockstep versioning.

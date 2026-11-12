@@ -183,7 +183,7 @@ served:
   which `NCode.Identity.ManagementConsole.Host` serves) — use **`vite build --watch`**, like the backend-served SPAs. Their
   config is `defineBffServedSurfaceConfig({ coverage })`, which builds with the base `/` and writes the nonce placeholder
   (`CSP_NONCE_PLACEHOLDER`) on every script and modulepreload link and on a `<meta property="csp-nonce">`; the console
-  host writes each response's nonce in its place (ADR-1256, [ADR-1437](../docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)).
+  host writes each response's nonce in its place (ADR-1256, [ADR-1437](../docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)).
 - **Standalone SPAs** — served directly by Vite on their own port (e.g. `apps/playground`) — use **`vite`**,
   a full HMR dev server. Their config is `defineStandaloneSurfaceConfig({ port, bootstrapHost, coverage })`, which pins
   the port with `strictPort` (the surface's redirect URI, CORS origin, and AppHost endpoint all assume it) and proxies
@@ -285,7 +285,7 @@ The Management console holds no token. Its BFF host (`NCode.Identity.ManagementC
 `mgmt-console` of the control-plane tenant; the browser holds only the BFF's session cookie, and the BFF obtains the
 `urn:ncode:management`-audience access token it presents to the management API (authority is role-based `GlobalAdmin`;
 any management scope binds the audience — see [ADR-1044](../docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md),
-[ADR-1437](../docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
+[ADR-1437](../docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md),
 [ADR-1438](../docs/decisions/1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)).
 
 - The app's `SessionGate` probes the BFF's `/bff/user` and renders the console while a session exists and the sign-in

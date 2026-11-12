@@ -57,7 +57,7 @@ carries nothing else; a brand domain carries the site, docs, status page and ope
    | `auth.ncodeid.net`                         | Root tenant issuer; the management API is `/api` on it                      |
    | `{tenant}.auth.ncodeid.net`                | Workload tenant issuers, resolved by `DynamicByHost`                        |
    | `mtls.` and `{tenant}.mtls.ncodeid.net`    | RFC 8705 mTLS aliases, the only hosts that request client certificates      |
-   | `manage.ncodeid.net`                       | The management console only ([ADR-1488](1488-the-management-console-reaches-the-management-api-at-its-authoritys-origin-and-its-host-serves-only-the-console.md)) |
+   | `manage.ncodeid.net`                       | The management console only ([ADR-1437](1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)) |
    | `….lab.ncodeid.net`                        | Lab hosts, with `lab` after the function                                    |
    | `{run}.ci.ncodeid.net`                     | Ephemeral CI runs                                                           |
 

@@ -11,29 +11,29 @@ can revoke, with no operator recovery path. The key hierarchy of
 [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) wraps
 every master key under the deployment's root key, so a tenant's key must be a second kind of root.
 
-A key wrapper is bound to the one key its options name, while a tenant's key is chosen at run time. Unwrapping already
-addresses a key through `WrappedKey.KeyId` alone, independent of configuration.
+A key wrapper is bound to the key its options name; a tenant's key is chosen at run time. Unwrapping addresses a key
+through `WrappedKey.KeyId` alone, independent of configuration.
 
 The tenant's key often lives where the deployment's own workload identity has no grant. Each provider's cross-account
 pattern is delegation: the tenant grants access to an identity it controls, and the caller acts through it without a
 stored secret (AWS `sts:AssumeRole` with an `ExternalId`, Google Cloud service account impersonation, a multi-tenant
 Microsoft Entra application the tenant consents to).
 
-A revocation has to take effect within a bounded period across replicas without a KMS call per request.
+A revocation must take effect across replicas within a bounded period, without a KMS call per request.
 
 ## Decision
 
 An owner other than the platform may bring its own root key, a key it controls in a key management service. The key
-wraps the owner's master keys in place of the deployment root, the owner's master keys have no recovery copy, and
-revoking or destroying the key makes the owner's data unreadable wherever a copy is. The code says "owner root key"; the
-management API, the console and the docs say "tenant root key".
+wraps the owner's master keys in place of the deployment root, with no recovery copy, and revoking or destroying the key
+makes the owner's data unreadable wherever a copy is. The code says "owner root key"; the management API, the console
+and the docs say "tenant root key".
 
-1. **The tenant's key is an owner root key, a record of its own.** One `PersistedOwnerRootKey` row per secret owner lives
-   in the table `OwnerRootKeys`, set and removed through `IOwnerRootKeyManager` and `PUT` and
+1. **The tenant's key is an owner root key, a record of its own.** One `PersistedOwnerRootKey` row per secret owner
+   lives in the table `OwnerRootKeys`, set and removed through `IOwnerRootKeyManager` and `PUT` and
    `DELETE /api/tenants/{tenantId}/encryption-keys/root-key`. It is not a setting of the cascade: a root key is accepted
-   only after an asynchronous round trip through its provider, changing it is an operation (rotate, then rewrap), a
-   platform value or security profile must never move a tenant onto a key, the record carries operational state, and the
-   secrets layer must not depend on the OpenID settings model.
+   only after an asynchronous probe through its provider, changing it is an operation (rotate, then rewrap), a platform
+   value or security profile must never move a tenant onto a key, the record carries operational state, and the secrets
+   layer must not depend on the OpenID settings model.
 2. **Registered policies decide who may bring a key.** `PlatformOwnerRootKeyPolicy` refuses the `platform` owner, whose
    master keys protect the Data Protection key ring and the host's own data. `ControlPlaneTenantRootKeyPolicy` refuses
    the control-plane tenant, which authenticates the management API
@@ -69,31 +69,31 @@ management API, the console and the docs say "tenant root key".
    call one private `WrapUnderAsync`, so the two cannot drift. `EphemeralKeyWrapper`, `LocalKeyWrapper` and
    `RecoveryKeyWrapper` hold a process or deployment secret, never a key a third party controls, so they do not
    implement it. `IKeyWrapperCatalog.TryGetReferenced` and `GetReferenced` return the registered wrapper that implements
-   the interface; `GetReferenced` names the registered referenced wrappers when it finds none.
+   the interface; `GetReferenced`, finding none, names the registered referenced wrappers.
 6. **The tenant names an access identity, and the server never stores a secret.** It is an AWS role ARN, a Google Cloud
    service account email or a Microsoft Entra directory GUID, checked by `TryValidateAccessIdentity`. No access key,
-   client secret or key file exists in configuration or the database. A key with no access identity is reached with the
-   deployment's own identity.
+   client secret or key file exists in configuration or the database. A key without one is reached with the deployment's
+   own identity.
 7. **The server derives an access binding from the owner.** The binding is `SecretOwner.Normalize().ToString()`, such as
    `tenant:acme`. The AWS adapter sends it as the `ExternalId` of the assume-role call, so a role another tenant trusts
    cannot be assumed on this tenant's behalf; the other adapters ignore it. `GET` reports it as `rootKeyAccessBinding`,
    so a tenant writes its trust policy before it sets the key.
 8. **Each provider reaches the key through its own delegation, cached in `KeyAccessClientCache<TClient>`.** AWS uses an
-   `AssumeRoleAWSCredentials` over the default credential chain with the session name `ncode-identity-root-key` and the
-   binding as the external ID; Google Cloud impersonates the service account with the KMS scopes; Azure uses a
-   `DefaultAzureCredential` per directory, for the deployment's multi-tenant application consented in the tenant's
-   directory. The cache, in `NCode.Identity.Secrets.Abstractions`, holds one client per key and access: a failed
-   creation is not cached, the first successful call confirms an entry and keeps it, a call that fails before any
-   succeeded removes it, and an entry unused for one day expires. Identities that never work leave nothing behind, and a
-   working identity is not churned by a transient failure. Each adapter's client factory runs its access-bound calls
-   through the cache's `UseAsync` from its `ExecuteAsync`, and a third-party referenced wrapper uses the same cache.
+   `AssumeRoleAWSCredentials` over the default credential chain with the session name `ncode-identity-root-key`; Google
+   Cloud impersonates the service account with the KMS scopes; Azure uses a `DefaultAzureCredential` per directory, for
+   the deployment's multi-tenant application consented in the tenant's directory. The cache, in
+   `NCode.Identity.Secrets.Abstractions`, holds one client per key and access: a failed creation is not cached, the
+   first successful call confirms and keeps an entry, a call that fails before any succeeded removes it, and an entry
+   unused for one day expires. So an identity that never works leaves nothing behind, and a transient failure does not
+   churn a working one. Each adapter's client factory runs its access-bound calls through the cache's `UseAsync` from
+   its `ExecuteAsync`; a third-party referenced wrapper uses the same cache.
 9. **The record holds a state and the access, never material.** `State` is one of the `OwnerRootKeyStates` `active`,
    `unavailable` or `removing`; an unknown state reads as `unavailable`. The record also holds the wrapper name, the key
    reference, `AccessIdentity` (nullable, at most 1024 characters), the times it was set, changed state and last
    validated, and the last failure.
 10. **Each master key row names its root.** A row records its `RootKeyReference` and `RootKeyAccessIdentity`, null for
-    the deployment root, because unwrapping is driven by the row. A row conforms to its owner's root only when its
-    wrapper, reference and access identity match.
+    the deployment root, because the row drives unwrapping. A row conforms to its owner's root only when its wrapper,
+    reference and access identity match.
 11. **A master key under an owner root key has no recovery copy.** `MasterKeyFactory` wraps through
     `IReferencedKeyWrapper.WrapAsync(ReferencedKey, ...)` and stores no recovery wrap whatever the recovery options say.
     The root context is the same key-id-and-owner binding, so a tenant key never unwraps another owner's rows.
@@ -107,22 +107,22 @@ management API, the console and the docs say "tenant root key".
     Earlier material survives in backups under the deployment root, so only material created under the tenant key gives
     the tenant sole control. A rotation that loses a race or comes too soon is deferred to the validation service.
 13. **A change of the access identity alone rewraps without rotating.** When only the access identity differs, the
-    manager probes the key through it, stores it and rewraps the nonconforming rows without rotating, because the key is
-    the same and no trust boundary is crossed, and it skips the rotation spacing check. A change of the provider or the
-    reference rotates. `IOwnerRootKeyManager` also exposes `TryValidateAccessIdentity` and `GetAccessBinding`.
+    manager skips the rotation spacing check, probes the key through it, stores it and rewraps the nonconforming rows:
+    the key is the same and no trust boundary is crossed. A change of the provider or the reference rotates.
+    `IOwnerRootKeyManager` also exposes `TryValidateAccessIdentity` and `GetAccessBinding`.
 14. **Removing the key does not rotate.** `RemoveAsync` sets `removing`, which wraps new master keys under the deployment
     root, rewraps every row under it with a recovery copy when one is configured, and deletes the record once every row
     moved. Rows that cannot be unwrapped keep it in `removing` and the validation service retries.
 15. **A probe validates the key.** The server wraps and unwraps a random 32-byte value under the owner context through the
     key and access identity, compares in constant time and zeroes both. Any failure fails closed.
-16. **The rewrap engine wraps each row under its owner's root.** The manager moves rows with the engine of
-    [ADR-1408](1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md),
-    limited to the rows that do not conform to their owner's root.
+16. **The rewrap engine wraps each row under its owner's root.** The manager moves only rows that do not conform to
+    their owner's root, with the engine of
+    [ADR-1408](1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md).
 17. **Re-validation runs on one replica and the ring checks the rest.** `OwnerRootKeyValidationService` takes a lease
     every `RetryInterval` and validates an `active` key every `ValidationInterval`, an `unavailable` or `removing` key
-    every `RetryInterval`. Every state change calls `IOwnerRootKeyChangeObserver`, whose OpenId.Core implementation sends
-    the tenant-changed command, evicting the tenant's keys on every replica. The ring unwraps an owner-rooted master key
-    again every `ValidationInterval` without cached material, refuses an `unavailable` owner, and refuses an owner whose
+    every `RetryInterval`. Every state change calls `IOwnerRootKeyChangeObserver`, whose OpenId.Core implementation
+    sends the tenant-changed command, evicting the tenant's keys on every replica. The ring unwraps an owner-rooted
+    master key again every `ValidationInterval` without cached material, refuses an `unavailable` owner and one whose
     load failed for `RetryInterval`, so a revocation takes effect within `ValidationInterval` on every replica.
 18. **The server fails closed.** `OwnerRootKeyUnavailableException` does not derive from `CryptographicException`, so
     development pruning never deletes a tenant-keyed owner's master keys. `OwnerRootKeyUnavailableEndpointFilter` on the
@@ -146,7 +146,7 @@ management API, the console and the docs say "tenant root key".
 - **A setting in the settings cascade.** Acceptance needs an asynchronous probe, and profiles must never move a tenant
   onto a key.
 - **Rewrapping existing master keys without rotating when the key changes.** Their material is in backups under the
-  deployment root, so later values would stay readable to whoever holds such a backup.
+  deployment root, so whoever holds such a backup could read later values.
 - **An operator recovery copy.** The tenant's control is the point.
 - **A provider-specific "describe key" check.** It proves neither permission; the probe proves both through any
   provider.
@@ -163,8 +163,8 @@ management API, the console and the docs say "tenant root key".
   row under an earlier identity could not be read mid-rewrap; a random ID must be shown anyway, while the owner-derived
   binding cannot be chosen by another tenant.
 
-The chosen design is an owner root key record set through a referenced key wrapper, reached through an identity the
-tenant grants, with a rotation on every change of key.
+Chosen: an owner root key record set through a referenced key wrapper, reached through an identity the tenant grants,
+rotating on every change of key.
 
 ## Consequences
 

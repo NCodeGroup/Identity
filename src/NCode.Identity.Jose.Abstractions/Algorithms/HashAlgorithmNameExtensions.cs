@@ -26,35 +26,6 @@ public static class HashAlgorithmNameExtensions
     private static ConcurrentDictionary<string, HashFunctionDelegate> HashFunctions { get; } =
         new(StringComparer.Ordinal);
 
-    /// <param name="hashAlgorithmName">Contains the <see cref="HashAlgorithmName"/>.</param>
-    extension(HashAlgorithmName hashAlgorithmName)
-    {
-        /// <summary>
-        /// Gets the hash size, in bits, from the specified <see cref="HashAlgorithmName"/>.
-        /// </summary>
-        /// <returns>The hash size, in bits, from the <see cref="HashAlgorithmName"/>.</returns>
-        /// <exception cref="ArgumentException">The specified <see cref="HashAlgorithmName"/> is not supported.</exception>
-        public int GetHashSizeBits()
-        {
-            var name = GetSupportedName(hashAlgorithmName);
-            return HashSizesBits.GetOrAdd(name, ComputeHashSizeBits, hashAlgorithmName);
-        }
-
-        /// <summary>
-        /// Gets a <see cref="HashFunctionDelegate"/> that can be used to hash data using the specified <see cref="HashAlgorithmName"/>.
-        /// </summary>
-        /// <returns>The <see cref="HashFunctionDelegate"/> that can be used to hash data using the specified <see cref="HashAlgorithmName"/>.</returns>
-        /// <exception cref="ArgumentException">The specified <see cref="HashAlgorithmName"/> is not supported.</exception>
-        public HashFunctionDelegate GetHashFunction()
-        {
-            // Resolving the size first refuses an algorithm the platform cannot compute before a delegate is handed out.
-            hashAlgorithmName.GetHashSizeBits();
-
-            var name = GetSupportedName(hashAlgorithmName);
-            return HashFunctions.GetOrAdd(name, CreateHashFunction, hashAlgorithmName);
-        }
-    }
-
     private static string GetSupportedName(HashAlgorithmName hashAlgorithmName)
     {
         var name = hashAlgorithmName.Name;
@@ -104,4 +75,33 @@ public static class HashAlgorithmNameExtensions
             nameof(hashAlgorithmName),
             innerException
         );
+
+    /// <param name="hashAlgorithmName">Contains the <see cref="HashAlgorithmName"/>.</param>
+    extension(HashAlgorithmName hashAlgorithmName)
+    {
+        /// <summary>
+        /// Gets the hash size, in bits, from the specified <see cref="HashAlgorithmName"/>.
+        /// </summary>
+        /// <returns>The hash size, in bits, from the <see cref="HashAlgorithmName"/>.</returns>
+        /// <exception cref="ArgumentException">The specified <see cref="HashAlgorithmName"/> is not supported.</exception>
+        public int GetHashSizeBits()
+        {
+            var name = GetSupportedName(hashAlgorithmName);
+            return HashSizesBits.GetOrAdd(name, ComputeHashSizeBits, hashAlgorithmName);
+        }
+
+        /// <summary>
+        /// Gets a <see cref="HashFunctionDelegate"/> that can be used to hash data using the specified <see cref="HashAlgorithmName"/>.
+        /// </summary>
+        /// <returns>The <see cref="HashFunctionDelegate"/> that can be used to hash data using the specified <see cref="HashAlgorithmName"/>.</returns>
+        /// <exception cref="ArgumentException">The specified <see cref="HashAlgorithmName"/> is not supported.</exception>
+        public HashFunctionDelegate GetHashFunction()
+        {
+            // Resolving the size first refuses an algorithm the platform cannot compute before a delegate is handed out.
+            hashAlgorithmName.GetHashSizeBits();
+
+            var name = GetSupportedName(hashAlgorithmName);
+            return HashFunctions.GetOrAdd(name, CreateHashFunction, hashAlgorithmName);
+        }
+    }
 }

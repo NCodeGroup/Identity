@@ -20,39 +20,6 @@ public static class ObjectGraphExtensions
     private static BigInteger DecimalMin { get; } = new(decimal.MinValue);
     private static BigInteger DecimalMax { get; } = new(decimal.MaxValue);
 
-    // The receiver is the common base both IDictionary<,> and IReadOnlyDictionary<,> derive from (which are otherwise
-    // unrelated), so a single overload serves both — plus any concrete dictionary that implements both — without an
-    // ambiguous call. Dictionary receivers are fast-pathed to an O(1) lookup; anything else is scanned.
-    extension(IEnumerable<KeyValuePair<string, object>> collection)
-    {
-        /// <summary>
-        /// Attempts to retrieve a value from the object graph and convert it to <typeparamref name="T"/>.
-        /// </summary>
-        /// <param name="key">The key of the value to retrieve.</param>
-        /// <param name="value">When this method returns, the value converted to <typeparamref name="T"/> if the key was
-        /// found and convertible; otherwise, the default value for <typeparamref name="T"/>.</param>
-        /// <typeparam name="T">The target type.</typeparam>
-        /// <returns><c>true</c> if a value with the specified key was found and converted; otherwise, <c>false</c>.</returns>
-        /// <remarks>
-        /// Beyond an exact runtime-type match, a boxed numeric value is converted across the integer widths
-        /// (<see cref="sbyte"/>…<see cref="ulong"/>, <see cref="BigInteger"/>) and real types
-        /// (<see cref="float"/>/<see cref="double"/>/<see cref="decimal"/>) with range checks — so a value does not have
-        /// to be read back as the exact CLR width it happened to box as. A boxed number requested as
-        /// <see cref="DateTimeOffset"/> or <see cref="DateTime"/> is interpreted as an RFC 7519 <c>NumericDate</c>
-        /// (integer or fractional Unix seconds, UTC; see <see cref="DateCoercion.TryFromNumericDate(double, out DateTimeOffset)"/>).
-        /// </remarks>
-        public bool TryGetValue<T>(string key, [MaybeNullWhen(false)] out T value)
-        {
-            if (TryGetObject(collection, key, out var obj))
-            {
-                return TryConvert(obj, out value);
-            }
-
-            value = default;
-            return false;
-        }
-    }
-
     private static bool TryGetObject(
         IEnumerable<KeyValuePair<string, object>> collection,
         string key,
@@ -206,5 +173,38 @@ public static class ObjectGraphExtensions
     {
         value = (T)(object)source;
         return true;
+    }
+
+    // The receiver is the common base both IDictionary<,> and IReadOnlyDictionary<,> derive from (which are otherwise
+    // unrelated), so a single overload serves both — plus any concrete dictionary that implements both — without an
+    // ambiguous call. Dictionary receivers are fast-pathed to an O(1) lookup; anything else is scanned.
+    extension(IEnumerable<KeyValuePair<string, object>> collection)
+    {
+        /// <summary>
+        /// Attempts to retrieve a value from the object graph and convert it to <typeparamref name="T"/>.
+        /// </summary>
+        /// <param name="key">The key of the value to retrieve.</param>
+        /// <param name="value">When this method returns, the value converted to <typeparamref name="T"/> if the key was
+        /// found and convertible; otherwise, the default value for <typeparamref name="T"/>.</param>
+        /// <typeparam name="T">The target type.</typeparam>
+        /// <returns><c>true</c> if a value with the specified key was found and converted; otherwise, <c>false</c>.</returns>
+        /// <remarks>
+        /// Beyond an exact runtime-type match, a boxed numeric value is converted across the integer widths
+        /// (<see cref="sbyte"/>…<see cref="ulong"/>, <see cref="BigInteger"/>) and real types
+        /// (<see cref="float"/>/<see cref="double"/>/<see cref="decimal"/>) with range checks — so a value does not have
+        /// to be read back as the exact CLR width it happened to box as. A boxed number requested as
+        /// <see cref="DateTimeOffset"/> or <see cref="DateTime"/> is interpreted as an RFC 7519 <c>NumericDate</c>
+        /// (integer or fractional Unix seconds, UTC; see <see cref="DateCoercion.TryFromNumericDate(double, out DateTimeOffset)"/>).
+        /// </remarks>
+        public bool TryGetValue<T>(string key, [MaybeNullWhen(false)] out T value)
+        {
+            if (TryGetObject(collection, key, out var obj))
+            {
+                return TryConvert(obj, out value);
+            }
+
+            value = default;
+            return false;
+        }
     }
 }

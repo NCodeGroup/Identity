@@ -28,6 +28,206 @@ public static class JsonElements
     /// </summary>
     public static JsonElement EmptyObject => EmptyObjectValue;
 
+    private static bool TryConvertFromString<T>(
+        JsonElement element,
+        [MaybeNullWhen(false)] out T value
+    )
+    {
+        if (typeof(T) == typeof(string))
+        {
+            var stringValue = element.GetString();
+            if (stringValue is not null)
+            {
+                value = (T)(object)stringValue;
+                return true;
+            }
+        }
+        else if (
+            (typeof(T) == typeof(DateTimeOffset) || typeof(T) == typeof(DateTimeOffset?))
+            && TryGetDateTimeOffset(element, out var dateTimeOffsetValue)
+        )
+        {
+            value = (T)(object)dateTimeOffsetValue;
+            return true;
+        }
+        else if (
+            (typeof(T) == typeof(DateTime) || typeof(T) == typeof(DateTime?))
+            && TryGetDateTime(element, out var dateTimeValue)
+        )
+        {
+            value = (T)(object)dateTimeValue;
+            return true;
+        }
+        else if (
+            (typeof(T) == typeof(Guid) || typeof(T) == typeof(Guid?))
+            && TryGetGuid(element, out var guidValue)
+        )
+        {
+            value = (T)(object)guidValue;
+            return true;
+        }
+        else if (typeof(T) == typeof(byte[]) && TryGetBytes(element, out var bytesValue))
+        {
+            value = (T)(object)bytesValue;
+            return true;
+        }
+
+        value = default;
+        return false;
+    }
+
+    private static bool TryGetDateTimeOffset(JsonElement element, out DateTimeOffset value) =>
+        DateCoercion.TryParseDateTimeOffset(element.GetString(), out value);
+
+    private static bool TryGetDateTime(JsonElement element, out DateTime value) =>
+        DateCoercion.TryParseDateTime(element.GetString(), out value);
+
+    private static bool TryGetGuid(JsonElement element, out Guid value) =>
+        // Guid.TryParse accepts all standard Guid formats (D/N/B/P/X), not only the hyphenated form the strict
+        // JsonElement.TryGetGuid reader allows — matching ObjectJsonConverter.
+        Guid.TryParse(element.GetString(), out value);
+
+    private static bool TryGetBytes(JsonElement element, [NotNullWhen(true)] out byte[]? value)
+    {
+        // Standard base64 (RFC 4648 §4).
+        if (element.TryGetBytesFromBase64(out value))
+        {
+            return true;
+        }
+
+        // base64url (RFC 4648 §5), the JOSE/JWT encoding.
+        var text = element.GetString();
+        if (text is not null && Base64Url.IsValid(text))
+        {
+            value = Base64Url.DecodeFromChars(text);
+            return true;
+        }
+
+        value = null;
+        return false;
+    }
+
+    private static bool TryConvertFromNumber<T>(
+        JsonElement element,
+        [MaybeNullWhen(false)] out T value
+    )
+    {
+        if (
+            (typeof(T) == typeof(sbyte) || typeof(T) == typeof(sbyte?))
+            && element.TryGetSByte(out var sbyteValue)
+        )
+        {
+            value = (T)(object)sbyteValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(byte) || typeof(T) == typeof(byte?))
+            && element.TryGetByte(out var byteValue)
+        )
+        {
+            value = (T)(object)byteValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(short) || typeof(T) == typeof(short?))
+            && element.TryGetInt16(out var shortValue)
+        )
+        {
+            value = (T)(object)shortValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(ushort) || typeof(T) == typeof(ushort?))
+            && element.TryGetUInt16(out var ushortValue)
+        )
+        {
+            value = (T)(object)ushortValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(int) || typeof(T) == typeof(int?))
+            && element.TryGetInt32(out var intValue)
+        )
+        {
+            value = (T)(object)intValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(uint) || typeof(T) == typeof(uint?))
+            && element.TryGetUInt32(out var uintValue)
+        )
+        {
+            value = (T)(object)uintValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(long) || typeof(T) == typeof(long?))
+            && element.TryGetInt64(out var longValue)
+        )
+        {
+            value = (T)(object)longValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(ulong) || typeof(T) == typeof(ulong?))
+            && element.TryGetUInt64(out var ulongValue)
+        )
+        {
+            value = (T)(object)ulongValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(float) || typeof(T) == typeof(float?))
+            && element.TryGetSingle(out var floatValue)
+        )
+        {
+            value = (T)(object)floatValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(double) || typeof(T) == typeof(double?))
+            && element.TryGetDouble(out var doubleValue)
+        )
+        {
+            value = (T)(object)doubleValue;
+            return true;
+        }
+
+        if (
+            (typeof(T) == typeof(decimal) || typeof(T) == typeof(decimal?))
+            && element.TryGetDecimal(out var decimalValue)
+        )
+        {
+            value = (T)(object)decimalValue;
+            return true;
+        }
+
+        // RFC 7519 NumericDate: seconds since the Unix epoch (UTC), integer or fractional, range-guarded.
+        if (
+            (
+                typeof(T) == typeof(DateTimeOffset)
+                || typeof(T) == typeof(DateTimeOffset?)
+                || typeof(T) == typeof(DateTime)
+                || typeof(T) == typeof(DateTime?)
+            ) && element.TryGetNumericDate(out var instant)
+        )
+        {
+            return DateCoercion.TryConvertInstant(instant, out value);
+        }
+
+        value = default;
+        return false;
+    }
+
     extension(JsonElement jsonElement)
     {
         /// <summary>
@@ -249,205 +449,5 @@ public static class JsonElements
             value = default;
             return false;
         }
-    }
-
-    private static bool TryConvertFromString<T>(
-        JsonElement element,
-        [MaybeNullWhen(false)] out T value
-    )
-    {
-        if (typeof(T) == typeof(string))
-        {
-            var stringValue = element.GetString();
-            if (stringValue is not null)
-            {
-                value = (T)(object)stringValue;
-                return true;
-            }
-        }
-        else if (
-            (typeof(T) == typeof(DateTimeOffset) || typeof(T) == typeof(DateTimeOffset?))
-            && TryGetDateTimeOffset(element, out var dateTimeOffsetValue)
-        )
-        {
-            value = (T)(object)dateTimeOffsetValue;
-            return true;
-        }
-        else if (
-            (typeof(T) == typeof(DateTime) || typeof(T) == typeof(DateTime?))
-            && TryGetDateTime(element, out var dateTimeValue)
-        )
-        {
-            value = (T)(object)dateTimeValue;
-            return true;
-        }
-        else if (
-            (typeof(T) == typeof(Guid) || typeof(T) == typeof(Guid?))
-            && TryGetGuid(element, out var guidValue)
-        )
-        {
-            value = (T)(object)guidValue;
-            return true;
-        }
-        else if (typeof(T) == typeof(byte[]) && TryGetBytes(element, out var bytesValue))
-        {
-            value = (T)(object)bytesValue;
-            return true;
-        }
-
-        value = default;
-        return false;
-    }
-
-    private static bool TryGetDateTimeOffset(JsonElement element, out DateTimeOffset value) =>
-        DateCoercion.TryParseDateTimeOffset(element.GetString(), out value);
-
-    private static bool TryGetDateTime(JsonElement element, out DateTime value) =>
-        DateCoercion.TryParseDateTime(element.GetString(), out value);
-
-    private static bool TryGetGuid(JsonElement element, out Guid value) =>
-        // Guid.TryParse accepts all standard Guid formats (D/N/B/P/X), not only the hyphenated form the strict
-        // JsonElement.TryGetGuid reader allows — matching ObjectJsonConverter.
-        Guid.TryParse(element.GetString(), out value);
-
-    private static bool TryGetBytes(JsonElement element, [NotNullWhen(true)] out byte[]? value)
-    {
-        // Standard base64 (RFC 4648 §4).
-        if (element.TryGetBytesFromBase64(out value))
-        {
-            return true;
-        }
-
-        // base64url (RFC 4648 §5), the JOSE/JWT encoding.
-        var text = element.GetString();
-        if (text is not null && Base64Url.IsValid(text))
-        {
-            value = Base64Url.DecodeFromChars(text);
-            return true;
-        }
-
-        value = null;
-        return false;
-    }
-
-    private static bool TryConvertFromNumber<T>(
-        JsonElement element,
-        [MaybeNullWhen(false)] out T value
-    )
-    {
-        if (
-            (typeof(T) == typeof(sbyte) || typeof(T) == typeof(sbyte?))
-            && element.TryGetSByte(out var sbyteValue)
-        )
-        {
-            value = (T)(object)sbyteValue;
-            return true;
-        }
-
-        if (
-            (typeof(T) == typeof(byte) || typeof(T) == typeof(byte?))
-            && element.TryGetByte(out var byteValue)
-        )
-        {
-            value = (T)(object)byteValue;
-            return true;
-        }
-
-        if (
-            (typeof(T) == typeof(short) || typeof(T) == typeof(short?))
-            && element.TryGetInt16(out var shortValue)
-        )
-        {
-            value = (T)(object)shortValue;
-            return true;
-        }
-
-        if (
-            (typeof(T) == typeof(ushort) || typeof(T) == typeof(ushort?))
-            && element.TryGetUInt16(out var ushortValue)
-        )
-        {
-            value = (T)(object)ushortValue;
-            return true;
-        }
-
-        if (
-            (typeof(T) == typeof(int) || typeof(T) == typeof(int?))
-            && element.TryGetInt32(out var intValue)
-        )
-        {
-            value = (T)(object)intValue;
-            return true;
-        }
-
-        if (
-            (typeof(T) == typeof(uint) || typeof(T) == typeof(uint?))
-            && element.TryGetUInt32(out var uintValue)
-        )
-        {
-            value = (T)(object)uintValue;
-            return true;
-        }
-
-        if (
-            (typeof(T) == typeof(long) || typeof(T) == typeof(long?))
-            && element.TryGetInt64(out var longValue)
-        )
-        {
-            value = (T)(object)longValue;
-            return true;
-        }
-
-        if (
-            (typeof(T) == typeof(ulong) || typeof(T) == typeof(ulong?))
-            && element.TryGetUInt64(out var ulongValue)
-        )
-        {
-            value = (T)(object)ulongValue;
-            return true;
-        }
-
-        if (
-            (typeof(T) == typeof(float) || typeof(T) == typeof(float?))
-            && element.TryGetSingle(out var floatValue)
-        )
-        {
-            value = (T)(object)floatValue;
-            return true;
-        }
-
-        if (
-            (typeof(T) == typeof(double) || typeof(T) == typeof(double?))
-            && element.TryGetDouble(out var doubleValue)
-        )
-        {
-            value = (T)(object)doubleValue;
-            return true;
-        }
-
-        if (
-            (typeof(T) == typeof(decimal) || typeof(T) == typeof(decimal?))
-            && element.TryGetDecimal(out var decimalValue)
-        )
-        {
-            value = (T)(object)decimalValue;
-            return true;
-        }
-
-        // RFC 7519 NumericDate: seconds since the Unix epoch (UTC), integer or fractional, range-guarded.
-        if (
-            (
-                typeof(T) == typeof(DateTimeOffset)
-                || typeof(T) == typeof(DateTimeOffset?)
-                || typeof(T) == typeof(DateTime)
-                || typeof(T) == typeof(DateTime?)
-            ) && element.TryGetNumericDate(out var instant)
-        )
-        {
-            return DateCoercion.TryConvertInstant(instant, out value);
-        }
-
-        value = default;
-        return false;
     }
 }

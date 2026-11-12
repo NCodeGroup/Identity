@@ -93,6 +93,8 @@ Rendering fails, before anything is applied, when:
 - `httpRoute.enabled` is `true` and `httpRoute.parentRefs` or `httpRoute.hostnames` is empty, or there is no CA
   ConfigMap: `backendTls.caConfigMap` for the server, or `managementConsole.backendTls.caConfigMap` for the console
   (which falls back to the server's);
+- `backendTls.caPublisher.enabled` is `true` and the chart has no private CA to publish, because
+  `backendTls.certManager.issuerRef.name` is set or no component takes its certificate from the chart's CA;
 - `database.existingSecret` is empty;
 - the `StaticSingle` strategy has no `https` issuer;
 - `secretProtection.rootKeyProvider` is empty, in any environment, because the host does not start without one;
@@ -804,7 +806,14 @@ Create it in one of two ways:
   named in `backendTls.certManager.issuerRef`.
 - `kubectl -n <namespace> create configmap <name> --from-file=ca.crt=<ca.pem>`.
 
-With the chart's private CA, the PEM is the `ca.crt` of the `<release>-ca` Secret once cert-manager has issued it.
+With the chart's private CA, `backendTls.caPublisher.enabled` publishes the ConfigMap itself. A post-install and
+post-upgrade hook Job, which runs the official `registry.k8s.io/kubectl` image pinned by digest, runs `kubectl apply -k`
+to write the `ca.crt` of the `<release>-ca` Secret to a ConfigMap named `<release>-ca`, or the name
+`backendTls.caConfigMap` sets, and the routes use it. The Job sees only the `ca.crt` key, never the CA's private key,
+and its Role reads and patches only that ConfigMap and may create ConfigMaps, which Kubernetes cannot limit by name.
+The kubelet holds its pod until cert-manager has created the Secret, and `helm uninstall` leaves the ConfigMap it
+wrote. The chart refuses the publisher with an issuer of your own in `backendTls.certManager.issuerRef.name`, because
+it publishes only the chart's private CA.
 `managementConsole.backendTls.caConfigMap` names the console's ConfigMap and, when empty, falls back to the server's.
 
 ### Trust

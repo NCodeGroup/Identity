@@ -377,7 +377,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   operator provides, and the chart reaches them through a Gateway API `HTTPRoute` with a `BackendTLSPolicy`, a Traefik
   `Ingress` with a `ServersTransport`, or an `Ingress` whose controller the operator wires (`httpRoute`,
   `ingress.controller`), each verifying the pods' certificate against a ConfigMap that holds only the CA
-  (`backendTls.caConfigMap`), so no router receives the pods' private key. The database and Valkey connection strings
+  (`backendTls.caConfigMap`, which the opt-in `backendTls.caPublisher` hook Job publishes from the chart's private CA),
+  so no router receives the pods' private key. The database and Valkey connection strings
   and the local root key are referenced as existing Secrets and the recovery public key as a ConfigMap, never passed as values. Rendering fails
   for a release the host would refuse to start (an empty or wildcard `allowedHosts`, a missing database Secret, a
   `StaticSingle` issuer that is not `https`, a missing or incomplete root key provider, `ephemeral` or a local provider

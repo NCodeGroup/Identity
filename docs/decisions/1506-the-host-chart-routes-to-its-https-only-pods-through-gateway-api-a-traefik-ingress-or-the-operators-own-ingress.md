@@ -42,7 +42,10 @@ verification Secret.
 5. **The CA is a ConfigMap the operator names.** `backendTls.caConfigMap` names a ConfigMap in the release namespace that
    holds only `ca.crt`; `managementConsole.backendTls.caConfigMap` names the console's and falls back to the server's.
    The Gateway API mode requires it. trust-manager, with a `Bundle` that targets a ConfigMap, is the documented source,
-   and `kubectl create configmap <name> --from-file=ca.crt=<ca.pem>` the manual one.
+   and `kubectl create configmap <name> --from-file=ca.crt=<ca.pem>` the manual one. `backendTls.caPublisher` publishes
+   the chart's private CA itself: a post-install and post-upgrade hook Job runs the official `kubectl` image with
+   `kubectl apply -k` over a projected volume that holds a static `kustomization.yaml` and only the `ca.crt` key of the
+   `<release>-ca` Secret, and writes the ConfigMap `backendTls.caConfigMap` names, or `<release>-ca`.
 6. **No ingress-nginx mode.** The chart renders nothing for ingress-nginx, and `rootCAsSecrets`, which Traefik
    deprecates, is not rendered.
 
@@ -57,6 +60,10 @@ verification Secret.
 - **A trust-manager `Bundle` that the chart renders.** Rejected: trust-manager reads its sources from its own trust
   namespace, so the cluster's operator owns the `Bundle`, and a chart that renders one writes into a namespace it does
   not own.
+- **A publisher Job with a shell image.** Rejected: the official `kubectl` image has no shell, and a third-party image
+  widens the supply chain; `kubectl apply -k` over a projected volume needs no shell.
+- **Delete and recreate the ConfigMap.** Rejected: every upgrade would leave the routes without a CA for a moment, where
+  `kubectl apply -k` creates or updates it in one call.
 - **Verify against the serving Secret in every mode.** Rejected: `BackendTLSPolicy` cannot read a Secret, and the Secret
   holds the pods' private key, which no router needs.
 
@@ -64,8 +71,10 @@ verification Secret.
 
 - An operator names the CA ConfigMap for the Gateway API mode and, to keep the pods' private key from Traefik, for the
   Traefik mode too. Without it Traefik verifies against the serving Secret.
-- The chart's private CA yields the PEM only once cert-manager has issued `<release>-ca`, so the operator creates the
-  ConfigMap after that, or takes the CA from a cluster issuer and trust-manager.
+- With the chart's private CA, `backendTls.caPublisher` publishes the CA; without it, the operator creates the ConfigMap
+  once cert-manager has issued `<release>-ca`, or takes the CA from a cluster issuer and trust-manager.
+- The publisher's `kubectl` image is pinned by digest and kept current by hand, and `helm uninstall` leaves the
+  ConfigMap it wrote.
 - The Gateway API mode requires Gateway API v1.4 or later, for `BackendTLSPolicy` at `gateway.networking.k8s.io/v1`.
 - The chart refuses an enabled Ingress without `ingress.controller`, and an enabled HTTPRoute without `parentRefs`,
   without `hostnames` (the server's) or without a CA ConfigMap.

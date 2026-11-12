@@ -711,8 +711,9 @@ self-signed Issuer, the CA `Certificate` `<release>-ca`, and an Issuer backed by
 
 - `backendTls.certManager.issuerRef` names your own Issuer or ClusterIssuer, so the chart creates no private CA.
 - `backendTls.existingSecret` and `managementConsole.backendTls.existingSecret` name `kubernetes.io/tls` Secrets you
-  create, so the chart creates no `Certificate`. Each Secret must also hold `ca.crt`, which the ingress controller
-  verifies the pods against.
+  create, so the chart creates no `Certificate` for the component whose Secret you name. The private CA is still
+  created while another component needs a `Certificate` from it. Each Secret must also hold `ca.crt`, which the
+  ingress controller verifies the pods against.
 
 ### The ingress controller
 

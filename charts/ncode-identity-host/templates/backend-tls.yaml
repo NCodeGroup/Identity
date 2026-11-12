@@ -1,7 +1,7 @@
-{{- if not .Values.backendTls.existingSecret }}
 {{- $fullname := include "identity-host.fullname" . }}
 {{- $labels := include "identity-host.labels" . }}
-{{- if not .Values.backendTls.certManager.issuerRef.name }}
+{{- $consoleNeedsCertificate := and .Values.managementConsole.enabled (not .Values.managementConsole.backendTls.existingSecret) }}
+{{- if and (not .Values.backendTls.certManager.issuerRef.name) (or (not .Values.backendTls.existingSecret) $consoleNeedsCertificate) }}
 # The release's private CA: a self-signed Issuer signs the CA Certificate, and the CA Issuer built from it signs the
 # pods' certificates, which the ingress controller verifies against the CA.
 apiVersion: cert-manager.io/v1
@@ -42,7 +42,10 @@ metadata:
 spec:
   ca:
     secretName: {{ $fullname }}-ca
+{{- if not .Values.backendTls.existingSecret }}
 ---
 {{- end }}
+{{- end }}
+{{- if not .Values.backendTls.existingSecret }}
 {{ include "identity-host.backendTls.certificate" (dict "root" . "name" (include "identity-host.backendTls.secretName" .) "secretName" (include "identity-host.backendTls.secretName" .) "service" $fullname "extra" .Values.backendTls.certManager.dnsNames "labels" $labels) }}
 {{- end }}

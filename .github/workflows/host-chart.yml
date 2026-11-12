@@ -252,6 +252,12 @@ jobs:
           reject "$nginx" 'ServersTransport'
           reject "$(helm template release "$CHART" --values "$ha" --set backendTls.ingressController=none)" \
             'ServersTransport' 'nginx.ingress.kubernetes.io'
+          # The console's Certificate needs the private CA even when the server's Secret is the operator's.
+          console_only=$(helm template release "$CHART" --values "$CHART/ci/management-console-values.yaml" \
+            --set backendTls.existingSecret=my-tls)
+          expect "$console_only" 'selfSigned: {}' 'kind: Issuer' 'name: release-ncode-identity-host-management-console-tls'
+          # Secrets of the operator's for every component leave no Certificate that needs the private CA.
+          reject "$(helm template release "$CHART" --values "$CHART/ci/backend-tls-existing-secret-values.yaml")" 'selfSigned'
           # The management console serves HTTPS with a certificate of its own.
           console=$(helm template release "$CHART" --values "$CHART/ci/management-console-values.yaml")
           if [ "$(grep -c 'scheme: HTTPS' <<< "$console")" -ne 6 ]; then

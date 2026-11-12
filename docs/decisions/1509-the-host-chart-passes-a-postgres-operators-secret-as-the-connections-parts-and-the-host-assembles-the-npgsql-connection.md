@@ -30,8 +30,10 @@ characters it holds.**
    `Password`) and the finished string `ConnectionStrings:openiddb` are two forms of one connection.
    `HostDatabaseConnection`, which the host and the migration worker both use, resolves the connection from whichever
    form is configured. It refuses both forms at once, a parts set that lacks `Host`, `Name`, `Username` or `Password`,
-   and a `Port` outside 1-65535, and its messages name configuration paths and never a configured value. `Port` is
-   optional and Npgsql defaults it to 5432.
+   and a `Port` outside 1-65535, and its messages name configuration paths and never a configured value. The section
+   binds strictly, so a misspelled part stops the host
+   ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
+   `Port` is optional and Npgsql defaults it to 5432.
 2. **The chart passes the parts as environment variables.** `database.parts` and `migrations.database.parts` each name
    a Secret (`existingSecret`) and the keys that hold the host, port, database, user name and password. The chart
    renders each part as an `OpenIdDatabase__*` environment variable from a `secretKeyRef`. The keys of

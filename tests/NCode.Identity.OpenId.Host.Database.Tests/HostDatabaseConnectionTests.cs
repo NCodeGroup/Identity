@@ -173,5 +173,22 @@ public sealed class HostDatabaseConnectionTests
         Assert.DoesNotContain(Password, exception.Message);
     }
 
+    [Fact]
+    public void Resolve_MisspelledPart_ThrowsNamingTheKeyButNotTheValue()
+    {
+        var configuration = CreateConfiguration(
+            ("OpenIdDatabase:Prot", Port),
+            ("OpenIdDatabase:Pasword", Password)
+        );
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            HostDatabaseConnection.Resolve(configuration)
+        );
+
+        Assert.Contains("Pasword", exception.Message);
+        Assert.DoesNotContain(Password, exception.Message);
+        Assert.DoesNotContain(exception.InnerException?.Message ?? "", Password);
+    }
+
     #endregion
 }

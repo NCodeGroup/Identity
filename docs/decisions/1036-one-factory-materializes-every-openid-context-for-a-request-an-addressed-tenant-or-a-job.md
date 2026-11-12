@@ -80,7 +80,7 @@ non-throwing probe that returns the tenant identifier when the strategy can know
 `DefaultOpenIdTenantFactory.CreateTenantForRequestAsync` probes `IOpenIdTenantCache` with that identifier before any
 store read. A hit serves the cached tenant. Only a miss, or a probe that declines, calls `ResolveTenantAsync`, which
 answers `404` for a missing or disabled tenant, and a disabled team answers `404` before the seed. A disabled tenant is
-therefore never cached. A miss seeds the tenant ([ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md))
+therefore never cached. A miss seeds the tenant ([ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md))
 and caches it. `CreateControlPlaneTenantAsync` serves the control-plane tenant through the same cache.
 
 A cached tenant lives at most `OpenIdTenantOptions.TenantCacheLifetime` (15 minutes, absolute). A committed change

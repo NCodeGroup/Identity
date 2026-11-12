@@ -240,7 +240,7 @@ Why this shape:
   ([ADR-1165](decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)). The root tenant
   is created when the first request reaches `auth.ncodeid.net`, with the bootstrap administrator named into it
   (`BootstrapAdmin:TenantId = root`,
-  [ADR-1166](decisions/1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)). `/api` is served on
+  [ADR-1166](decisions/1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md)). `/api` is served on
   `manage.ncodeid.net`, which is no tenant's host, because the management API authenticates against the root tenant
   rather than the host it is called on
   ([ADR-1191](decisions/1191-the-management-api-authenticates-against-the-control-plane-tenant.md)).

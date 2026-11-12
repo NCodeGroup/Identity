@@ -4,9 +4,9 @@
   [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md); the plane model and root-tenant provisioning
   decided here remain in force, but their _mechanics_ — the `ISystemResourceServerProvider`/`ISystemResourceServerSeeder`
   seam and the plane-aware merge-by-audience seeder — were superseded by the unified seeding pipeline of
-  [ADR-1045](1045-tenant-provisioning-and-seeding-pipeline.md); root-tenant provisioning under the dynamic strategies,
+  [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md); root-tenant provisioning under the dynamic strategies,
   left as future work below, is realized by
-  [ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md); amended by
+  [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md); amended by
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the root tenant's
   management resource server seeds the `platform_settings`, `teams`, `team_settings` and `tenants` scope families)
 - **Date:** 2026-09-30

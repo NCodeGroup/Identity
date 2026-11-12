@@ -76,7 +76,7 @@ Concretely:
 - **The public SPA clients are seeded through persistence.** The Management console authenticates as a
   **public** client (empty secret set, PKCE-only, with `redirect_uris`), seeded idempotently through the
   normal persistence path on the tenant seed fan-out (the bootstrap-admin seeder pattern,
-  [ADR-1045](1045-tenant-provisioning-and-seeding-pipeline.md)). A deterministic admin **user** is seeded
+  [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md)). A deterministic admin **user** is seeded
   the same way so the login has a credential to verify.
 - **Consent is a decoupled stopgap (unchanged from ADR-1062).** The seeded clients auto-approve by
   default; `/account/consent` still exposes `consent-allow` / `consent-deny` for negative-path tests.
@@ -133,7 +133,7 @@ Concretely:
   [ADR-1062](1062-opt-in-interactive-login-consent-ui.md); preserves its seam and stable-locator contract.
 - Builds on [ADR-1064](1064-frontend-presentation-platform.md) (frontend platform; names `apps/auth`),
   [ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md) (local-account
-  credential path), [ADR-1045](1045-tenant-provisioning-and-seeding-pipeline.md) (tenant seed fan-out),
+  credential path), [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) (tenant seed fan-out),
   [ADR-1030](1030-userinfo-endpoint-and-subject-authentication-seam.md) (subject-authentication seam).
 - Issues: [#133](https://github.com/NCodeGroup/identity/issues/133), [#139](https://github.com/NCodeGroup/identity/issues/139), [#125](https://github.com/NCodeGroup/identity/issues/125), [#135](https://github.com/NCodeGroup/identity/issues/135); plan
   [`login-consent-ui.md`](../conformance/login-consent-ui.md).

@@ -3509,8 +3509,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   tenants under every strategy. A tenant is materialized, and a created tenant answered, from the row its seed
   committed, so it carries the concurrency tokens its own seed wrote, and a replica that revalidates its cached tenants
   after a missed announcement keeps it. The Aspire conformance instance serves its own `conformance` tenant
-  ([ADR-1166](docs/decisions/1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md),
-  [ADR-1463](docs/decisions/1463-a-seeded-tenant-is-materialized-from-the-row-its-seed-committed.md),
+  ([ADR-1166](docs/decisions/1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md),
   [#619](https://github.com/NCodeGroup/identity/issues/619)).
 
 - **Concurrent seeds of one tenant converge.** When two replicas, or two requests that miss the tenant cache together,
@@ -4357,7 +4356,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   be the root tenant. Tenants created at runtime are seeded through the same pipeline, so none of them receives a client
   whose tokens carry `GlobalAdmin` or accounts with well-known passwords. `GlobalAdmin` is conferred only on the
   bootstrap client in its tenant, not on a client that shares its identifier elsewhere
-  ([ADR-1166](docs/decisions/1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)).
+  ([ADR-1166](docs/decisions/1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md)).
 
 - **No development or conformance credential is committed.** The bootstrap administrator's client secret
   (`BootstrapAdmin__ClientSecret`), the developer seed's administrator password

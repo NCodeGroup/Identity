@@ -1,8 +1,8 @@
 # 1044. The management API authenticates self-issued bearer tokens, and the first GlobalAdmin is bootstrapped from configuration
 
 - **Status:** Accepted (the bootstrap administrator `ISystemTenantSeeder` decided here was reshaped into an
-  `ICommandHandler<SeedTenantCommand>` by [ADR-1045](1045-tenant-provisioning-and-seeding-pipeline.md); amended by
-  [ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md): the bootstrap client is seeded
+  `ICommandHandler<SeedTenantCommand>` by [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md); amended by
+  [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md): the bootstrap client is seeded
   into exactly the tenant `BootstrapAdmin:TenantId` names — required, and allowed to be the root tenant — and the
   `GlobalAdmin` role is conferred only on the bootstrap client in that tenant; amended by
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): a host enables

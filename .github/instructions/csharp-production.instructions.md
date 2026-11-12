@@ -1333,7 +1333,7 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
 - 👁 **A configuration seeder names exactly the target it seeds** — template
   [Configuration and Options](csharp.instructions.md#configuration-and-options): `BootstrapAdmin`,
   `DeveloperInteractiveSeed` and `ConformanceSeed` require their `TenantId`
-  ([ADR-1166](../../docs/decisions/1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)).
+  ([ADR-1166](../../docs/decisions/1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md)).
 - 👁 **A period that options hand to a timer is validated when the host starts with `TimerPeriod.IsValid`**
   (`NCode.Identity.Time`) — template [Configuration and Options](csharp.instructions.md#configuration-and-options) and
   [ADR-1137](../../docs/decisions/1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md).

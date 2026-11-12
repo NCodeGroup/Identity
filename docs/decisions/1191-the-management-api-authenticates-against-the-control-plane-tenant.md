@@ -38,7 +38,7 @@ fix is only which tenant that context carries.
    `IOpenIdTenantFactory.CreateControlPlaneTenantAsync` probes the shared tenant cache with `GetControlPlaneTenantId`
    before any store round-trip, and only on a miss resolves the tenant and then seeds and materializes it through the
    same path as `CreateTenantForRequestAsync`
-   ([ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)), so a tenant reached through
+   ([ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md)), so a tenant reached through
    the management API and through its own address shares one cache entry.
 3. **The management API publishes the control-plane context.** `IOpenIdContextFactory.CreateForControlPlaneAsync`
    creates and publishes the request's `OpenIdContext` for that tenant, and `ManagementEnvironmentEndpointFilter` calls
@@ -78,5 +78,5 @@ fix is only which tenant that context carries.
 - [ADR-1024](1024-control-plane-and-per-tenant-planes.md) — the control plane and the per-tenant planes
 - [ADR-1042](1042-management-api-route-driven-tenant-scope.md) — the route drives the management API's tenant scope
 - [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) — the management host
-- [ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md) — one provisioning pipeline
+- [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) — one provisioning pipeline
 - [ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md) — issued-token validation

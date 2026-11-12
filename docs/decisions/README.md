@@ -151,14 +151,13 @@ The records are grouped by area; within an area they are in number order.
 | [1018](./1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) | Tenant selection is shared and tenant-bound rows are scoped at the persistence layer | Accepted |
 | [1024](./1024-control-plane-and-per-tenant-planes.md) | Deployment model: one control plane with logical tenant isolation; physical isolation is a separate deployment | Accepted |
 | [1036](./1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md) | One factory materializes every OpenID context, for a request, an addressed tenant or a job | Accepted |
-| [1045](./1045-tenant-provisioning-and-seeding-pipeline.md) | Tenant provisioning and seeding are one mediator-driven pipeline | Accepted |
 | [1048](./1048-durable-audit-delivery-outbox.md) | Durable audit delivery: an outbox with at-least-once, publish-after-commit semantics | Proposed |
 | [1053](./1053-a-host-configured-behavioral-hook-is-declared-on-the-openid-environment-and-combined-with-tenant-data.md) | A host-configured behavioral hook is declared on the OpenID environment and combined with tenant data | Accepted |
 | [1090](./1090-durable-outbound-delivery-dispatch-adapter.md) | Durable outbound delivery via a generic job-dispatch adapter (BYO orchestration) | Accepted |
 | [1160](./1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md) | A tenant is named by its creator, validated by its strategy, and never reissued | Accepted |
 | [1164](./1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) | Replicas share expiring keys, values and indexes through ports with in-process and Valkey adapters | Accepted |
 | [1165](./1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md) | A tenant's stored issuer is its single origin, and its mTLS alias a routed second host | Accepted |
-| [1166](./1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md) | A tenant is provisioned through one pipeline under every strategy | Accepted |
+| [1166](./1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) | A tenant is created and seeded through one provisioning pipeline under every strategy | Accepted |
 | [1196](./1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) | Tenants are rate limited through a shared expiring counter set | Accepted |
 | [1198](./1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) | Plan-tier quotas are daily UTC counts enforced at the quota | Accepted |
 | [1199](./1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) | Tenant usage is a daily ledger that replicas add to | Accepted |
@@ -174,7 +173,6 @@ The records are grouped by area; within an area they are in number order.
 | [1425](./1425-a-team-promotes-one-tenants-configuration-to-another-and-environment-bound-values-stay.md) | A team promotes one tenant's configuration to another, and environment-bound values stay | Accepted |
 | [1426](./1426-a-team-can-nest-beneath-a-parent-team.md) | A team can nest beneath a parent team | Accepted |
 | [1455](./1455-a-teams-subtree-is-walked-depth-first-one-page-of-child-teams-per-level.md) | A team's subtree is walked depth first, one page of child teams per level | Accepted |
-| [1463](./1463-a-seeded-tenant-is-materialized-from-the-row-its-seed-committed.md) | A seeded tenant is materialized from the row its seed committed | Accepted |
 | [1464](./1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md) | A management audit record runs on its own bounded token and takes no request token | Accepted |
 | [1468](./1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md) | A security effect that follows a committed change runs on its own bounded token | Accepted |
 

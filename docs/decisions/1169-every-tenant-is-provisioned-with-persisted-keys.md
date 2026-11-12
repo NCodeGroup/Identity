@@ -44,7 +44,7 @@ The first two of ADR-1370's objections concern keys held in memory. A key genera
 the shared Data Protection key ring survives restarts and is the same on every replica. The third objection is met when
 generation is a configurable default that never overrides a key the tenant already holds — the model of Auth0 tenant
 signing keys and Keycloak realm keys. Every tenant already passes through one seed pipeline under every strategy
-([ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)), and that pipeline is where
+([ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md)), and that pipeline is where
 tenant data is reserved.
 
 ## Decision
@@ -212,8 +212,7 @@ key for. The server generates keys only to fill those gaps; it never removes, re
   self-healing over provisioned keys.
 - [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md) — the bootstrap administrator whose
   first token needs a key.
-- [ADR-1045](1045-tenant-provisioning-and-seeding-pipeline.md) and
-  [ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md) — the seed pipeline.
+- [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) — the seed pipeline.
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) — startup validation.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — keys named by an open vocabulary.
 - Code: `NCode.Identity.OpenId.Tenants.Keys.TenantKeySeedHandler`, `DefaultTenantKeyPolicy`,

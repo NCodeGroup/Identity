@@ -132,7 +132,7 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
         );
 
         // The bootstrap administrator client is seeded into the one tenant its options name, on the same tenant seed
-        // fan-out that seeds the system resource servers (ADR-1045, ADR-1166); inert unless a bootstrap client is
+        // fan-out that seeds the system resource servers (ADR-1166); inert unless a bootstrap client is
         // configured, and that configuration must name the tenant.
         serviceCollection.TryAddEnumerable(
             ServiceDescriptor.Singleton<

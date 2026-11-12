@@ -59,7 +59,7 @@ internal static class DefaultRegistration
             serviceCollection.TryAddSingleton<IOpenIdTenantFactory, DefaultOpenIdTenantFactory>();
 
             // Tenants are provisioned and seeded through one mediator-driven pipeline: the provisioner opens a single
-            // unit of work and fans SeedTenantCommand out to every seed handler (ADR-1045).
+            // unit of work and fans SeedTenantCommand out to every seed handler (ADR-1166).
             serviceCollection.AddMediator();
             serviceCollection.TryAddScoped<ITenantProvisioner, DefaultTenantProvisioner>();
 

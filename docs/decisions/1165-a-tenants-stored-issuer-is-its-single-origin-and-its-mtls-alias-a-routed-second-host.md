@@ -128,7 +128,7 @@ A custom domain is an explicit issuer. The frontend bootstrap `issuer` is the se
 - [ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md) — sender-constrained access tokens.
 - [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md) — a tenant's
   address is validated by the strategy that serves it.
-- [ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md) — the root tenant and the
+- [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) — the root tenant and the
   provisioning pipeline.
 - [ADR-1182](1182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md) — the frontend bootstrap
   issuer.

@@ -215,7 +215,7 @@ The records are grouped by area; within an area they are in number order.
 | [1201](./1201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md) | Authorization responses are delivered by registered response-mode handlers | Accepted |
 | [1203](./1203-redirect-uris-are-matched-exactly-as-written-and-their-kinds-are-narrowed-by-settings.md) | Redirect URIs are matched exactly, as written, and their kinds are narrowed by settings | Accepted |
 | [1211](./1211-a-rotated-refresh-token-is-spent-with-its-successor.md) | A rotated refresh token is spent with its successor, and a lost spend is a reuse | Accepted |
-| [1212](./1212-deleting-an-owner-removes-what-it-owns.md) | Deleting a client or a tenant removes what it owns, its end users' data included | Accepted |
+| [1212](./1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md) | Deleting a client, resource server, principal or tenant removes what it owns | Accepted |
 | [1215](./1215-a-revocation-wins-a-concurrency-race.md) | A revocation wins a concurrency race | Accepted |
 | [1216](./1216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md) | A refresh token is rotated unless it is sender-constrained | Accepted |
 | [1217](./1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md) | A rotated refresh token may be retried within a reuse interval | Accepted |

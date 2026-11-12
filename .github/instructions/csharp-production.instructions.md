@@ -802,7 +802,7 @@ than inlining the rationale.
   removal takes its secrets, client grants, consents and grants; a client's or a resource server's removal also takes
   the role assignments at its node, ownership included; a tenant's takes every `ISupportTenantEntity` row of
   the model, so an entity a package contributes is erased with its tenant. Foreign keys stay `Restrict`. See
-  [ADR-1212](../../docs/decisions/1212-deleting-an-owner-removes-what-it-owns.md).
+  [ADR-1212](../../docs/decisions/1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md).
 - 👁 **An Entity Framework store issues no `ExecuteUpdate`/`ExecuteDelete`.** EF InMemory, the hermetic host's provider,
   does not support them, and they bypass the concurrency-token interceptor; a bulk removal stages a bounded batch and
   its caller saves each batch as one unit of work (`ITenantUsageStore.RemoveBeforeAsync`,

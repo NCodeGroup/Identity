@@ -87,7 +87,7 @@ creates.** No table, store or migration is added.
   matches the payload to the route's `{client_id}`. `GET` and `PUT` neither return nor rotate it, because the server
   holds only its hash; RFC 7592 makes rotation a MAY.
 - `DELETE` removes the client with its secrets and grants, the registration access token included, in one unit of work
-  ([ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md)).
+  ([ADR-1212](1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md)).
 
 ### Who may register
 

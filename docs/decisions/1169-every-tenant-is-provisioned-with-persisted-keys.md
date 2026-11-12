@@ -1,6 +1,6 @@
 # 1169. Every tenant is provisioned with persisted keys
 
-- **Status:** Accepted (amended by [ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md): deleting a tenant also
+- **Status:** Accepted (amended by [ADR-1212](1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md): deleting a tenant also
   removes the data of its end users; by
   [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md): the re-seed after a change
   of the server's settings is part of one reconciliation; by
@@ -148,7 +148,7 @@ key for. The server generates keys only to fill those gaps; it never removes, re
 11. **A tenant's keys are part of the tenant.** Provisioning gives every tenant keys, and those keys serve only that
     tenant, so they must not make the tenant impossible to delete. Deleting a tenant therefore removes its secrets, its
     system resource servers with their scopes and secrets, the role assignments recorded in it, and the data of its end
-    users ([ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md)), in one unit of work. Only a client or a resource
+    users ([ADR-1212](1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md)), in one unit of work. Only a client or a resource
     server the tenant did not seed blocks the delete (`409 Conflict`): those are records an operator created, and the
     delete would otherwise destroy them.
 

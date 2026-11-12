@@ -21,7 +21,7 @@ batch its own unit of work. This record applies it to grants.
 
 No grant row was ever removed. Every authorization code, token, rotation of a refresh token, and session left a row, so
 the grants table grew without bound. Deleting a client or a tenant loads all of its grants into one unit of work
-([ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md)), so the growth also made the delete a larger unit of work
+([ADR-1212](1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md)), so the growth also made the delete a larger unit of work
 (issue [#267](https://github.com/NCodeGroup/identity/issues/267)).
 
 A grant that is revoked or expired is still read: a rotated refresh token that is presented again is a reuse
@@ -81,7 +81,7 @@ supports.**
 
 - The grants table holds the live grants and those that ended within the retention.
 - Deleting a client or a tenant loads the grants that it removes into one unit of work
-  ([ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md)), and the prune bounds that work the same way.
+  ([ADR-1212](1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md)), and the prune bounds that work the same way.
 - A refresh token or an authorization code that is presented after its grant was removed is unknown, so it is answered
   as an unknown token, not as a reuse.
 - Every session grant ends ([ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md)), so
@@ -98,7 +98,7 @@ supports.**
 - [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — a replayed authorization code revokes the session.
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) — the usage ledger and its retention, and the
   options type that `GrantRetentionOptions` follows.
-- [ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md) — deleting an owner removes its grants in one unit of work.
+- [ADR-1212](1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md) — deleting an owner removes its grants in one unit of work.
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) — the bounded batches that remove rows through the
   change tracker.
 - Code: `NCode.Identity.OpenId.Authentication.Persistence.GrantPruneService`,

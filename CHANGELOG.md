@@ -5526,7 +5526,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   dynamically registered client is deregistered, removes the assignments of every role at its node, ownership included,
   in the same unit of work. Removing a federated principal, or deleting a local account, removes every role assignment
   its principal holds, ownership included, in every tenant, and deleting a tenant removes the assignments its principals
-  hold in other tenants ([ADR-1212](docs/decisions/1212-deleting-an-owner-removes-what-it-owns.md), issues
+  hold in other tenants ([ADR-1212](docs/decisions/1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md), issues
   [#266](https://github.com/NCodeGroup/identity/issues/266), [#273](https://github.com/NCodeGroup/identity/issues/273)).
 
 - **A platform or team settings PATCH reads only what it checks.** It walks the clients only when a setting that the client
@@ -5654,7 +5654,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   the client, so deleting a client through the management API and RFC 7592 deregistration (`DELETE
   /oauth2/register/{client_id}`) answer `204` whatever the client holds; deleting a tenant whose users signed in
   likewise removes what exists for it, on every provider including PostgreSQL
-  ([ADR-1212](docs/decisions/1212-deleting-an-owner-removes-what-it-owns.md), issue
+  ([ADR-1212](docs/decisions/1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md), issue
   [#250](https://github.com/NCodeGroup/identity/issues/250)).
 
 - **Grant payloads are encrypted at rest.** A persisted grant's payload (authorization codes, refresh tokens, sessions,
@@ -5830,7 +5830,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **Deleting a tenant erases the data of its end users.** Its local accounts and their claims, federated principals and
   identities, sessions and other grants are removed with it. Deleting a tenant that still has clients or resource
   servers answers `409`, and its usage records are kept
-  ([ADR-1212](docs/decisions/1212-deleting-an-owner-removes-what-it-owns.md),
+  ([ADR-1212](docs/decisions/1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md),
   [#250](https://github.com/NCodeGroup/identity/issues/250)).
 
 - **A production tenant gets production guardrails, and a production host refuses a non-production platform default.** The

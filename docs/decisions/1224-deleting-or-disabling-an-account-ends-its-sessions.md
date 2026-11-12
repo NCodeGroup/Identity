@@ -17,7 +17,7 @@ A local account is a self-issued connection of a federated principal
 [ADR-1035](1035-federated-principals-and-identity-resolution.md)), and the sessions, grants and consents of the end user
 are keyed by the principal's identifier ([ADR-1094](1094-resolve-principal-at-every-authentication-entry-point.md)).
 Deleting a local account removed the account, its self-issued identity and, with its last identity, the principal and
-its role assignments ([ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md)), but the sessions, the refresh
+its role assignments ([ADR-1212](1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md)), but the sessions, the refresh
 tokens and the consents of the principal remained. Disabling an account kept all of them as well. No handler of
 `ValidateSubjectAuthenticationCommand` checked the account, so a refresh token of a deleted or disabled account was
 redeemed until it expired (issue [#280](https://github.com/NCodeGroup/identity/issues/280)).
@@ -42,7 +42,7 @@ disabled or gone.**
    `DeleteLocalAccountAsync` looks up the self-issued identity and terminates the principal's sessions with
    `AccountDeleted`. It then removes the account, the identity, and the principal when that identity was its last, and
    saves. `FederatedPrincipalStore.RemoveAsync` erases the consents and the grants of the principal in its tenant,
-   besides its role assignments ([ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md)), so the termination runs
+   besides its role assignments ([ADR-1212](1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md)), so the termination runs
    first, while the sessions can still be listed to notify their relying parties. A principal that keeps another
    identity keeps its consents, and the termination revoked its grants. A deletion that fails after the termination
    leaves the account with its sessions ended.
@@ -102,7 +102,7 @@ disabled or gone.**
 - [ADR-1094](1094-resolve-principal-at-every-authentication-entry-point.md) — the principal identifier is the subject
   that grants, consents and sessions are keyed by.
 - [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — the termination seam that the reasons name.
-- [ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md) — deleting an owner removes what it owns.
+- [ADR-1212](1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md) — deleting an owner removes what it owns.
 - [OWASP ASVS](https://owasp.org/www-project-application-security-verification-standard/) V3.3 — session logout and
   timeout.
 - Auth0, Block and Unblock Users — Auth0 blocks a user, not a connection:

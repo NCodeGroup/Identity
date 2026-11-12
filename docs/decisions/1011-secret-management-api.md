@@ -4,7 +4,7 @@
   client-secret rotation added by [ADR-1183](1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md) and made
   overlapping, with a 256-bit floor on client secrets, by
   [ADR-1320](1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md);
-  client deletion amended by [ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md): a client is removed with its
+  client deletion amended by [ADR-1212](1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md): a client is removed with its
   secrets, grants, and consents; the protection of stored secrets amended by
   [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): the owner's master
   key protects them, in place of a Data Protection key ring; key material stays immutable while a rotation rewrites the
@@ -146,7 +146,7 @@ These endpoints share the secret endpoints' authorization, concurrency, and (fro
   resource servers it did not seed; its own secrets are removed with it, ADR-1169; a server with server-secrets), so
   removal is only ever a leaf operation. The store's `RemoveAsync` re-checks the same invariant, so the guard holds
   even if a caller bypasses the endpoint. `DELETE api/clients/{clientId}` is not guarded: the client is removed with its
-  secrets, grants, and consents ([ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md)).
+  secrets, grants, and consents ([ADR-1212](1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md)).
 
 All owner operations authorize the loaded/constructed entity exactly like the secret operations: tenant and
 client entities are tenant-scoped (`ISupportTenantId` / `TenantOwnedResource`), servers stay `GlobalAdmin`-only.

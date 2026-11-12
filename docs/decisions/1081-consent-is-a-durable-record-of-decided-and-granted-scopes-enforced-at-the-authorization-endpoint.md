@@ -38,7 +38,7 @@ requested scopes narrowed to the granted subset.**
   `RequestedScopes` (the decided set), `GrantedScopes`, created and updated timestamps and a concurrency token. It is
   stored through `IConsentStore` and `ConsentEntity`, unique on `(TenantId, ClientId, NormalizedSubjectId)` and indexed
   on `(TenantId, NormalizedSubjectId)` for a subject's enumeration. Logout and session termination never touch it; it is
-  removed with its client or principal ([ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md)).
+  removed with its client or principal ([ADR-1212](1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md)).
 - **`IConsentService` is the single seam.** `DefaultConsentService` exposes `ResolveConsentAsync`, which returns
   `ConsentResolution(IsDecided, GrantedScopes)` (`IsDecided` is true when every requested scope is in the decided set,
   and `GrantedScopes` is the requested-ordered intersection with the granted subset), `GrantConsentAsync(requested,
@@ -104,6 +104,6 @@ requested scopes narrowed to the granted subset.**
   [ADR-1070](1070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md): the interactive surface that
   serves the consent screen
 - [ADR-1074](1074-session-management-and-logout.md): the session whose logout leaves consent in place
-- [ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md),
+- [ADR-1212](1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md),
   [ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md)
 - Issue [#40](https://github.com/NCodeGroup/identity/issues/40)

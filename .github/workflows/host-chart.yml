@@ -108,8 +108,9 @@ jobs:
           refuse --set tenantResolution.staticSingle.issuer=
           refuse --set tenantResolution.staticSingle.issuer=http://id.example.com
           refuse --set unknownSetting=true
+          # ingress.controller takes traefik or other alone: the chart has no ingress-nginx mode (ADR-1506).
           refuse --set ingress.controller=ingress-nginx
-          refuse --set backendTls.ingressController=traefik
+          refuse --set ingress.controller=haproxy
           refuse --set backendTls.certManager.issuerRef.kind=Deployment
           refuse --set backendTls.certManager.duration=90d
           refuse --set backendTls.certManager.renewBefore=2160h
@@ -252,8 +253,8 @@ jobs:
             fi
           }
           ha="$CHART/ci/high-availability-values.yaml"
-          # Traefik is the default controller: its ServersTransport trusts the release's Secret and speaks HTTPS to the
-          # pods.
+          # The high-availability release sets ingress.controller: traefik, so a ServersTransport trusts the release's
+          # Secret and Traefik speaks HTTPS to the pods.
           traefik=$(helm template release "$CHART" --values "$ha")
           expect "$traefik" 'kind: ServersTransport' 'rootCAs:' 'secret: release-ncode-identity-host-tls' \
             'serversscheme: https'

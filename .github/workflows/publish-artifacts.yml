@@ -128,7 +128,6 @@ jobs:
             org.opencontainers.image.licenses=Apache-2.0
             org.opencontainers.image.title=ncode-identity-host
 
-      # The tag `latest` follows stable versions only; a prerelease never moves it.
       - name: Publish the management console image
         id: console
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
@@ -222,6 +221,7 @@ jobs:
       CONSOLE: ${{ needs.publish.outputs.console-digest }}
       CHART: ${{ needs.publish.outputs.chart-digest }}
       IDENTITY: https://github.com/NCodeGroup/identity/.github/workflows/publish-artifacts.yml@${{ github.ref }}
+      PACKAGE_HINT: "If the package is private, make it public and give this repository write access under the package's 'Manage Actions access' (chart README, 'Published artifacts')."
 
     steps:
       - name: Set up Helm
@@ -235,7 +235,6 @@ jobs:
       - name: Both architectures are published
         shell: pwsh
         run: |
-          $hint = "If the package is private, make it public and give this repository write access under the package's 'Manage Actions access' (chart README, 'Published artifacts')."
           foreach ($image in 'ncode-identity-host', 'ncode-identity-management-console') {
             try {
               $raw = docker buildx imagetools inspect --raw "ghcr.io/ncodegroup/${image}:$env:VERSION"
@@ -243,7 +242,7 @@ jobs:
               $index = $raw | ConvertFrom-Json
             }
             catch {
-              throw "$($_.Exception.Message) $hint"
+              throw "$($_.Exception.Message) $env:PACKAGE_HINT"
             }
             $platforms = @($index.manifests.platform | ForEach-Object { "$($_.os)/$($_.architecture)" })
             foreach ($platform in 'linux/amd64', 'linux/arm64') {
@@ -282,13 +281,12 @@ jobs:
       - name: The chart pulls anonymously
         shell: pwsh
         run: |
-          $hint = "If the package is private, make it public and give this repository write access under the package's 'Manage Actions access' (chart README, 'Published artifacts')."
           try {
             helm pull oci://ghcr.io/ncodegroup/charts/ncode-identity-host --version $env:VERSION --destination pulled
             if ($LASTEXITCODE -ne 0) { throw "helm pull failed." }
           }
           catch {
-            throw "$($_.Exception.Message) $hint"
+            throw "$($_.Exception.Message) $env:PACKAGE_HINT"
           }
           $chart = helm show chart "pulled/ncode-identity-host-$($env:VERSION).tgz"
           if ($chart -notcontains "version: $env:VERSION") { throw "The pulled chart is not version $env:VERSION." }

@@ -141,10 +141,9 @@ The records are grouped by area; within an area they are in number order.
 | [1245](./1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md) | Management requests list incoherent clients, name unreadable stored settings, and let a write repair them | Accepted |
 | [1289](./1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md) | A tenant declares its environment type, which selects its guardrails | Accepted |
 | [1412](./1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) | A settings change reaches every replica at once and is reconciled per team against what changed | Accepted |
-| [1416](./1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md) | A replica that may have missed a team announcement evicts only the teams whose row changed | Accepted |
+| [1416](./1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md) | A replica that may have missed announcements evicts only teams and tenants whose row changed | Accepted |
 | [1418](./1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md) | A limit is set by the authority above the scope whose document carries it | Accepted |
 | [1448](./1448-a-settings-reader-learns-which-limits-it-may-change.md) | A settings reader learns which limits the settings carry and whether it may change them | Accepted |
-| [1454](./1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md) | A replica that may have missed a tenant announcement evicts only the tenants whose row changed | Accepted |
 
 ### Tenancy, persistence and replicas
 

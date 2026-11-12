@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amends
   [ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md),
-  [ADR-1454](1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md))
+  [ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md))
 - **Date:** 2026-11-06
 - **Deciders:** NCode Group
 
@@ -16,7 +16,7 @@ token for each of those writes, and the interceptor regenerates the row token on
 
 The tenant a seed reads before its contributors run carries the tokens of the row before the seed. The row token is what
 a replica compares after a missed announcement
-([ADR-1454](1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md)),
+([ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md)),
 the settings and secrets tokens are what its polls compare, and the management API answers a created tenant with its row
 token as the ETag.
 
@@ -58,6 +58,6 @@ token as the ETag.
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the interceptor manages concurrency tokens
 - [ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md) — a tenant is provisioned
   through one pipeline under every strategy
-- [ADR-1454](1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md) — a
+- [ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md) — a
   replica that may have missed a tenant announcement evicts only the tenants whose row changed
 - [#619](https://github.com/NCodeGroup/identity/issues/619)

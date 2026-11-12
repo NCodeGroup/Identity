@@ -21,7 +21,7 @@ namespace NCode.Identity.OpenId.SecretProtection;
 /// The command is sent from a scope of its own, because the change may be announced outside a request. The caller
 /// supplies a bounded token, as the observer contract says.
 /// </remarks>
-// See ADR-1414 and ADR-1454.
+// See ADR-1414 and ADR-1416.
 internal sealed class OwnerRootKeyChangeAnnouncer(
     IServiceScopeFactory serviceScopeFactory,
     IReplicaBroadcaster replicaBroadcaster,

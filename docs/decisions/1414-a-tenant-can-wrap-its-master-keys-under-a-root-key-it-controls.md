@@ -4,7 +4,7 @@
   its 409 and 503 problems also carry the wait in retryAfterSeconds;
   [ADR-1428](1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors-through-registered-translators.md),
   [ADR-1429](1429-a-tenant-root-key-can-be-reached-through-an-identity-the-tenant-grants.md); amended by
-  [ADR-1454](1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md):
+  [ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md):
   a root key change marks the tenant's secrets changed before the tenant-changed command is sent)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group

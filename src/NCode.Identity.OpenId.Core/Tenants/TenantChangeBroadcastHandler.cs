@@ -19,7 +19,7 @@ namespace NCode.Identity.OpenId.Tenants;
 /// replica that may have missed an announcement evicts only the tenants whose stored row changed or is gone, with their
 /// master keys, and evicts every cached tenant and master key when it cannot read the revisions.
 /// </summary>
-// See ADR-1205 and ADR-1454.
+// See ADR-1205 and ADR-1416.
 internal sealed class TenantChangeBroadcastHandler(
     IOpenIdTenantCache tenantCache,
     ISecretProtectorProvider secretProtectorProvider,

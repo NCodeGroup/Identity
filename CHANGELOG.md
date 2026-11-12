@@ -3159,9 +3159,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   both caches when it cannot read them, and the platform handler reads the platform's settings again
   ([ADR-1205](docs/decisions/1205-replicas-announce-changes-through-a-broadcast-port.md),
   [ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
-  [ADR-1416](docs/decisions/1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md),
+  [ADR-1416](docs/decisions/1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md),
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
-  [ADR-1454](docs/decisions/1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md),
+  [ADR-1416](docs/decisions/1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md),
   issue [#249](https://github.com/NCodeGroup/identity/issues/249),
   [#564](https://github.com/NCodeGroup/identity/issues/564),
   [#579](https://github.com/NCodeGroup/identity/issues/579)).
@@ -5908,7 +5908,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1414](docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
   [ADR-1415](docs/decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md),
   [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors-through-registered-translators.md),
-  [ADR-1454](docs/decisions/1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md)).
+  [ADR-1416](docs/decisions/1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md)).
 - **An imported elliptic-curve public key is checked against its curve.** A JWK's `x` and `y` must each be the curve's
   field length, below its prime and satisfy its curve equation before the platform imports the point, so an off-curve or
   invalid-curve point is rejected with the same error on every platform

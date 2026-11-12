@@ -7,10 +7,10 @@
   and the announcement run on their own bounded token; amended by [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md):
   the `team-changed` channel announces a team change, and `platform-settings-changed` a platform settings change, to
   every replica; amended by
-  [ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md): a
+  [ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md): a
   replica that may have missed a `team-changed` announcement evicts only the teams whose row changed, with their
   tenants; amended by
-  [ADR-1454](1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md):
+  [ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md):
   a replica that may have missed a `tenant-changed` announcement evicts only the tenants whose row changed)
 - **Date:** 2026-10-22
 - **Deciders:** NCode Group

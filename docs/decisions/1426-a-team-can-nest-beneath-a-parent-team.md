@@ -4,7 +4,7 @@
   [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md),
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
   [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
-  [ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md),
+  [ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md),
   [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
   [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md) and
   [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md); amended by
@@ -89,7 +89,7 @@ and missed-announcement revalidation reach every descendant.**
     reconciles every team once. A team settings write checks client coherence for every tenant of the team and of
     every team beneath it.
 12. **Cache eviction and revalidation reach every descendant**
-    ([ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md)).
+    ([ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md)).
     The team cache indexes each cached team under every team above it, and the tenant cache indexes each tenant under
     its team and every team above it, so evicting a team evicts every cached team and tenant beneath it, on every
     replica, through the `team-changed` broadcast. A cached team, and a cached tenant, report the revision of every
@@ -139,7 +139,7 @@ and missed-announcement revalidation reach every descendant.**
 - [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) — the platform is the
   deployment root and a team groups a customer's tenants
 - [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — settings are reconciled per team
-- [ADR-1416](1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md) — a
+- [ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md) — a
   replica that may have missed a team announcement evicts only the teams whose row changed
 - [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md) — a tenant administrator is a
   role assignment at the tenant's node

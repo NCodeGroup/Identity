@@ -11,6 +11,6 @@ namespace NCode.Identity.OpenId.Tenants;
 /// </summary>
 /// <param name="TenantId">The identifier of the tenant.</param>
 /// <param name="ConcurrencyToken">The concurrency token of the persisted tenant the cached tenant was materialized from.</param>
-// See ADR-1454.
+// See ADR-1416.
 [PublicAPI]
 public readonly record struct TenantRevision(string TenantId, string ConcurrencyToken);

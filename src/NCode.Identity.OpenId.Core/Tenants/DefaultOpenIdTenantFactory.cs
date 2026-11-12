@@ -128,7 +128,7 @@ public class DefaultOpenIdTenantFactory(
         // falls through to a full resolve. A cache hit intentionally serves the cached tenant without re-reading the
         // store. A committed change announces the tenant (TenantChangedCommand), and every replica evicts it when the
         // announcement arrives (ADR-1205). A replica that may have missed an announcement evicts each cached tenant
-        // whose stored row changed when its subscription is restored (ADR-1454), and a cached tenant lives at most
+        // whose stored row changed when its subscription is restored (ADR-1416), and a cached tenant lives at most
         // OpenIdTenantOptions.TenantCacheLifetime (ADR-1412).
         PersistedTenant? persistedTenant = null;
         if (!TenantResolver.TryGetTenantId(httpContext, out var tenantId))
@@ -232,7 +232,7 @@ public class DefaultOpenIdTenantFactory(
         // reconciliation that brings an existing tenant up to date with the seed contributors (ADR-1166). The provisioner
         // is scoped (its mediator is request-scoped), so it is resolved from the request's services. The seed returns the
         // tenant row it committed, so the tenant carries the row, settings and secrets concurrency tokens of its own seed,
-        // and a replica that revalidates its cached tenants after a missed announcement keeps it (ADR-1454, ADR-1463).
+        // and a replica that revalidates its cached tenants after a missed announcement keeps it (ADR-1416, ADR-1463).
         var provisioner = httpContext.RequestServices.GetRequiredService<ITenantProvisioner>();
         var persistedTenant = await provisioner.SeedAsync(tenantId, cancellationToken);
 

@@ -341,8 +341,7 @@ than inlining the rationale.
   records the store revision it was materialized from and every change the channel announces commits that revision, the
   handler revalidates instead: it compares each entry's revision with the store's, evicts only what changed, and drops
   everything only when it cannot read the revisions
-  ([ADR-1416](../../docs/decisions/1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md),
-  [ADR-1454](../../docs/decisions/1454-a-replica-that-may-have-missed-a-tenant-announcement-evicts-only-the-tenants-whose-row-changed.md)).
+  ([ADR-1416](../../docs/decisions/1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md)).
 - 👁 **Work proportional to the deployment never runs inside a request.** A pass over every tenant or every client
   reads a settings projection (`GetSettingsPageAsync`, untracked, no secrets) and skips when the change cannot affect
   it. A pass that brings tenants or clients in line with their team's settings is a handler of

@@ -95,7 +95,7 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
         ceiling.Set(OpenIdSettingKeys.ClockSkew, TimeSpan.FromSeconds(60));
 
         // Pin the client-assertion lifetime at the secure default (Min ceiling) so raising the platform-wide value for
-        // other clients never extends to a FAPI client (ADR-1124).
+        // other clients never extends to a FAPI client (ADR-1187).
         ceiling.Set(OpenIdSettingKeys.ClientAssertionMaxLifetime, TimeSpan.FromMinutes(5));
 
         // A request object carries 'nbf' and 'exp', at most 60 minutes apart (FAPI 2.0 Message Signing §5.3.1,

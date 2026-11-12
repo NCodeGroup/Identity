@@ -206,13 +206,12 @@ The records are grouped by area; within an area they are in number order.
 | [1112](./1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) | Every end of a session runs one termination seam, once, revoking the grants issued under it | Accepted |
 | [1113](./1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md) | At-rest grant payloads are schema-versioned, upcastable, and preserve unknown members | Accepted |
 | [1114](./1114-an-openid-response-is-written-by-a-content-negotiated-response-formatter-json-by-default.md) | An OpenID response is written by a content-negotiated response formatter, JSON by default | Accepted |
-| [1124](./1124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md) | JWT lifetime is capped from its earliest asserted start; client assertions default to five minutes | Accepted |
 | [1141](./1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md) | A response type is a whole value, and the listed values alone control front-channel tokens | Accepted |
 | [1144](./1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md) | Authorization codes are bound to an S256 PKCE challenge unless an attested client uses the nonce | Accepted |
 | [1158](./1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md) | The tenant signs an access token, and its client and targeted resource servers bound it | Accepted |
 | [1167](./1167-the-server-validates-the-tokens-it-issued-under-one-policy.md) | The server validates the tokens it issued under one policy | Accepted |
 | [1168](./1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md) | Introspection reports a token active only to the party that consumes it | Accepted |
-| [1187](./1187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md) | A signed request object is short-lived and addressed to the issuer | Accepted |
+| [1187](./1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md) | A client-signed JWT is short-lived, its lifetime capped from its earliest asserted start | Accepted |
 | [1192](./1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md) | Dynamic registration binds a client to the resource server its initial access token names | Accepted |
 | [1201](./1201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md) | Authorization responses are delivered by registered response-mode handlers | Accepted |
 | [1203](./1203-redirect-uris-are-matched-exactly.md) | Redirect URIs are matched exactly | Accepted |

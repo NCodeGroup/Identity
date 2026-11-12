@@ -104,7 +104,7 @@ permit and names its decryption keys ([ADR-1155](1155-jwts-exchanged-with-a-clie
   §4.2 / §4.4 (`use` / `alg`).
 - [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md) — the policies the OpenID callers
   state.
-- [ADR-1124](1124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md) — the lifetime requirements the validator
+- [ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md) — the lifetime requirements the validator
   evaluates.
 - Code: `NCode.Identity.Jwt.Validation.DefaultJwtValidator`, `JwtValidationParameters`,
   `JwtValidationParametersExtensions.UseDecryptionKeys`, `NCode.Identity.Jwt.DecodedJwt`,

@@ -24,7 +24,7 @@ Issuer, audience and lifetime are checked inside `IJwtValidator`, as requirement
 every failure into one `JwtValidationException`, so a failed requirement has no identity that a caller can read.
 
 The conventions forbid validating a received JWT outside `IJwtValidator`, and bounding its lifetime by hand
-([ADR-1124](1124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md),
+([ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md),
 [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md)). The protocol client
 therefore cannot re-check `iss`, `aud` or `exp` to learn which one failed.
 
@@ -102,7 +102,7 @@ one of its own from `TokenValidationFailureCodes`.**
   ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)). Rejected.
 - **Re-check `iss`, `aud` and `exp` in the client.** It duplicates the lifetime handler and bounds a lifetime outside
   the lifetime requirement, against the conventions
-  ([ADR-1124](1124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md)). Rejected.
+  ([ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md)). Rejected.
 - **A separate client vocabulary with a mapping table.** A hard-coded relationship between two vocabularies loses any
   code it does not list, including one a custom handler names. Rejected in favor of aliases and pass-through.
 
@@ -130,7 +130,7 @@ one of its own from `TokenValidationFailureCodes`.**
 - [Backend-for-frontend design §5.2](../backend-for-frontend.md) — the login failure names
 - [ADR-1120](1120-jwt-validation-requirements-and-handlers.md) — requirements and handlers; this adds the code a
   handler fails with
-- [ADR-1124](1124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md) — the lifetime requirement
+- [ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md) — the lifetime requirement
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
 - [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) — JWTs are validated
   only through `IJwtValidator`

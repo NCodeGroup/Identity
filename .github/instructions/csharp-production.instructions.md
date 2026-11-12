@@ -991,7 +991,7 @@ invariants, the Law of Demeter, and no call nested in another call's arguments. 
   client-supplied JWT (assertion, request object) with `ValidateTokenLifeTime(o => o.MaxLifetime = …)`, fed from a
   `Min`-merged `*_max_lifetime` setting; it measures from the earliest asserted `iat`/`nbf` (or now plus skew), so the
   client cannot game it. A replay record for such a JWT is retained until `exp` plus the **effective** `clock_skew`, not
-  a fixed margin. See [ADR-1124](../../docs/decisions/1124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md).
+  a fixed margin. See [ADR-1187](../../docs/decisions/1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md).
 - 👁 **Validate a received JWT only through `IJwtValidator`, stating its whole policy in the parameters.** Set
   `ValidSignatureAlgorithms` (and, for an encrypted token, `ValidKeyManagementAlgorithms`,
   `ValidContentEncryptionAlgorithms`, and `ValidCompressionAlgorithms = []`) from the governing setting, read at a trust

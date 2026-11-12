@@ -61,7 +61,7 @@ fails closed.**
 - A fractional `NumericDate` is accepted everywhere, with sub-second precision preserved.
 - A client assertion whose `exp` is far in the future is still accepted (only the overflow is fixed); capping assertion
   lifetime, which RFC 7523 §3 permits, is a separate hardening item (issue [#78](https://github.com/NCodeGroup/identity/issues/78)) — since delivered by
-  [ADR-1124](1124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md).
+  [ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md).
 
 ## References
 

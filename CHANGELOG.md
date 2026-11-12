@@ -807,7 +807,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1168](docs/decisions/1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)). On
   validation, `TokenLifetimeRequirement` and `ValidateTokenLifeTimeOptions` carry `RequireNotBefore` and
   `RequireIssuedAt` beside `RequireExpirationTime`
-  ([ADR-1187](docs/decisions/1187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md)).
+  ([ADR-1187](docs/decisions/1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md)).
 
 - **JWT claim values map to and from JSON by declared type, losslessly, in one symmetric mapper.** Both directions of
   the JWT claim-value mapping live in one internal `ClaimValueMapper`, guarded by a decode → encode round-trip test over
@@ -4799,7 +4799,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   names the issuer as its audience. The `request_object_nbf_required` setting (`Or` merge, default `false`) makes `nbf`
   mandatory. The FAPI 2.0 profile pins both, at 60 minutes and `true`. A CIBA signed authentication request carries
   `iat`, `nbf`, `exp`, and `jti` (CIBA Core §7.1.1), and the CIBA loader applies the client's `clock_skew`
-  ([ADR-1187](docs/decisions/1187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md),
+  ([ADR-1187](docs/decisions/1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md),
   [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)).
 
 - **An unsigned (`alg:none`) request object is rejected with `request_not_supported`** (issue
@@ -4886,7 +4886,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Client assertions have a bounded lifetime, and JWT lifetime validation reads `iat`** (issue
   [#78](https://github.com/NCodeGroup/identity/issues/78),
-  [ADR-1124](docs/decisions/1124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md)). A `private_key_jwt` /
+  [ADR-1187](docs/decisions/1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md)). A `private_key_jwt` /
   `client_secret_jwt` assertion is rejected with `invalid_client` when its lifetime exceeds the non-discoverable
   `client_assertion_max_lifetime` setting (`OpenIdSettingKeys.ClientAssertionMaxLifetime`, default five minutes, Auth0's
   maximum). The setting is a `Min` ceiling, so a tenant or client may only shorten it, and the FAPI 2.0 security profile

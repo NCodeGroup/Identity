@@ -449,7 +449,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // client_assertion_max_lifetime: longest lifetime accepted for a private_key_jwt / client_secret_jwt
-            // assertion, from its earliest 'iat'/'nbf' to its 'exp' (RFC 7523 §3; default 5 minutes, ADR-1124).
+            // assertion, from its earliest 'iat'/'nbf' to its 'exp' (RFC 7523 §3; default 5 minutes, ADR-1187).
             // Ceiling (Min): a child may only shorten it; raise the platform value to allow longer.
             yield return new SettingDescriptor<TimeSpan>
             {

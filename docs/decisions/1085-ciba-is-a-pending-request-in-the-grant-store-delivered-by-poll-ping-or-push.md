@@ -61,7 +61,7 @@ poll, ping or push.**
 4. **A signed `request` object.** A signed `request` is verified with an asymmetric algorithm that the client's
    settings permit within `backchannel_authentication_request_signing_alg_values_supported`, and an encrypted one is
    rejected ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)). Its claim and lifetime
-   rules are those of [ADR-1187](1187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md).
+   rules are those of [ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md).
 5. **Polling mirrors the device grant.** The token handler answers `slow_down` for a poll that comes too soon,
    stamping `LastPolledWhen` through `UpdatePayloadAsync`, `authorization_pending` while the request is `Pending`,
    `access_denied` when it is `Denied` and `expired_token` past its expiry. An `auth_req_id` is redeemed only by the
@@ -149,7 +149,7 @@ poll, ping or push.**
   endpoints own their route and discovery advertisement.
 - [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md): the algorithms of a signed
   request.
-- [ADR-1187](1187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md): a request object's claims.
+- [ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md): a request object's claims.
 - [ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md): only the call that decides a request acts.
 - [ADR-1225](1225-every-grant-that-issues-tokens-for-a-subject-validates-it.md): the subject check of approval and
   redemption.

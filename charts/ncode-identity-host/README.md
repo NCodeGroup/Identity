@@ -797,6 +797,10 @@ httpRoute:
     - id.example.com
 ```
 
+The pods speak HTTP/2 and HTTP/1.1 over TLS and refuse an HTTP/2 request whose `:scheme` is `http`, so the Gateway
+forwards `https`. A Gateway whose listener is HTTPS does. A Gateway whose listener is plain HTTP, behind a load
+balancer that ends TLS, must be told to, as Envoy Gateway's `ClientTrafficPolicy` does with `scheme: MatchBackend`.
+
 A Traefik release needs Traefik's Kubernetes CRD provider, which reads the `ServersTransport`;
 `ci/high-availability-values.yaml` shows one:
 
@@ -903,11 +907,22 @@ controller forwards the end client's certificate in that header
 
 ### What CI proves
 
-The `cluster` job of the `Host chart` workflow installs the chart in a kind cluster behind Traefik. It proves that the
-pods become Ready over HTTPS, that a request through the controller succeeds, that a controller whose verification
-Secret holds a foreign CA is refused (`500` from Traefik), and, with `backendTls.clientCertificate.required`,
-that a direct request without a certificate gets `403` on `/` and `200` on `/health/live`, while a request with the
-ingress Secret's certificate is not refused.
+The `cluster` job of the `Host chart` workflow installs the chart's server and management console in a kind cluster,
+first behind Traefik and then behind an Envoy Gateway. Envoy Gateway is the Gateway API implementation because it
+implements the Gateway's backend client certificate. The Gateway's listener is plain HTTP, and a `ClientTrafficPolicy`
+with `scheme: MatchBackend` sends `https` as the `:scheme` the pods require.
+
+Behind Traefik, the job proves that the pods become Ready over HTTPS, that a request through the controller succeeds
+for both hosts, that Traefik verifies the pods' certificate through the `ServersTransport` and presents the ingress
+client certificate, and that a controller whose verification Secret holds a foreign CA is refused (`500` from
+Traefik). With `backendTls.clientCertificate.required`, a direct request without the proxy client certificate gets
+`403` outside the health paths and `200` on `/health/live`, while a request with the ingress Secret's certificate gets
+`200`.
+
+Behind the Envoy Gateway, with `httpRoute` and `backendTls.caPublisher`, the job proves that the `BackendTLSPolicy`
+verifies the pods' certificate and that the Gateway's `spec.tls.backend.clientCertificateRef` presents the ingress
+client certificate the pods require. A Gateway without `clientCertificateRef` gets `403` outside the health paths
+and `200` on them, and a `BackendTLSPolicy` that holds a foreign CA gets `503`.
 
 ## Strict-Transport-Security
 

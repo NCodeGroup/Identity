@@ -170,7 +170,7 @@ Claude Sonnet 5.5 executes one verified step at a time, and Opus re-plans any st
 Copilot CLI or Claude Code. The workflow files come from the project template; update them with
 `/plan-template-update`, which plans and runs `./.template/Update-Project.ps1`, never by hand. See
 [AGENTS.md](AGENTS.md#plan-and-execute-workflow) and
-[ADR-1170](docs/decisions/1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md).
+[ADR-1170](docs/decisions/1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md).
 
 See [GOVERNANCE.md](GOVERNANCE.md) for ownership, the release lifecycle, and how versions map onto tags.
 

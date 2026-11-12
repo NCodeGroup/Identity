@@ -3794,7 +3794,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   committed on every platform; the template update runs on Windows when the repository's `.gitignore` ignores a folder
   the template's does not, such as `frontend/node_modules`; and every checkout except `copilot-setup-steps.yml`'s sets
   `persist-credentials: false`, keeping the job's token out of `.git/config`
-  ([ADR-1170](docs/decisions/1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)).
+  ([ADR-1170](docs/decisions/1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md)).
 
 - **Local and Copilot workflow formats are supported together.** The repository keeps both the Local prompts and the
   Copilot skills. The first Definition-of-Done stage checks every pair's name, description, and ordered workflow body,
@@ -3803,7 +3803,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   selection; Local prompts keep their model-selection metadata. [AGENTS.md](AGENTS.md#local-and-copilot-customizations)
   explains model selection and Copilot's Review Migrations banner. See issue
   [#179](https://github.com/NCodeGroup/identity/issues/179) and
-  [ADR-1170](docs/decisions/1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md#dual-runtime-customization-contract).
+  [ADR-1170](docs/decisions/1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md#dual-runtime-customization-contract).
 
 - **Pull requests into `main` squash-merge through the merge queue.**
   [ADR-1304](docs/decisions/1304-pull-requests-into-main-merge-by-squash-through-the-merge-queue.md) records the

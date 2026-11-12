@@ -53,7 +53,7 @@ Conventions, reasoning and recurring gotchas stay in the repository
 ## References
 
 - [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) — durable knowledge lives in the repository.
-- [ADR-1170](1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md) — the
+- [ADR-1170](1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md) — the
   plan-and-execute workflow whose pull requests close issues.
 - [`.github/instructions/repository.instructions.md`](../../.github/instructions/repository.instructions.md) — the
   agent rules that point at this tracker.

@@ -243,7 +243,7 @@ requests close an issue here with `Closes NCodeGroup/identity#<number>`
 ## Plan-and-execute workflow
 
 Multi-step changes run as **plan-and-execute**
-([ADR-1170](docs/decisions/1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)):
+([ADR-1170](docs/decisions/1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md)):
 Claude Opus plans into a root `PLAN.md`, Claude Sonnet 5.5 executes it one verified step at a time, and any step that
 needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI or Claude Code.
 
@@ -348,7 +348,7 @@ cannot read, but this repository already provides their skill equivalents. Use *
 which files the runtime can read. Generic conversion loses prompt-specific agent/model/tool selection and adds
 `disable-model-invocation: true`, which is not part of our supported skill configuration. User-profile customizations
 are separate: review any such entries individually rather than assuming the repository skills cover them. See
-[ADR-1170](docs/decisions/1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md#dual-runtime-customization-contract).
+[ADR-1170](docs/decisions/1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md#dual-runtime-customization-contract).
 
 ## Landing
 

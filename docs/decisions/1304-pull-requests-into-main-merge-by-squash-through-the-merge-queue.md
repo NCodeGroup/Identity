@@ -14,7 +14,7 @@ record. `main` accepts changes only through pull requests that pass the gate, it
 full gate on the merged result
 ([ADR-1263](1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)). A plan's title is a
 conventional commit subject, and its `Plan step N` commits are checkpoints that each pass one step's check
-([ADR-1170](1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)).
+([ADR-1170](1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md)).
 
 ## Decision
 

@@ -190,7 +190,7 @@ enables auto-merge, because the user self-reviews the draft and that step is the
    pushed, and `/finish-plan` deletes it once the pull request merges. The `Plan step N` checkpoints reach the pull
    request's branch but never `main`: the merge queue squash-merges, taking the commit's subject from the pull request
    title, which `/ship-plan` takes from the plan's title, so a plan's title is a conventional commit subject
-   ([ADR-1170](../../docs/decisions/1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md)).
+   ([ADR-1170](../../docs/decisions/1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md)).
 2. **Persist lessons.** Promote every lesson learned in the session into durable repository content — a convention
    into the scoped instruction files, a non-obvious decision into an ADR under [`docs/decisions/`](../../docs/decisions/), a
    change to what the family does into the [`CHANGELOG.md`](../../CHANGELOG.md) catalog, and pending work into a

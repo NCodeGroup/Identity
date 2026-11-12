@@ -213,7 +213,7 @@ The records are grouped by area; within an area they are in number order.
 | [1187](./1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md) | A client-signed JWT is short-lived, its lifetime capped from its earliest asserted start | Accepted |
 | [1192](./1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md) | Dynamic client registration rides the client and grant stores, authorized by single-use initial access tokens | Accepted |
 | [1201](./1201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md) | Authorization responses are delivered by registered response-mode handlers | Accepted |
-| [1203](./1203-redirect-uris-are-matched-exactly.md) | Redirect URIs are matched exactly | Accepted |
+| [1203](./1203-redirect-uris-are-matched-exactly-as-written-and-their-kinds-are-narrowed-by-settings.md) | Redirect URIs are matched exactly, as written, and their kinds are narrowed by settings | Accepted |
 | [1211](./1211-a-rotated-refresh-token-is-spent-with-its-successor.md) | A rotated refresh token is spent with its successor, and a lost spend is a reuse | Accepted |
 | [1212](./1212-deleting-an-owner-removes-what-it-owns.md) | Deleting a client or a tenant removes what it owns, its end users' data included | Accepted |
 | [1215](./1215-a-revocation-wins-a-concurrency-race.md) | A revocation wins a concurrency race | Accepted |

@@ -11,7 +11,7 @@ The domain of a setting is checked on its own
 settings. A client's registration depends on such relations: an algorithm that the client registers for a JWT must be in
 the effective list that permits it ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)), a
 redirect URI must be of a kind that `redirect_uri_kinds_supported` lists
-([ADR-1203](1203-redirect-uris-are-matched-exactly.md)), and the authentication method must be one that
+([ADR-1203](1203-redirect-uris-are-matched-exactly-as-written-and-their-kinds-are-narrowed-by-settings.md)), and the authentication method must be one that
 `token_endpoint_auth_methods_supported` lists
 ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md)). The lists come from the settings cascade
 and from the security profiles that a scope selects

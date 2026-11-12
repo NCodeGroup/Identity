@@ -3312,7 +3312,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `OpenIdConstants.RedirectUriKinds`, sort a redirect URI into at most one: `https`, `loopback` (an `http` URI whose
   host is `127.0.0.1` or `[::1]`, RFC 8252 §7.3), `http` (any other `http` URI, `localhost` included), and `private_use`
   (a reverse-domain scheme such as `com.example.app`, RFC 8252 §7.1)
-  ([ADR-1203](docs/decisions/1203-redirect-uris-are-matched-exactly.md),
+  ([ADR-1203](docs/decisions/1203-redirect-uris-are-matched-exactly-as-written-and-their-kinds-are-narrowed-by-settings.md),
   [#244](https://github.com/NCodeGroup/identity/issues/244)).
 
 - **Security profiles are an open registry of ceilings, defaults and requirement objects**
@@ -4714,7 +4714,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   the `Location` header. The token endpoint compares `redirect_uri` ordinally with the authorization request's value
   (RFC 6749 §4.1.3), so a value that differs in the case of its host or in its user information is refused with
   `invalid_grant` (issue [#243](https://github.com/NCodeGroup/identity/issues/243))
-  ([ADR-1203](docs/decisions/1203-redirect-uris-are-matched-exactly.md),
+  ([ADR-1203](docs/decisions/1203-redirect-uris-are-matched-exactly-as-written-and-their-kinds-are-narrowed-by-settings.md),
   [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)).
 
 - **A redirect URI's kind is checked, and a URI of no kind is never permitted.** A `private_use` URI has a
@@ -4731,7 +4731,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `post_logout_redirect_uri` like an unregistered one when `redirect_uri_kinds_supported` excludes its kind, and escapes
   its `Location` header as an authorization response's is (issue
   [#247](https://github.com/NCodeGroup/identity/issues/247))
-  ([ADR-1203](docs/decisions/1203-redirect-uris-are-matched-exactly.md),
+  ([ADR-1203](docs/decisions/1203-redirect-uris-are-matched-exactly-as-written-and-their-kinds-are-narrowed-by-settings.md),
   [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md)).
 
 - **`response_types_supported` is the only control over the tokens the authorization endpoint returns.** To forbid an

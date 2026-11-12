@@ -83,7 +83,7 @@ than inlining the rationale.
   [Nullability and Invariants](csharp.instructions.md#nullability-and-invariants). `TenantAddressRules.TryParseIssuer`
   checks an issuer's raw string, and an identifier compared byte for byte, such as a redirect URI, is never normalized
   through `UriBuilder` or `UriJsonConverter` either
-  ([ADR-1203](../../docs/decisions/1203-redirect-uris-are-matched-exactly.md)).
+  ([ADR-1203](../../docs/decisions/1203-redirect-uris-are-matched-exactly-as-written-and-their-kinds-are-narrowed-by-settings.md)).
 - ✅ **Auto-properties over fields, `private` members and a `Lock` included** — template
   [Members and Constructors](csharp.instructions.md#members-and-constructors). `NCID0001`, from
   `analyzers/NCode.Identity.Analyzers`, fails the build of every project on a field that is not a `const`, a `ref` field, a

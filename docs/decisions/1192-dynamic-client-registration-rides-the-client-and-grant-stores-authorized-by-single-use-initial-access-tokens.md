@@ -62,7 +62,7 @@ creates.** No table, store or migration is added.
   ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md)).
 - `response_types` and `grant_types` follow
   [ADR-1141](1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md), and
-  redirect URIs and their kinds follow [ADR-1203](1203-redirect-uris-are-matched-exactly.md).
+  redirect URIs and their kinds follow [ADR-1203](1203-redirect-uris-are-matched-exactly-as-written-and-their-kinds-are-narrowed-by-settings.md).
 - `jwks` is imported under the client-key policy
   ([ADR-1161](1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md)).
 - `subject_type` and `sector_identifier_uri` follow

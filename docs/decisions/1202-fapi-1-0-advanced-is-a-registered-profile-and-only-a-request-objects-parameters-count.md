@@ -38,7 +38,7 @@ all require using only the request object's parameters.
      most 5 minutes;
    - `clock_skew` is at most 60 seconds;
    - `redirect_uri_kinds_supported` is `https` only and `allow_loopback_redirect` is off
-     (FAPI 1.0 Part 1 §5.2.2-20 and §7.5, [ADR-1203](1203-redirect-uris-are-matched-exactly.md));
+     (FAPI 1.0 Part 1 §5.2.2-20 and §7.5, [ADR-1203](1203-redirect-uris-are-matched-exactly-as-written-and-their-kinds-are-narrowed-by-settings.md));
    - a request object must carry `nbf` and live at most 60 minutes
      ([ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md)).
 
@@ -128,7 +128,7 @@ all require using only the request object's parameters.
 
 - [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md),
   [ADR-1201](1201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md),
-  [ADR-1203](1203-redirect-uris-are-matched-exactly.md),
+  [ADR-1203](1203-redirect-uris-are-matched-exactly-as-written-and-their-kinds-are-narrowed-by-settings.md),
   [ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md),
   [ADR-1141](1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md),
   [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)

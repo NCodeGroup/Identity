@@ -545,7 +545,7 @@ jobs:
               --set controller.admissionWebhooks.enabled=false --wait --timeout 5m
           else
             helm install traefik traefik --repo https://traefik.github.io/charts --version 42.3.1 \
-              --namespace traefik --create-namespace --set service.type=ClusterIP --wait --timeout 5m
+              --namespace traefik --create-namespace --set service.spec.type=ClusterIP --wait --timeout 5m
           fi
 
       # The release reads the database and the root key from Secrets, which are generated here and never stored.

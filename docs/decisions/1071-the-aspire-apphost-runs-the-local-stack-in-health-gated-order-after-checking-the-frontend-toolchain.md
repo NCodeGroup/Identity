@@ -67,8 +67,8 @@ returns `200`, which removes the surface-before-API race.
 Ports are fixed. `api`, `conformanceapi` and `console` take theirs from their launch profiles, and the `playground`
 and `conformance` Vite servers pin 5174 and 5175 un-proxied (`IsProxied = false`) so the OAuth redirect callback
 resolves. The seeded redirect URIs, the developer CORS origins, the pinned issuers and the bootstrap document assume
-these ports, and a proxy that rewrites the request host would drift the issuer, the OAuth cookies and the antiforgery
-binding away from the pinned origin. Aspire's dynamic port allocation is rejected for that reason.
+these ports, and a proxy that rewrites the request host would drift the OAuth cookies and the antiforgery binding away
+from the pinned origin. Aspire's dynamic port allocation is rejected for that reason.
 
 ### HTTPS everywhere
 
@@ -157,7 +157,7 @@ changes.
 - The AppHost restores the Aspire SDK and hosting packages, needs a container runtime, and needs the pnpm workspace
   installed once from the root with `build/frontend-install.ps1` before the first launch and again whenever
   dependencies change.
-- You chose wrong smells: if the API is proxied through Aspire in a way that rewrites the request host, the issuer,
+- You chose wrong smells: if the API is proxied through Aspire in a way that rewrites the request host, the
   OAuth cookies and antiforgery binding drift from `localhost:5001`, which the pinned, un-proxied endpoints guard
   against. If a per-app `pnpm install` appears in the AppHost, the `ERR_PNPM_EBUSY` collision returns.
 - The `hosts/` folder's `Directory.Build.props` turns packing off, so the AppHost contributes no shippable artifact.

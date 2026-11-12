@@ -203,9 +203,11 @@ if (secretProtectionCommand is not null)
 // no-op unless 'ProxyClientCertificate:Required' is true (ADR-1506).
 app.UseProxyClientCertificate();
 
-// Right after the proxy check: everything downstream that reads the scheme or host — the HTTPS redirect, request
-// logging's client IP, host-based tenant selection and the choice among the tenant's own origins — has to observe the
-// original request rather than the proxy-to-application hop. A no-op unless 'ForwardedHeaders' names a trusted proxy.
+// Right after the proxy check: everything downstream that reads the scheme, host or client address — the HTTPS
+// redirect, host-based tenant selection, the choice among the tenant's own origins, the rate limits, the
+// failed-client-authentication limit, the audit record's source address and the session's remote address — has to
+// observe the original request rather than the proxy-to-application hop. A no-op unless 'ForwardedHeaders' names a
+// trusted proxy.
 app.UseTrustedForwardedHeaders();
 
 // Right after the forwarded headers, so a request a trusted proxy received over HTTPS counts as HTTPS. A no-op in

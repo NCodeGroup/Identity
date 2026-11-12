@@ -13,13 +13,15 @@ namespace NCode.Identity.AspNetCore.Options;
 /// <remarks>
 /// <para>
 /// An application behind a TLS-terminating proxy sees a plaintext HTTP connection to an internal address. Without these
-/// headers it reads the wrong scheme and host: an OpenID provider publishes an <c>http://</c> issuer for a
-/// container-internal name, and an HTTPS-only policy never applies.
+/// headers it reads the wrong scheme, host and client address: an HTTPS-only policy (the HTTPS redirect and
+/// Strict-Transport-Security) never applies, host-based tenant selection and the choice among a tenant's own published
+/// origins see the container-internal name, and the client address is the proxy's.
 /// </para>
 /// <para>
 /// Trusting those headers from an untrusted peer is the mirror-image failure: a client that can reach the application
-/// directly could assert any scheme and host and make the application build URLs, such as an issuer, from a scheme and
-/// host it chose. Forwarding is therefore <b>off unless a trusted proxy is configured</b>, and it is never enabled by
+/// directly could assert any scheme, host and client address and make the application select a tenant by a host it
+/// chose, treat a request as HTTPS that was not, or key a rate limit and an audit record on an address it chose.
+/// Forwarding is therefore <b>off unless a trusted proxy is configured</b>, and it is never enabled by
 /// trusting every peer — leave both lists empty for a direct-TLS deployment, where the connection already carries the
 /// truth.
 /// </para>

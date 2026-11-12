@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -42,6 +44,44 @@ public sealed class TransportSecurityRegistrationTests : BaseTests
 
         await using var app = builder.Build();
         await app.StartAsync(cancellationToken);
+    }
+
+    private static async ValueTask StartConfiguredAsync(
+        string urls,
+        X509Certificate2 certificate,
+        string environmentName,
+        CancellationToken cancellationToken
+    )
+    {
+        var directory = Directory.CreateTempSubdirectory();
+        try
+        {
+            var (certificatePath, keyPath) = TransportSecurityTestCertificates.WritePemFiles(
+                certificate,
+                directory.FullName
+            );
+
+            var builder = WebApplication.CreateBuilder(
+                new WebApplicationOptions { EnvironmentName = environmentName }
+            );
+            builder.Logging.ClearProviders();
+            builder.Configuration.AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["Kestrel:Certificates:Default:Path"] = certificatePath,
+                    ["Kestrel:Certificates:Default:KeyPath"] = keyPath,
+                }
+            );
+            builder.WebHost.UseUrls(urls);
+            builder.Services.AddTransportSecurity(builder.Environment);
+
+            await using var app = builder.Build();
+            await app.StartAsync(cancellationToken);
+        }
+        finally
+        {
+            directory.Delete(recursive: true);
+        }
     }
 
     #endregion
@@ -209,6 +249,90 @@ public sealed class TransportSecurityRegistrationTests : BaseTests
         );
 
         Assert.Null(exception);
+    }
+
+    #endregion
+
+    #region Configured Kestrel Tests
+
+    [Fact]
+    public async Task AddTransportSecurity_InProductionWithAConfiguredCertificateAndHttpsUrl_Starts()
+    {
+        using var certificate = TransportSecurityTestCertificates.CreateValid(
+            DateTimeOffset.UtcNow
+        );
+
+        var exception = await Record.ExceptionAsync(async () =>
+            await StartConfiguredAsync(
+                "https://127.0.0.1:0",
+                certificate,
+                Environments.Production,
+                CancellationToken.None
+            )
+        );
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task AddTransportSecurity_InProductionWithAConfiguredCertificateAndAWildcardHttpsUrl_Starts()
+    {
+        using var certificate = TransportSecurityTestCertificates.CreateValid(
+            DateTimeOffset.UtcNow
+        );
+
+        var exception = await Record.ExceptionAsync(async () =>
+            await StartConfiguredAsync(
+                "https://+:0",
+                certificate,
+                Environments.Production,
+                CancellationToken.None
+            )
+        );
+
+        Assert.Null(exception);
+    }
+
+    [Fact]
+    public async Task AddTransportSecurity_InProductionWithAConfiguredExpiredCertificate_Refuses()
+    {
+        var now = DateTimeOffset.UtcNow;
+        using var certificate = TransportSecurityTestCertificates.CreateWithValidity(
+            now.AddDays(-10),
+            now.AddDays(-1)
+        );
+
+        var exception = await Record.ExceptionAsync(async () =>
+            await StartConfiguredAsync(
+                "https://127.0.0.1:0",
+                certificate,
+                Environments.Production,
+                CancellationToken.None
+            )
+        );
+
+        var failure = Assert.IsType<InvalidOperationException>(exception);
+        Assert.Contains("expired", failure.Message);
+    }
+
+    [Fact]
+    public async Task AddTransportSecurity_InProductionWithAConfiguredCertificateAndAnHttpUrl_Refuses()
+    {
+        using var certificate = TransportSecurityTestCertificates.CreateValid(
+            DateTimeOffset.UtcNow
+        );
+
+        var exception = await Record.ExceptionAsync(async () =>
+            await StartConfiguredAsync(
+                "http://127.0.0.1:0",
+                certificate,
+                Environments.Production,
+                CancellationToken.None
+            )
+        );
+
+        var failure = Assert.IsType<InvalidOperationException>(exception);
+        Assert.Contains("plain HTTP", failure.Message);
     }
 
     #endregion

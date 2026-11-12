@@ -4,6 +4,7 @@
 using System.Net;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using NCode.Buffers;
 using NCode.Identity.AspNetCore.TransportSecurity;
 
 namespace NCode.Identity.AspNetCore.Tests.TransportSecurity;
@@ -74,10 +75,24 @@ internal static class TransportSecurityTestCertificates
         );
 
     /// <summary>
-    /// A copy of the certificate that holds only its public part.
+    /// Writes the certificate as <c>tls.crt</c> and its ECDSA private key as PKCS#8 <c>tls.key</c>, the PEM files that
+    /// Kestrel reads from <c>Kestrel:Certificates:Default:Path</c> and <c>KeyPath</c>, and returns the two paths.
     /// </summary>
-    internal static X509Certificate2 WithoutPrivateKey(X509Certificate2 certificate) =>
-        X509CertificateLoader.LoadCertificate(certificate.RawData);
+    internal static (string CertificatePath, string KeyPath) WritePemFiles(
+        X509Certificate2 certificate,
+        string directory
+    )
+    {
+        using var key =
+            certificate.GetECDsaPrivateKey()
+            ?? throw new InvalidOperationException("The certificate has no ECDSA private key.");
+
+        var certificatePath = Path.Combine(directory, "tls.crt");
+        var keyPath = Path.Combine(directory, "tls.key");
+        File.WriteAllText(certificatePath, certificate.ExportCertificatePem(), SecureEncoding.UTF8);
+        File.WriteAllText(keyPath, key.ExportPkcs8PrivateKeyPem(), SecureEncoding.UTF8);
+        return (certificatePath, keyPath);
+    }
 
     private static X509Certificate2 Create(
         DateTimeOffset notBefore,
@@ -146,7 +161,11 @@ internal static class TransportSecurityTestCertificates
     }
 
     private static X509Certificate2 Reload(X509Certificate2 certificate) =>
-        X509CertificateLoader.LoadPkcs12(certificate.Export(X509ContentType.Pfx), password: null);
+        X509CertificateLoader.LoadPkcs12(
+            certificate.Export(X509ContentType.Pfx),
+            password: null,
+            keyStorageFlags: X509KeyStorageFlags.Exportable
+        );
 
     // Signs with RSA PKCS#1 and SHA-1 (sha1WithRSAEncryption), which the inspector must refuse.
     private sealed class Sha1RsaSignatureGenerator(RSA rsa) : X509SignatureGenerator

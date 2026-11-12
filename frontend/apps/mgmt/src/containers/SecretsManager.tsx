@@ -57,12 +57,12 @@ export type SecretsManagerProps = {
   /**
    * Creates a tenant's signing or encryption key in a remote key provider's key management service, which keeps the
    * private half; must reject with an {@link ApiError}-shaped error on failure. The custody choice is offered only
-   * when this is supplied (ADR-1475, ADR-1476, ADR-1471).
+   * when this is supplied (ADR-1476, ADR-1471).
    */
   readonly onCreateRemote?: (body: CreateRemoteSecretRequest) => Promise<SecretResource>;
   /**
    * Binds a key a remote key provider's key management service already holds; must reject with an
-   * {@link ApiError}-shaped error on failure. The bind action is shown only when this is supplied (ADR-1475,
+   * {@link ApiError}-shaped error on failure. The bind action is shown only when this is supplied (ADR-1476,
    * ADR-1476).
    */
   readonly onImportRemote?: (body: ImportRemoteSecretRequest) => Promise<SecretResource>;

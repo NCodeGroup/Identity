@@ -1097,7 +1097,7 @@ singleton or an options validator, gets an `InvalidOperationException` that name
 a ring only when a request uses it. A key ring's KMS key is the operator's: the BFF never creates, tags or destroys it,
 so it needs no `SecretProtection:RemoteKeys:Deployment`. An OP deployment's orphaned-key sweep never touches the key as
 long as it carries no `ncid-` group name and no deployment tag, and the key belongs in a scope of its own
-([ADR-1476](decisions/1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md)).
+([ADR-1476](decisions/1476-the-management-api-creates-a-tenants-remote-key-and-binds-one-only-after-proving-it.md)).
 A remote DPoP key costs a KMS signature for every proof, that is for each token request and each forwarded call with a
 DPoP-bound token. Hold the client-authentication key and the decryption key in the KMS, and keep the DPoP key local
 unless the threat model needs it and the request rate fits the KMS's quota. A host that holds a key ring from another

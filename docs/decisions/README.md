@@ -263,8 +263,7 @@ The records are grouped by area; within an area they are in number order.
 | [1471](./1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md) | A tenant's signing and encryption keys can be held in a key management service | Accepted |
 | [1472](./1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md) | Signing and content-key unwrapping are asynchronous from the JOSE algorithm to every caller | Accepted |
 | [1474](./1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md) | A remote key provider is described by data and reads, signs and decrypts by key identifier | Accepted |
-| [1475](./1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md) | The management API creates a tenant's key in a key management service and binds one that proves it signs | Accepted |
-| [1476](./1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md) | A bound KMS key's public half is read from its service, and the console offers each provider's algorithms | Accepted |
+| [1476](./1476-the-management-api-creates-a-tenants-remote-key-and-binds-one-only-after-proving-it.md) | The management API creates a tenant's remote key and binds one only after proving it | Accepted |
 | [1478](./1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md) | A background job destroys the key management service keys that no stored secret names | Accepted |
 | [1479](./1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md) | A protocol client's and a BFF's keys can be held in a key management service, read and proved at start | Accepted |
 

@@ -71,7 +71,7 @@ every listed key that no stored secret names and that is older than a grace peri
 7. **A destruction is audited.** A destroyed key emits `RemoteKeyAuditEvent`: event `remote_key.destroyed`, category
    `key`, actor `system`, resource `remote_key` whose identifier is the reference text, in the control-plane tenant,
    because the KMS key identifier never reaches a tenant's audit trail
-   ([ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md)
+   ([ADR-1476](1476-the-management-api-creates-a-tenants-remote-key-and-binds-one-only-after-proving-it.md)
    rule 1 keeps it from the tenant's API). The details are `reason` (`orphaned`), `provider`, `key_id`, `group`,
    `owner` and `secret_id` when the tags carry them, and `key_created_when`.
 8. **Every destruction stays recoverable for the service's window.** AWS schedules a pending deletion, Azure disables
@@ -108,6 +108,6 @@ every listed key that no stored secret names and that is older than a grace peri
 
 - [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)
 - [ADR-1474](1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md)
-- [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md)
+- [ADR-1476](1476-the-management-api-creates-a-tenants-remote-key-and-binds-one-only-after-proving-it.md)
 - [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)
 - Issue [#654](https://github.com/NCodeGroup/identity/issues/654)

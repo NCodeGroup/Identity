@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 /// server encrypts to the stored public half as a compact JWE (<c>A256GCM</c>), so a key that does not hold the
 /// private half of the public half the service returned is never stored.
 /// </summary>
-// See ADR-1475.
+// See ADR-1476.
 // See ADR-1476.
 // See ADR-1471.
 internal interface IRemoteSecretImporter

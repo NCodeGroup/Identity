@@ -34,7 +34,7 @@ POST api/tenants/{tenantId}/secrets/remote/import
 /// Provides the API endpoints that manage the signing and encryption keys a tenant holds in the key management
 /// service of a registered remote key provider. The private half of such a key never leaves the service.
 /// </summary>
-// See ADR-1475.
+// See ADR-1476.
 // See ADR-1471.
 internal class TenantRemoteSecretApiEndpointHandler(
     IStoreManagerFactory storeManagerFactory,
@@ -107,7 +107,7 @@ internal class TenantRemoteSecretApiEndpointHandler(
     /// <response code="409">The tenant already holds a secret with the generated identifier.</response>
     /// <response code="412">Another request changed the tenant's secrets after this request read them; the created key is destroyed.</response>
     /// <response code="502">The key management service did not create the key.</response>
-    // See ADR-1475.
+    // See ADR-1476.
     [EndpointName("api/tenants/secrets/create-remote")]
     internal virtual async ValueTask<IResult> CreateRemoteSecretAsync(
         HttpContext httpContext,
@@ -226,7 +226,7 @@ internal class TenantRemoteSecretApiEndpointHandler(
     /// <response code="409">The tenant already holds a secret with the generated identifier or the same <c>kid</c>.</response>
     /// <response code="412">Another request changed the tenant's secrets after this request read them.</response>
     /// <response code="502">The key management service failed or refused reading the key's public half or the proof of the binding.</response>
-    // See ADR-1475.
+    // See ADR-1476.
     // See ADR-1476.
     [EndpointName("api/tenants/secrets/import-remote")]
     internal virtual async ValueTask<IResult> ImportRemoteSecretAsync(
@@ -371,7 +371,7 @@ internal class TenantRemoteSecretApiEndpointHandler(
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <c>403 Forbidden</c> result, or <c>null</c> when the caller may update the platform.</returns>
-    // See ADR-1475.
+    // See ADR-1476.
     internal virtual async ValueTask<IResult?> GetPlatformRefusalOrDefaultAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken

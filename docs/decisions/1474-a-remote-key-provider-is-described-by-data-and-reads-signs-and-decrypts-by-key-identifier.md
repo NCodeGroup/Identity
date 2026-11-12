@@ -142,7 +142,7 @@ keep.**
 - A BFF host registers the providers without a section.
 - `GetPublicKeyAsync` reads the public half of any key a provider holds, which binding a key reads in place of a
   supplied public half
-  ([ADR-1476](1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md)).
+  ([ADR-1476](1476-the-management-api-creates-a-tenants-remote-key-and-binds-one-only-after-proving-it.md)).
 
 ## References
 

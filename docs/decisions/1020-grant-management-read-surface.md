@@ -38,7 +38,7 @@ soft-revoke.**
 - **`DELETE` is a soft-revoke.** `DELETE /api/grants/{grantId}` sets `RevokedWhen` and keeps the row for audit rather
   than deleting it; revocation is idempotent (an already-revoked grant is left untouched and still returns `204`). A
   revoked grant is inert at runtime (`DefaultPersistedGrantService` already treats `RevokedWhen` as non-active).
-- **Tenant-scoped like clients ([ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md)).** The family
+- **Tenant-scoped like clients ([ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)).** The family
   runs under `TenantScopeEndpointFilter`, so the `OpenIdDbContext` global query filter scopes every read to the
   ambient tenant. A grant's tenant is **optional**; the filter is null-safe (`Tenant != null && …`) so a tenant-scoped
   request sees only its own tenant's grants and a non-tenant (global) grant is simply not materialized. List/get/revoke
@@ -83,7 +83,7 @@ soft-revoke.**
   projection.
 - [ADR-1014](1014-server-generated-opaque-resource-ids.md) — the opaque server-generated id scheme reused for
   `GrantId`.
-- [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) — the query filter that scopes the grant
+- [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — the query filter that scopes the grant
   surface to the ambient tenant.
 - [ADR-1019](1019-collection-endpoints-keyset-pagination.md) — the keyset pagination shape the grant list uses.
 - Code: `NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.GrantId`,

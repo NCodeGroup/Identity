@@ -37,7 +37,7 @@ enforces no foreign key, so no test of the hermetic host saw any of it (issue [#
    model entity that implements `ISupportTenantEntity` whose `NormalizedTenantId` is the tenant's, and the
    `SecretEntity` rows that those rows reference through `ISupportSecretEntity`. The set of entities is read from the
    model, as the tenant query filter reads it
-   ([ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md)), so an entity that another package
+   ([ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)), so an entity that another package
    contributes, such as a local account, is erased with its tenant without a change to the store.
 4. **Rows are removed through the change tracker.** Entity Framework orders the deletes. Foreign keys stay `Restrict`,
    and no migration is needed.
@@ -93,7 +93,7 @@ enforces no foreign key, so no test of the hermetic host saw any of it (issue [#
   deleted tenant are retired.
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — the usage ledger outlives the tenant.
 - [ADR-1063](1063-dynamic-client-registration.md) — dynamic client registration and its deregistration.
-- [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) — tenant-bound data access is scoped at the
+- [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — tenant-bound data access is scoped at the
   persistence layer.
 - Code: `NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores.ClientStore`,
   `NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores.ResourceServerStore`,

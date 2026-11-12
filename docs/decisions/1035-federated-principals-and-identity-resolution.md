@@ -17,7 +17,7 @@ isolation is preferred over a cross-tenant singleton. The "one actor, many conne
 _within_ a tenant; only the uniqueness scope narrows: the server-owned `PrincipalId` and the `(issuer, subject)`
 natural key are unique **per tenant**, not globally, and resolution runs within the ambient tenant. The persistence
 layer enforces this with a denormalized tenant discriminator and the fail-closed tenant-scope global query filter
-([ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md),
+([ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md),
 [ADR-1052](1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md)).
 
 ## Context

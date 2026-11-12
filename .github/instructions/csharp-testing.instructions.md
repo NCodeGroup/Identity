@@ -237,7 +237,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   (`EndedSessionTerminationServiceTests`).
 - 👁 **A global query filter is bypassed for change-tracked entities** — template
   [Entity Framework Core](csharp-tests.instructions.md#entity-framework-core); the tenant-scoping filter
-  ([ADR-1018](../../docs/decisions/1018-tenant-scoped-data-access-at-the-persistence-layer.md)) behaves this way, and EF
+  ([ADR-1018](../../docs/decisions/1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)) behaves this way, and EF
   InMemory honors query filters, so it covers the case.
 - 👁 **Data-protection integration tests are not hermetic under a shared host** — template
   [Integration Tests](csharp-tests.instructions.md#integration-tests): give each such test its own

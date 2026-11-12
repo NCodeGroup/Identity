@@ -79,7 +79,7 @@ base address exactly.**
 
 ## References
 
-- [ADR-1017](1017-tenant-resolution-shared-abstraction-and-management-boundary.md) — tenant selection versus
+- [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — tenant selection versus
   materialization.
 - [ADR-1129](1129-the-tenant-issuer-is-the-single-authoritative-origin.md) — the issuer as the single authoritative
   origin.

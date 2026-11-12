@@ -134,7 +134,7 @@ A non-Entity-Framework adapter is not a slice and keeps domain-first naming, as 
   `NCode.Identity.OpenId.Persistence.EntityFramework.Accounts`
 - [ADR-1051](1051-local-accounts-behind-a-pluggable-account-source-seam.md): the local-account slice whose shared-context
   requirement the framework serves.
-- [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md): the tenant scoping that the framework applies
+- [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md): the tenant scoping that the framework applies
   to every slice's `ISupportTenantEntity`.
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md): the dependency discipline that slices follow
   by depending on the framework and not on each other.

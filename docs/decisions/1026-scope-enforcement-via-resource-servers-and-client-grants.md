@@ -60,7 +60,7 @@ subsumed, not lost.
 
 - Request validation performs a tenant-scoped read of the resource-server catalog and the client's grants. The OIDC
   runtime does not establish an ambient tenant scope, so `IClientScopeService` sets it explicitly for those reads
-  ([ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md)); this per-request read is a caching
+  ([ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)); this per-request read is a caching
   opportunity (for example on the materialized tenant) left as future work.
 - A client can no longer obtain a scope merely because a flat setting listed it; it must come from a system resource
   server or a client grant. Seeding a workload therefore means seeding resource servers and grants, not widening a
@@ -76,7 +76,7 @@ subsumed, not lost.
   decision enforces at runtime.
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the Auth0-parity-plus philosophy and the
   `IsSystem`-implicit-grant generalization.
-- [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) — the ambient-tenant scoping the resolver sets
+- [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — the ambient-tenant scoping the resolver sets
   explicitly at the OIDC runtime.
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — the `*_supported` settings regime that
   `scopes_supported` leaves.

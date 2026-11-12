@@ -14,7 +14,7 @@ database, tenants separated by scoping) and **physical** isolation (separate sto
 
 Everything today lives in one `OpenIdDbContext` behind a single connection: the server, the tenants, and every tenant's
 clients, resource servers, scopes, and grants, joined by foreign keys.
-[ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) scopes tenant-bound access with a global query
+[ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) scopes tenant-bound access with a global query
 filter _within_ that one database. This ADR records how far that model is meant to go — and, deliberately, where it
 stops.
 
@@ -23,7 +23,7 @@ stops.
 **The system is a single control plane over a single physical deployment (one database, one `OpenIdDbContext`), in which
 tenants are a _logical_ isolation boundary, not a physical one. The server, the tenants, and every tenant's child
 resources are one connected graph with ordinary foreign-key relationships, and tenant isolation is enforced logically by
-the ambient-tenant query filter ([ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md)). When an
+the ambient-tenant query filter ([ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)). When an
 operator genuinely needs physical isolation (compliance, blast-radius, noisy-neighbor), they deploy a separate
 infrastructure instance of the whole server — they do not give a tenant its own database.**
 
@@ -62,7 +62,7 @@ infrastructure instance of the whole server — they do not give a tenant its ow
 ## Consequences
 
 - The data model stays a single, foreign-key-connected graph in one `OpenIdDbContext`; tenant isolation is the
-  [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) query filter, and nothing on any path depends
+  [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) query filter, and nothing on any path depends
   on a per-tenant database or a control/tenant connection split.
 - "Control plane" versus "tenant plane" is a _logical_ distinction (management realm plus the system resource servers
   seeded into each), which is why the management surface and system-resource-server seeding split along
@@ -78,7 +78,7 @@ infrastructure instance of the whole server — they do not give a tenant its ow
 
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — the server baseline that tenants narrow, read when
   materializing a tenant within the one database.
-- [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) — the ambient-tenant query filter that is the
+- [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — the ambient-tenant query filter that is the
   sole tenant-isolation mechanism.
 - [ADR-1023](1023-scopes-and-resources-management-model.md) — the resource server / scope / client grant model and the
   root/system tenant that is the control plane's tenant.

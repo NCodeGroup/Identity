@@ -9,7 +9,7 @@
 The management/admin surface is addressed by a route `{tenantId}` (`/api/tenants/{tenantId}/…`). A tenant-bound
 endpoint opens an **ambient tenant scope** from that route segment (`IAmbientTenantAccessor.BeginScope(tenantId)`), which
 the persistence-layer query filter reads to confine every read to the addressed tenant — fail-closed, and independent of
-the request's own resolved tenant ([ADR-1017](1017-tenant-resolution-shared-abstraction-and-management-boundary.md)).
+the request's own resolved tenant ([ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)).
 That ambient scope is a **bare string**: enough to isolate data reads, but not a materialized `OpenIdTenant` (settings,
 secrets, issuer).
 
@@ -69,7 +69,7 @@ endpoint delegate to it through that materialized context.**
 
 ## References
 
-- [ADR-1017](1017-tenant-resolution-shared-abstraction-and-management-boundary.md) — tenant resolution as a shared
+- [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — tenant resolution as a shared
   abstraction and the management boundary.
 - [ADR-1036](1036-unified-openid-request-environment.md), [ADR-1037](1037-tenant-cache-probe-before-store-load.md) — the
   request-driven tenant materialization and cache this capability deliberately parallels but does not share.

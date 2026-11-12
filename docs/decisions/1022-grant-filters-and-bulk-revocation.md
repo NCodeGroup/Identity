@@ -33,7 +33,7 @@ same filters.**
   returns `GrantRevocationResult { revoked }` so the operator sees how many grants were affected. Revocation is
   idempotent: already-revoked grants are not re-touched and not counted.
 - **Tenant isolation and authorization are unchanged.** Both run under `TenantScopeEndpointFilter`, so the
-  [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) query filter scopes every read and revoke to
+  [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) query filter scopes every read and revoke to
   the ambient tenant; a tenant admin cannot reach another tenant's grants. List authorizes with `Operations.List` and
   bulk revoke with `Operations.Delete`, both against the tenant scope — consistent with the rest of the grant surface.
 - **Store shape.** `IGrantStore.GetPageAsync` takes the optional `subjectId`/`clientId`; a new `RevokeWhereAsync`
@@ -74,7 +74,7 @@ same filters.**
 
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the interceptor that bumps row tokens on the grants a
   bulk revoke changes.
-- [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) — the query filter that scopes the filtered
+- [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — the query filter that scopes the filtered
   list and bulk revoke to the ambient tenant.
 - [ADR-1019](1019-collection-endpoints-keyset-pagination.md) — keyset pagination and its allowance for specific,
   store-backed filters.

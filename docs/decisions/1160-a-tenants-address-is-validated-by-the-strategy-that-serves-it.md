@@ -51,7 +51,7 @@ path that writes an address applies the same rules.**
    update changes its issuer, answering `400` for invalid values before `409` for conflicts. The management API still
    never resolves a protocol tenant ([ADR-1042](1042-management-api-route-driven-tenant-scope.md)); it asks the selection
    seam a pure question, so the rules have one source
-   ([ADR-1017](1017-tenant-resolution-shared-abstraction-and-management-boundary.md)).
+   ([ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)).
 3. **Startup uses the same rules.** The options validators share one internal rule set with the strategies
    (`TenantAddressRules`); they cannot call the strategies themselves, which read the options being validated.
 4. **Each strategy validates its own options.** A shared validator checks the strategy-independent members

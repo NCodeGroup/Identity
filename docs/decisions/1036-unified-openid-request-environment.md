@@ -16,7 +16,7 @@ through `IOpenIdContextFactory`, which resolves the tenant and builds an `OpenId
 and `Mediator`.
 
 The management API does not share that environment. It runs a thinner, separate mechanism — a `TenantScopeEndpointFilter`
-that opens an ambient **tenant-id scope** for the persistence query filter ([ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md))
+that opens an ambient **tenant-id scope** for the persistence query filter ([ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md))
 — and never materializes an `OpenIdContext` or a settings-bearing `OpenIdTenant`. The result is three overlapping
 tenant mechanisms grown apart over time:
 
@@ -56,7 +56,7 @@ surface, and the authentication slice already carried that dependency.
 
 Tenant resolution, tenant materialization, and ambient tenant scoping are consolidated behind the single context/tenant
 factory in the core slice: resolving a request's tenant, materializing its `OpenIdTenant` (settings and secrets merged
-server→tenant), opening the ambient scope the persistence filter reads ([ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md)),
+server→tenant), opening the ambient scope the persistence filter reads ([ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)),
 and producing the `OpenIdContext` are one flow. The management API runs that same flow; the former
 `TenantScopeEndpointFilter` is folded into it rather than kept as a parallel mechanism, so a management endpoint sees
 the same `OpenIdContext` — down to the settings-bearing tenant — that a protocol endpoint sees.
@@ -118,7 +118,7 @@ expressed this way, so a tenant can override the server default at runtime.
 
 ## References
 
-- [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) — the ambient tenant scope the persistence
+- [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — the ambient tenant scope the persistence
   filter reads, now opened by the shared environment pipeline.
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the pre-release posture and data-driven, per-tenant
   control philosophy this consolidation serves.

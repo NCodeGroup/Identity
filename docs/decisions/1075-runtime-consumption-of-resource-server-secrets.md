@@ -95,7 +95,7 @@ which already exists; JWE access tokens are the self-contained alternative for c
   turns a silent weakening into an explicit rejection.
 - A new per-request resolution reads the tenant's resource servers (already loaded, with settings and
   secrets, by `IResourceServerStore.GetPageAsync`) under an explicit ambient tenant scope
-  ([ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md)), mirroring the existing
+  ([ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)), mirroring the existing
   audience-resolution read. Credential material is deserialized per request and disposed after issuance.
 - FAPI readiness is advanced on the signing axis (asymmetric-only). The larger FAPI items —
   sender-constrained tokens (DPoP / mTLS), PAR, and JAR/JARM — are a separate epic tracked in

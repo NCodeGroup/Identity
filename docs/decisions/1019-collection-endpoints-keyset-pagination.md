@@ -78,7 +78,7 @@ no ad-hoc query protocol.**
   ordering on the normalized natural key.
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — the intent-specific store boundary that a
   query protocol would violate.
-- [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) — the query filter that scopes the client list
+- [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — the query filter that scopes the client list
   to the ambient tenant for free.
 - Code: `NCode.Identity.Persistence.Stores.PagedResult<T>`,
   `NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore` (keyset mechanics),

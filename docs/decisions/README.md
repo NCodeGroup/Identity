@@ -148,8 +148,7 @@ The records are grouped by area; within an area they are in number order.
 
 | ADR | Title | Status |
 | --- | --- | --- |
-| [1017](./1017-tenant-resolution-shared-abstraction-and-management-boundary.md) | Tenant resolution is a shared abstraction; the management API has an optional tenant boundary | Superseded |
-| [1018](./1018-tenant-scoped-data-access-at-the-persistence-layer.md) | Tenant selection is shared; tenant-bound data access is scoped at the persistence layer | Accepted |
+| [1018](./1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) | Tenant selection is shared and tenant-bound rows are scoped at the persistence layer | Accepted |
 | [1024](./1024-control-plane-and-per-tenant-planes.md) | Deployment model: one control plane with logical tenant isolation; physical isolation is a separate deployment | Accepted |
 | [1036](./1036-unified-openid-request-environment.md) | A single OpenID request environment for every HTTP surface | Accepted |
 | [1037](./1037-tenant-cache-probe-before-store-load.md) | The tenant cache is probed before the store is read on the resolution hot path | Accepted |

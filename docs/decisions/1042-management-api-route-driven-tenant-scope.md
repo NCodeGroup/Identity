@@ -12,7 +12,7 @@ The management API is a single, central-admin surface mounted at a fixed `/api` 
 ([ADR-1024](1024-control-plane-and-per-tenant-planes.md)), distinct from the OpenID protocol endpoints, which the
 runtime mounts under the tenant route ([ADR-1009](1009-endpoint-families-own-their-route-group.md)). Tenant-bound data
 access is kept leak-proof by a persistence-layer global query filter keyed on an ambient tenant scope
-([ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md)): every `ISupportTenantEntity` row is visible
+([ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)): every `ISupportTenantEntity` row is visible
 only when the ambient scope is unset (central-admin) or equals the row's tenant, so a cross-tenant row is never
 materialized. The tenant row itself is not scoped, so tenants and servers stay globally addressable.
 
@@ -33,8 +33,8 @@ source, and it produces three defects:
   `OpenIdContext.Tenant` returns the resolved tenant, not the one named in the route, so the central-admin surface
   cannot preview root vs. workload tenant settings.
 
-[ADR-1017](1017-tenant-resolution-shared-abstraction-and-management-boundary.md) (superseded by
-[ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md)) considered nesting management resources under a
+[ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) (superseded by
+[ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)) considered nesting management resources under a
 tenant route segment and rejected it, on the grounds that globally-unique opaque ids
 ([ADR-1014](1014-server-generated-opaque-resource-ids.md)) make the segment redundant for _addressing_. That reasoning
 predates the persistence query filter: with ADR-1018 the route segment is no longer about addressing — it is the
@@ -101,7 +101,7 @@ Everything follows from that rule:
   and leaves the scope sourced from protocol resolution.
 - **Nest tenant-bound families and drive the scope from the route (chosen).** Deterministic across every strategy,
   fail-closed via the existing query filter, consistent with the resource-ownership hierarchy and the already-nested
-  secrets/settings, and it reconciles ADR-1017's rejected nesting with ADR-1018's persistence-layer scope: the segment
+  secrets/settings, and it reconciles ADR-1018's rejected nesting with ADR-1018's persistence-layer scope: the segment
   is no longer about addressing, it is the scope source.
 
 ## Consequences
@@ -132,9 +132,9 @@ Everything follows from that rule:
   `ClientManagementGroup` hierarchy, the `OpenIdEndpointGroup`, the management environment/scope filters,
   `OpenIdDbContext.ApplyTenantScopeFilter`, `IAmbientTenantAccessor` / `DefaultAmbientTenantAccessor`,
   `ClientApiEndpointHandler`, `TenantApiEndpointHandler`, `ServerApiEndpointHandler`, `OwnershipHandler`.
-- [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) — the persistence-layer ambient-scope query
+- [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — the persistence-layer ambient-scope query
   filter this builds on.
-- [ADR-1017](1017-tenant-resolution-shared-abstraction-and-management-boundary.md) — the superseded boundary that
+- [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — the superseded boundary that
   rejected nesting; this ADR revisits that rejection under ADR-1018's mechanism.
 - [ADR-1024](1024-control-plane-and-per-tenant-planes.md),
   [ADR-1031](1031-control-plane-management-resource-server-and-root-tenant-seeding.md),

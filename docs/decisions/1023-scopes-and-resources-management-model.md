@@ -36,7 +36,7 @@ a Resource Server with a subset of that Resource Server's scopes.** Auth0 vocabu
 - **`ClientGrant`** (Auth0 "Client Grant") — the client↔Resource-Server authorization, unique per
   `(ClientId, ResourceServerId)`. The granted scopes are stored as a **JSON array of scope values** (`ScopesJson`), not
   a normalized join. Data integrity is maintained without a join table by two guardrails (below).
-- **Everything is tenant-scoped** ([ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md)): the Resource
+- **Everything is tenant-scoped** ([ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)): the Resource
   Server, its scopes, and client grants are materialized only within the ambient tenant.
 - **Standard OIDC scopes have a home.** A reserved **system Resource Server** (`IsSystem = true`) is seeded per tenant
   owning the standard identity scopes (`openid`, `profile`, `email`, `address`, `phone`, `offline_access`) as
@@ -90,7 +90,7 @@ corruption.
   entities.
 - [ADR-1014](1014-server-generated-opaque-resource-ids.md) — opaque server-generated identifiers reused for the new
   resources.
-- [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) — the tenant query filter the new families are
+- [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — the tenant query filter the new families are
   scoped by.
 - Code: `NCode.Identity.OpenId.Persistence.EntityFramework.Entities.ResourceServerEntity` / `ScopeEntity` /
   `ClientGrantEntity`; `NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore` / `IClientGrantStore`.

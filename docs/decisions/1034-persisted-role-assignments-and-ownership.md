@@ -34,7 +34,7 @@ creator of a resource is assigned the `Owner` role at the new instance, and a re
 
 A `RoleAssignmentEntity` is a tenant-scoped entity (`ISupportTenantEntity`), so every assignment for a tenant's
 resources — including the tenant node itself — lives in that tenant and inherits the persistence-layer tenant scoping
-([ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md)). Server-root assignments live in the root
+([ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)). Server-root assignments live in the root
 tenant ([ADR-1031](1031-control-plane-management-resource-server-and-root-tenant-seeding.md)). Its columns:
 
 - `PrincipalId` / `NormalizedPrincipalId` — the subject identifier (`sub`); a service principal (client) later. The
@@ -111,7 +111,7 @@ unmanageable.
 
 - [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md) — the authorization model this realizes: roles as
   scope bundles, assignments at resource nodes, ownership as an `Owner` assignment.
-- [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) — the tenant-scoped persistence that the
+- [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — the tenant-scoped persistence that the
   assignment entity inherits.
 - [ADR-1014](1014-server-generated-opaque-resource-ids.md) — the opaque resource ids the assignment uses.
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the interceptor-managed concurrency token the assignment

@@ -14,8 +14,7 @@ heavyweight `OpenIdTenant` (issuer, base address, merged settings provider, secr
 wiring) on each request.
 
 Tenant selection returns a `PersistedTenant` loaded from the store
-([ADR-1017](1017-tenant-resolution-shared-abstraction-and-management-boundary.md),
-[ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md)). Because the factory read the store to obtain
+([ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)). Because the factory read the store to obtain
 the tenant identifier _before_ consulting the cache, every request paid a tenant-store round-trip even when the
 materialized tenant was already cached — the cache saved re-materialization but never the database read. For the
 static-single and dynamic-by-path strategies the tenant identifier is knowable from the request alone (configuration,
@@ -68,6 +67,5 @@ cache using the identity probe before it reads the store.**
 - Code: `NCode.Identity.OpenId.Tenants.ITenantResolver`, `ITenantStrategy`, `DefaultTenantResolver`, `TenantStrategy`,
   `StaticSingleTenantStrategy`, `DynamicByPathTenantStrategy`, `DynamicByHostTenantStrategy`,
   `DefaultOpenIdTenantFactory` (`NCode.Identity.OpenId.Core`).
-- Prior art: [ADR-1017](1017-tenant-resolution-shared-abstraction-and-management-boundary.md),
-  [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md),
+- Prior art: [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md),
   [ADR-1024](1024-control-plane-and-per-tenant-planes.md).

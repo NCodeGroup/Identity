@@ -3421,7 +3421,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   with the default implementation in `NCode.Identity.OpenId.Core`, so both select the ambient tenant from a single
   source of truth. The factory composes `ITenantResolver` for tenant selection and performs only materialization, and
   `OpenIdTenantOptions` carries only materialization settings
-  ([ADR-1018](docs/decisions/1018-tenant-scoped-data-access-at-the-persistence-layer.md)).
+  ([ADR-1018](docs/decisions/1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)).
 
 - **Tenant resolution probes the tenant cache before reading the tenant store, and a cached tenant lives at most 15
   minutes.** `ITenantResolver` and `ITenantStrategy` expose `TryGetTenantId(httpContext, out tenantId)`, a store-free
@@ -5467,7 +5467,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1191](docs/decisions/1191-the-management-api-authenticates-against-the-control-plane-tenant.md)). The route's
   `{tenantId}` only scopes the data: it sets the ambient tenant scope, so a central-admin caller administers a tenant by
   id while the persistence-layer query filter confines the read fail-closed
-  ([ADR-1018](docs/decisions/1018-tenant-scoped-data-access-at-the-persistence-layer.md)); a control-plane route without
+  ([ADR-1018](docs/decisions/1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)); a control-plane route without
   `{tenantId}` uses the resolved tenant, which has no effect on the unscoped platform, team and tenant rows those routes act on
   ([ADR-1042](docs/decisions/1042-management-api-route-driven-tenant-scope.md)).
 
@@ -5653,14 +5653,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   `ISupportTenantEntity` carries a denormalized `NormalizedTenantId` discriminator, so the filter is a single
   indexed-column comparison and the framework stays decoupled from the concrete tenant entity
   ([ADR-1035](docs/decisions/1035-federated-principals-and-identity-resolution.md),
-  [ADR-1018](docs/decisions/1018-tenant-scoped-data-access-at-the-persistence-layer.md)).
+  [ADR-1018](docs/decisions/1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)).
 
 - **The management API never materializes a resource outside the request's tenant.** An `IAmbientTenantAccessor`
   (`NCode.Identity.OpenId.Persistence.Abstractions`) and an `OpenIdDbContext` global query filter on tenant-child
   entities scope every read when tenancy is request-derived (dynamic-by-host or dynamic-by-path), so a cross-tenant read
   returns `404` and no fetch-then-reject leak window exists. A reusable `TenantScopeEndpointFilter` establishes the
   scope; tenant, team and platform administration are central-admin (unscoped)
-  ([ADR-1018](docs/decisions/1018-tenant-scoped-data-access-at-the-persistence-layer.md)).
+  ([ADR-1018](docs/decisions/1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)).
 
 - **Deleting an owner removes what it owns.** `IClientStore.RemoveAsync` removes a client's secrets, grants to resource
   servers, consents, the grants issued to it and the role assignments at its resource node in the same unit of work as

@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
@@ -102,6 +103,15 @@ public class BffEndpointRouteBuilderExtensionsTests : BaseTests
 
         Assert.NotNull(user.Metadata.GetMetadata<BffUserEndpointMetadata>());
         Assert.Null(login.Metadata.GetMetadata<BffUserEndpointMetadata>());
+    }
+
+    [Fact]
+    public void MapBffEndpoints_EveryEndpoint_HasConfidentialBodies()
+    {
+        var endpoints = MapEndpoints();
+
+        Assert.NotEmpty(endpoints);
+        Assert.All(endpoints, x => Assert.True(x.HasConfidentialBodies));
     }
 
     [Fact]

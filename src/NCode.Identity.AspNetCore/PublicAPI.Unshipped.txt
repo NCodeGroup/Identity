@@ -109,3 +109,15 @@ NCode.Identity.AspNetCore.SinglePageBundle<TIndex>.ServeAsset(Microsoft.AspNetCo
 NCode.Identity.AspNetCore.SinglePageBundle<TIndex>.SinglePageBundle(string? rootPath, System.Func<string!, TIndex?>! parseIndex) -> void
 NCode.Identity.AspNetCore.SinglePageBundle<TIndex>.TryGetAsset(string! assetPath) -> Microsoft.Extensions.FileProviders.IFileInfo?
 NCode.Identity.AspNetCore.SinglePageBundle<TIndex>.TryReadIndexAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<TIndex?>
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointExtensions
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointExtensions.extension(Microsoft.AspNetCore.Http.Endpoint?)
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointExtensions.extension(Microsoft.AspNetCore.Http.Endpoint?).HasConfidentialBodies.get -> bool
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointExtensions.extension(Microsoft.AspNetCore.Http.Endpoint?).LoggableBodyFields.get -> Microsoft.AspNetCore.HttpLogging.HttpLoggingFields
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder)
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithConfidentialBodies() -> TBuilder
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithRequestBodyLogging() -> TBuilder
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithResponseBodyLogging() -> TBuilder
+NCode.Identity.AspNetCore.GuardedHttpLoggingRegistration
+NCode.Identity.AspNetCore.GuardedHttpLoggingRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.AspNetCore.GuardedHttpLoggingRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddGuardedHttpLogging() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

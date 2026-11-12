@@ -4,7 +4,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>NCode.Identity.AspNetCore</RootNamespace>
-        <Description>The HTTP building blocks of NCode.Identity on ASP.NET Core: page and response security (Content-Security-Policy, icon links, no-store), front-channel endpoint metadata, single-page bundles, form reads, and host hardening with Strict-Transport-Security, trusted forwarded headers and health probes.</Description>
+        <Description>The HTTP building blocks of NCode.Identity on ASP.NET Core: page and response security (Content-Security-Policy, icon links, no-store), front-channel endpoint metadata, single-page bundles, form reads, and host hardening with Strict-Transport-Security, trusted forwarded headers, health probes and HTTP logging that writes a body only for an endpoint that opts in.</Description>
     </PropertyGroup>
 
     <ItemGroup>

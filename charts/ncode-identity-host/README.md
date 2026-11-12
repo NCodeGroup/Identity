@@ -706,6 +706,12 @@ or `extraEnvFrom`, for example `Logging__LogLevel__Default`. The migration Job r
 `extraVolumes`, and `extraVolumeMounts` as well, so a setting the database connection needs, such as a CA bundle for
 TLS to Postgres, reaches both the host and the migrations.
 
+Raising a log level, for example `Logging__LogLevel__Default=Debug`, never writes a request or response body, a query
+string, or the value of an `Authorization`, `Cookie`, `DPoP`, `Set-Cookie` or `Location` header: the host's HTTP
+logging writes the request and response properties, the allow-listed headers and the duration, and no setting enables
+more
+([ADR-1503](../../docs/decisions/1503-http-logging-writes-a-body-only-for-an-endpoint-that-opts-in-and-never-for-one-that-carries-credentials.md)).
+
 The image writes one JSON object per line to standard output, with a UTC timestamp, so a log collector keeps an entry
 and its exception in one record
 ([ADR-1248](../../docs/decisions/1248-the-host-image-writes-one-line-json-logs.md)). Set

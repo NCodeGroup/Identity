@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Accounts.Authentication;
@@ -58,10 +57,10 @@ serviceCollection.AddHealthChecks();
 // OTEL_EXPORTER_OTLP_ENDPOINT is configured (the Aspire AppHost injects it, so its dashboard shows them). ADR-1197.
 serviceCollection.AddOpenTelemetryMetrics(configuration);
 
-serviceCollection.AddHttpLogging(options =>
-{
-    options.LoggingFields = HttpLoggingFields.All;
-});
+// HTTP logging writes the request and response properties, the allow-listed headers and the duration, never a query
+// string or a credential header value; an endpoint opts in to its own body in code, and the protocol, management and
+// interactive endpoints refuse it, so no log level writes a credential (ADR-1503).
+serviceCollection.AddGuardedHttpLogging();
 
 // Trust a reverse proxy's X-Forwarded-* headers, but only the proxies named in the 'ForwardedHeaders' configuration
 // section. Inert when none are configured, which is the correct posture for a direct-TLS deployment.
@@ -207,10 +206,12 @@ if (app.Environment.IsDevelopment())
 // Turnkey OpenAPI document + Scalar API reference, owned by the composition layer (prod and dev).
 app.MapIdentityServerApiReference();
 
-app.UseHttpLogging();
 app.UseHttpsRedirection();
 
 app.UseRouting();
+
+// After routing, so HTTP logging sees the selected endpoint and writes a body only for one that opts in to it.
+app.UseHttpLogging();
 
 // Must run after UseRouting and before the authN/authZ + endpoint middleware. A no-op unless the configuration has a
 // Cors section, which AddProductionSafety refuses in Production.

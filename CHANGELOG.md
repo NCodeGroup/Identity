@@ -431,8 +431,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   converts the wordmark to outlines from a pinned release of Inter, whose license `THIRD-PARTY-NOTICES.md` records
   ([#737](https://github.com/NCodeGroup/identity/issues/737),
   [#745](https://github.com/NCodeGroup/identity/issues/745),
-  [ADR-1491](docs/decisions/1491-the-familys-logo-is-the-id-mark-between-the-ncode-braces-and-one-script-draws-every-file-of-it.md),
-  [ADR-1492](docs/decisions/1492-every-web-app-shows-the-familys-icon-from-hashed-copies-its-host-serves.md),
+  [ADR-1492](docs/decisions/1492-the-familys-id-logo-is-drawn-by-one-script-and-every-web-app-shows-its-icon.md),
   [ADR-1253](docs/decisions/1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)).
 
 - **Feature branches run a fast gate, and the merge queue runs the full gate.** `./build/dod.ps1 -Affected` (with

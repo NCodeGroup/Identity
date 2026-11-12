@@ -24,7 +24,7 @@
       >README.md</PackageReadmeFile>
     <PackageTags>oauth;oauth2;oidc;openid-connect;jwt;jose;jws;jwe;jwk;identity;authentication;security</PackageTags>
     <PackageReleaseNotes>See the changelog: https://github.com/NCodeGroup/identity/blob/main/CHANGELOG.md</PackageReleaseNotes>
-    <!-- Every package carries the family's logo as its icon: the {id} mark on its blue tile, from the brand kit (ADR-1491). -->
+    <!-- Every package carries the family's logo as its icon: the {id} mark on its blue tile, from the brand kit (ADR-1492). -->
     <PackageIcon>ncode-identity-nuget-tile-blue.png</PackageIcon>
   </PropertyGroup>
 

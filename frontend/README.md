@@ -198,7 +198,7 @@ The build gives each a content-hashed name under `assets/`, which the app's host
 is offered as an installed app. `build/favicon-copies.ps1` (the `favicon copies` stage of `./build/dod.ps1`) fails when
 a copy differs from the kit's file, and each app's `src/favicon.test.ts` checks its links and files against the family
 icon set that `@ncode/test-support` holds
-([ADR-1492](../docs/decisions/1492-every-web-app-shows-the-familys-icon-from-hashed-copies-its-host-serves.md)).
+([ADR-1492](../docs/decisions/1492-the-familys-id-logo-is-drawn-by-one-script-and-every-web-app-shows-its-icon.md)).
 
 ## Runtime configuration
 

@@ -347,5 +347,4 @@ The records are grouped by area; within an area they are in number order.
 | [1442](./1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md) | A BFF serves the frontends its configuration lists, each selected per request by an open rule | Accepted |
 | [1443](./1443-a-bff-session-ends-when-its-frontend-is-removed-or-registered-as-another-client.md) | A BFF session ends when its frontend is removed or registered as another client | Accepted |
 | [1447](./1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md) | Each host composes forwarded-header trust and Strict-Transport-Security from one general package outside Development | Accepted |
-| [1491](./1491-the-familys-logo-is-the-id-mark-between-the-ncode-braces-and-one-script-draws-every-file-of-it.md) | The family's logo is the {id} mark between the NCode braces, and one script draws every file of it | Accepted |
-| [1492](./1492-every-web-app-shows-the-familys-icon-from-hashed-copies-its-host-serves.md) | Every web app shows the family's icon from hashed copies its host serves | Accepted |
+| [1492](./1492-the-familys-id-logo-is-drawn-by-one-script-and-every-web-app-shows-its-icon.md) | The family's {id} logo is drawn by one script, and every web app shows its icon | Accepted |

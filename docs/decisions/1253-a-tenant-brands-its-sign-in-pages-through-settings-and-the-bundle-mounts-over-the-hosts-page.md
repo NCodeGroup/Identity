@@ -29,7 +29,7 @@ The host renders working no-JavaScript login, consent and authorization error pa
   16-pixel square. The OP host and the console host serve the bundle's `index.html`, whose head holds the family's icon
   links, so a tenant's page that shows another organization's brand carries the NCode Identity icon in its tab unless
   the host leaves the family's links out
-  ([ADR-1492](1492-every-web-app-shows-the-familys-icon-from-hashed-copies-its-host-serves.md)).
+  ([ADR-1492](1492-the-familys-id-logo-is-drawn-by-one-script-and-every-web-app-shows-its-icon.md)).
 - **The policy admits few image origins.** Every page the server writes carries a content security policy whose
   `img-src` admits `'self'` and the origin of the logo
   ([ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)),
@@ -162,7 +162,7 @@ branding and the state the page carries.**
   page security and `img-src`.
 - [ADR-1402](1402-the-interactive-surface-renders-in-the-locale-the-request-prefers-among-the-registered-ui-locales.md):
   the page's language.
-- [ADR-1492](1492-every-web-app-shows-the-familys-icon-from-hashed-copies-its-host-serves.md): the family's icon.
+- [ADR-1492](1492-the-familys-id-logo-is-drawn-by-one-script-and-every-web-app-shows-its-icon.md): the family's icon.
 - Code: `frontend/apps/auth/src/mount.tsx`, `frontend/apps/auth/src/serverPage.ts`,
   `frontend/apps/auth/src/branding.ts`, `frontend/apps/auth/src/routes.tsx`, `frontend/apps/auth/src/LoginForm.tsx`,
   `frontend/apps/auth/src/AuthorizationErrorPage.tsx`,

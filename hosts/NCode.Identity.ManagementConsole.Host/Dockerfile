@@ -50,7 +50,9 @@ EXPOSE 8080
 
 # The production image: a chiseled (distroless) runtime with no shell or package manager, running as the non-root
 # 'app' user by numeric id so Kubernetes can enforce runAsNonRoot. The "extra" variant carries ICU and time zone data.
-# The image listens on 8080 (ASPNETCORE_HTTP_PORTS); TLS terminates at the ingress.
+# The image serves HTTPS only on 8443 (ASPNETCORE_URLS takes precedence over the base image's ASPNETCORE_HTTP_PORTS)
+# from the PEM certificate and key mounted at /etc/ncode-identity/tls; the host refuses to start in Production without a
+# usable certificate (ADR-1503).
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra@sha256:cae5b962bfb786606def03d250c6a645cc98839095c89e806e4bd8978a68115b AS final
 WORKDIR /app
 COPY --from=build /app/publish ./
@@ -61,6 +63,9 @@ ENV ManagementConsole__BundleRootPath=/app/mgmt
 ENV Logging__Console__FormatterName=json \
     Logging__Console__FormatterOptions__UseUtcTimestamp=true \
     Logging__Console__FormatterOptions__TimestampFormat=O
+ENV ASPNETCORE_URLS=https://+:8443 \
+    Kestrel__Certificates__Default__Path=/etc/ncode-identity/tls/tls.crt \
+    Kestrel__Certificates__Default__KeyPath=/etc/ncode-identity/tls/tls.key
 USER $APP_UID
-EXPOSE 8080
+EXPOSE 8443
 ENTRYPOINT ["dotnet", "NCode.Identity.ManagementConsole.Host.dll"]

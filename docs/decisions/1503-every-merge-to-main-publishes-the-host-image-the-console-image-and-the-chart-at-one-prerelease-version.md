@@ -1,8 +1,9 @@
 # 1503. Every merge to main publishes the host image, the console image and the chart at one prerelease version
 
-- **Status:** Accepted (refines
+- **Status:** Accepted (amends
+  [ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md) and
+  [ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md); refines
   [ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md),
-  [ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md),
   [ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md) and
   [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md))
 - **Date:** 2026-11-12
@@ -42,9 +43,11 @@ consumer follows the chart's version alone.
    from third-party build code.
 6. **No approval gate guards the publish.** There is no environment approval.
 7. **The images report the version they were published at.** Each Dockerfile takes the optional build argument
-   `VERSION` and writes it over the version in `version.json` inside the build stage, because the git engine is
-   disabled there and `version.json` is the only input; the assemblies' informational version then carries it. A build
-   without the argument keeps the version in `version.json`.
+   `VERSION`, which builds no `FROM`, and runs `build/stamp-version.ps1` to write it over the version in `version.json`
+   inside the build stage, because the git engine is disabled there and `version.json` is the only input; the
+   assemblies' informational version then carries it. The script refuses a version with a character outside
+   `[0-9A-Za-z.-]` and fails unless `version.json` then holds the version, so an image reports the version its tag
+   names. A build without the argument keeps the version in `version.json`.
 
 ## Options considered
 
@@ -71,6 +74,7 @@ consumer follows the chart's version alone.
   [ADR-1143](1143-ci-presents-test-results-and-coverage-in-github.md),
   [ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md),
   [ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md),
+  [ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md),
   [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md),
   [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)
-- `.github/workflows/publish-artifacts.yml`, `build/artifact-version.ps1`
+- `.github/workflows/publish-artifacts.yml`, `build/artifact-version.ps1`, `build/stamp-version.ps1`

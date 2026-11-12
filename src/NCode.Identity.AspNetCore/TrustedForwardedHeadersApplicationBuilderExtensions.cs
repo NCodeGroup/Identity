@@ -28,8 +28,8 @@ public static class TrustedForwardedHeadersApplicationBuilderExtensions
         /// <remarks>
         /// Call this right after <c>UseProxyClientCertificate</c> where that is used, because that middleware must be
         /// the first one, and otherwise <b>first</b> in the pipeline — ahead of HTTPS redirection, static files,
-        /// routing, and the authentication middleware. Everything downstream that reads the scheme or host (the HTTPS redirect,
-        /// Strict-Transport-Security, and every URL the application builds from the request) must observe the
+        /// routing, and the authentication middleware. Everything downstream that reads the scheme or host (the HTTPS
+        /// redirect, Strict-Transport-Security, and every URL the application builds from the request) must observe the
         /// corrected values rather than the proxy hop. Requires <c>AddTrustedForwardedHeaders</c>.
         /// </remarks>
         /// <returns>The same <see cref="IApplicationBuilder"/> instance for method chaining.</returns>

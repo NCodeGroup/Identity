@@ -36,6 +36,8 @@ FAPI plans.
 - **Echo any value.** Rejected: an arbitrary client string reaches logs and downstream systems.
 - **Only the userinfo endpoint.** Rejected: a client correlates every call it makes, and the suite checks more than one
   endpoint.
+- **Echo a UUID, replace anything else, on every protocol endpoint.** Chosen: it meets the FAPI requirement, keeps a
+  client's correlation value, and lets no other client string out.
 
 ## Consequences
 
@@ -46,6 +48,7 @@ FAPI plans.
 
 ## References
 
+- `FapiInteractionIdEndpointFilter` and `OpenIdEndpointGroup` in `NCode.Identity.OpenId.Authentication`
 - Issue [#124](https://github.com/NCodeGroup/identity/issues/124)
 - [FAPI 1.0 Part 1: Baseline](https://openid.net/specs/openid-financial-api-part-1-1_0.html)
 - [RFC 4122](https://www.rfc-editor.org/rfc/rfc4122)

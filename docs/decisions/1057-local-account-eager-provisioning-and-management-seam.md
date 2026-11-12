@@ -29,10 +29,10 @@ Two facts about the existing model made a straightforward "add CRUD endpoints" i
 - **A local account had no principal until its first login.** A `LocalAccount`'s owning `FederatedPrincipal` and its
   one-to-one self-issued `FederatedIdentity` (issuer = `AccountConstants.SelfIssuer`, subject = the account id) were
   created **lazily**, by `DefaultPrincipalResolver`, on the first authentication. But
-  [ADR-1055](1055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md) moved the `ProfileMetadata` /
+  [ADR-1055](1055-subject-metadata-lives-on-the-principal-and-projects-into-tokens-as-nested-claims-at-issuance.md) moved the `ProfileMetadata` /
   `SystemMetadata` bags onto the **principal**. A freshly-created account that had never logged in therefore had **no
   principal to carry metadata** — so a `set-metadata` operation (an explicit requirement, which must also enforce
-  the ADR-1054 invariant that `SystemMetadata` is server/admin-only) had no target. Resource ownership (the management
+  the ADR-1055 invariant that `SystemMetadata` is server/admin-only) had no target. Resource ownership (the management
   authorization model) is likewise keyed to a principal.
 - **`CreateAsync` owned its own unit of work and only wrote the account row.** It opened a store manager, added the
   account, and saved. A management handler could not compose the account write with recording the creator as owner in
@@ -71,7 +71,7 @@ A `local-accounts` resource family is added under `/api/tenants/{tenantId}/local
 It adds explicit `disable` / `enable` and `password` (reset) operations, and `metadata` (get / set) that targets the
 account's **principal**: the self-issued identity resolves the account id to its principal, whose metadata bags are read
 and written through `IFederatedPrincipalStore`. Because the whole management API is administrator-gated, this metadata
-endpoint is the server/admin write path for `SystemMetadata`, upholding the ADR-1054 invariant that it is never
+endpoint is the server/admin write path for `SystemMetadata`, upholding the ADR-1055 invariant that it is never
 end-user writable. Deleting a local account removes the account, its self-issued identity, and — when the account was
 the principal's sole connection — the principal. The endpoints require the opt-in local-account persistence package;
 without a registered `ILocalAccountProvisioner` they respond `501 Not Implemented`.
@@ -89,7 +89,7 @@ without a registered `ILocalAccountProvisioner` they respond `501 Not Implemente
   handler (chosen against).** Fewer abstraction changes, but it leaks credential-hashing and security-stamp logic into
   the management layer and prevents an alternative account backend from owning them.
 - **Fold `set-metadata` into the account update (chosen against).** Metadata is a principal-level concept
-  ([ADR-1055](1055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md)); it targets a different
+  ([ADR-1055](1055-subject-metadata-lives-on-the-principal-and-projects-into-tokens-as-nested-claims-at-issuance.md)); it targets a different
   entity (the principal, via the self-issued identity) and carries the server-vs-owner trust boundary, so it is its own
   endpoint.
 
@@ -114,9 +114,9 @@ without a registered `ILocalAccountProvisioner` they respond `501 Not Implemente
 - [ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) — the `LocalAccount` payload and the
   read/write seams this ADR completes; its "written together with its self-issued identity in a single unit of work"
   statement is realized here.
-- [ADR-1054](1054-local-account-metadata-projection.md) — the metadata projection and the `SystemMetadata`
+- [ADR-1055](1055-subject-metadata-lives-on-the-principal-and-projects-into-tokens-as-nested-claims-at-issuance.md) — the metadata projection and the `SystemMetadata`
   server-only write invariant the management metadata endpoint upholds.
-- [ADR-1055](1055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md) — why metadata is
+- [ADR-1055](1055-subject-metadata-lives-on-the-principal-and-projects-into-tokens-as-nested-claims-at-issuance.md) — why metadata is
   principal-level, which makes eager principal creation the clean target for `set-metadata`.
 - [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md) — the `FederatedPrincipal` / `FederatedIdentity`
   model the self-issued connection participates in.

@@ -98,7 +98,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `OrEmptyObject`, `IsNullOrUndefined`, `TryGetPropertyValue<T>`, namespace `NCode.Identity.Json`) is the single home for
   `JsonElement` helpers, so the persistence layer and any package beneath `NCode.Identity.*` reuse it without an ASP.NET
   Core framework reference. Detached JSON parsing uses `JsonElement.Parse(string)`
-  ([ADR-1055](docs/decisions/1055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md),
+  ([ADR-1055](docs/decisions/1055-subject-metadata-lives-on-the-principal-and-projects-into-tokens-as-nested-claims-at-issuance.md),
   [#758](https://github.com/NCodeGroup/identity/issues/758),
   [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 
@@ -1837,8 +1837,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   `PrincipalId`. They are projected identically for every grant flow (ROPC, interactive, refresh) and every connection
   kind (local or external IdP). The provider reads fresh per issuance, so the result is cluster-consistent; there is no
   built-in cache, and host-side caching is a concern of a custom provider, which must be distributed
-  ([ADR-1055](docs/decisions/1055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md), amends
-  [ADR-1054](docs/decisions/1054-local-account-metadata-projection.md)).
+  ([ADR-1055](docs/decisions/1055-subject-metadata-lives-on-the-principal-and-projects-into-tokens-as-nested-claims-at-issuance.md), amends
+  [ADR-1055](docs/decisions/1055-subject-metadata-lives-on-the-principal-and-projects-into-tokens-as-nested-claims-at-issuance.md)).
 
 - **`SubjectAuthentication.Create` guarantees `Subject.sub == PrincipalId` by construction** (issue
   [#60](https://github.com/NCodeGroup/identity/issues/60),

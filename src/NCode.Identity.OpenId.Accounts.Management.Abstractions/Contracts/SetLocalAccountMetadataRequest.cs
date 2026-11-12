@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Accounts.Management.Contracts;
 /// the server/admin write path through which the server-controlled <c>SystemMetadata</c> may be set — it is never
 /// end-user writable.
 /// </summary>
-// See ADR-1054, ADR-1055.
+// See ADR-1055.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class SetLocalAccountMetadataRequest

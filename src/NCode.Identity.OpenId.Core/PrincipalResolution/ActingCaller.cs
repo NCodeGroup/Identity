@@ -10,5 +10,5 @@ namespace NCode.Identity.OpenId.PrincipalResolution;
 /// <param name="TenantId">The identifier of the tenant whose client the caller names.</param>
 /// <param name="Subject">The subject of the caller, derived through the environment's <c>GetSubjectId</c>.</param>
 /// <param name="ClientId">The identifier of the client that the caller's <c>client_id</c> claim names.</param>
-// See ADR-1470.
+// See ADR-1466.
 internal readonly record struct ActingCaller(string TenantId, string Subject, string ClientId);

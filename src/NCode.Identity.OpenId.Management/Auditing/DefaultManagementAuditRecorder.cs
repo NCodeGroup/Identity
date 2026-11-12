@@ -516,7 +516,7 @@ internal class DefaultManagementAuditRecorder(
     {
         // A client acting for itself is the actor of the changes it makes. The management authentication filter
         // resolved the acting client before the change committed, and the resolver answers from that resolution.
-        // See ADR-1419, ADR-1450 and ADR-1470.
+        // See ADR-1466.
         var openIdContext = httpContext.GetOpenIdContextOrDefault();
         if (openIdContext is not null)
         {

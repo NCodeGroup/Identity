@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.PrincipalResolution;
 /// Holds, in the <see cref="HttpContext.Items"/> of a request, the client each caller of the request acts as, or none,
 /// so a caller is resolved once per request. The memo ends with the request.
 /// </summary>
-// See ADR-1470.
+// See ADR-1466.
 internal sealed class ActingClientMemo
 {
     private static object ItemKey { get; } = new();

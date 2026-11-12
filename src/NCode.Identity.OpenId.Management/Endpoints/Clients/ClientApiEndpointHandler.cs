@@ -2823,7 +2823,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="client">The client the request changes.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The refusal result, or <c>null</c> when the change may proceed.</returns>
-    // See ADR-1417 and ADR-1467.
+    // See ADR-1417 and ADR-1466.
     private async ValueTask<IResult?> GetClientChangeRefusalOrDefaultAsync(
         HttpContext httpContext,
         PersistedClient client,

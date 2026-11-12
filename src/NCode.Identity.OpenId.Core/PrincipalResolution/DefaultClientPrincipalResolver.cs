@@ -17,7 +17,7 @@ namespace NCode.Identity.OpenId.PrincipalResolution;
 /// <c>client_id</c> claim names in the context's tenant. It answers each caller once per request: the first answer, a
 /// client or none, is kept for the rest of the request.
 /// </summary>
-// See ADR-1450 and ADR-1470, which keeps the answers in the request's ActingClientMemo.
+// See ADR-1466, which keeps the answers in the request's ActingClientMemo.
 internal class DefaultClientPrincipalResolver(
     IStoreManagerFactory storeManagerFactory,
     IAmbientTenantAccessor ambientTenantAccessor

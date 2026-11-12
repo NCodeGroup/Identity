@@ -2180,9 +2180,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#632](https://github.com/NCodeGroup/identity/issues/632),
   [#633](https://github.com/NCodeGroup/identity/issues/633),
   [#634](https://github.com/NCodeGroup/identity/issues/634),
-  [ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md),
-  [ADR-1450](docs/decisions/1450-a-client-credentials-access-token-names-the-clients-principal-as-its-subject.md),
-  [ADR-1470](docs/decisions/1470-a-callers-acting-client-is-resolved-once-per-request.md)).
+  [ADR-1466](docs/decisions/1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md)).
 
 - **A team or the platform owns its machine clients.** `POST`/`GET /api/teams/{teamId}/clients` and
   `POST`/`GET /api/platform/clients` create and list the control-plane clients that the team or the platform owns
@@ -2192,7 +2190,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   through the control-plane tenant's client routes by its owner's administrators, holds roles only at its owning node
   or beneath it, and is left alone by promotions; a team that owns one cannot be deleted (`409`)
   ([#588](https://github.com/NCodeGroup/identity/issues/588),
-  [ADR-1466](docs/decisions/1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md)).
+  [ADR-1466](docs/decisions/1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md)).
 
 - **The management API tells a caller where it holds authority.** `GET /api/me` returns the caller's principal
   (`CallerResource.principalId`), whether it holds authority at the platform node (`isPlatformAdministrator`) and its
@@ -3981,7 +3979,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   naming the limit). It records each change and `tenant.promoted`, and the console offers it on a team's tenants page
   ([ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
   [ADR-1425](docs/decisions/1425-a-team-promotes-one-tenants-configuration-to-another-and-environment-bound-values-stay.md),
-  [ADR-1466](docs/decisions/1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md),
+  [ADR-1466](docs/decisions/1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md),
   [#565](https://github.com/NCodeGroup/identity/issues/565)).
 
 - **A tenant has administrators.** `GET`/`POST`/`DELETE /api/tenants/{tenantId}/admins` list, grant and revoke the
@@ -4016,7 +4014,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   cannot hold the role there, and every list grants and revokes its role through one flow, so every role answers the
   same statuses and records the same audit events
   ([ADR-1465](docs/decisions/1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md),
-  [ADR-1467](docs/decisions/1467-custody-of-a-machine-client-needs-creation-authority-at-the-node-that-owns-it.md),
+  [ADR-1466](docs/decisions/1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md),
   [ADR-1465](docs/decisions/1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md),
   [#623](https://github.com/NCodeGroup/identity/issues/623), [#627](https://github.com/NCodeGroup/identity/issues/627),
   [#628](https://github.com/NCodeGroup/identity/issues/628)).
@@ -4072,7 +4070,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#636](https://github.com/NCodeGroup/identity/issues/636),
   [ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
-  [ADR-1466](docs/decisions/1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md),
+  [ADR-1466](docs/decisions/1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md),
   [ADR-1174](docs/decisions/1174-the-management-consoles-url-is-its-navigation-state.md)).
 
 - **Master keys rotate, rekey on demand and are rewrapped and destroyed in the background.** An owner's active master key
@@ -5913,8 +5911,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   credentials were set, and an administrator of the control-plane tenant cannot set the credentials of a team's machine
   client ([#557](https://github.com/NCodeGroup/identity/issues/557),
   [#589](https://github.com/NCodeGroup/identity/issues/589),
-  [ADR-1419](docs/decisions/1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md),
-  [ADR-1467](docs/decisions/1467-custody-of-a-machine-client-needs-creation-authority-at-the-node-that-owns-it.md)).
+  [ADR-1466](docs/decisions/1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md)).
 
 - **A remote key never leaves its KMS, every signature it makes is verified before a token carries it, and every content
   key it unwraps is authenticated by the JWE's tag.** The server holds the key's public half and a reference only; a

@@ -254,7 +254,7 @@ internal class ClientStore(
         var normalizedPrincipalId = Normalize(principalId);
 
         // A principal is unique across tenants (the unique index on the normalized principal), so at most one row
-        // matches. Roles are granted at nodes of the control plane, whatever tenant the client lives in. See ADR-1467.
+        // matches. Roles are granted at nodes of the control plane, whatever tenant the client lives in. See ADR-1466.
         var entity = await QueryClients()
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(
@@ -605,7 +605,7 @@ internal class ClientStore(
             return false;
         }
 
-        // Everything that exists for the client is removed with it: its secrets, its grants to resource servers, its consents, the grants issued to it, the role assignments at its resource node, whose resource type is the client's, and every role assignment its principal holds, in any tenant. See ADR-1212 and ADR-1419.
+        // Everything that exists for the client is removed with it: its secrets, its grants to resource servers, its consents, the grants issued to it, the role assignments at its resource node, whose resource type is the client's, and every role assignment its principal holds, in any tenant. See ADR-1212 and ADR-1466.
         DbContext.ClientSecrets.RemoveRange(clientEntity.Secrets);
         DbContext.Secrets.RemoveRange(
             clientEntity.Secrets.Select(clientSecret => clientSecret.Secret)

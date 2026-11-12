@@ -176,7 +176,7 @@ internal abstract class BaseOwnableApiEndpointHandler : BaseApiEndpointHandler
     /// Creates the <c>409 Conflict</c> response for a grant that is refused because the principal is a client that
     /// cannot hold the role at the node.
     /// </summary>
-    // See ADR-1467.
+    // See ADR-1466.
     internal static ProblemHttpResult RoleRefusedForPrincipal() =>
         TypedResults.Problem(
             detail: "A client holds a role only as a machine client, at the node that owns it or a node beneath it.",

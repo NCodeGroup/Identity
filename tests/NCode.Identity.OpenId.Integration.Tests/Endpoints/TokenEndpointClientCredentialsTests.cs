@@ -111,7 +111,7 @@ public class TokenEndpointClientCredentialsTests
         var principalId = await GetClientPrincipalIdAsync(factory, CancellationToken.None);
         var payload = DecodeJwtPayload(accessToken);
 
-        // A client acting for itself is the token's subject, and 'sub' names its principal (ADR-1450).
+        // A client acting for itself is the token's subject, and 'sub' names its principal (ADR-1466).
         Assert.Equal(principalId, payload.GetProperty("sub").GetString());
         Assert.NotEqual(ClientId, payload.GetProperty("sub").GetString());
         Assert.Equal(ClientId, payload.GetProperty("client_id").GetString());

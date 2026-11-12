@@ -16,7 +16,7 @@ namespace NCode.Identity.OpenId.PrincipalResolution;
 /// or none, stands for the rest of the request, and a change the request commits, such as deleting the client, does
 /// not alter it.
 /// </summary>
-// See ADR-1450 and ADR-1470.
+// See ADR-1466.
 [PublicAPI]
 public interface IClientPrincipalResolver
 {

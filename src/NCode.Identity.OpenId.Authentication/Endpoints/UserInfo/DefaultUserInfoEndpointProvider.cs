@@ -149,7 +149,7 @@ internal class DefaultUserInfoEndpointProvider(
         }
 
         // UserInfo answers for an end-user; a token in which the client acts for itself names none (OpenID Connect Core 1.0 §5.3).
-        // See ADR-1450 and ADR-1470.
+        // See ADR-1466.
         var actingClient = await ClientPrincipalResolver.GetActingClientOrDefaultAsync(
             openIdContext,
             ticket.Subject,

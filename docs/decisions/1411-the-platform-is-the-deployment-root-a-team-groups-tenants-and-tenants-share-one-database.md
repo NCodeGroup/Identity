@@ -85,7 +85,7 @@ settings cascade and in authority.**
     team's tenants answer `404` on the protocol surface and on the management routes that act through a tenant's runtime
     (sessions, principals, local accounts), as a disabled tenant does, while their stored configuration stays
     manageable. A team with tenants, child teams or an owned machine client
-    ([ADR-1466](1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md)) cannot be deleted.
+    ([ADR-1466](1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md)) cannot be deleted.
     A deleted team's identifier is retired.
 12. **Audit and usage carry the team.** Usage rows and tenant audit events carry the team. Team and platform audit
     events are recorded in the control-plane tenant with the resource types `team` and `platform`. The platform and a
@@ -157,6 +157,6 @@ settings cascade and in authority.**
 - [ADR-1255](1255-each-tenant-surface-of-the-management-console-has-its-own-address.md) — console addresses
 - [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md) — nested teams
 - [ADR-1465](1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md) — the caller's home
-- [ADR-1466](1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md) — machine clients
+- [ADR-1466](1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md) — machine clients
 - [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)
   — platform environments

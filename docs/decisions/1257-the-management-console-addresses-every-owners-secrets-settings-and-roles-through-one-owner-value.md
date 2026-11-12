@@ -34,7 +34,7 @@ a resource server are tenant resources, addressed by their tenant alone.**
    `{ kind: 'client'; tenantId; clientId }` and `{ kind: 'resource-server'; tenantId; resourceServerId }`. Types derived
    from it state which owners an operation accepts: `ClientOwner`; `SecretOwner`, every owner but the platform and a
    team, which hold settings only; `EncryptionKeyOwner`, the platform or a tenant; `MachineClientOwner`, the platform
-   or a team ([ADR-1466](1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md));
+   or a team ([ADR-1466](1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md));
    `RoleOwner`; `AdministeredOwner`, a team or a tenant; and `RoleList`.
 2. **The owner builds its path and scope.** `ownerApiPath(owner)` builds `api/platform`, `api/teams/{teamId}`,
    `api/tenants/{tenantId}`, and the client and resource-server paths under `api/tenants/{tenantId}`, with every id
@@ -97,7 +97,7 @@ a resource server are tenant resources, addressed by their tenant alone.**
   client secret stays beside its replacement.
 - [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): the
   platform and the team.
-- [ADR-1466](1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md): a machine client.
+- [ADR-1466](1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md): a machine client.
 - Code: `frontend/packages/api/src/owner.ts`, `frontend/packages/store/src/managementApi.ts` and
   `frontend/apps/mgmt/src/containers/` (`OwnerSecretsTab.tsx`, `OwnerSettingsTab.tsx`,
   `OwnerEncryptionKeysTab.tsx`, `OwnerAccessTab.tsx`).

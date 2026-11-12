@@ -14,7 +14,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
-// A machine client that deletes itself is still audited as the client that acted (ADR-1450, ADR-1470).
+// A machine client that deletes itself is still audited as the client that acted (ADR-1466).
 public class MachineClientAuditTests
 {
     private const string RootIssuer = "http://localhost";

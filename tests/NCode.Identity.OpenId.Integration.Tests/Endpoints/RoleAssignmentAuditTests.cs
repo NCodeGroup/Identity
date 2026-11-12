@@ -29,7 +29,7 @@ public class RoleAssignmentAuditTests
 
     #region CreateTeam Tests
 
-    // A machine client holds roles only within its owning node (ADR-1467), so the creator is the team's machine client
+    // A machine client holds roles only within its owning node (ADR-1466), so the creator is the team's machine client
     // and the team it creates sits beneath its owning team.
     [Fact]
     public async Task CreateTeam_RecordsTheCreatorsOwnerAndTeamAdminAssignments()

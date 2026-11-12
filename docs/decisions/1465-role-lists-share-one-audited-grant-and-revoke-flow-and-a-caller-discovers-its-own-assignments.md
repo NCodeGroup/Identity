@@ -39,7 +39,7 @@ audited; and a caller reads its own assignments, teams and tenants from `GET /ap
 3. **`canChange` says whether the caller's grant or revoke of the role at the node passes every refusal that does not
    depend on the principal named.** Those refusals are `Update` at the node for owners, `Create` for administrators,
    and, for a client's owners, a client the host does not manage and custody of a machine client
-   ([ADR-1466](1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md)). The last-owner
+   ([ADR-1466](1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md)). The last-owner
    rule depends on the principal, so it stays a `409` on the revoke.
 4. **A list route authorizes `Read` at the node before it reads** (see
    [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md))
@@ -142,7 +142,7 @@ audited; and a caller reads its own assignments, teams and tenants from `GET /ap
   reader learns which limits it may change.
 - [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md):
   authorization at the node before the read.
-- [ADR-1466](1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md): custody of a machine
+- [ADR-1466](1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md): custody of a machine
   client.
 - [ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md): the audit record shape.
 - [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md):

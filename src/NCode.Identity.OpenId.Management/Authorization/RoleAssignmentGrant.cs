@@ -31,7 +31,7 @@ public sealed class RoleAssignmentGrant
     /// Gets a value indicating whether the grant was refused because the principal is a client that cannot hold the
     /// role at the node.
     /// </summary>
-    // See ADR-1467.
+    // See ADR-1466.
     [MemberNotNullWhen(false, nameof(Assignment))]
     public bool IsRefused => Assignment is null;
 }

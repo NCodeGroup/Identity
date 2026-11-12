@@ -53,7 +53,7 @@ claim confers management authority except the bootstrap `GlobalAdmin` stamp.** R
    ([ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)).
    Every other authority is an assignment that the `owners` and `admins` lists show, grant and revoke.
 6. **Creators and owners.** A resource's creator is assigned `Owner` in the same unit of work as the insert, unless it
-   cannot hold it ([ADR-1466](1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md)). A
+   cannot hold it ([ADR-1466](1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md)). A
    resource keeps at least one owner: removing the last answers `409`, and the administrators above it can always
    reassign.
 7. **Tenant administrators over HTTP.** `/api/tenants/{tenantId}/admins` (`GET`, `POST`, `DELETE …/{principalId}`) lists,
@@ -110,4 +110,4 @@ claim confers management authority except the bootstrap `GlobalAdmin` stamp.** R
 - [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md): a route authorizes
   at the node it names
 - [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md): nested teams
-- [ADR-1466](1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md): machine clients
+- [ADR-1466](1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md): machine clients

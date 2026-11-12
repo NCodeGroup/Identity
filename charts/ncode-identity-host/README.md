@@ -796,6 +796,10 @@ httpRoute:
     - id.example.com
 ```
 
+The pods speak HTTP/2 and HTTP/1.1 over TLS and refuse an HTTP/2 request whose `:scheme` is `http`, so the Gateway
+forwards `https`. A Gateway whose listener is HTTPS does. A Gateway whose listener is plain HTTP, behind a load
+balancer that ends TLS, must be told to, as Envoy Gateway's `ClientTrafficPolicy` does with `scheme: MatchBackend`.
+
 A Traefik release needs Traefik's Kubernetes CRD provider, which reads the `ServersTransport`;
 `ci/high-availability-values.yaml` shows one:
 
@@ -904,8 +908,8 @@ controller forwards the end client's certificate in that header
 
 The `cluster` job of the `Host chart` workflow installs the chart's server and management console in a kind cluster,
 first behind Traefik and then behind an Envoy Gateway. Envoy Gateway is the Gateway API implementation because it
-implements the Gateway's backend client certificate. Its `EnvoyProxy` sets `backendTLS.alpnProtocols` to `http/1.1`,
-so Envoy and the pods agree on HTTP/1.1.
+implements the Gateway's backend client certificate. The Gateway's listener is plain HTTP, and a `ClientTrafficPolicy`
+with `scheme: MatchBackend` sends `https` as the `:scheme` the pods require.
 
 Behind Traefik, the job proves that the pods become Ready over HTTPS, that a request through the controller succeeds
 for both hosts, that Traefik verifies the pods' certificate through the `ServersTransport` and presents the ingress

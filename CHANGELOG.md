@@ -4409,7 +4409,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   level, with no option to accept one, so such a token authenticates nowhere: not at UserInfo, introspection, token
   exchange or the management API
   ([ADR-1154](docs/decisions/1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md),
-  [ADR-1295](docs/decisions/1295-the-jose-library-does-not-implement-the-none-algorithm.md),
+  [ADR-1282](docs/decisions/1282-the-jose-library-implements-neither-none-nor-rsa1-5-and-a-failed-jwe-decryption-reveals-no-cause.md),
   [#379](https://github.com/NCodeGroup/identity/issues/379)).
 
 - **JWT validation enforces an explicit, expected `typ` (RFC 8725 §3.11).**
@@ -4427,7 +4427,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   and through every `IJwtValidator` call, including one that sets no `ValidKeyManagementAlgorithms`.
   `AlgorithmCodes.KeyManagement.RsaPkcs1` is the name a policy refuses, and the algorithm settings and the protocol
   client refuse `RSA1_5` even when a host registers an implementation of its own
-  ([ADR-1282](docs/decisions/1282-the-jose-library-does-not-implement-rsa1-5.md),
+  ([ADR-1282](docs/decisions/1282-the-jose-library-implements-neither-none-nor-rsa1-5-and-a-failed-jwe-decryption-reveals-no-cause.md),
   [#339](https://github.com/NCodeGroup/identity/issues/339)).
 
 - **Algorithm settings name only what the server can safely honor.** The server neither compresses what it encrypts nor
@@ -4474,7 +4474,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **A failed JWE key unwrap is indistinguishable from a failed authentication tag.** A failed key unwrap substitutes a
   random content key, so a tampered or wrong-length encrypted key fails exactly like a tampered tag, with one
   `JoseEncryptionException` ("Failed to decrypt the JWE.") and no inner exception
-  ([ADR-1296](docs/decisions/1296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md),
+  ([ADR-1282](docs/decisions/1282-the-jose-library-implements-neither-none-nor-rsa1-5-and-a-failed-jwe-decryption-reveals-no-cause.md),
   [#380](https://github.com/NCodeGroup/identity/issues/380)).
 
 - **A JOSE token's encoded members are decoded whole or refused.** Every base64url segment of a JWS or JWE, the

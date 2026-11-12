@@ -68,7 +68,7 @@ claims factory live in `NCode.Identity.Jwt`. `NCode.Identity.OpenId.Authenticati
 1. **Signed only.** A token is a compact JWS whose `alg` is not `none`, or a compact JWE whose `cty` is `JWT` (compared
    as a media type, RFC 7515 §4.1.10) enclosing such a JWS, one level deep. An unsecured JWS is refused at every level,
    with no parameter that opts into it. A JWE that encloses no JWS is refused. The JOSE library implements no `none`
-   algorithm either ([ADR-1295](1295-the-jose-library-does-not-implement-the-none-algorithm.md)).
+   algorithm either ([ADR-1282](1282-the-jose-library-implements-neither-none-nor-rsa1-5-and-a-failed-jwe-decryption-reveals-no-cause.md)).
 2. **Compact serialization only.** RFC 7519 §1 represents a JWT in the compact serializations; the JSON serializations
    are refused.
 3. **Key roles are explicit.** `ValidationKeys` (`UseValidationKeys`) verify signatures and `DecryptionKeys`

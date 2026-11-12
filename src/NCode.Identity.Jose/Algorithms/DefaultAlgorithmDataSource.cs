@@ -106,7 +106,7 @@ internal sealed class DefaultAlgorithmDataSource(
         {
             #region Signature Algorithms
 
-            // The unsecured `none` algorithm (RFC 7518 §3.6) is not implemented: it proves nothing (ADR-1295).
+            // The unsecured `none` algorithm (RFC 7518 §3.6) is not implemented: it proves nothing (ADR-1282).
 
             // HMAC using SHA-2 Functions
             // https://datatracker.ietf.org/doc/html/rfc7518#section-3.2

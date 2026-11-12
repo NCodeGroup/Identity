@@ -286,12 +286,10 @@ The records are grouped by area; within an area they are in number order.
 | [1276](./1276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md) | The OAuth and OpenID Connect wire vocabulary lives in a dependency-free package | Accepted |
 | [1278](./1278-token-validation-failures-carry-a-machine-readable-code-set-where-the-failure-is-detected.md) | Token validation failures carry a machine-readable code set where the failure is detected | Accepted |
 | [1280](./1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md) | The protocol client validates and decrypts every provider-issued JWT through one core under registered algorithms | Accepted |
-| [1282](./1282-the-jose-library-does-not-implement-rsa1-5.md) | The JOSE library does not implement RSA1_5 | Accepted |
+| [1282](./1282-the-jose-library-implements-neither-none-nor-rsa1-5-and-a-failed-jwe-decryption-reveals-no-cause.md) | The JOSE library implements neither none nor RSA1_5, and a failed JWE decryption reveals no cause | Accepted |
 | [1285](./1285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md) | The OpenID protocol client needs no ASP.NET Core runtime | Accepted |
 | [1286](./1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md) | The protocol client binds tokens with DPoP whenever the provider supports it | Accepted |
 | [1288](./1288-the-protocol-client-authenticates-with-a-tls-client-certificate-from-its-key-ring.md) | The protocol client authenticates with a TLS client certificate from its key ring | Accepted |
-| [1295](./1295-the-jose-library-does-not-implement-the-none-algorithm.md) | The JOSE library does not implement the none algorithm | Accepted |
-| [1296](./1296-a-failed-jwe-key-unwrap-is-indistinguishable-from-a-failed-authentication-tag.md) | A failed JWE key unwrap is indistinguishable from a failed authentication tag | Accepted |
 | [1299](./1299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md) | UserInfo is read as JSON under the family's claim mapping and merged once at login | Accepted |
 | [1300](./1300-an-asymmetric-key-carries-its-issuers-certificates-and-a-tls-client-presents-them.md) | An asymmetric key carries its issuers' certificates, and a TLS client presents them | Accepted |
 | [1301](./1301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md) | A signed UserInfo response is validated like an ID token under the client's registered algorithms | Accepted |

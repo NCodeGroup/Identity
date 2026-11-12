@@ -52,7 +52,7 @@ signs.**
    wrong size before any call.
 6. **A failed unwrap substitutes a random content key; a failed transport does not.** A `CryptographicException`,
    `JoseException` or `ArgumentException` from an unwrap substitutes a random content key, as RFC 7516 section 11.5
-   requires ([ADR-1282](1282-the-jose-library-does-not-implement-rsa1-5.md)). Any other exception (transport,
+   requires ([ADR-1282](1282-the-jose-library-implements-neither-none-nor-rsa1-5-and-a-failed-jwe-decryption-reveals-no-cause.md)). Any other exception (transport,
    `IOException`, cancellation) propagates and ends the decode of a JSON-serialized JWE.
 7. **The JWT validator decrypts asynchronously.** When the header's `kid` matches an eligible decryption key it tries
    only those keys, so a well-addressed token costs at most one service call per key.
@@ -90,7 +90,7 @@ signs.**
 
 - [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md): the remote key
   that signs and decrypts through these seams.
-- [ADR-1282](1282-the-jose-library-does-not-implement-rsa1-5.md): the random content key on a failed unwrap.
+- [ADR-1282](1282-the-jose-library-implements-neither-none-nor-rsa1-5-and-a-failed-jwe-decryption-reveals-no-cause.md): the random content key on a failed unwrap.
 - [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md),
   [ADR-1176](1176-dpop-proofs-are-created-and-validated-by-a-jose-service.md),
   [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),

@@ -1,6 +1,8 @@
 {{ include "identity-host.fullname" . }} answers to {{ join ", " .Values.allowedHosts }} through the
 {{ include "identity-host.fullname" . }} Service on port {{ .Values.service.port }}.
 
+The pods serve HTTPS on port 8443 with the certificate in the {{ include "identity-host.backendTls.secretName" . }} Secret{{ if not .Values.backendTls.existingSecret }}, which cert-manager issues{{ end }}.
+
 {{- if .Values.migrations.enabled }}
 The {{ include "identity-host.migrationsJobName" . }} Job applied the database migrations before the rollout.
 {{- else }}

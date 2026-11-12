@@ -28,7 +28,7 @@ packages and domains follow one naming scheme.**
 2. **The product's repository.** `identity` is not a library-only repository: the chart and the images change with the
    host, so they live beside it ([ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md) decision 1). The
    packages, hosts, images and chart version in lockstep from one `version.json`
-   ([ADR-1003](1003-central-package-management-and-lockstep-versioning.md)), and the console image builds `frontend/`,
+   ([ADR-1003](1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md)), and the console image builds `frontend/`,
    whose private packages are never published.
    So `frontend/` and every package stay in `identity`, at the first stable release and after it.
 3. **Public or private.** Code is public when a self-hoster could use it. Anything in `identity-cloud` that a
@@ -77,7 +77,7 @@ packages and domains follow one naming scheme.**
 ## References
 
 - Issue [#760](https://github.com/NCodeGroup/identity/issues/760).
-- [ADR-1003](1003-central-package-management-and-lockstep-versioning.md),
+- [ADR-1003](1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md),
   [ADR-1064](1064-frontend-presentation-platform.md),
   [ADR-1132](1132-platform-infrastructure-as-code-is-public-on-github.md),
   [ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md),

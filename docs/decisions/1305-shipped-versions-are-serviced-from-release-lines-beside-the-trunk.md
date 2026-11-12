@@ -10,7 +10,7 @@
 
 [project-template ADR-0004](project-template/0004-trunk-based-development-on-the-default-branch.md) makes `main` the one
 trunk, with no long-lived integration branch, and leaves release lines to a decision of their own. The family publishes
-NuGet packages in lockstep ([ADR-1003](1003-central-package-management-and-lockstep-versioning.md)); a consumer pins a
+NuGet packages in lockstep ([ADR-1003](1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md)); a consumer pins a
 `major.minor` and expects patches for it while `main` moves on. Nerdbank.GitVersioning stamps a clean version, with no
 commit-height suffix, only on the refs that `publicReleaseRefSpec` in [`version.json`](../../version.json) matches:
 `main`, the `release/vX.Y` lines and `v*` tags. The hosted platform deploys these builds, and a branch records no

@@ -77,7 +77,7 @@ rename ...`) and fail the losing installer, which in turn fails its dependent re
   gates in [`Directory.Build.targets`](../../Directory.Build.targets) skip it) and contributes no shippable
   artifact. The `Aspire.AppHost.Sdk` MSBuild SDK is pinned in lockstep in [`global.json`](../../global.json)
   (`msbuild-sdks`) and the `Aspire.Hosting.*` packages in [`Directory.Packages.props`](../../Directory.Packages.props)
-  ([ADR-1003](1003-central-package-management-and-lockstep-versioning.md)).
+  ([ADR-1003](1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md)).
 - **Backing services (SQL Server, Redis) are opt-in, modeled later as containers.** The default keeps the
   host's zero-setup SQLite/in-memory story so there is **no hard container-runtime prerequisite** just to run
   the stack.
@@ -130,7 +130,7 @@ a static dev copy — so local dev consumes the real runtime bootstrap endpoint 
 - [ADR-1064](1064-frontend-presentation-platform.md) — frontend presentation platform & runtime discovery.
 - [ADR-1065](1065-interactive-login-consent-op-hosted-auth-surface.md) — OP-hosted interactive login surface
   (`apps/auth` served from `dist`); this ADR supersedes that one's dev-orchestration half.
-- [ADR-1003](1003-central-package-management-and-lockstep-versioning.md) — central package management & lockstep
+- [ADR-1003](1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md) — central package management & lockstep
   versioning (SDK in `global.json`, packages in `Directory.Packages.props`).
 - Aspire JavaScript hosting (`Aspire.Hosting.JavaScript`: `AddViteApp`/`AddJavaScriptApp`, `WithPnpm`) and resource
   health checks (`WithHttpHealthCheck` + `WaitFor`).

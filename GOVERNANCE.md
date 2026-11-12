@@ -72,7 +72,7 @@ See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-th
 - The [scripted Definition of Done](build/dod.ps1) must pass — it is the single entrypoint that CI and developers run,
   each place in the gate tier that ADR-1263 assigns it. See [CONTRIBUTING](CONTRIBUTING.md).
 - Versioning is **lockstep** across the whole family via Nerdbank.GitVersioning (one root `version.json`,
-  [ADR-1003](docs/decisions/1003-central-package-management-and-lockstep-versioning.md)). From the first stable release,
+  [ADR-1003](docs/decisions/1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md)). From the first stable release,
   validation-affecting or otherwise breaking changes are **major** version bumps, and the public surface evolves
   backward-compatibly per [`docs/api-compatibility.md`](docs/api-compatibility.md)
   ([ADR-1005](docs/decisions/1005-public-api-surface-is-tracked-and-evolves-compatibly.md)); before it, a breaking change
@@ -113,7 +113,7 @@ See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-th
 
 ## Publishing
 
-- Packages (`.nupkg`) and portable symbols (`.snupkg`, [ADR-1007](docs/decisions/1007-provenance-sourcelink-and-symbols.md))
+- Packages (`.nupkg`) and portable symbols (`.snupkg`, [ADR-1003](docs/decisions/1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md))
   are published to [nuget.org](https://www.nuget.org). Only protected `main` / `release/*` / `v*` refs publish.
 - Release packages should be signed and RFC-3161 timestamped so signatures outlive the certificate; verify with
   `dotnet nuget verify`. Prereleases may publish unsigned.

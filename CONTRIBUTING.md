@@ -69,7 +69,7 @@ To preview the CI presentation (job summary + annotations) without pushing, run 
 point `GITHUB_STEP_SUMMARY` at an empty temporary file, then read that file. The build writes nothing to `GITHUB_ENV`:
 `version.json` turns off Nerdbank.GitVersioning's cloud-build variables, whose unlocked appends from parallel MSBuild
 nodes tore that file and failed the job
-([ADR-1003](docs/decisions/1003-central-package-management-and-lockstep-versioning.md)).
+([ADR-1003](docs/decisions/1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md)).
 
 When adding a project, place it in the solution folder that mirrors its directory — `/src/` for `src/**`, `/hosts/` for `hosts/**`, `/analyzers/` for `analyzers/**`, `/tests/` for `tests/**` and `/benchmarks/` for `benchmarks/**` (e.g. `dotnet sln add src/Foo/Foo.csproj --solution-folder src`)
 — never at the solution root. A published package goes under `src/` and packs; any other project goes under the folder of its role, whose `Directory.Build.props` turns packing off, and the build fails a project whose folder and packing disagree ([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-says-whether-it-ships.md)).
@@ -206,7 +206,7 @@ The version is pinned with `rollForward: false` so formatting output never drift
 ## Package versions — Central Package Management (CPM)
 
 Package **versions live in one place** ([`Directory.Packages.props`](Directory.Packages.props)) and are not repeated
-per project ([ADR-1003](docs/decisions/1003-central-package-management-and-lockstep-versioning.md)).
+per project ([ADR-1003](docs/decisions/1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md)).
 
 - A `<PackageVersion Include="X" Version="1.2.3" />` in `Directory.Packages.props` says **which version**.
 - A `<PackageReference Include="X" />` (no `Version`) in a `.csproj` says **which project uses it**. NuGet errors with

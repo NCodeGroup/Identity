@@ -68,7 +68,7 @@ package, not folded into Secrets or JOSE.
 ## Consequences
 
 - A new published package (`NCode.Identity.Jwk`) and its test project join the family; governance/versioning follow
-  the lockstep model ([ADR-1003](1003-central-package-management-and-lockstep-versioning.md)).
+  the lockstep model ([ADR-1003](1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md)).
 - The JWK concept has one home and one representation used end-to-end, eliminating the three prior duplicative
   treatments and the fragile string-interpolated DPoP thumbprint.
 - Adding a new key type's thumbprint support is a one-line entry in the required-members table (or, for a custom key

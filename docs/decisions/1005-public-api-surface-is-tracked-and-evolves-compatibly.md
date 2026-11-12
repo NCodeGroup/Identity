@@ -40,4 +40,4 @@ one without noticing. "Reviewer vigilance" does not scale.
 
 ## References
 
-- [`Directory.Build.targets`](../../Directory.Build.targets), [ADR-1003](1003-central-package-management-and-lockstep-versioning.md).
+- [`Directory.Build.targets`](../../Directory.Build.targets), [ADR-1003](1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md).

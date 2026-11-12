@@ -52,7 +52,7 @@ small components composed into opinionated stacks, and the supported set is limi
    mocked providers. A component's variables and outputs are its public API.
 3. **Versioning.** Every release is versioned and immutable:
    - The whole repository releases with one semver version, in lockstep like the library's packages
-     ([ADR-1003](1003-central-package-management-and-lockstep-versioning.md)); `0.x` until stable. Stacks reference
+     ([ADR-1003](1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md)); `0.x` until stable. Stacks reference
      components by relative path, since they ship in the same release. Everything is Apache-2.0.
    - **Breaking** means any change a consumer must act on: removing or renaming a variable or output, a new required
      input, or a change that **forces a resource to be replaced or destroyed** even when the interface is unchanged.

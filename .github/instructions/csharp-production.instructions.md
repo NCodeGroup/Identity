@@ -1091,9 +1091,9 @@ organization) live in [`csharp-testing.instructions.md`](csharp-testing.instruct
   across the family. `AssemblyVersion` is pinned to `major` precision so patches/minors are drop-in within a major.
   Every workflow that builds or tests a .NET project checks out the full history (`fetch-depth: 0`): the version is
   computed from commit height, and the build fails on the shallow clone `actions/checkout` makes by default.
-  See [ADR-1003](../../docs/decisions/1003-central-package-management-and-lockstep-versioning.md).
+  See [ADR-1003](../../docs/decisions/1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md).
 - ✅ Packages are **source-linked to GitHub** and ship a portable symbol package (`.snupkg`) so consumers can step into
-  the exact released source. See [ADR-1007](../../docs/decisions/1007-provenance-sourcelink-and-symbols.md).
+  the exact released source. See [ADR-1003](../../docs/decisions/1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md).
 - ✅ **Package versions live centrally** — template [Build](csharp.instructions.md#build).
 
 ## 9. Change intake (open source)

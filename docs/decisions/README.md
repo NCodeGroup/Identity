@@ -74,9 +74,8 @@ The records are grouped by area; within an area they are in number order.
 | ADR | Title | Status |
 | --- | --- | --- |
 | [1001](./1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) | Behavior is a service, a strategy collection or a mediator seam, chosen by one ladder | Accepted |
-| [1003](./1003-central-package-management-and-lockstep-versioning.md) | Central Package Management and lockstep versioning | Accepted |
+| [1003](./1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md) | The family versions in lockstep from one version.json and ships source-linked symbol packages | Accepted |
 | [1005](./1005-public-api-surface-is-tracked-and-evolves-compatibly.md) | The public API surface is tracked and evolves backward-compatibly | Accepted |
-| [1007](./1007-provenance-sourcelink-and-symbols.md) | Provenance — SourceLink to GitHub and a portable symbol package | Accepted |
 | [1012](./1012-interceptor-managed-concurrency-tokens.md) | Concurrency tokens are interceptor-managed; the sub-resource version columns stay manual | Accepted |
 | [1016](./1016-implementation-packages-depend-only-on-abstractions.md) | Implementation packages depend only on abstractions; composition wires them | Accepted |
 | [1025](./1025-pre-release-posture-and-auth0-parity-plus.md) | Pre-release posture: greenfield, and an Auth0-parity-plus design philosophy | Accepted |

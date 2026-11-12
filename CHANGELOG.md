@@ -917,7 +917,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `SecretResource` and `CreatedSecretResource` show both instants, `PersistedSecret.GetLifecycleState` names the
   state (`SecretLifecycleStates`: `upcoming`, `active`, `retired`, `expired`), and the management console's secrets
   table shows the instants and the state
-  ([ADR-1403](docs/decisions/1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md),
+  ([ADR-1403](docs/decisions/1403-a-stored-secret-has-an-active-window-inside-its-validity-window-honored-on-every-use.md),
   [#166](https://github.com/NCodeGroup/identity/issues/166)).
 
 - **A tenant's provisioned keys roll over on their own, ahead of retirement and with a grace after it.** The tenant
@@ -4226,7 +4226,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   days by default, so the window a compromised key can be abused in is bounded, each successor is published two days
   before the first token it signs, and a retired key stays published for seven days or the longest token lifetime plus
   the clock skew, whichever is longer, so no token outlives the key that verifies it
-  ([ADR-1403](docs/decisions/1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md),
+  ([ADR-1403](docs/decisions/1403-a-stored-secret-has-an-active-window-inside-its-validity-window-honored-on-every-use.md),
   [ADR-1404](docs/decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md)).
 - **An SD-JWT presentation is verified fail-closed under bounded work.** The issuer-signed JWT must be a compact JWS,
   never a Nested JWT whatever decryption keys the verifier's parameters name, signed with an asymmetric key under

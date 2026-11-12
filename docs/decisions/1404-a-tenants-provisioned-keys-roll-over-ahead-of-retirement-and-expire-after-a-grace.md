@@ -15,7 +15,7 @@
 
 Every tenant is provisioned with a persisted key for each algorithm its settings use
 ([ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)), and a stored key has an active window inside
-its validity window ([ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md)).
+its validity window ([ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-honored-on-every-use.md)).
 A key that signs forever is a key whose compromise is never bounded, and NIST SP 800-57 bounds the cryptoperiod of a
 signing key, so the major providers roll their signing keys over on a schedule: Microsoft Entra ID about every six
 weeks, Okta about four times a year, Keycloak and Auth0 on the operator's command. ASP.NET Core Data Protection shows
@@ -184,5 +184,5 @@ change the server makes to a tenant's key on its own is an audit event.**
   [NIST SP 800-57 Part 1 §5.3](https://csrc.nist.gov/pubs/sp/800/57/pt1/r5/final)
 - [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
-  [ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md)
+  [ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-honored-on-every-use.md)
 - Issue [#166](https://github.com/NCodeGroup/identity/issues/166)

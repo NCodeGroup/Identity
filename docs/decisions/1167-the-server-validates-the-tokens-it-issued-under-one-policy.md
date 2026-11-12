@@ -41,7 +41,7 @@ tenant's policy for that kind of token. A system resource server never holds key
      and key-management and content-encryption algorithms from `access_token_encryption_{alg,enc}_values_supported`.
      Compression is never accepted.
    - **Keys:** validation and decryption keys are the tenant's keys within their validity windows
-     ([ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md)),
+     ([ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-honored-on-every-use.md)),
      plus any keys the caller adds. Introspection adds the calling resource server's keys
      ([ADR-1168](1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)).
    - **Claims:** `typ` is `at+jwt`, `iss` is the tenant's issuer, the token is within its lifetime, and, when the

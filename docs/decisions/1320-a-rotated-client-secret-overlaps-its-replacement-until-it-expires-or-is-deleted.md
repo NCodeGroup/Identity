@@ -34,7 +34,7 @@ secret in one unit of work. Both authenticate until the rotated secret expires o
 - **A grace expiry bounds the overlap.** The optional `RotateSecretRequest.RotatedExpiresWhen` sets the rotated
   secret's expiry to the earlier of its current expiry and this value, never earlier than its creation, and bounds its
   activation and retirement with it
-  ([ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md)).
+  ([ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-honored-on-every-use.md)).
   Rotation never extends an expiry, a past value stops the secret at once, and an omitted value keeps its expiry.
 - **A client credential past its expiry stops authenticating.** `DefaultOpenIdClientResolver` drops every secret whose
   `ExpiresWhen` is not after now before it deserializes the rest, so every client authentication method honors the
@@ -92,4 +92,4 @@ secret in one unit of work. Both authenticate until the rotated secret expires o
 - [`SecretsManager`](../../frontend/apps/mgmt/src/containers/SecretsManager.tsx)
 - [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md),
   [ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md),
-  [ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md)
+  [ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-honored-on-every-use.md)

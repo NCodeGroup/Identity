@@ -3,8 +3,12 @@
 
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NCode.Buffers;
+using NCode.Identity.AspNetCore;
+using NCode.Identity.OpenId.Authentication.Interactive;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 using Xunit;
 
@@ -97,6 +101,35 @@ public sealed class HttpLoggingTests
             records,
             x => x.Message.Contains(DPoPProof, StringComparison.Ordinal)
         );
+    }
+
+    #endregion
+
+    #region Endpoint Tests
+
+    [Theory]
+    [InlineData(OpenIdConstants.EndpointPaths.Token)]
+    [InlineData(OpenIdConstants.EndpointPaths.PushedAuthorizationRequest)]
+    [InlineData(OpenIdConstants.EndpointPaths.Introspection)]
+    [InlineData(OpenIdConstants.EndpointPaths.Revocation)]
+    [InlineData(InteractiveAuthenticationDefaults.LoginPath)]
+    [InlineData(InteractiveAuthenticationDefaults.PasswordPath)]
+    [InlineData("/local-accounts/{localAccountId}/password")]
+    [InlineData("/clients/{clientId}/secrets")]
+    public void Endpoint_ThatCarriesCredentials_HasConfidentialBodies(string pathSuffix)
+    {
+        using var factory = new HostApplicationFactory();
+
+        var endpoints = factory
+            .Services.GetRequiredService<EndpointDataSource>()
+            .Endpoints.OfType<RouteEndpoint>()
+            .Where(x =>
+                x.RoutePattern.RawText?.EndsWith(pathSuffix, StringComparison.Ordinal) == true
+            )
+            .ToList();
+
+        Assert.NotEmpty(endpoints);
+        Assert.All(endpoints, x => Assert.True(x.HasConfidentialBodies));
     }
 
     #endregion

@@ -433,7 +433,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#745](https://github.com/NCodeGroup/identity/issues/745),
   [ADR-1491](docs/decisions/1491-the-familys-logo-is-the-id-mark-between-the-ncode-braces-and-one-script-draws-every-file-of-it.md),
   [ADR-1492](docs/decisions/1492-every-web-app-shows-the-familys-icon-from-hashed-copies-its-host-serves.md),
-  [ADR-1494](docs/decisions/1494-a-tenant-sets-its-sign-in-tabs-icon-as-a-branding-setting-the-hosts-link-in-place-of-the-familys.md)).
+  [ADR-1253](docs/decisions/1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)).
 
 - **Feature branches run a fast gate, and the merge queue runs the full gate.** `./build/dod.ps1 -Affected` (with
   `-Base`) runs only the test projects a change reaches through the project graph, and `-Filter` passes a `dotnet test
@@ -1996,7 +1996,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   field that had focus, and the consent scopes the end-user cleared carry into its forms, and a carried password is
   written to the input's `value` property, never to an attribute. The authorization error page served with the bundle
   shows its error, not a login form
-  ([ADR-1253](docs/decisions/1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md), issue
+  ([ADR-1253](docs/decisions/1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md), issue
   [#211](https://github.com/NCodeGroup/identity/issues/211)).
 
 - **The server-rendered pages stream into the response from a cached, pre-split bundle index.** The login, consent and
@@ -2069,9 +2069,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `parseBrandingConfig`, which the bootstrap parser uses too, so a malformed branding token is dropped, never trusted.
   A tenant that sets `branding_favicon_uri` shows that icon in its pages' tabs instead of the family's: the host links
   it, drops the bundle's family icon links, and admits its origin in the page's `img-src`
-  ([ADR-1194](docs/decisions/1194-a-tenant-brands-its-interactive-surface-through-settings.md),
-  [ADR-1253](docs/decisions/1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md),
-  [ADR-1494](docs/decisions/1494-a-tenant-sets-its-sign-in-tabs-icon-as-a-branding-setting-the-hosts-link-in-place-of-the-familys.md),
+  ([ADR-1253](docs/decisions/1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md),
   issues [#211](https://github.com/NCodeGroup/identity/issues/211),
   [#745](https://github.com/NCodeGroup/identity/issues/745)).
 
@@ -2834,7 +2832,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#745](https://github.com/NCodeGroup/identity/issues/745),
   [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
   [ADR-1447](docs/decisions/1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md),
-  [ADR-1494](docs/decisions/1494-a-tenant-sets-its-sign-in-tabs-icon-as-a-branding-setting-the-hosts-link-in-place-of-the-familys.md)).
+  [ADR-1253](docs/decisions/1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)).
 
 - **A BFF loads its key rings from PEM files and key management services when the host starts.**
   `Bff:KeyRings:{name}:PemFiles` lists EC or RSA private-key PEM files, each key's `kid` its file name without the

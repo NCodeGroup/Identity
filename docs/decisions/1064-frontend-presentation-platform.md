@@ -98,7 +98,7 @@ services/logic — so every layer is independently testable.** Concretely:
 - **Branding is a seam, not yet a feature.** `@ncode/ui` centralizes theme tokens behind a provider so a
   future per-tenant brand/theme can be injected via the same runtime-discovery channel. No branding
   feature ships now; the seam exists so it is additive later. (Per-tenant branding of the interactive surface
-  landed in [ADR-1194](1194-a-tenant-brands-its-interactive-surface-through-settings.md).)
+  landed in [ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md).)
 - **Monorepo now, clean split later.** Every shared concern is a scoped `@ncode/*` package consumed only
   through its public entry point — no deep relative imports across package boundaries — so `frontend/`
   can be extracted into its own repository at GA by moving the folder and repointing the workspace root,

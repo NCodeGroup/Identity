@@ -51,7 +51,7 @@ chosen by server-driven content negotiation over an open `IOpenIdResponseFormatt
   pages, and writes it with `HttpResponse.WriteAsync(html, SecureEncoding.UTF8, …)` like
   `DefaultAuthorizationResultExecutor`. The page carries an `authorization-error` element with `data-error-code` that
   the bundle redraws
-  ([ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md)). Without the
+  ([ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)). Without the
   interactive package no such formatter is registered and every error is JSON.
 - **Hosts register the executor.** Hosts that compose the OpenID Core library get `DefaultOpenIdResultExecutor`
   through `AddResultServices`.
@@ -88,4 +88,4 @@ chosen by server-driven content negotiation over an open `IOpenIdResponseFormatt
   `NCode.Identity.OpenId.Authentication.Interactive`
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
-  [ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md)
+  [ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)

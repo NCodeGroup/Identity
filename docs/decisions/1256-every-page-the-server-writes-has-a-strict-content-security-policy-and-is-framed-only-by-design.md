@@ -111,7 +111,7 @@ and the `form_post` response only by its client's origin.**
    and pass its nonce to the renderer, and `InteractiveHtmlResult` writes the page through `SetHtmlPageSecurity`.
 9. **Two ADRs are amended.** [ADR-1088](1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md): the
    `check_session_iframe` is the one page relying parties may frame, and the front-channel logout page frames only the
-   clients' logout origins. [ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md):
+   clients' logout origins. [ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md):
    the bundle runs only the scripts and styles that carry the page's nonce.
 
 ## Options considered
@@ -181,7 +181,7 @@ model, writer, headers, nonce and framing rules. It differs in one default, and 
   the tenant route.
 - [ADR-1201](1201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md): authorization
   responses are delivered by registered response-mode handlers.
-- [ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md): the interactive bundle
+- [ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md): the interactive bundle
   mounts at once over the page the host rendered.
 - Code: `src/NCode.Identity.AspNetCore/HtmlPageSecurityPolicy.cs`,
   `src/NCode.Identity.AspNetCore/HtmlPageSecurityResponseExtensions.cs`,

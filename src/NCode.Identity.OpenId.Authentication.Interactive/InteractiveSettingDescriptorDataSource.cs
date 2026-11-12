@@ -14,7 +14,7 @@ namespace NCode.Identity.OpenId.Authentication.Interactive;
 /// the branding a tenant shows its end-users. Each is a tenant setting whose empty default leaves the surface's own
 /// theme, and each value is checked against the shape the bundle themes with, so a stored value always renders.
 /// </summary>
-// See ADR-1194.
+// See ADR-1253.
 internal partial class InteractiveSettingDescriptorDataSource(INullChangeToken nullChangeToken)
     : ICollectionDataSource<SettingDescriptor>
 {

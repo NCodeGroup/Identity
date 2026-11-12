@@ -1321,7 +1321,7 @@ The page's policy allows scripts only with the nonce and `'strict-dynamic'`, sty
 console's own origin and the origins of the branding's logo and tab icon, `connect-src 'self'`, form submissions to the
 console and to the OP's authority, no base URI and no framing. `ManagementConsole:Branding:FaviconUrl`, an absolute
 `https` URL, replaces the family's icon links in the served page with one link to it
-([ADR-1494](decisions/1494-a-tenant-sets-its-sign-in-tabs-icon-as-a-branding-setting-the-hosts-link-in-place-of-the-familys.md)).
+([ADR-1253](decisions/1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)).
 
 **Client registration.** `mgmt-console` is registered with explicit metadata
 ([ADR-1294](decisions/1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md)):

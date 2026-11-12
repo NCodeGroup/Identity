@@ -146,7 +146,7 @@ named for its tenant, and one general helper reads a single-page bundle and serv
   from one Vite preset.
 - [ADR-1175](1175-bundles-split-into-vendor-and-surface-chunks-and-an-oversized-chunk-fails-the-build.md): bundles split
   into vendor and surface chunks.
-- [ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md): the bundle mounts over the
+- [ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md): the bundle mounts over the
   page the host rendered.
 - [ADR-1388](1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md): the
   front-channel marker.

@@ -309,18 +309,16 @@ The records are grouped by area; within an area they are in number order.
 | [1062](./1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md) | The OP serves an opt-in interactive sign-in and consent surface with a pluggable credential verifier | Accepted |
 | [1182](./1182-the-frontend-bootstraps-issuer-is-the-serving-tenants-and-its-api-base-is-root-relative.md) | The frontend bootstrap's issuer is the serving tenant's and its API base is root-relative | Accepted |
 | [1193](./1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md) | The interactive surface uses the tenant route, host-only cookies and one shared single-page bundle helper | Accepted |
-| [1194](./1194-a-tenant-brands-its-interactive-surface-through-settings.md) | A tenant brands its interactive surface through settings | Accepted |
 | [1229](./1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) | A blocked, disabled or deleted end user loses its sessions and is refused with access_denied | Accepted |
 | [1230](./1230-an-end-user-changes-their-password-through-an-optional-seam-and-keeps-only-the-current-session.md) | An end user changes their password through an optional seam and keeps only the current session | Accepted |
 | [1236](./1236-a-password-is-judged-by-one-policy-wherever-it-is-set.md) | A password is judged by one policy wherever it is set | Accepted |
 | [1237](./1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md) | Failed password attempts are limited per account, and a refusal costs what a wrong password costs | Accepted |
 | [1238](./1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md) | A password is hashed and verified in its NFC form on every path | Accepted |
 | [1239](./1239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md) | A password is verified in the same time whether or not its account exists | Accepted |
-| [1253](./1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md) | The interactive bundle mounts at once over the page the host rendered | Accepted |
+| [1253](./1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md) | A tenant brands its sign-in pages through settings, and the bundle mounts over the host's page | Accepted |
 | [1283](./1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md) | Audit records are CloudTrail-shaped JSON with an indexable envelope | Accepted |
 | [1303](./1303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md) | Audit records are kept in an indexed store that each replica writes in batches | Accepted |
 | [1402](./1402-the-interactive-surface-renders-in-the-locale-the-request-prefers-among-the-registered-ui-locales.md) | The interactive surface renders in the locale the request prefers among the registered UI locales | Accepted |
-| [1494](./1494-a-tenant-sets-its-sign-in-tabs-icon-as-a-branding-setting-the-hosts-link-in-place-of-the-familys.md) | A tenant sets its sign-in tab's icon as a branding setting the hosts link in place of the family's | Accepted |
 
 ### Frontend, BFF and browser security
 

@@ -107,7 +107,7 @@ frontend/
 7. **Branding is a runtime seam.** `@ncode/ui` themes from runtime `BrandingConfig`. The interactive
    surface (`apps/auth`) reads its tenant's branding from the JSON block the host embeds in every page it
    serves with the bundle (`<script type="application/json" id="branding">`, `BRANDING_ELEMENT_ID`), parses
-   it with `parseBrandingConfig`, and mounts at once over the server-rendered page (ADR-1194, ADR-1253).
+   it with `parseBrandingConfig`, and mounts at once over the server-rendered page (ADR-1253).
 8. **The interactive surface renders in the language the host selected.** The host writes the locale it selected
    from the request's `ui_locales` and the tenant's settings into the page's `lang` attribute (in place of the
    `__NCODE_LANG__` placeholder of `apps/auth/index.html`), `mountSurface` reads it before it renders, and every

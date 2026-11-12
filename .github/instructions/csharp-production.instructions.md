@@ -708,7 +708,7 @@ than inlining the rationale.
   into the page, such as the tenant's branding as a `<script type="application/json" id="branding">` block serialized
   with `JsonSerializerOptions.Web`, whose encoder escapes `<`, `>` and `&`. The bundle reads it, and the server form's
   state, when it mounts. Never add an endpoint the bundle must call before it can render. See
-  [ADR-1253](../../docs/decisions/1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md).
+  [ADR-1253](../../docs/decisions/1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md).
 - 👁 **A content-hashed static file is served by a route group that resolves no tenant.**
   `InteractiveBundleAssetEndpointGroup` takes the tenant-route prefix and adds no `OpenIdEnvironmentEndpointFilter`. It
   reads through `NCode.Identity.AspNetCore`'s `SinglePageBundle<InteractiveBundleShell>`, whose file provider is rooted at

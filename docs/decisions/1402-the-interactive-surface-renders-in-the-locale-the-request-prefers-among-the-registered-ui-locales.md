@@ -1,7 +1,7 @@
 # 1402. The interactive surface renders in the locale the request prefers among the registered UI locales
 
 - **Status:** Accepted (amends
-  [ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md): the page the host
+  [ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md): the page the host
   renders carries its language, which the bundle reads before it renders)
 - **Date:** 2026-11-03
 - **Deciders:** NCode Group
@@ -17,7 +17,7 @@ ceiling whose unset value is unrestricted ([ADR-1010](1010-settings-merge-as-cei
 
 The interface the preference applies to is the interactive surface: the server-rendered no-JavaScript login, consent,
 logout confirmation and authorization error pages, and the `apps/auth` bundle that mounts over them and draws the
-account pages ([ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md)). Every page
+account pages ([ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)). Every page
 reaches the surface through a redirect, the login challenge's and the consent and logout confirmation challenges', and
 a page the surface redirects back to, such as the login page after a refused sign-in, starts from a new request. The
 surface is one capability a host may replace with an interface of its own, so the locales an interface renders are
@@ -136,7 +136,7 @@ forms carry on.**
   starts.
 - The `lang` attribute, the `ui_locales` hidden field and the `ui_locales` query are part of the contract between
   the host's pages and the bundle, as the stable ids are
-  ([ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md)).
+  ([ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)).
 - A bundle built from another `index.html` without the placeholder keeps that document's `lang`; the bundle then
   renders in its default language.
 
@@ -147,7 +147,7 @@ forms carry on.**
   at the end-session endpoint.
 - [RFC 4647 §3.4](https://www.rfc-editor.org/rfc/rfc4647#section-3.4): lookup.
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md), [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
-  [ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md).
+  [ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md).
 - Issue [#540](https://github.com/NCodeGroup/identity/issues/540).
 - Code: `src/NCode.Identity.OpenId.Abstractions/Locales/`, `src/NCode.Identity.OpenId.Core/Locales/`,
   `src/NCode.Identity.OpenId.Authentication.Interactive.Abstractions/InteractiveLocale.cs`,

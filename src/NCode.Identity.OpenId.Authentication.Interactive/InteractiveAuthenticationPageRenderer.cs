@@ -315,7 +315,7 @@ internal static class InteractiveAuthenticationPageRenderer
     // there whatever path the page itself was served at (ADR-1193). The tenant's branding follows the base, so the
     // bundle finds it in the page it mounts over. The bundle's own markup carries the nonce and the language tag in
     // place of their placeholders; no rendered value does. A tenant's tab icon is the page's only icon, written before
-    // the bundle's head, which is then written without the family's icon links (ADR-1494). See ADR-1256 and ADR-1402.
+    // the bundle's head, which is then written without the family's icon links (ADR-1253). See ADR-1256 and ADR-1402.
     private static void WriteHead(
         IBufferWriter<char> writer,
         InteractivePageFrame frame,

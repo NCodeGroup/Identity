@@ -309,7 +309,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   class's own helpers — returns `ValueTask` or `ValueTask<T>`, ends in `Async` and takes a `CancellationToken` last,
   which it passes to every awaited call that accepts one. `NCID0002` and `NCID0003` enforce this in every test
   project, as in production
-  ([ADR-1496](../../docs/decisions/1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-takes-no-trailing-cancellation-token.md)).
+  ([ADR-1496](../../docs/decisions/1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-lacks-a-trailing-cancellation-token.md)).
   A test method passes
   `CancellationToken.None` to each of these methods and leaves the optional token of a framework call, such as
   `HttpClient.SendAsync` or `HttpContent.ReadAsStringAsync`, at its default, which is `CancellationToken.None` too.

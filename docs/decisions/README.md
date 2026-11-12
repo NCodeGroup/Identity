@@ -105,7 +105,7 @@ The records are grouped by area; within an area they are in number order.
 | [1428](./1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors-through-registered-translators.md) | A package translates the exceptions it owns into protocol errors through registered translators | Accepted |
 | [1486](./1486-the-repositorys-own-analyzer-project-fails-the-build-on-a-field-an-auto-property-could-replace.md) | The repository's own analyzer project fails the build on a field an auto-property could replace | Accepted |
 | [1493](./1493-global-json-requires-the-newest-net-sdk-release-past-the-cooldown.md) | global.json requires the newest .NET SDK release past the cooldown | Accepted |
-| [1496](./1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-takes-no-trailing-cancellation-token.md) | An analyzer reports an own async method that returns Task or takes no trailing cancellation token | Accepted |
+| [1496](./1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-lacks-a-trailing-cancellation-token.md) | An analyzer reports an own async method that returns Task or lacks a trailing cancellation token | Accepted |
 | [1500](./1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md) | Every package names one capability under the NCode.Identity prefix | Accepted |
 | [1501](./1501-a-projects-top-level-folder-says-whether-it-ships.md) | A project's top-level folder says whether it ships | Accepted |
 | [1502](./1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md) | Code a self-hoster could use is public, and the product's repositories and artifacts follow one naming scheme | Accepted |

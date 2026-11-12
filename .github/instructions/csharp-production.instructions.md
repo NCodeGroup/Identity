@@ -27,13 +27,13 @@ than inlining the rationale.
 - ✅ **Async methods return `ValueTask`, end in `Async` and take the `CancellationToken` last** — template
   [Language and Async](csharp.instructions.md#language-and-async); `NCID0002` reports a method that returns `Task` or
   `Task<T>`
-  ([ADR-1496](../../docs/decisions/1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-takes-no-trailing-cancellation-token.md)).
+  ([ADR-1496](../../docs/decisions/1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-lacks-a-trailing-cancellation-token.md)).
   A mediator handler whose contract returns `Task` is a framework boundary too.
 - ✅ **Every async method of ours takes a `CancellationToken`, even when none of its awaited calls takes one** — such
   as one whose only asynchronous call is `IAuthorizationService.AuthorizeAsync`. The token is part of the method's
   contract, so a call added later honors it; a root call site with no token in hand passes `CancellationToken.None`.
   `NCID0003` reports an async method whose last parameter is not a `CancellationToken`
-  ([ADR-1496](../../docs/decisions/1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-takes-no-trailing-cancellation-token.md)).
+  ([ADR-1496](../../docs/decisions/1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-lacks-a-trailing-cancellation-token.md)).
   The first exception is a method whose whole work follows a committed change and runs on its own bounded token
   through `PostCommitWork`, such as every `IManagementAuditRecorder` and `IPostCommitSecurityEffects` method: it takes
   no `CancellationToken`, so no caller can pass one that drops the effect

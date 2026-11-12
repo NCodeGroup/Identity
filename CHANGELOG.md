@@ -3751,7 +3751,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   a method of the post-commit types that run on their own bounded token, or a method an ADR makes uncancellable
   ([#743](https://github.com/NCodeGroup/identity/issues/743),
   [#744](https://github.com/NCodeGroup/identity/issues/744),
-  [ADR-1496](docs/decisions/1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-takes-no-trailing-cancellation-token.md)).
+  [ADR-1496](docs/decisions/1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-lacks-a-trailing-cancellation-token.md)).
 
 - **C# files carry a two-line SPDX header that the build checks.** Every C# file starts with
   `// Copyright © NCode Group` and `// SPDX-License-Identifier: Apache-2.0`; `.editorconfig` sets the header as

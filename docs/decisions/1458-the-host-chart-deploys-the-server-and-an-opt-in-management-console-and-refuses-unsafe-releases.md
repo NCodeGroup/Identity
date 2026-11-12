@@ -34,15 +34,18 @@ release the host or the console would refuse.**
    host's project directory, so the Web SDK's content globs and the image's build context never pick up its files. It
    changes in the same commit as a setting. It needs Kubernetes 1.30 or later (`kubeVersion: ">=1.30.0-0"`), because
    the drain uses the kubelet's `sleep` action.
-2. **Secrets are referenced, never passed.** The database and Valkey connection strings, the root key, previous root key
-   and recovery Secrets or ConfigMap
+2. **Secrets are referenced, never passed.** The database connection (a finished connection string, or the parts of a Postgres operator's Secret,
+   [ADR-1509](1509-the-host-chart-passes-a-postgres-operators-secret-as-the-connections-parts-and-the-host-assembles-the-npgsql-connection.md)),
+   the Valkey connection string, the root key, previous root key and recovery Secrets or ConfigMap
    ([ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)), and the console's
    key Secrets come from objects the operator names. No value in the chart is a secret, so a values file can be
    committed.
 3. **Rendering fails, so `helm install` applies nothing,** instead of leaving a pod in a crash loop, when:
    - `allowedHosts` is empty or contains `*`;
    - the probe host would be a wildcard;
-   - no `database.existingSecret` is named;
+   - neither `database.existingSecret` nor `database.parts.existingSecret` is named;
+   - a connection names both its connection-string Secret and its parts Secret, or a parts Secret leaves its host,
+     database, user or password key empty;
    - the `StaticSingle` strategy has no `tenantResolution.staticSingle.issuer` (the schema requires `https://`);
    - `secretProtection.rootKeyProvider` is empty;
    - `replicaCount` is above 1 without `valkey.existingSecret`;
@@ -101,7 +104,7 @@ release the host or the console would refuse.**
 
 ## Consequences
 
-- The operator creates the database Secret, the root-key material and, for more than one replica, a Valkey Secret. The
+- The operator names the database Secret (the operator's own `<cluster>-app` Secret works as is), the root-key material and, for more than one replica, a Valkey Secret. The
   chart's `README.md` lists them.
 - An operator registers `mgmt-console` with `jwks_uri` `https://<host>/bff/jwks`.
 - A router the chart does not configure, such as a Traefik `IngressRoute`, is the operator's to add.

@@ -132,6 +132,89 @@ traefik.ingress.kubernetes.io/service.serverstransport: {{ printf "%s-%s@kuberne
 {{- end }}
 
 {{/*
+The name of the ConfigMap that holds the CA verifying a Service's pods, as backendTls.caConfigMap names it; the
+management console's Service takes managementConsole.backendTls.caConfigMap first. Empty when none is set. Takes a dict
+with root and service (the Service's name).
+*/}}
+{{- define "identity-host.backendTls.caConfigMap" -}}
+{{- if eq .service (include "identity-host.managementConsole.fullname" .root) }}
+{{- .root.Values.managementConsole.backendTls.caConfigMap | default .root.Values.backendTls.caConfigMap }}
+{{- else }}
+{{- .root.Values.backendTls.caConfigMap }}
+{{- end }}
+{{- end }}
+
+{{/*
+The rootCAs item of a ServersTransport: the CA ConfigMap when one is set, otherwise the Service's serving Secret. Takes a
+dict with root and service (the Service's name).
+*/}}
+{{- define "identity-host.backendTls.traefikRootCA" -}}
+{{- $caConfigMap := include "identity-host.backendTls.caConfigMap" . }}
+{{- if $caConfigMap }}
+configMap: {{ $caConfigMap }}
+{{- else if eq .service (include "identity-host.managementConsole.fullname" .root) }}
+secret: {{ include "identity-host.managementConsole.backendTls.secretName" .root }}
+{{- else }}
+secret: {{ include "identity-host.backendTls.secretName" .root }}
+{{- end }}
+{{- end }}
+
+{{/*
+The BackendTLSPolicy that makes a Gateway API implementation speak HTTPS to a Service and verify its pods' certificate
+against the CA ConfigMap. Takes a dict with root, service (the Service's name) and labels (the rendered label block).
+*/}}
+{{- define "identity-host.backendTls.policy" -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: {{ .service }}
+  labels:
+    {{- .labels | nindent 4 }}
+spec:
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: {{ .service }}
+      sectionName: https
+  validation:
+    caCertificateRefs:
+      - group: ""
+        kind: ConfigMap
+        name: {{ include "identity-host.backendTls.caConfigMap" . }}
+    hostname: {{ include "identity-host.backendTls.serverName" . | quote }}
+{{- end }}
+
+{{/*
+The HTTPRoute that sends every path to a Service's HTTPS port. Takes a dict with root, service (the Service's name),
+labels (the rendered label block), annotations (a map), parentRefs (a list), hostnames (a list) and port.
+*/}}
+{{- define "identity-host.httpRoute" -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .service }}
+  labels:
+    {{- .labels | nindent 4 }}
+  {{- with .annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  parentRefs:
+    {{- toYaml .parentRefs | nindent 4 }}
+  hostnames:
+    {{- toYaml .hostnames | nindent 4 }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: {{ .service }}
+          port: {{ .port }}
+{{- end }}
+
+{{/*
 Refuses a certificate the chart's Certificate could not describe to cert-manager. Rendered for its side effect only.
 */}}
 {{- define "identity-host.backendTls.validate" -}}

@@ -11,7 +11,7 @@
 stamped make the projection reachable for only one of the many ways a subject authenticates:
 
 - **It lives on `LocalAccount`, which is local-connections-only.** A `LocalAccount`
-  ([ADR-1051](1051-local-accounts-behind-a-pluggable-account-source-seam.md)) is the credential/profile/status payload
+  ([ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md)) is the credential/profile/status payload
   of a **local** connection — a `FederatedIdentity` whose `issuer` is this server. An **external-IdP** connection
   (an Auth0-style social or enterprise connection) is a `FederatedIdentity` whose `issuer` is the upstream IdP and
   carries **no `LocalAccount` at all** (ADR-1051's connection table). A human who signs in only through an external IdP
@@ -78,7 +78,7 @@ next token across every node — and cluster-consistent, because the store is th
 `IMemoryCache` is explicitly rejected: in a cluster it serves one node a stale snapshot while another reloads, making the
 same principal's authorization-relevant metadata inconsistent by node. A host that must trade freshness for fewer reads
 replaces `IPrincipalMetadataProvider` with a decorator over a **distributed** cache (`IDistributedCache`/Redis), keyed by
-`(tenant, principalId)` and invalidated on `SecurityStamp` change ([ADR-1051](1051-local-accounts-behind-a-pluggable-account-source-seam.md)'s
+`(tenant, principalId)` and invalidated on `SecurityStamp` change ([ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md)'s
 revocation hook) — a clean, opt-in extension of the same seam rather than a broken built-in default.
 
 ### The shared JSON helper is a dependency-free package
@@ -134,7 +134,7 @@ Secrets stay standalone-reusable — is tracked in [GitHub issues](https://githu
 
 - [ADR-1054](1054-local-account-metadata-projection.md) — projects the two metadata bags into tokens/UserInfo; this ADR
   relocates their home from `LocalAccount` to the principal and resolves them fresh at issuance.
-- [ADR-1051](1051-local-accounts-behind-a-pluggable-account-source-seam.md) — the `LocalAccount` payload the bags leave,
+- [ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) — the `LocalAccount` payload the bags leave,
   and the `SecurityStamp` revocation hook a distributed-cache decorator would invalidate on.
 - [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md) — the `FederatedPrincipal` actor the bags inline onto
   and whose resolved `PrincipalId` keys the provider.

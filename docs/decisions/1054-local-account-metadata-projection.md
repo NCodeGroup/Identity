@@ -18,7 +18,7 @@ change (nothing is stamped on the subject at authentication).
 
 ## Context
 
-A `LocalAccount` ([ADR-1051](1051-local-accounts-behind-a-pluggable-account-source-seam.md)) carries three kinds of
+A `LocalAccount` ([ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md)) carries three kinds of
 subject data that the persisted `PersistedLocalAccount` round-trips but that, until now, never reached a token or the
 UserInfo response:
 
@@ -144,7 +144,7 @@ protects `app_metadata`. It is called out here and tracked as management work in
 
 ## References
 
-- [ADR-1051](1051-local-accounts-behind-a-pluggable-account-source-seam.md) — the `LocalAccount` payload and
+- [ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) — the `LocalAccount` payload and
   `ILocalAccountSource` seam whose metadata this ADR projects.
 - [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md) — the subject/principal model the stamped `sub` and
   carried claims resolve through.

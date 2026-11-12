@@ -18,7 +18,7 @@ implementation depends on the account abstractions — every management host car
 or not it wants it, and the management audit abstraction knows the shape of an event that is not part of its slice.
 
 [ADR-1086](1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md) establishes the keyed endpoint-group model this design relies on, and
-[ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md) establishes the same
+[ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) establishes the same
 dependency-inversion principle for the authentication slice: the local-account-specific resource-owner password grant is
 an opt-in package that depends on the account abstractions, so the base authentication slice does not. The family is
 pre-release ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)), which favors the cohesive model over
@@ -89,7 +89,7 @@ store to be registered before the capability — the natural order a host alread
 
 ## Options considered
 
-- **Account-owned opt-in packages (chosen).** Symmetric with [ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md):
+- **Account-owned opt-in packages (chosen).** Symmetric with [ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md):
   the base management slice carries no account concerns, and the capability is composable and opt-in.
 - **Local-account management inside the management packages (rejected).** Couples the general slice to one optional
   capability and forces every management host to carry it, with the management implementation depending on the account

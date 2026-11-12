@@ -31,7 +31,7 @@ is inverted behind an `IInteractiveCredentialVerifier` seam owned by the `.Abstr
 surface package is backend-agnostic; the local-account implementation lives in the local-account
 capability package (`NCode.Identity.OpenId.Accounts.Authentication`) and is registered through its own
 opt-in, exactly like the resource-owner password grant
-([ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md)).**
+([ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md)).**
 
 - **`…Interactive.Abstractions`** holds the stable contract: `InteractiveAuthenticationDefaults` (paths
   and cookie scheme name), `InteractiveAuthenticationOptions`, and the `IInteractiveCredentialVerifier`
@@ -61,7 +61,7 @@ The three UI extensibility seams are now explicit and symmetric: the **bundle** 
   home; it made the module unreferenceable without the whole server and left the backend hard-wired.
 - **Extract the package but keep the local-account verifier inside it.** Rejected: it would couple the
   backend-agnostic surface to the account store and persistence, defeating the extensibility seam and
-  violating the dependency-inversion already established for the password grant (ADR-1060).
+  violating the dependency-inversion already established for the password grant (ADR-1051).
 - **Extract the package and invert the verifier behind an interface owned by `.Abstractions` (chosen).**
   The surface is reusable and backend-agnostic; the local-account backend is one opt-in implementation
   among possible others, registered by the package that owns the local-account coupling.
@@ -82,6 +82,6 @@ The three UI extensibility seams are now explicit and symmetric: the **bundle** 
 ## References
 
 - [ADR-1065](1065-interactive-login-consent-op-hosted-auth-surface.md) — the interactive surface decision this extracts.
-- [ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md) — the dependency-inverted local-account authentication pattern the verifier seam follows.
+- [ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) — the dependency-inverted local-account authentication pattern the verifier seam follows.
 - [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md) — the registration marker pattern the capability's opt-ins use.
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — why the seam lives in `.Abstractions`.

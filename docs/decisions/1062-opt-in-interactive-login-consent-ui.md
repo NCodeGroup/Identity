@@ -52,7 +52,7 @@ is the invariant; the rendering technology is an implementation choice behind it
 - **Reuse the local-account credential path.** The login endpoint verifies credentials through the same
   local-account store the resource-owner password grant already uses
   (`AddLocalAccountAuthentication()` / `AddLocalAccountEntityFramework()`,
-  [ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md)); it introduces
+  [ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md)); it introduces
   no second credential verifier. On success it issues the cookie via `SignInAsync` and returns to a
   validated local `ReturnUrl`.
 - **A stable locator contract is the architectural invariant.** The rendered DOM must expose explicit,
@@ -89,7 +89,7 @@ seeder, the data-driven discovery handler) and need no architectural decision of
   uncertifiable out of the box and gives no canonical answer to "what does the challenge redirect to,"
   which every adopter then re-invents. Rejected because conformance is a property of the reference host.
 - **Full production ASP.NET Core Identity UI.** Over-scoped for the goal and duplicative: the local-account
-  store already owns credentials ([ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md)).
+  store already owns credentials ([ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md)).
   A production identity UI is a separate concern, not a conformance prerequisite.
 - **Placement — host-local pages vs. a reusable opt-in module.** A reusable module wins: it gives
   adopters a turnkey dev login, keeps the host thin, and localizes the locator contract. host-local
@@ -124,7 +124,7 @@ seeder, the data-driven discovery handler) and need no architectural decision of
   [`reachable-host.md`](../conformance/reachable-host.md) ([#126](https://github.com/NCodeGroup/identity/issues/126)),
   [`conformance-seeding.md`](../conformance/conformance-seeding.md) ([#127](https://github.com/NCodeGroup/identity/issues/127)),
   [`discovery-alignment.md`](../conformance/discovery-alignment.md) ([#128](https://github.com/NCodeGroup/identity/issues/128)).
-- Reused seams: [ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md)
+- Reused seams: [ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md)
   (local-account store + dependency-inverted authentication),
   [ADR-1401](1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md) (subject-authentication seam).
 - Code: [`DefaultAuthenticateHandler`](../../src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultAuthenticateHandler.cs),

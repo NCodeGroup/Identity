@@ -83,8 +83,7 @@ compiles it and no gate tests it
   `NCode.Identity.OpenId.Accounts.Authentication` (the password grant and interactive credential verification against
   local accounts) and `NCode.Identity.OpenId.Accounts.Management(.Abstractions)` (the management API's local-account
   endpoints)
-  ([ADR-1051](docs/decisions/1051-local-accounts-behind-a-pluggable-account-source-seam.md),
-  [ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md))
+  ([ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md))
 - **Interactive login and consent** — `NCode.Identity.OpenId.Authentication.Interactive(.Abstractions)`: the opt-in
   sign-in, consent and account surface that the OP serves from the `apps/auth` bundle, with a pluggable credential
   verifier

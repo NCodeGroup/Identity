@@ -68,7 +68,7 @@ Concretely:
   `GET /account/logout` clears the session. The host opts in with one call; it is never wired by default.
 - **Credential verification reuses the local-account path.** `POST /account/login` verifies through the
   same `ILocalAccountStore.VerifyCredentialAsync` the resource-owner password grant uses
-  ([ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md)); it introduces
+  ([ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md)); it introduces
   no second credential verifier. On success it builds a `ClaimsPrincipal` carrying the subject claim the
   authorize flow reads (`sub` = the account's self-issued id, per the tenant's `subject_claim_types`),
   calls `SignInAsync("Identity.Application", principal)`, and redirects to a **validated local**
@@ -106,7 +106,7 @@ Concretely:
   browser-drivable, and carries no credential check; fine for integration tests, unusable as the real
   surface.
 - **Full production ASP.NET Core Identity UI.** Over-scoped and duplicative — the local-account store
-  already owns credentials ([ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md)).
+  already owns credentials ([ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md)).
 
 ## Consequences
 
@@ -132,7 +132,7 @@ Concretely:
 - Supersedes the two deferred choices (rendering; dev-only vs. first-class) left open by
   [ADR-1062](1062-opt-in-interactive-login-consent-ui.md); preserves its seam and stable-locator contract.
 - Builds on [ADR-1064](1064-frontend-presentation-platform.md) (frontend platform; names `apps/auth`),
-  [ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md) (local-account
+  [ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) (local-account
   credential path), [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) (tenant seed fan-out),
   [ADR-1401](1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md) (subject-authentication seam).
 - Issues: [#133](https://github.com/NCodeGroup/identity/issues/133), [#139](https://github.com/NCodeGroup/identity/issues/139), [#125](https://github.com/NCodeGroup/identity/issues/125), [#135](https://github.com/NCodeGroup/identity/issues/135); plan

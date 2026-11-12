@@ -28,7 +28,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IServiceCollection` extensions, and cross-library helpers invoked from several library builders
   (`AddMessageFactory<TMessage>`, `AddEndpointProvider<T>`, `AddEndpointGroup<T>`) take the non-generic
   `IServiceBuilder` receiver ([ADR-1069](docs/decisions/1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
-  [ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md),
+  [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md),
   [ADR-1061](docs/decisions/1061-local-account-management-is-an-opt-in-capability.md)).
 
 - **The library chain composes off typed builders.** `AddJoseLibrary()` extends `IServiceBuilder<SecretsLibrary>` and
@@ -57,7 +57,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   extends `IServiceBuilder<OpenIdManagementLibrary>`, each returning its receiver for chaining, for example
   `AddIdentityServer().OpenIdAuthenticationLibraryBuilder.AddLocalAccountAuthentication(localAccountStore)`
   ([ADR-1069](docs/decisions/1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
-  [ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md)).
+  [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md)).
 
 - **Strict configuration binding is public.** `NCode.Identity.Registration.StrictConfigurationBindingExtensions.BindStrictly`
   binds a section so that a key that maps to no option fails, so an extension binds its own section the way the family
@@ -1404,7 +1404,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `CreatePasswordGrantSubjectCommand`), so `NCode.Identity.OpenId.Authentication` does not depend on the account
   packages; without that capability the base package answers the grant with `unsupported_grant_type`. The metadata
   projection claim types are in `NCode.Identity.OpenId.Principals.SubjectMetadataClaimTypes`
-  ([ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md)). Its tickets
+  ([ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md)). Its tickets
   carry the authentication's `AuthenticationProperties`: `DefaultPasswordGrantHandler` records the authentication
   instant once, at the start of the token request, passes it as `AuthenticationProperties.IssuedUtc` through
   `AuthenticatePasswordGrantCommand.AuthenticationProperties` and uses the same timestamp for the token's `CreatedWhen`,
@@ -1968,7 +1968,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   adapter (`NCode.Identity.OpenId.Accounts.AspNetIdentity`) implements `ILocalAccountStore` over `UserManager<TUser>`
   (`AddAspNetIdentityLocalAccountStore<TUser>()`). `IFederatedPrincipalStore` provides `UpdateAsync` and `RemoveAsync`,
   and `IFederatedIdentityStore` provides `RemoveAsync`. See
-  [ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md).
+  [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md).
 
 - **The interactive surface is served under the tenant route.** The login, consent, logout, and account endpoints share
   the protocol endpoints' tenant route, so interactive flows work under `DynamicByPath` at `/{tenantId}/account/*`.
@@ -2424,7 +2424,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IEndpointProvider` to the tenant group, and the generic audit seam
   `RecordResourceChangeAsync(HttpContext, ResourceChangeAuditEvent)`. See
   [ADR-1057](docs/decisions/1057-local-account-eager-provisioning-and-management-seam.md),
-  [ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md) and
+  [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) and
   [ADR-1061](docs/decisions/1061-local-account-management-is-an-opt-in-capability.md).
 
 - **The management API looks up audit records.** `GET api/tenants/{tenantId}/audit-records` lists the tenant's records
@@ -2884,7 +2884,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   entities as extension members. `EntityStoreManager` has a `DbContext`-less store-factory fallback, so a store that is
   not built on Entity Framework resolves without referencing `OpenIdDbContext`
   ([ADR-1052](docs/decisions/1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md),
-  [ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md)).
+  [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md)).
 
 - **Store queries take extensible parameter records.** Every store's `GetPageAsync` pages with a shared `PageRequest {
   Cursor, Limit }` init-only record struct (in `NCode.Identity.Persistence.Stores`, beside `PagedResult<T>`) across

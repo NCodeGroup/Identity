@@ -303,11 +303,10 @@ The records are grouped by area; within an area they are in number order.
 | --- | --- | --- |
 | [1035](./1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md) | An end user is one tenant-scoped principal that every authentication entry point resolves to | Accepted |
 | [1047](./1047-observation-is-a-fault-isolated-event-seam-that-audit-specializes-and-protocol-errors-reach-once.md) | Observation is a fault-isolated event seam that audit specializes and protocol errors reach once | Accepted |
-| [1051](./1051-local-accounts-behind-a-pluggable-account-source-seam.md) | Local accounts behind a pluggable account-source seam | Accepted |
+| [1051](./1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) | A local account is a self-issued connection behind one pluggable store seam | Accepted |
 | [1054](./1054-local-account-metadata-projection.md) | Local-account metadata projects into tokens through the subject-claims pipeline | Accepted |
 | [1055](./1055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md) | Subject metadata is a principal-level concept, resolved at issuance | Accepted |
 | [1057](./1057-local-account-eager-provisioning-and-management-seam.md) | Local accounts are provisioned eagerly with their principal, and the provisioner is the account write seam | Accepted |
-| [1060](./1060-local-account-one-store-seam-and-dependency-inverted-authentication.md) | Local accounts: one store seam, dependency-inverted authentication capability, no owners | Accepted |
 | [1061](./1061-local-account-management-is-an-opt-in-capability.md) | Local-account management is an opt-in capability that plugs into the Management slice | Accepted |
 | [1062](./1062-opt-in-interactive-login-consent-ui.md) | An opt-in interactive login/consent UI for the OpenID Provider | Accepted |
 | [1065](./1065-interactive-login-consent-op-hosted-auth-surface.md) | Interactive login/consent as the OP-hosted `apps/auth` surface | Accepted |

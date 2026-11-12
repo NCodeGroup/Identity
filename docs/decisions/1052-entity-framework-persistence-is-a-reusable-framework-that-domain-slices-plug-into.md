@@ -14,7 +14,7 @@ roles and federated principals and identities.
 
 A satellite that persists its own entities in the _same_ `OpenIdDbContext` shares the unit of work and can write
 atomically with the core entities, as the local accounts of
-[ADR-1051](1051-local-accounts-behind-a-pluggable-account-source-seam.md) do. It needs the framework, not the core
+[ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) do. It needs the framework, not the core
 schema. If the two were fused in one package, every satellite would depend on the core stores it never uses, and the
 reusable pieces (`BaseStore`, the store-registration helper, the id-generator attribute) would have to stay internal,
 which forces each satellite to re-implement the store boilerplate: `IStore` delegation, normalization, id and
@@ -83,7 +83,7 @@ packages it depends only on the framework.
 
 - `NCode.Identity.OpenId.Persistence.EntityFramework.Core` holds the core OpenID schema, with `CoreModelContributor`.
 - `NCode.Identity.OpenId.Persistence.EntityFramework.Accounts` holds the local-account schema of
-  [ADR-1051](1051-local-accounts-behind-a-pluggable-account-source-seam.md), with `LocalAccountModelContributor`.
+  [ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md), with `LocalAccountModelContributor`.
 - A further slice follows the same `NCode.Identity.OpenId.Persistence.EntityFramework.<Slice>` shape.
 
 A slice's store inherits `BaseStore` and registers with `AddStore`, so it reuses `IStore` delegation, normalization and
@@ -132,7 +132,7 @@ A non-Entity-Framework adapter is not a slice and keeps domain-first naming, as 
 
 - `NCode.Identity.OpenId.Persistence.EntityFramework`, `NCode.Identity.OpenId.Persistence.EntityFramework.Core` and
   `NCode.Identity.OpenId.Persistence.EntityFramework.Accounts`
-- [ADR-1051](1051-local-accounts-behind-a-pluggable-account-source-seam.md): the local-account slice whose shared-context
+- [ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md): the local-account slice whose shared-context
   requirement the framework serves.
 - [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md): the tenant scoping that the framework applies
   to every slice's `ISupportTenantEntity`.

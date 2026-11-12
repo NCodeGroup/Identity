@@ -13,7 +13,7 @@
 ## Context
 
 A local account is a self-issued connection of a federated principal
-([ADR-1051](1051-local-accounts-behind-a-pluggable-account-source-seam.md),
+([ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md),
 [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)), and the sessions, grants and consents of the end user
 are keyed by the principal's identifier ([ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)).
 Deleting a local account removed the account, its self-issued identity and, with its last identity, the principal and
@@ -97,7 +97,7 @@ disabled or gone.**
 ## References
 
 - [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md) — the federated principal and its identities.
-- [ADR-1051](1051-local-accounts-behind-a-pluggable-account-source-seam.md) — the local account as a self-issued
+- [ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) — the local account as a self-issued
   connection.
 - [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md) — the principal identifier is the subject
   that grants, consents and sessions are keyed by.

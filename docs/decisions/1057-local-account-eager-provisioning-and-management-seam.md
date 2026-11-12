@@ -1,6 +1,6 @@
 # 1057. Local accounts are provisioned eagerly with their principal, and the provisioner is the account write seam
 
-- **Status:** Accepted (write seam and owner model amended by [ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md))
+- **Status:** Accepted (write seam and owner model amended by [ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md))
 - **Date:** 2026-10-09
 - **Deciders:** NCode Group
 
@@ -8,7 +8,7 @@
 
 This ADR expanded `ILocalAccountProvisioner` into the account write seam and gave the management family an owners
 sub-resource and a `local_account` resource-node type.
-[ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md) supersedes both: the
+[ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) supersedes both: the
 `ILocalAccountSource` / `ILocalAccountProvisioner` seams collapse into the single `ILocalAccountStore` (with first-class
 credential operations), the eager principal + self-issued identity provisioning moves into the management **create
 handler**, and local accounts are no longer ownable — the management family authorizes against the tenant scope because
@@ -17,7 +17,7 @@ management surface (minus owners) otherwise stand.
 
 ## Context
 
-[ADR-1051](1051-local-accounts-behind-a-pluggable-account-source-seam.md) introduced the `LocalAccount` payload and
+[ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) introduced the `LocalAccount` payload and
 the `ILocalAccountSource` (read) / `ILocalAccountProvisioner` (write) seams, but only the read seam had callers: the
 resource-owner password grant. `ILocalAccountProvisioner` exposed a single `CreateAsync` that persisted the account row
 and nothing else, and it had **no caller at all** — an operator could only _seed_ accounts directly through the store.
@@ -111,7 +111,7 @@ without a registered `ILocalAccountProvisioner` they respond `501 Not Implemente
 
 ## References
 
-- [ADR-1051](1051-local-accounts-behind-a-pluggable-account-source-seam.md) — the `LocalAccount` payload and the
+- [ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) — the `LocalAccount` payload and the
   read/write seams this ADR completes; its "written together with its self-issued identity in a single unit of work"
   statement is realized here.
 - [ADR-1054](1054-local-account-metadata-projection.md) — the metadata projection and the `SystemMetadata`

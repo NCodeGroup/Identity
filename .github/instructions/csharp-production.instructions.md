@@ -509,7 +509,7 @@ than inlining the rationale.
   _seam that other registrations build on_ owns a _presence marker_ minted by every implementation.** Two seams own one:
   the persistence framework owns `StoreManagerLibrary` (`NCode.Identity.Persistence.Abstractions`, minted by
   `AddEntityFrameworkCorePersistence`), and the local-account store owns `LocalAccountLibrary`
-  (per [ADR-1060](../../docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md)): each store
+  (per [ADR-1051](../../docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md)): each store
   registration (`AddLocalAccountEntityFramework`, `AddAspNetIdentityLocalAccountStore`, a custom store) receives
   `IServiceBuilder<StoreManagerLibrary>` and **returns** `IServiceBuilder<LocalAccountLibrary>`, and the account bolt-ons
   take it as a **required `IServiceBuilder<LocalAccountLibrary>` parameter** (their receiver stays the OpenId library they

@@ -43,7 +43,7 @@ The product spans the repositories below.
   - npm workspace packages: `@ncode/*`, every one `"private": true` and none published: the workspace root
     `@ncode/frontend`, the packages such as `@ncode/ui` and `@ncode/api`, and the apps `@ncode/app-*`.
   - Domains: `ncodeid.*`
-    ([ADR-1495](docs/decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)):
+    ([ADR-1495](docs/decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)):
     `ncodeid.net` is the platform domain that carries every issuer, `ncodeid.com` the brand domain; the redirect-only
     `ncodeidentity.com` and `ncodeidentity.net` guard the name.
 - **GitHub names.** Each repository's name on GitHub is the one the naming bullet gives, and every link and reference

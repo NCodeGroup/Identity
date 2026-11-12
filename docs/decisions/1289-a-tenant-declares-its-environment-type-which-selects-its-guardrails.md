@@ -12,7 +12,7 @@
 ## Context
 
 Operators run a customer's dev, test and prod as separate tenants
-([ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)), but a tenant could not say which one it
+([ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)), but a tenant could not say which one it
 is. Nothing distinguished a sandbox from the tenant that serves real users, so nothing could protect the latter more
 than the former: a production tenant could be deleted as easily as a scratch one, could register clients with plain
 `http` redirect URIs, and a developer could not tell from the login page that they were signing in to a non-production
@@ -142,7 +142,7 @@ tenant that declares nothing is `production`.**
 ## References
 
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — pre-release posture
-- [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md) — hosted platform environment model
+- [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) — hosted platform environment model
 - [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md) — security profiles accumulate down the
   cascade
 - [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md) — settings declare their scopes

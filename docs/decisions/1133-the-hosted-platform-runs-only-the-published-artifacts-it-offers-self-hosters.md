@@ -8,7 +8,7 @@
 
 NCode.Identity is both an open-source library family with a deployable host
 ([ADR-1501](1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)) and a hosted platform
-([ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)) whose infrastructure code is public
+([ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)) whose infrastructure code is public
 ([ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md)). That
 raises a recurring question: does the platform run on private, platform-only deployment code, or on the same artifacts a
 self-hoster would use?
@@ -66,7 +66,7 @@ small components composed into opinionated stacks, and the supported set is limi
    then production.
 5. **Platform specifics stay in `live/` and `clusters/`.** Domains, hostnames, accounts and SSM paths are inputs, and no
    component or stack carries a default for any of the platform's domains
-   ([ADR-1495](1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)).
+   ([ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)).
 6. **Support tiers.** Supported: the chart, the cloud-neutral in-cluster components, and the components for the vendors
    the platform runs. A vendor's components are supported only while the platform runs on it. Everything else is an
    unsupported community example.

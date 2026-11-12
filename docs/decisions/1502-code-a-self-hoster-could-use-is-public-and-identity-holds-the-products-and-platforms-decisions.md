@@ -67,7 +67,7 @@ platform.** Anything in the private repository that a self-hoster would want bel
    - npm workspace packages: `@ncode/*`, every one `"private": true` and none published: the root `@ncode/frontend`,
      packages such as `@ncode/ui` and `@ncode/api`, and the apps `@ncode/app-*`.
    - Domains: the domains are
-     [ADR-1495](1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)'s.
+     [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)'s.
 8. **GitHub names.** Every link and reference spells a repository as its GitHub name, such as
    `https://github.com/NCodeGroup/identity` and `NCodeGroup/identity#760`. GitHub resolves a repository name without
    regard to case, so a link in any capitalization reaches the repository.
@@ -114,6 +114,6 @@ platform.** Anything in the private repository that a self-hoster would want bel
   [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md),
   [ADR-1261](1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md),
   [ADR-1306](1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-repository-files.md),
-  [ADR-1495](1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md),
+  [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md),
   [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1501](1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)

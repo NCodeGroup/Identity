@@ -8,7 +8,7 @@
 ## Context
 
 A customer's environments are the tenants of one team
-([ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md) decision 1,
+([ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) decision 1,
 [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)). The configuration of
 one environment, its settings, resource servers, clients and client grants, is the configuration of the next, and an
 operator re-enters it in each tenant by hand.
@@ -132,7 +132,7 @@ keys, principals and environment-bound values stay with their environment.**
 ## References
 
 - [ADR-1050](1050-secret-material-revealed-once-on-create.md) — secret material is revealed once on create
-- [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md) — the hosted platform's environment model
+- [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) — the hosted platform's environment model
   and hostname scheme
 - [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md) — settings declare the scopes they apply to
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — vocabularies are open unless provably closed

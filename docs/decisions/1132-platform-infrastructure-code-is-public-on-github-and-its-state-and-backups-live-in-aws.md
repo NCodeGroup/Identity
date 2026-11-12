@@ -6,7 +6,7 @@
 
 ## Context
 
-The hosted platform ([ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)) is provisioned entirely
+The hosted platform ([ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)) is provisioned entirely
 with OpenTofu. That code needs a CI system to apply it, a state backend, a secret store for vendor API tokens and an
 off-vendor destination for database backups. Where the code lives is
 [ADR-1502](1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)'s:
@@ -63,7 +63,7 @@ OIDC.**
    MFA and no IAM users for automation.
 7. **Bootstrap.** A one-time OpenTofu stack, run by the owner with short-lived credentials, creates the state and
    backup buckets, the OIDC provider and roles, every DNS zone
-   [ADR-1495](1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)
+   [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)
    names with DNSSEC, the scoped vendor tokens (written to SSM) and the repository's environments and rulesets. Its
    local state then moves into the bucket it created.
 
@@ -97,10 +97,10 @@ OIDC.**
 ## References
 
 - [Hosting analysis](../hosting-analysis.md): bootstrap, delivery and backups.
-- [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md): the environment model and hostnames.
+- [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md): the environment model and hostnames.
 - [ADR-1502](1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md):
   repository placement.
-- [ADR-1495](1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md):
+- [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md):
   the platform's domains.
 - [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md): knowledge lives
   in the repository.

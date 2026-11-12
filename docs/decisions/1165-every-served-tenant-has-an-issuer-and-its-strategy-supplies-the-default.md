@@ -25,7 +25,7 @@ address at once — and the source of three problems:
   the request and an administrative materialization's from the issuer, and the tenant cache had to keep them apart.
 - **A multi-tenant deployment could not avoid it.** A tenant created without an issuer — the natural shape when an
   operator names a tenant and expects it at the platform's canonical address
-  ([ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md),
+  ([ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md),
   [ADR-1159](1159-a-tenant-is-named-by-its-creator.md)) — had no address but the request's, and the host strategy could
   not serve it at all.
 
@@ -93,7 +93,7 @@ with it, or the one its strategy derives for it — and that issuer is stored wi
 - A tenant stored without an issuer before this decision fails closed; give it one through the management API, or reset
   a development database.
 - Under the hosted platform, `DynamicByHost:IssuerTemplate = https://{tenantId}.auth.<apex>` and
-  `Root:Issuer = https://auth.<apex>` produce the hostname scheme of ADR-1131, and a custom domain remains an explicit
+  `Root:Issuer = https://auth.<apex>` produce the hostname scheme of ADR-1495, and a custom domain remains an explicit
   issuer.
 - The frontend bootstrap document's `issuer` is the serving tenant's issuer, never the request's origin
   ([ADR-1182](1182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md)).

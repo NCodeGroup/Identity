@@ -6,7 +6,7 @@
 
 ## Context
 
-The hosted platform ([ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)) is provisioned as public
+The hosted platform ([ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)) is provisioned as public
 code ([ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md)) from
 the same artifacts offered to self-hosters
 ([ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)). Many choices (how a
@@ -72,7 +72,7 @@ a principle by number.
 
 - [The Twelve-Factor App](https://12factor.net/).
 - [Hosting analysis](../hosting-analysis.md): §5 HA, §11 delivery, §13 pre-launch considerations.
-- [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md),
+- [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md),
   [ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md),
   [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md),
   [ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md),

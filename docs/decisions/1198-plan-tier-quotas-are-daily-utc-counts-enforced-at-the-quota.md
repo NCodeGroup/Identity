@@ -16,7 +16,7 @@ Per-minute rate limits ([ADR-1196](1196-tenants-are-rate-limited-through-a-share
 capacity from bursts, but they do not bound what a tenant consumes over a day. The hosted platform sells plan tiers,
 and a tier is defined by how much a tenant may use: requests to its protocol endpoints and token requests. Customers
 also run their dev and test environments as tenants on the production platform
-([ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)), so a load test that stays under the
+([ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)), so a load test that stays under the
 per-minute limit for hours still has to stop somewhere.
 
 A quota must hold across replicas, as a limit does, and the family already has the primitive: the shared, atomic

@@ -23,7 +23,7 @@ values used by the NCode hosted platform are listed once here.
 | `<recovery-email>`     | An **off-domain** mailbox you control           | the owner's personal mailbox             |
 
 "The platform's domains" means all four
-([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)).
+([ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)).
 
 **Region choice.** The AWS account holds only state and backups, so `us-west-2` puts them in a different geography from
 the Dallas production cluster — a regional outage can't take both. OCI has no Oregon region; Phoenix is the closest OCI

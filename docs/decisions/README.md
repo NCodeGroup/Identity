@@ -111,7 +111,6 @@ The records are grouped by area; within an area they are in number order.
 | --- | --- | --- |
 | [1071](./1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md) | The Aspire AppHost runs the local stack in health-gated order after checking the frontend toolchain | Accepted |
 | [1073](./1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md) | One PostgreSQL database holds the host's schema and key ring, migrated by a worker and drift-checked | Accepted |
-| [1131](./1131-hosted-platform-environment-model-and-hostname-scheme.md) | The hosted platform's environment model and hostname scheme | Accepted |
 | [1132](./1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md) | Platform infrastructure code is public on GitHub, and its state and backups live in AWS | Accepted |
 | [1133](./1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md) | The hosted platform runs only the published artifacts it offers self-hosters | Accepted |
 | [1134](./1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md) | The platform and the host follow written cloud-native operating principles | Accepted |
@@ -124,7 +123,7 @@ The records are grouped by area; within an area they are in number order.
 | [1456](./1456-the-hosts-map-their-health-probes-through-one-general-helper.md) | The hosts map their health probes through one general helper | Accepted |
 | [1458](./1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md) | The host chart deploys the server and an opt-in management console and refuses unsafe releases | Accepted |
 | [1485](./1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md) | The host chart enables server KMS vendors and holds console key rings under the console's identity | Accepted |
-| [1495](./1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md) | The hosted platform's hosts live on a platform domain of their own, and a brand domain carries the site, docs and mail | Accepted |
+| [1495](./1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) | The hosted platform runs customer environments as tenants on production under the ncodeid.net platform domain | Accepted |
 | [1499](./1499-the-host-accepts-only-tls-1-2-and-1-3-with-aead-cipher-suites.md) | The host accepts only TLS 1.2 and 1.3 with AEAD cipher suites | Accepted |
 
 ### Settings

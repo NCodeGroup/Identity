@@ -16,7 +16,7 @@ request. Under `StaticSingle` that is the only tenant there is. Under the dynami
   no `tenantId` route value to resolve, and `/api/tenants/{tenantId}/…` resolved the **target** tenant — the caller's
   token, issued by the control plane, was validated by a tenant that never issued it;
 - under `DynamicByHost`, the management host `manage.<apex>`
-  ([ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)) is no tenant's host, so every call
+  ([ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)) is no tenant's host, so every call
   returned `404`, and reaching the API on a workload tenant's host made that tenant authenticate the caller.
 
 The management plane belongs to the control plane ([ADR-1024](1024-control-plane-and-per-tenant-planes.md)), and the
@@ -56,7 +56,7 @@ fix is only which tenant that context carries.
   `GetControlPlaneTenantId` and `ResolveControlPlaneTenantAsync`.
 - **Serve the management API beneath the root tenant's route or host.** Rejected: it would tie the API's address to
   the strategy (a path prefix under `DynamicByPath`, the root host under `DynamicByHost`) and still leave the
-  `manage.<apex>` host of ADR-1131 unserved.
+  `manage.<apex>` host of ADR-1495 unserved.
 - **Keep resolving from the request and require the caller to call the API on the issuing tenant's address.**
   Rejected: the API's routes already carry the tenant they act on, so the address would encode the tenant twice, and
   a collection route has no tenant to address.
@@ -77,6 +77,6 @@ fix is only which tenant that context carries.
 
 - [ADR-1024](1024-control-plane-and-per-tenant-planes.md) — the control plane and the per-tenant planes
 - [ADR-1042](1042-management-api-route-driven-tenant-scope.md) — the route drives the management API's tenant scope
-- [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md) — the management host
+- [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) — the management host
 - [ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md) — one provisioning pipeline
 - [ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md) — issued-token validation

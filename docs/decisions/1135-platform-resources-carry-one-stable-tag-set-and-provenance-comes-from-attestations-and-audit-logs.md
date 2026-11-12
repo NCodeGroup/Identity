@@ -59,7 +59,7 @@ customer's tenant word such as `dev`, `test` or `staging`.
 4. **Kubernetes** uses the standard `app.kubernetes.io/*` labels exactly as defined, plus `ncodeid.net/environment` and
    `ncodeid.net/role` labels. `owner_email` and `source` are annotations, because label values cannot contain `@` or
    `/`. The platform domain is
-   [ADR-1495](1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)'s.
+   [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)'s.
 5. **GitHub** has no resource tags; repository topics describe the repository instead.
 6. **Tags are stable.** A plan with no code change shows no tag change:
    - Values come only from static inputs: never timestamps, commit SHAs, run IDs, release versions, or IDs and ARNs

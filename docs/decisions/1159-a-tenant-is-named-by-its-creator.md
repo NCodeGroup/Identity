@@ -21,7 +21,7 @@ that is right. A tenant's identifier is different, because it is not internal:
   ([ADR-1129](1129-the-tenant-issuer-is-the-single-authoritative-origin.md)).
 - **It is a name people use.** The management API addresses a tenant by it (`/api/tenants/{tenantId}/…`,
   [ADR-1042](1042-management-api-route-driven-tenant-scope.md)), and the hosted platform names a tenant by the leftmost
-  label of its host (`acme-dev.auth.<apex>`, [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)).
+  label of its host (`acme-dev.auth.<apex>`, [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)).
   The configured root and default tenants already carry readable identifiers (`root`, `default`).
 
 A server-minted identifier exists only inside the create call, so a caller cannot know the issuer a path tenant must have
@@ -86,7 +86,7 @@ domain (`{tenant}.{region}.auth0.com`); a separate friendly name is for display 
 
 - [ADR-1014](1014-server-generated-opaque-resource-ids.md) — opaque identifiers, amended by this ADR for tenants.
 - [ADR-1129](1129-the-tenant-issuer-is-the-single-authoritative-origin.md) — the issuer as the tenant's identity.
-- [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md) — tenant hostnames.
+- [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) — tenant hostnames.
 - [ADR-1160](1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md) — where the name is validated.
 - Code: `NCode.Identity.OpenId.Management.Contracts.Tenants.CreateTenantRequest.TenantId`,
   `NCode.Identity.OpenId.Tenants.TenantAddressRules.IsValidTenantId`.

@@ -53,14 +53,14 @@
   machine client cannot be deleted)
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
-- **Refines:** [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)
+- **Refines:** [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)
 
 ## Context
 
 A deployment has one root: the configuration its host starts with, the master key of its Data Protection key ring and
 the tenant that holds the control plane. A customer of that deployment runs related tenants, such as a sandbox, a
 testing tenant and a production tenant, that share a bill, a set of administrators and a policy
-([ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md) models them as separate tenants). Nothing
+([ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) models them as separate tenants). Nothing
 names the customer: a policy that should bind all of a customer's tenants has to be written into each one, the
 administrators of one tenant cannot create another, a plan's tenant quota has no scope to apply to, and usage cannot be
 summed per customer.
@@ -117,7 +117,7 @@ the platform and its tenants in the settings cascade and in authority.**
 7. **The console addresses the tiers.** Its routes are `/teams`, `/settings`, `/encryption-keys`,
    `/teams/{teamId}/{tenants|settings|usage}` and `/tenants/{tenantId}/…`. The owner kinds `platform` and `team` carry
    settings only.
-8. **The words.** "Platform" is the deployment root; ADR-1131's platform environments (`production`, `lab`, `ci`) are
+8. **The words.** "Platform" is the deployment root; ADR-1495's platform environments (`production`, `lab`, `ci`) are
    where a platform runs. "Team" is the grouping. "Organization" stays free for the in-tenant B2B feature
    ([ADR-1035](1035-federated-principals-and-identity-resolution.md)).
 
@@ -152,7 +152,7 @@ the platform and its tenants in the settings cascade and in authority.**
 
 - [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) — unset settings are unrestricted
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — pre-release posture
-- [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md) — hosted platform environment model
+- [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) — hosted platform environment model
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — vocabularies are open unless provably closed
 - [ADR-1159](1159-a-tenant-is-named-by-its-creator.md) — a tenant is named by its creator
 - [ADR-1189](1189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md) — retired identifiers are never reissued

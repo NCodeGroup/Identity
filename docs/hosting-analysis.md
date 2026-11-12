@@ -59,7 +59,7 @@ Neon / Aiven free tiers as the always-on database (wrong region, scale-to-zero, 
 
 ### Environment model
 
-Decided in [ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostname-scheme.md).
+Decided in [ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md).
 
 - **Customer environments are tenants on production.** A customer's dev, test, and prod are separate tenants on the one
   production platform (the Auth0 model): `acme-dev.auth.ncodeid.net`, `acme-test.auth.ncodeid.net`,
@@ -71,7 +71,7 @@ Decided in [ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostn
   owner's private proving ground for platform changes, upgrades, and conformance experiments, which never hosts a
   customer tenant. Lab hosts carry a `lab` label (`auth.lab.ncodeid.net`) so a platform environment can't be confused
   with a customer's `-dev` tenant; `dev`, `test`, and `staging` are reserved for customers' tenants and never name a
-  platform environment ([ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostname-scheme.md)).
+  platform environment ([ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)).
 - **Production therefore carries customers' dev/test traffic too:** per-tenant rate limits (done, issue [#84](https://github.com/NCodeGroup/identity/issues/84)) and
   quotas (done, issue [#118](https://github.com/NCodeGroup/identity/issues/118)) keep one tenant's load test from starving another.
 
@@ -160,7 +160,7 @@ flowchart LR
 ### Domains and DNS
 
 The platform names four domains
-([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)):
+([ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)):
 
 | Domain              | Role                                                                          |
 | ------------------- | ----------------------------------------------------------------------------- |
@@ -198,11 +198,11 @@ into Kubernetes Secrets that Traefik serves. Traefik's built-in ACME client keep
 it across 3 replicas, so it isn't used.
 
 **Hostnames** — the issuer URL is baked into every client's configuration, so choose these once (decided in
-[ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostname-scheme.md)). The scheme uses
+[ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)). The scheme uses
 **functional namespaces** under the apex — `auth` for the OpenID protocol, `mtls` for its certificate-bound aliases,
 `manage` for the management plane — mirroring Auth0 (`{tenant}.us.auth0.com` for tenants, `manage.auth0.com` for the
 dashboard). The platform's hosts live on `ncodeid.net`, which carries nothing else, and the site, docs, status page
-and mail live on `ncodeid.com` ([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)):
+and mail live on `ncodeid.com` ([ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)):
 
 | Hostname                                        | Serves                                                                                                   | Certificate                    |
 | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------- | ------------------------------ |
@@ -211,7 +211,7 @@ and mail live on `ncodeid.com` ([ADR-1495](decisions/1495-the-hosted-platforms-h
 | `mtls.ncodeid.net`, `{tenant}.mtls.ncodeid.net` | RFC 8705 mTLS endpoint aliases — the only hosts where Traefik requests a client certificate. `DynamicByHost` routes each tenant's alias host to it (ADR-1195) | `mtls.…` + `*.mtls.ncodeid.net` |
 | `manage.ncodeid.net`                            | Management API (`/api`) and admin console — the control-plane surface ([ADR-1042](decisions/1042-management-api-route-driven-tenant-scope.md)) | `manage.ncodeid.net`          |
 | `ncodeid.net`, `www.ncodeid.net`                  | Redirect (301) to `https://ncodeid.com`, with the HSTS header                                            | `ncodeid.net` + `www.ncodeid.net` (cert-manager) |
-| `ncodeid.com`, `www.ncodeid.com`, `status.ncodeid.com` | Project site, docs and status page — the brand domain ([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)) | Hosting provider               |
+| `ncodeid.com`, `www.ncodeid.com`, `status.ncodeid.com` | Project site, docs and status page — the brand domain ([ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)) | Hosting provider               |
 
 Why this shape:
 
@@ -704,10 +704,10 @@ the provider's SPF include and DKIM keys, and keep DMARC at `p=reject`.
 2. **Managed vs. self-managed Kubernetes:** DOKS / LKE / VKE (free control plane) vs. k3s on 3 VMs (HA control plane
    included).
 3. **Postgres:** managed same-DC (Akamai 3-node $37 is the HA sweet spot) vs. CloudNativePG in-cluster.
-4. **Environments — decided** ([ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostname-scheme.md)):
+4. **Environments — decided** ([ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)):
    customer dev/test/prod are tenants on production; the platform runs production plus a private lab
    on the OCI Pay-As-You-Go A1 allowance (~$4) and ephemeral Azure runs on the Visual Studio credit (§2, §10,
    issue [#132](https://github.com/NCodeGroup/identity/issues/132)).
 5. **Server prerequisites before mTLS goes live:** done — [#86](https://github.com/NCodeGroup/identity/issues/86) (route per-tenant mTLS alias hosts), [#82](https://github.com/NCodeGroup/identity/issues/82) (in-app
    chain validation), [#83](https://github.com/NCodeGroup/identity/issues/83) (Traefik header format), and [#117](https://github.com/NCodeGroup/identity/issues/117) (each tenant's alias derived from a template).
-6. **Domains — decided** ([ADR-1495](decisions/1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md)): `ncodeid.net` carries every issuer, `ncodeid.com` the site, docs, status page and mail (§3).
+6. **Domains — decided** ([ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)): `ncodeid.net` carries every issuer, `ncodeid.com` the site, docs, status page and mail (§3).

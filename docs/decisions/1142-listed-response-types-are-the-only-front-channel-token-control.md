@@ -44,7 +44,7 @@ client forbids access tokens from the authorization endpoint by listing no respo
 secure-by-default baseline lists only `code` (ADR-1010), so by default the authorization endpoint returns no token.
 
 **Stored settings documents are rewritten to the setting's meaning, not stripped of it.** Retiring a setting rewrites
-the stored documents ([ADR-1139](1139-setting-names-are-a-closed-vocabulary.md)); a data migration rewrites every stored
+the stored documents ([ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)); a data migration rewrites every stored
 server, tenant, client, and resource-server settings document that sets it:
 
 - `true`, or `null` (its default), restricted nothing: the setting is removed.
@@ -94,7 +94,7 @@ path (ADR-1139); the operator removes it and narrows `response_types_supported` 
   the only control.
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — advertisement and enforcement share one source.
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — the merge lattice; intersection and conjunction are both ceilings.
-- [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) — stored documents fail closed; retiring a setting rewrites
+- [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md) — stored documents fail closed; retiring a setting rewrites
   them.
 - [ADR-1113](1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md) — read-time upcasting, scoped to grant
   payloads.

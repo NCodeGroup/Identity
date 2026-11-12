@@ -238,7 +238,7 @@ The Data Protection context scaffolds the same way with `--context DeveloperData
 `InitialCreateTests` fails a context that holds any migration but `InitialCreate`, and a migration that changes data.
 Renaming, retiring or narrowing a setting edits its descriptor and needs no migration: a stored settings document that
 names an unregistered setting fails closed
-([ADR-1396](../../docs/decisions/1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md)).
+([ADR-1139](../../docs/decisions/1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)).
 A re-scaffold gives `InitialCreate` a fresh identifier. Before it applies anything, the migration worker compares the
 migration identifiers each context's history records with the migrations the `Database` project holds, and when the
 history records one the project lacks it applies nothing and fails with a message that names the context and says to

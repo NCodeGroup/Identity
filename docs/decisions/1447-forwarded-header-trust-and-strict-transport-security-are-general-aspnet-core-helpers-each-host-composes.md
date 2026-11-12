@@ -4,7 +4,7 @@
   [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1258](1258-the-server-sends-strict-transport-security-outside-development.md) decisions 1 and 6,
   [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) decision 1,
-  [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) decision 6 and
+  [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md) decision 6 and
   [ADR-1399](1399-failed-client-authentications-are-limited-per-remote-address-by-default.md))
 - **Date:** 2026-11-06
 - **Deciders:** NCode Group
@@ -62,7 +62,7 @@ Issue [#611](https://github.com/NCodeGroup/identity/issues/611) describes the ne
 ## References
 
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md),
-  [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md),
+  [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md),
   [ADR-1258](1258-the-server-sends-strict-transport-security-outside-development.md),
   [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)

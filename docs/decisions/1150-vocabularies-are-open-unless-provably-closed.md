@@ -10,7 +10,7 @@ The family exists to be extended easily and without restriction. Its extension p
 adds a strategy to a collection resolved from DI
 ([ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md)),
 contributes descriptors through `ICollectionDataSource<T>` (settings,
-[ADR-1139](1139-setting-names-are-a-closed-vocabulary.md)), or registers a named implementation (security profiles,
+[ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)), or registers a named implementation (security profiles,
 client-authentication methods, PKCE transformations). The Auth0-parity-plus posture
 ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)) asks
 for data-driven, flexible controls, which only holds when a deployment or sibling package can add what the library did
@@ -117,7 +117,7 @@ The outcome sets of one library-owned operation each also pass: `PasswordVerific
   strategy collections and mediators, the registration seams an open vocabulary uses.
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md): the
   pre-release, Auth0-parity-plus posture.
-- [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md): registered setting names reject unregistered input.
+- [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md): registered setting names reject unregistered input.
 - [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md): the setting scopes, the case that motivated this rule.
 - [ADR-1098](1098-session-lifecycle-termination-seam.md), [ADR-1104](1104-import-public-asymmetric-secret-material.md)
   and [ADR-1190](1190-hashing-names-the-framework-algorithm-and-binary-encodings-are-registered-strategies.md): the open vocabularies they

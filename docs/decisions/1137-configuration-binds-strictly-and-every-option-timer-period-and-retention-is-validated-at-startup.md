@@ -114,7 +114,7 @@ period that a timer runs on is held to the range that every .NET timer accepts.*
 - A new options type is bound with `BindStrictly`, registered with `ValidateOnStart` and, when it holds a timer period,
   checked with `TimerPeriod.IsValid` by a validator of its own.
 - Setting names under the platform settings subsection are a closed vocabulary validated with the rest of the
-  configuration ([ADR-1139](1139-setting-names-are-a-closed-vocabulary.md)).
+  configuration ([ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)).
 
 ## References
 
@@ -122,7 +122,7 @@ period that a timer runs on is held to the range that every .NET timer accepts.*
   [project-template ADR-0142](project-template/0142-data-that-grows-with-use-is-pruned-in-bounded-batches.md) — the
   general rules this record applies.
 - [ADR-1138](1138-protocol-endpoints-are-served-under-the-tenant-route.md) — the tenant route the validator checks.
-- [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) — setting names and the remaining configuration inputs.
+- [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md) — setting names and the remaining configuration inputs.
 - [ADR-1160](1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md) — each tenant strategy validates its
   own options.
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — the usage ledger and the options that

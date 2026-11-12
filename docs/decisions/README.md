@@ -134,7 +134,7 @@ The records are grouped by area; within an area they are in number order.
 | [1040](./1040-effective-settings-preview-endpoints.md) | Effective-settings preview endpoints for tenant, client, and server | Accepted |
 | [1108](./1108-fapi-security-profile-merge-lattice-ceiling-injection.md) | FAPI security profile via merge-lattice ceiling injection | Accepted |
 | [1109](./1109-fapi-behavioral-rules-and-discovery-validation-details.md) | FAPI 2.0 behavioral rules and discovery/validation details | Accepted |
-| [1139](./1139-setting-names-are-a-closed-vocabulary.md) | Setting names are a closed vocabulary, and configuration the server cannot honor fails loudly | Accepted |
+| [1139](./1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md) | Setting names are a closed vocabulary changed outright, and settings the server cannot honor fail loudly | Accepted |
 | [1140](./1140-setting-values-are-validated-against-their-domain.md) | Setting values are validated against their domain, not only their type | Accepted |
 | [1148](./1148-security-profiles-accumulate-down-the-settings-cascade.md) | Security profiles accumulate down the settings cascade | Accepted |
 | [1149](./1149-settings-declare-the-scopes-they-apply-to.md) | Settings declare the scopes they apply to | Accepted |
@@ -147,9 +147,7 @@ The records are grouped by area; within an area they are in number order.
 | [1240](./1240-a-client-value-that-a-ceiling-lowers-is-incoherent.md) | A client value that a ceiling lowers is incoherent | Accepted |
 | [1241](./1241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md) | A settings write is not refused for a stored document it cannot read | Accepted |
 | [1245](./1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md) | A management request answers 409 for a stored settings document it cannot honor | Accepted |
-| [1251](./1251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md) | A retired setting stays registered until a later release removes it | Superseded |
 | [1289](./1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md) | A tenant declares its environment type, which selects its guardrails | Accepted |
-| [1396](./1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md) | Until the first stable release, a setting is renamed, removed or narrowed outright | Accepted |
 | [1412](./1412-settings-are-reconciled-per-team.md) | Settings are reconciled per team | Accepted |
 | [1416](./1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md) | A replica that may have missed a team announcement evicts only the teams whose row changed | Accepted |
 | [1418](./1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md) | A limit is set by the authority above the scope whose document carries it | Accepted |

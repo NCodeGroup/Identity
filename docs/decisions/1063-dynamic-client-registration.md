@@ -1,7 +1,7 @@
 # 1063. Dynamic Client Registration (RFC 7591/7592) over the persisted-grant store
 
 - **Status:** Accepted (metadata storage and the registration `scope` amended by
-  [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md): informational metadata are registered client settings, the
+  [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md): informational metadata are registered client settings, the
   requested `scope` is not stored, and the response reports the scopes the client may request; `response_types` and
   `grant_types` amended by [ADR-1141](1141-response-types-are-whole-values.md): whole response types in canonical form,
   defaulted and checked consistently with the grant types and with what the tenant supports; `token_endpoint_auth_method`
@@ -160,7 +160,7 @@ Concretely:
   `IPersistedGrantService.AddAsync`, which now returns the server-generated grant id so the management surface can hand
   it back for revocation.
 - Informational metadata are registered client settings with their RFC 7591 names, so the settings document holds no
-  untyped keys ([ADR-1139](1139-setting-names-are-a-closed-vocabulary.md)); the management endpoint reads them back.
+  untyped keys ([ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)); the management endpoint reads them back.
 - RFC 7592 responses omit the `registration_access_token` on `GET` / `PUT` because the server stores only its hash and
   cannot reproduce the plaintext; the client already holds its token. Rotation on update is intentionally not performed
   (RFC 7592 makes it a MAY) and remains available as a future addition.

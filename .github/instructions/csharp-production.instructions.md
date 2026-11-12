@@ -141,7 +141,7 @@ than inlining the rationale.
       catalog that validates the whole set when it is composed (duplicate names, dangling references, cycles) — the
       pattern of `SettingDescriptor`, `SettingScopeDescriptor`, `ISecurityProfile`, and the client-authentication
       handlers. Input naming an unregistered member is **rejected** (the vocabulary of _registered_ values is closed,
-      [ADR-1139](../../docs/decisions/1139-setting-names-are-a-closed-vocabulary.md)), never ignored.
+      [ADR-1139](../../docs/decisions/1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)), never ignored.
 
     An **`enum` is allowed only when the reviewer can state all three:** (1) the members are fixed by something that
     cannot grow without this library changing — a finite enumeration of an external spec that the library implements in
@@ -415,7 +415,7 @@ than inlining the rationale.
   options validator refuses an enum value that `Enum.IsDefined` rejects (`InProcessJobDispatcherOptionsValidator`,
   [ADR-1242](../../docs/decisions/1242-the-in-process-dispatcher-is-configured-under-the-openid-section.md)). See
   [ADR-1137](../../docs/decisions/1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md),
-  [ADR-1139](../../docs/decisions/1139-setting-names-are-a-closed-vocabulary.md), and
+  [ADR-1139](../../docs/decisions/1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md), and
   [ADR-1140](../../docs/decisions/1140-setting-values-are-validated-against-their-domain.md).
 - 👁 **Setting names are a closed vocabulary.** Every setting a platform, team, tenant, client, or resource server carries has a
   registered `SettingDescriptor`, contributed through `ICollectionDataSource<SettingDescriptor>` by the package that
@@ -430,8 +430,7 @@ than inlining the rationale.
   A value that is metadata rather than a runtime control (RFC 7591 `client_name`, `contacts`) is still a registered
   setting. No descriptor stays registered for a name nothing reads, and a management request that loads a stored
   document naming an unregistered setting answers `409`. See
-  [ADR-1139](../../docs/decisions/1139-setting-names-are-a-closed-vocabulary.md) and
-  [ADR-1396](../../docs/decisions/1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md).
+  [ADR-1139](../../docs/decisions/1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md).
 - 👁 **A setting declares its domain, not only its type.** Give every descriptor whose type admits values the server
   would not honor a `Rule` (`SettingRules.OneOf`/`EmptyOr`/`AtLeast`/`Between`/`Each`/`Must`): an enumerated string is a
   `OneOf`, a lifetime or interval is at least one second, a timeout is positive, a list applies `Each` to its values, and

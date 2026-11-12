@@ -10,7 +10,7 @@
 
 A stored settings document can name a setting, a value or a scope that the registered settings cannot honor: an
 unregistered setting, a value outside its domain, or a setting outside its scope
-([ADR-1139](1139-setting-names-are-a-closed-vocabulary.md)). A settings write passes such a document and logs it
+([ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)). A settings write passes such a document and logs it
 ([ADR-1241](1241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md)), and the incoherent-client
 report lists it with its `DocumentError`
 ([ADR-1233](1233-the-management-api-lists-a-tenants-incoherent-clients.md)).
@@ -98,7 +98,7 @@ route group.**
   the error of every document the request needs, a parent scope's included (item 7).
 - A plain `JsonException` of a proposed document stays a `500`.
 - Resolution at runtime, in the protocol endpoints, keeps failing closed
-  ([ADR-1139](1139-setting-names-are-a-closed-vocabulary.md)); this answer concerns the management API only.
+  ([ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)); this answer concerns the management API only.
 - **Breaking:** `IEffectiveSettingsResolver` gains `ResolveStored`, which a custom resolver implements, and it and
   `ResolveServerAsync(CancellationToken)` throw `UnreadableSettingsException` for a stored document.
 - This implements issue [#301](https://github.com/NCodeGroup/identity/issues/301).
@@ -107,7 +107,7 @@ route group.**
 
 - [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110#name-409-conflict) §15.5.10 — 409 Conflict.
 - [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457) — problem details for HTTP APIs.
-- [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) — configuration the server cannot honor fails loudly.
+- [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md) — configuration the server cannot honor fails loudly.
 - [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service.md) — the resolver.
 - [ADR-1214](1214-a-management-write-that-loses-a-race-is-answered-412.md) — the endpoint filter on the management route
   group.

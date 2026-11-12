@@ -68,7 +68,7 @@ long-lived, in-place-mutated payloads.** Concretely:
 - **Out of scope by design:** primitive scope-list columns (`ConsentEntity.RequestedScopesJson`,
   `ClientGrantEntity.ScopesJson`) are a bare `List<string>` with no schema to evolve; client/resource-server
   `SettingsJson` deserializes through `ISettingSerializer`, where every setting is typed by its registered descriptor and
-  retiring a setting is a data migration ([ADR-1139](1139-setting-names-are-a-closed-vocabulary.md)); and the opaque
+  retiring a setting is a data migration ([ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)); and the opaque
   `JsonElement` metadata bags
   (`FederatedPrincipalEntity`, `LocalAccount` profile/system metadata) are stored and returned verbatim. If any of these
   later needs ordered migration, the serializer can be promoted to a shared location and reused.

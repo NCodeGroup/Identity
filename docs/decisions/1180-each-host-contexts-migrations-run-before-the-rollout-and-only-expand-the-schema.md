@@ -46,7 +46,7 @@ and strip the byte-order mark from the files it writes.
 
 `InitialCreateTests` fails a `Sql`, `InsertData`, `UpdateData` or `DeleteData` operation. Renaming, retiring or
 narrowing a setting edits its descriptor, and a stored document that does not fit the descriptor fails closed
-([ADR-1139](1139-setting-names-are-a-closed-vocabulary.md),
+([ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md),
 [ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)).
 
 ### A database ahead of the assembly stops the worker
@@ -148,7 +148,7 @@ rule for every migration author.
 - `build/dev-db-reset.ps1`
 - [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md)
 - [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md),
-  [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md),
+  [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md),
   [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md),
   [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md),
   [ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)

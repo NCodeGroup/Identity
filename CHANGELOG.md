@@ -61,7 +61,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Strict configuration binding is public.** `NCode.Identity.Registration.StrictConfigurationBindingExtensions.BindStrictly`
   binds a section so that a key that maps to no option fails, so an extension binds its own section the way the family
-  does ([ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary.md)).
+  does ([ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)).
 
 - **Endpoints register through declarative, hierarchical endpoint groups in the cross-cutting
   `NCode.Identity.Registration.AspNetCore` package.** The mechanism (`IEndpointGroup`, `IEndpointGroupBuilder`,
@@ -1618,7 +1618,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   requested `scope` is not stored, because the OpenID Connect scopes are available to every client, and the response's
   `scope` reports the scopes the client may request, taken from `IClientScopeService`, since scope entitlement comes
   from resource servers and client grants. Discovery publishes `scopes_supported`
-  ([ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary.md)). Registration checks relations only through
+  ([ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)). Registration checks relations only through
   the coherence rules — the checks of the supported metadata, the algorithms, and the backchannel metadata are coherence
   rules, so `ValidateCoherence` is its only relation check — and an error description names the client setting, such as
   `grant_types_supported` rather than `grant_types`, with the error code `invalid_redirect_uri` for `redirect_uris`,
@@ -3242,7 +3242,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   control an operator configured is never silently dropped. `ISettingSerializer.ValidateSettings` returns `SettingError`
   values, and `ISettingCollection.Set(key, value)` throws for a key with no descriptor of that value type; an extension
   registers a descriptor for every setting it reads or writes
-  ([ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary.md)).
+  ([ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)).
 
 - **A setting is accepted only at a scope that reads it.** Every setting declares the scopes it applies to
   (`SettingDescriptor.AppliesTo`): the platform, team, tenant, client or resource-server scopes whose effective settings the
@@ -4322,7 +4322,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   has bits set past its prefix (so `10.0.0.4/8` is never masked to `10.0.0.0/8`), and a forward limit below one stop
   the host. `NCode.Identity.AspNetCore` holds it, and the reference host and the management console host compose it
   ([#611](https://github.com/NCodeGroup/identity/issues/611),
-  [ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary.md),
+  [ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md),
   [ADR-1447](docs/decisions/1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md)).
 
 - **Host configuration sections are bound strictly and validated.** `InteractiveAuthentication`, `DeveloperKeys` and
@@ -4330,7 +4330,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `DeveloperKeysConfiguration.GetDeveloperKeysOptions()`) and `DeveloperCorsOptions`, so a key that maps to no option
   stops the host, and an allowed origin that can never match a browser's `Origin` header (a trailing slash, a path, a
   wildcard) stops the host with an error naming the entry. `TrustedForwardedHeadersOptions` and `InteractiveAuthenticationOptions`
-  are resolved through `IOptions<T>` ([ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary.md)).
+  are resolved through `IOptions<T>` ([ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)).
 
 - **The reference host and the management console host send `Strict-Transport-Security` on every HTTPS response outside
   Development.** `AddStrictTransportSecurity` (`NCode.Identity.AspNetCore`) binds `StrictTransportSecurityOptions` strictly from

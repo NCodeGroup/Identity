@@ -81,7 +81,7 @@ client, and the `refresh_token_rotation_policy` setting replaces the `refresh_to
 - A tenant cannot force the rotation on its clients. A client chooses `always` for itself.
 - The previous release fails closed on a stored document that names `refresh_token_rotation_policy` until the rollout
   completes, because it does not know the setting
-  ([ADR-1139](1139-setting-names-are-a-closed-vocabulary.md),
+  ([ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md),
   [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)).
 - **Breaking:** `refresh_token_rotation_enabled` is removed with its name and key constants, and
   `refresh_token_rotation_policy` is added.
@@ -95,7 +95,7 @@ client, and the `refresh_token_rotation_policy` setting replaces the `refresh_to
   settings that do not merge with a lattice operation.
 - [ADR-1140](1140-setting-values-are-validated-against-their-domain.md) and
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — a closed domain fails closed.
-- [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) and
+- [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md) and
   [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md) — the rollout of a
   renamed setting.
 - [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700) — OAuth 2.0 Security Best Current Practice (§2.2.2, §4.14.2).

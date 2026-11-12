@@ -74,7 +74,7 @@ that selects it.**
 6. **Stored documents are translated.** The `TranslateSecurityProfileToSecurityProfiles` migration rewrites every settings
    table: a non-empty single name becomes a one-element `security_profiles`, an empty or `null` one — which selected none
    — is removed, and a value of another type is left to fail closed
-   ([ADR-1139](1139-setting-names-are-a-closed-vocabulary.md)). Its `Down` restores what the single name can express
+   ([ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)). Its `Down` restores what the single name can express
    and leaves a list of several names to fail closed.
 7. **A profile supplies the choices it constrains as overridable defaults.** A ceiling can exclude a protocol default —
    the FAPI 2.0 signing ceilings exclude `RS256`, the registration default for `id_token_signed_response_alg` and
@@ -172,7 +172,7 @@ that selects it.**
 - [ADR-1140](1140-setting-values-are-validated-against-their-domain.md) — the profile domain (amended: a list of
   registered names).
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — the merge lattice; [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) —
-  an absent list is unrestricted, an empty one permits nothing; [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) —
+  an absent list is unrestricted, an empty one permits nothing; [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md) —
   renaming a setting ships with a data migration; [ADR-1075](1075-runtime-consumption-of-resource-server-secrets.md) —
   resource-server token encryption.
 - OpenID Foundation FAPI 2.0 Security Profile and FAPI 2.0 Message Signing.

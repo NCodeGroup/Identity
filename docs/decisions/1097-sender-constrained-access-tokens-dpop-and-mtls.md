@@ -148,7 +148,7 @@ Concretely:
     `require_dpop_bound_access_tokens` in the server, tenant, and client settings documents. Configuration is not
     stored data: a deployment that sets `OpenId:Server:Settings:require_dpop` renames it to
     `OpenId:Server:Settings:require_dpop_bound_access_tokens`, because the server refuses the old name as a setting
-    that is not registered ([ADR-1139](1139-setting-names-are-a-closed-vocabulary.md)). This implements issue [#256](https://github.com/NCodeGroup/identity/issues/256).
+    that is not registered ([ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)). This implements issue [#256](https://github.com/NCodeGroup/identity/issues/256).
 
 - **Resource-server validation (RFC 9449 §7.1, RFC 8705 §3).** When a bound access token reaches a protected resource
   (the UserInfo endpoint, the management API), `IProofOfPossessionService.ValidateResourceAccessAsync` re-checks the

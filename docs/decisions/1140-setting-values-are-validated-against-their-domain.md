@@ -23,7 +23,7 @@
 ## Context
 
 Setting names are a closed vocabulary and every value must convert to its descriptor's type
-([ADR-1139](1139-setting-names-are-a-closed-vocabulary.md)). A value of the right type can still be one the server does
+([ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)). A value of the right type can still be one the server does
 not honor, and it is then accepted without effect — the same silent failure ADR-1139 removes for names:
 
 - **A name that matches no registered strategy.** `security_profile` is a string; a typo of `fapi2` is a string too. If
@@ -142,7 +142,7 @@ ADR-1139: name, type, and domain are checked together, at the same entry points,
 
 ## References
 
-- [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) — the closed vocabulary of names and types this completes.
+- [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md) — the closed vocabulary of names and types this completes.
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) — validate a value the way it is used.
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — secure-by-default metadata, amended for symmetric signing.
 - [ADR-1108](1108-fapi-security-profile-merge-lattice-ceiling-injection.md) — security profiles.

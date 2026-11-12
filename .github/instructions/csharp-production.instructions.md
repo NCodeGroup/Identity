@@ -926,7 +926,7 @@ than inlining the rationale.
   [Build](csharp.instructions.md#build). `./build/dod.ps1 -Fast -Affected` (only the test projects the change reaches
   since its merge base with `origin/main`) is the **local pre-push gate**, and the plain `./build/dod.ps1` is the full
   gate, which runs in the merge queue, on `main` and on release lines
-  ([ADR-1263](../../docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)).
+  ([ADR-1263](../../docs/decisions/1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md)).
 - 👁 **Never run two `dotnet build` / `dotnet test` invocations concurrently in one clone** — template
   [Build](csharp.instructions.md#build); here they fail with `MSB4018` on Nerdbank.GitVersioning's
   `obj/<config>/<tfm>/<Project>.Version.cs.new`.

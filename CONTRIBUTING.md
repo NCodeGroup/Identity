@@ -160,7 +160,7 @@ marked tool-enforced or review-only. Every rule lives in one of them, once. The 
    gate on the merged result and squash-merges it, so the branch need not be up to date with `main`; no one pushes to
    `main` directly. See
    [ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md) and
-   [ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md). CI runs on a
+   [ADR-1263](docs/decisions/1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md). CI runs on a
    pull request, in the merge queue, and on a push to `main` or a release line, not on a push to any other branch, so a
    branch's commits are checked once. To check a branch that has no pull request, open a draft pull request or run the
    workflows by hand (`workflow_dispatch`).

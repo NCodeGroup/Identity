@@ -445,7 +445,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   --filter` expression through; test assemblies run in parallel in every mode. A pull request into `main` runs the
   affected tests, and the merge queue, `main` and the `release/**` lines run the full gate, so a branch need not be up
   to date with `main` before it merges
-  ([ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)).
+  ([ADR-1263](docs/decisions/1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md)).
 
 - **CI runs once per commit of a pull request.** A push runs CI only on `main` and the `release/**` lines; any other
   branch is checked through its pull request or by running the workflow by hand, so each check appears once.

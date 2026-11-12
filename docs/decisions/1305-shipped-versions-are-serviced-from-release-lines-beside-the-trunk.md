@@ -27,7 +27,7 @@ Each shipped `major.minor` is serviced from a long-lived release line beside the
    ([ADR-1302](1302-prerelease-packages-publish-from-a-prerelease-tag-or-a-manual-run-on-main-through-trusted-publishing.md)).
    A tag is never moved or deleted.
 3. **Servicing is upstream-first.** A fix merges to `main` first and is cherry-picked onto the line, as
-   [ADR-1263](1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) sets out with the
+   [ADR-1263](1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md) sets out with the
    rulesets that protect the lines and tags.
 4. **Neither a second contributor nor the first stable release brings back an integration branch.** A second
    maintainer adds an approval requirement to the pull request rule
@@ -59,7 +59,7 @@ Each shipped `major.minor` is serviced from a long-lived release line beside the
   record refines.
 - [ADR-1125](1125-trunk-based-development-on-main.md) — the record this supersedes; its unprotected trunk was already
   superseded by [ADR-1261](1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md).
-- [ADR-1263](1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) — the gates, rulesets
+- [ADR-1263](1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md) — the gates, rulesets
   and backports of the release lines.
 - [`GOVERNANCE.md`](../../GOVERNANCE.md#releases-branches--tags) and [`version.json`](../../version.json).
 - [#439](https://github.com/NCodeGroup/identity/issues/439).

@@ -95,7 +95,7 @@ The records are grouped by area; within an area they are in number order.
 | [1197](./1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) | Telemetry has one owner per signal, bounded attributes, and spans that mirror their histograms | Accepted |
 | [1261](./1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md) | The main branch takes only reviewed pull requests, squash-merged by the merge queue past required checks | Accepted |
 | [1262](./1262-minimal-api-request-delegates-are-generated-at-compile-time.md) | Minimal-API request delegates are generated at compile time | Accepted |
-| [1263](./1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) | Feature branches run a fast gate and the merge queue runs the full gate | Accepted |
+| [1263](./1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md) | Branches and pull requests run an affected gate, and the merge queue runs the full gate | Accepted |
 | [1264](./1264-pending-work-is-tracked-as-github-issues.md) | Pending work is tracked as GitHub issues | Superseded |
 | [1266](./1266-text-is-encoded-and-decoded-only-through-strict-encodings.md) | Text is encoded and decoded only through strict encodings | Accepted |
 | [1302](./1302-prerelease-packages-publish-from-a-prerelease-tag-or-a-manual-run-on-main-through-trusted-publishing.md) | Prerelease packages publish from a prerelease tag or a manual run on main, through trusted publishing | Accepted |

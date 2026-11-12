@@ -384,7 +384,7 @@ stores nothing a reader must keep ([ADR-1025](docs/decisions/1025-the-family-is-
 `pre-release` is `untracked`; a pull request stays a draft until
 its author reviews it ([ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md)),
 so `draft` is `yes`; `gate` is the push protocol's local pre-push gate
-([ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)); NCode
+([ADR-1263](docs/decisions/1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md)); NCode
 Review reviews every pull request (`.github/workflows/code-review.yml`), so `review-bots` is `ncode-review`; nothing
 needs a shell set up, so `prelude` is `none`; and a plan's title is already the conventional commit subject the squash
 merge takes, so `pr-format` is `none`.
@@ -418,7 +418,7 @@ narrow the tests with `-Filter <expr>` (a `dotnet test --filter` expression, for
 pre-push gate** (the push protocol's final check): it runs only the test projects the change reaches since its merge
 base with `origin/main`, while still building the whole solution. The plain `./build/dod.ps1` is the full gate, which
 runs in the merge queue, on `main` and on the release lines; a pull request into `main` runs it with `-Affected`
-([ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)). It is also
+([ADR-1263](docs/decisions/1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md)). It is also
 available locally for a thorough clean Release check. The end-to-end suites are not part of it: `./build/e2e.ps1` runs
 them and needs a running Docker engine. Package versions are centrally managed in
 [`Directory.Packages.props`](Directory.Packages.props); versioning is stamped in lockstep by Nerdbank.GitVersioning

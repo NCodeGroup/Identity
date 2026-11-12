@@ -1,7 +1,7 @@
 # 1430. End-to-end suites run the BFF in real browsers against a containerized Keycloak in their own gate
 
 - **Status:** Accepted (amends
-  [ADR-1263](1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md); decision 1
+  [ADR-1263](1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md); decision 1
   amended by [ADR-1441](1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md): a
   project under tests/ whose name does not end in .Tests is a support project that no tier runs)
 - **Date:** 2026-11-05
@@ -39,7 +39,7 @@ run the BFF in Chromium, Firefox and WebKit against a containerized Keycloak.**
    `artifacts/e2e-results` and ends with `End-to-end: PASSED`. The Definition of Done never runs it.
 
 3. **A CI job, `End-to-end`, is a required check.** [`.github/workflows/e2e.yml`](../../.github/workflows/e2e.yml) has
-   the triggers and tiers of `ci.yml` ([ADR-1263](1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)):
+   the triggers and tiers of `ci.yml` ([ADR-1263](1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md)):
    the affected suites on a pull request into `main`, every suite in the merge queue, on `main` and on the release
    lines. It reports on every pull request. The `End-to-end` check is the sixth required check of the `main` and
    `release-lines` rulesets, beside the five of ADR-1263 decision 7.
@@ -128,7 +128,7 @@ run the BFF in Chromium, Firefox and WebKit against a containerized Keycloak.**
 ## References
 
 - [ADR-1261](1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md),
-  [ADR-1263](1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md),
+  [ADR-1263](1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md),
   [ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md),
   [ADR-1431](1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md),
   [project-template ADR-0008](project-template/0008-external-inputs-are-pinned-and-kept-current.md)

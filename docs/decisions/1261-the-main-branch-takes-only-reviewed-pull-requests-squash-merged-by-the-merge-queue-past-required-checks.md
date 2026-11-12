@@ -17,7 +17,7 @@ merge commit or a rebase the way a pull request merges, and asks a project that 
 record. A plan's title is a conventional commit subject, and its `Plan step N` commits are checkpoints that each pass
 one step's check ([ADR-1170](1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md)).
 The merge queue runs the full gate on the merged result
-([ADR-1263](1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md)).
+([ADR-1263](1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md)).
 
 ## Decision
 
@@ -83,7 +83,7 @@ agent opens it as a draft that its author reviews before it can merge.
 
 ## References
 
-- [ADR-1263](1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) — the merge queue runs
+- [ADR-1263](1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md) — the merge queue runs
   the full gate.
 - [ADR-1170](1170-agent-work-is-planned-on-claude-opus-and-executed-step-by-step-on-claude-sonnet.md) — the
   plan-and-execute workflow whose push protocol opens the pull request.

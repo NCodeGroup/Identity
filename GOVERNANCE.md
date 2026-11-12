@@ -67,7 +67,7 @@ See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-th
   when a second maintainer exists
   ([ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md), which supersedes
   the unprotected trunk of [ADR-1125](docs/decisions/1125-trunk-based-development-on-main.md);
-  [ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) for the gate
+  [ADR-1263](docs/decisions/1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md) for the gate
   tiers and the merge queue).
 - The [scripted Definition of Done](build/dod.ps1) must pass — it is the single entrypoint that CI and developers run,
   each place in the gate tier that ADR-1263 assigns it. See [CONTRIBUTING](CONTRIBUTING.md).
@@ -90,7 +90,7 @@ See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-th
   `release-lines` (`release/v*`) protects them like `main`, but without a merge queue: every pull request runs the full
   gate on a branch up to date with its line
   ([ADR-1305](docs/decisions/1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md);
-  [ADR-1263](docs/decisions/1263-feature-branches-run-a-fast-gate-and-the-merge-queue-runs-the-full-gate.md) for the gate).
+  [ADR-1263](docs/decisions/1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md) for the gate).
 - **Tags.** A release is an annotated (ideally signed) tag `vMAJOR.MINOR.PATCH` (prereleases `-rc.N` / `-alpha`) on a
   release line. A tag is immutable — one tag = one published package set; the ruleset `release-tags` forbids deleting or
   moving a `v*` tag. Only a **major** is gated behind a release candidate; minors and patches ship straight to GA.

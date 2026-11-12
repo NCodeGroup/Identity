@@ -79,7 +79,7 @@ client, and a rotation spends the presented token and stores its successor in on
     a lost spend mints and audits no token.
 11. **A spend reads again after a write that left the grant active.** `ReplaceOnceOrDefault` and `TryRevokeOnceAsync`
     read the grant again, for up to three attempts in total, when their save loses a race that left it active
-    ([ADR-1215](1215-a-revocation-wins-a-concurrency-race.md)).
+    ([ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md)).
 12. **A sliding-expiration update tolerates a race.** `IPersistedGrantService.UpdateExpirationAsync` keeps the change of
     the other request when its save loses a race, instead of throwing.
 
@@ -131,7 +131,7 @@ client, and a rotation spends the presented token and stores its successor in on
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — a closed domain fails closed.
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the interceptor-managed concurrency tokens
   that detect the lost race, which surfaces as a `StoreConcurrencyException`.
-- [ADR-1215](1215-a-revocation-wins-a-concurrency-race.md) — a revocation retries a lost race.
+- [ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md) — a revocation retries a lost race.
 - [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700) — OAuth 2.0 Security Best Current Practice (§2.2.2, §4.14.2).
 - [FAPI 2.0 Security Profile](https://openid.net/specs/fapi-security-profile-2_0-final.html) (§5.3.2.1).
 - Code: `NCode.Identity.OpenId.Authentication.Endpoints.Token.RefreshToken.RefreshTokenRotationRequirement`,

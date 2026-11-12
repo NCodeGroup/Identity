@@ -2964,7 +2964,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   approval that landed before its write, and only the CIBA approval that decided the request delivers.
   `IPersistedGrantService.UpdatePayloadAsync` takes the function that computes the change, as a
   `PersistedGrantUpdate<TPayload>`, and `ISessionService.AddClientAsync` reports whether this call added the client
-  ([ADR-1222](docs/decisions/1222-a-grants-payload-is-changed-by-a-read-modify-write.md), issue
+  ([ADR-1222](docs/decisions/1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md), issue
   [#282](https://github.com/NCodeGroup/identity/issues/282)).
 
 - **Grants are removed after a retention period.** `GrantPruneService` runs in every replica every
@@ -5196,7 +5196,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   retry when another write changed a grant first, so a concurrent write such as a sliding-expiration update never leaves
   a grant active or reaches the caller as `500` or `412`. `IPersistedGrantService.RevokeWhereAsync` revokes the grants a
   `GrantFilter` (including `GrantFilter.GrantId`) selects, and `DefaultRevokeGrantsOnSessionTerminatedHandler` revokes
-  through `IPersistedGrantService` ([ADR-1215](docs/decisions/1215-a-revocation-wins-a-concurrency-race.md), issue
+  through `IPersistedGrantService` ([ADR-1222](docs/decisions/1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md), issue
   [#269](https://github.com/NCodeGroup/identity/issues/269)).
 
 - **A rotated refresh token is spent with its successor, and a token two requests present at once is spent once.**

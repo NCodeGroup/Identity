@@ -214,12 +214,11 @@ The records are grouped by area; within an area they are in number order.
 | [1201](./1201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md) | Authorization responses are delivered by registered response-mode handlers | Accepted |
 | [1203](./1203-redirect-uris-are-matched-exactly-as-written-and-their-kinds-are-narrowed-by-settings.md) | Redirect URIs are matched exactly, as written, and their kinds are narrowed by settings | Accepted |
 | [1212](./1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md) | Deleting a client, resource server, principal or tenant removes what it owns | Accepted |
-| [1215](./1215-a-revocation-wins-a-concurrency-race.md) | A revocation wins a concurrency race | Accepted |
 | [1216](./1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md) | A refresh token rotates unless it is bound, and rotation spends it with its successor atomically | Accepted |
 | [1217](./1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md) | A reused refresh token revokes its family unless it is a retry within an opt-in interval | Accepted |
 | [1218](./1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md) | Ended grants are removed after a retention period in bounded batches | Accepted |
 | [1220](./1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md) | An end-user session is a grant keyed by its sid, bounded by idle and absolute lifetimes | Accepted |
-| [1222](./1222-a-grants-payload-is-changed-by-a-read-modify-write.md) | A grant's payload is changed by a read-modify-write that loses no concurrent write | Accepted |
+| [1222](./1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md) | A grant is changed by a read-modify-write and a revocation that retry a lost race | Accepted |
 | [1223](./1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md) | A session that ends unused is terminated once, in the background | Accepted |
 | [1225](./1225-every-grant-that-issues-tokens-for-a-subject-validates-it.md) | Every grant that issues tokens for a subject validates it | Accepted |
 | [1297](./1297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md) | A refresh token family expires at a fixed horizon that the token response announces | Accepted |

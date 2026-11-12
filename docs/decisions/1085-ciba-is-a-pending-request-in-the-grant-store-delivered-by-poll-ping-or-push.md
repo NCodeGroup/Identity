@@ -70,7 +70,7 @@ poll, ping or push.**
    `Approved` request once, before `ITokenService` issues tokens. A push-mode client never polls, so a poll for it is
    `unauthorized_client`.
 6. **Approval is a first-class service.** `ICibaRequestService.ApproveAsync` and `DenyAsync` decide only a `Pending`
-   request, through `UpdatePayloadAsync` ([ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md)), and
+   request, through `UpdatePayloadAsync` ([ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md)), and
    report whether this call decided it. An approval validates the approving subject first, and a refused subject denies
    the request. A deployment's authentication-device callback calls the service; the OP serves no approval page,
    because the approval happens on the separate device.
@@ -150,7 +150,7 @@ poll, ping or push.**
 - [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md): the algorithms of a signed
   request.
 - [ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md): a request object's claims.
-- [ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md): only the call that decides a request acts.
+- [ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md): only the call that decides a request acts.
 - [ADR-1225](1225-every-grant-that-issues-tokens-for-a-subject-validates-it.md): the subject check of approval and
   redemption.
 - [ADR-1242](1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md):

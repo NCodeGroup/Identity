@@ -52,7 +52,7 @@ session ends unless it is used again, and a request that finds an ended session 
 5. **A request that resolves the session touches it.** `DefaultAuthenticateHandler` calls
    `ISessionService.ValidateAndTouchAsync`, which advances `LastActivityWhen` at most once a minute and slides the
    expiry with it. The touch is a read-modify-write
-   ([ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md)), and a touch that loses every attempt is
+   ([ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md)), and a touch that loses every attempt is
    dropped.
 6. **A request that finds an ended session terminates it.** A session ends at `AbsoluteExpiresWhen`, when its grant
    expires, or when its idle window lapses. `ValidateAndTouchAsync` terminates an ended session through the seam
@@ -105,7 +105,7 @@ session ends unless it is used again, and a request that finds an ended session 
   validated against their domain.
 - [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md) — ended grants are removed
   after a retention period.
-- [ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md) — the read-modify-write of a grant's payload.
+- [ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md) — the read-modify-write of a grant's payload.
 - [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md) — the background termination of
   a session that ends unused.
 - [ADR-1395](1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md) — a

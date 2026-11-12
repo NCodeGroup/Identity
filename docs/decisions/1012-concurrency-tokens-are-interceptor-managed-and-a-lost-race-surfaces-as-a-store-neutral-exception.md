@@ -109,7 +109,7 @@ that changes its slice, and a lost race surfaces as a store-neutral `StoreConcur
   `StoreConcurrencyException`, never Entity Framework's `DbUpdateConcurrencyException`.
 - Refresh-token rotation spends the presented token with its successor in one unit of work
   ([ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md)), and a revocation retries a lost race
-  ([ADR-1215](1215-a-revocation-wins-a-concurrency-race.md)).
+  ([ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md)).
 
 ## References
 
@@ -118,7 +118,7 @@ that changes its slice, and a lost race surfaces as a store-neutral `StoreConcur
   [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md),
   [ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md),
   [ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md),
-  [ADR-1215](1215-a-revocation-wins-a-concurrency-race.md)
+  [ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md)
 - Code: `NCode.Identity.OpenId.Persistence.EntityFramework.Configuration.ConcurrencyTokenSaveChangesInterceptor`,
   `NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore`,
   `NCode.Identity.OpenId.Persistence.EntityFramework.Stores.EntityStoreManager`,

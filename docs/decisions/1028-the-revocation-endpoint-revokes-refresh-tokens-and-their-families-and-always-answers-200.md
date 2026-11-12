@@ -33,7 +33,7 @@ revocable, so it reveals nothing about token state. A missing `token` parameter 
 - **Family.** A refresh token that names a lineage is revoked with its whole rotation family through
   `IPersistedGrantService.RevokeByRefreshTokenLineageAsync`, which ends every branch. A refresh token with no lineage is
   revoked with `SetRevokedOnceAsync`. Both retry a lost concurrency race
-  ([ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md)).
+  ([ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md)).
 - **Audit.** A revocation records the `token.revoked` audit event through
   `IAuditEventRecorder.RecordTokenRevokedAsync` with the grant's subject.
 - **Access tokens.** An access token already issued stays valid at external resource servers until it expires. The
@@ -78,6 +78,6 @@ revocable, so it reveals nothing about token state. A missing `token` parameter 
 - [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) and
   [ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md): session revocation and the OP's own
   token validation.
-- [ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md): the retry of a lost concurrency race.
+- [ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md): the retry of a lost concurrency race.
 - [ADR-1168](1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md): the discovery members that
   mirror the token endpoint.

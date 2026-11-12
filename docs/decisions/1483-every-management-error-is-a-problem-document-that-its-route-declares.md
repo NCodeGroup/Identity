@@ -73,7 +73,7 @@ answers `404` and `409` from the rows it read, and each route declares every pro
    tenant group. It answers a `StoreConcurrencyException` with a `412` problem ("The resource was changed by another
    request after this request read it. Read it again and retry.") and logs it at Debug (`LostConcurrencyRace`). No
    endpoint catches the exception itself. A grant or session revocation retries a lost race
-   ([ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md)) and declares no `412`; when its last attempt
+   ([ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md)) and declares no `412`; when its last attempt
    loses, `StoreConcurrencyEndpointFilter` still answers `412`. The filter covers the management API only: a protocol
    endpoint answers a lost race as its specification requires.
 6. **The scope routes check the loaded scopes.** The resource-server scope routes check the loaded
@@ -157,7 +157,7 @@ answers `404` and `409` from the rows it read, and each route declares every pro
 
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md):
   a lost race is a `StoreConcurrencyException`.
-- [ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md): a revocation retries a lost race.
+- [ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md): a revocation retries a lost race.
 - [ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md):
   the route group's `409`.
 - [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): the route group's `503`.

@@ -46,7 +46,7 @@ token is presented within it, which is a retry.**
    interceptor stamps the concurrency token of each changed row
    ([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md)),
    and a lost race reads again, up to three attempts in total
-   ([ADR-1215](1215-a-revocation-wins-a-concurrency-race.md)). Rows that are already revoked are untouched.
+   ([ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md)). Rows that are already revoked are untouched.
 4. **The reuse interval.** `refresh_token_reuse_interval` is a `TimeSpan` setting for clients that merges with
    `Replace`, is not discoverable, defaults to zero, which turns it off, and is limited to 0 to 60 seconds
    (`OpenIdSettingRules.RefreshTokenReuseInterval`, `SettingRules.Between`). A longer window weakens reuse detection,
@@ -132,7 +132,7 @@ token is presented within it, which is a retry.**
 
 - [ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md) —
   which refresh tokens rotate, and a rotation spends the presented token with its successor.
-- [ADR-1215](1215-a-revocation-wins-a-concurrency-race.md) — a revocation reads again and retries when it loses a race.
+- [ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md) — a revocation reads again and retries when it loses a race.
 - [ADR-1028](1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md) — the
   revocation endpoint revokes refresh tokens.
 - [ADR-1020](1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md) — the

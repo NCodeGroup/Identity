@@ -225,7 +225,7 @@ internal class GrantApiEndpointHandler(
             return AuthorizationFailed(httpContext);
         }
 
-        // A revocation retries a lost race instead of answering 412. See ADR-1215.
+        // A revocation retries a lost race instead of answering 412. See ADR-1222.
         var revoked = await PersistedGrantService.RevokeWhereAsync(
             httpContext.GetOpenIdContext(),
             filter,
@@ -488,7 +488,7 @@ internal class GrantApiEndpointHandler(
         }
 
         // Soft-revoke is idempotent: an already-revoked grant is left untouched. A revocation retries a lost race
-        // instead of answering 412. See ADR-1215.
+        // instead of answering 412. See ADR-1222.
         if (grant.RevokedWhen is null)
         {
             var revoked = await PersistedGrantService.RevokeWhereAsync(

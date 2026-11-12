@@ -86,7 +86,7 @@ only once it has claimed the session, and which revokes every grant issued under
    [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)).
 2. **The termination names what the claim returned.** The `SessionTermination` of a named session takes its subject and
    the `ClientIds` of the claimed grant's payload. The list is complete: a concurrent `AddClientAsync` changes the
-   session grant, which makes the claim retry ([ADR-1215](1215-a-revocation-wins-a-concurrency-race.md)), and the claim
+   session grant, which makes the claim retry ([ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md)), and the claim
    is the only read of the session that no such write can follow. `RevokeAsync` claims without reading the session
    first.
 3. **The service reports what it ended.** `ISessionService.RevokeAsync` returns `ValueTask<bool>`: `true` when the call
@@ -167,7 +167,7 @@ check rejects them.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md),
   [ADR-1074](1074-session-management-and-logout.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
-  [ADR-1215](1215-a-revocation-wins-a-concurrency-race.md),
+  [ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md),
   [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md) and
   [ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md) — the decisions this one
   builds on.

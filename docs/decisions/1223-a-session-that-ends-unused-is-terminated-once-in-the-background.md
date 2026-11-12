@@ -44,7 +44,7 @@ interval, and the grant prune keeps a session until it is terminated.**
 1. **An ended session is terminated by claiming it.** `IPersistedGrantService.SetRevokedOnceAsync` returns `true` only
    when this call set `RevokedWhen`. It revokes the grant whether or not the grant expired, and returns `false` when
    the grant is unknown, belongs to another tenant, or is already revoked, also after a lost race whose second read
-   finds it revoked ([ADR-1215](1215-a-revocation-wins-a-concurrency-race.md)). An ended session is claimed first,
+   finds it revoked ([ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md)). An ended session is claimed first,
    with `IPersistedGrantService.RevokeSessionOnceAsync(sessionGrantId, now)`, which revokes the session grant and every
    other grant issued under its `sid` in one unit of work and returns `true` only when this call revoked the session
    grant. Only on `true` is `OnSessionTerminatedCommand` sent, with the reason `absolute_expiry` or `idle_timeout`, and
@@ -150,7 +150,7 @@ interval, and the grant prune keeps a session until it is terminated.**
 - [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — the termination seam that the pass dispatches.
 - [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) — the expiring key set that
   holds the lease of an interval.
-- [ADR-1215](1215-a-revocation-wins-a-concurrency-race.md) — `SetRevokedOnceAsync` and its retry.
+- [ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md) — `SetRevokedOnceAsync` and its retry.
 - [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md) — the grant prune that keeps a session until it
   is terminated.
 - [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — the materialized server

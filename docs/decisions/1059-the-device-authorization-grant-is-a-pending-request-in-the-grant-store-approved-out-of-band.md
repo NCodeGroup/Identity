@@ -65,7 +65,7 @@ the session of the cookie
 ([ADR-1225](1225-every-grant-that-issues-tokens-for-a-subject-validates-it.md)). `GET` answers a JSON prompt (client,
 scopes, user code and status) for the host to present. `POST` decides, with `action=approve` or `action=deny`. A
 decision changes only a `Pending` request, through the read-modify-write `UpdatePayloadAsync`
-([ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md)), and revokes the `user_code` pointer with
+([ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md)), and revokes the `user_code` pointer with
 `SetRevokedOnceAsync`, so a code is entered once.
 
 **Polling.**
@@ -134,7 +134,7 @@ The device-code grant type is in the default `grant_types_supported`, so discove
   `PersistedGrant` revoke and consume semantics.
 - [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md),
   why avoiding a new migration matters.
-- [ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md), the read-modify-write of a grant's payload.
+- [ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md), the read-modify-write of a grant's payload.
 - [ADR-1225](1225-every-grant-that-issues-tokens-for-a-subject-validates-it.md), subject validation and the session
   check.
 - [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md), the prune of ended grants.

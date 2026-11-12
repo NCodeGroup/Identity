@@ -21,7 +21,7 @@ internal class DefaultPersistedGrantService(
     IGrantPayloadProtector payloadProtector
 ) : IPersistedGrantService
 {
-    // The attempts that a write which must not lose a race makes, each in a new unit of work. See ADR-1215.
+    // The attempts that a write which must not lose a race makes, each in a new unit of work. See ADR-1222.
     private const int MaxSaveAttempts = 3;
 
     // This uses C# compiler's ability to refer to static data directly.
@@ -296,7 +296,7 @@ internal class DefaultPersistedGrantService(
             catch (StoreConcurrencyException) when (attempt < MaxSaveAttempts)
             {
                 // A concurrent write changed the grant after it was read, such as a sliding-expiration update.
-                // A revocation must win, so it reads the grant again. See ADR-1215.
+                // A revocation must win, so it reads the grant again. See ADR-1222.
             }
         }
     }
@@ -350,7 +350,7 @@ internal class DefaultPersistedGrantService(
             {
                 // A concurrent write changed the session or a grant issued under it after it was read. The
                 // revocation reads them again, and a concurrent revocation of the session ends it with null.
-                // See ADR-1215.
+                // See ADR-1222.
                 continue;
             }
 
@@ -654,7 +654,7 @@ internal class DefaultPersistedGrantService(
             catch (StoreConcurrencyException) when (attempt < MaxSaveAttempts)
             {
                 // A selected grant changed after it was read, such as a sliding-expiration update or a rotation that
-                // committed in between. A revocation must win, so it reads the grants again. See ADR-1215.
+                // committed in between. A revocation must win, so it reads the grants again. See ADR-1222.
             }
         }
     }

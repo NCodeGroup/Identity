@@ -663,12 +663,12 @@ than inlining the rationale.
   `RevokeWhereAsync`, `RevokeByRefreshTokenLineageAsync`), which read again in a new unit of work and retry, never
   through `IGrantStore.RevokeWhereAsync` and a save of your own; a revocation does not depend on what its caller read,
   so the server retries it instead of answering `412`. See
-  [ADR-1215](../../docs/decisions/1215-a-revocation-wins-a-concurrency-race.md).
+  [ADR-1222](../../docs/decisions/1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md).
 - 👁 **Change a stored grant's payload with the read-modify-write
   `IPersistedGrantService.UpdatePayloadAsync(…, update, …)`, never by writing a payload computed from an earlier
   read.** The service applies `update` to the grant as stored under that read's concurrency token and again after a
   lost race, so `update` decides from its argument and returns `null` when the stored grant does not need the change.
-  See [ADR-1222](../../docs/decisions/1222-a-grants-payload-is-changed-by-a-read-modify-write.md).
+  See [ADR-1222](../../docs/decisions/1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md).
 - 👁 **When a request and a background pass can both act on one record, the caller whose write claims it acts.**
   `RevokeSessionOnceAsync` returns the session grant as this call revoked it, or `null` when another caller did, in the
   unit of work that also revokes the grants issued under it, so a failure after the claim leaves no token active, and

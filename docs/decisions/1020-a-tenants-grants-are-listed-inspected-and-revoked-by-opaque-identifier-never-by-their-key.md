@@ -78,7 +78,7 @@ bumps exactly the rows that changed. The bulk revoke:
 - is audited.
 
 A revocation retries a lost race and never answers `412`, as
-[ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md) holds for the grant row.
+[ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md) holds for the grant row.
 
 ### Scope and authorization
 
@@ -143,7 +143,7 @@ dynamic client registration and is described in
   query filter.
 - [ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md): the initial access
   token.
-- [ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md): a lost race on a grant.
+- [ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md): a lost race on a grant.
 - [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md): authority as a role assignment.
 - [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md): authorize before
   reading.

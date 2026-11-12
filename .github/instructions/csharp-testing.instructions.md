@@ -231,7 +231,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   [Setup Techniques](csharp-tests.instructions.md#setup-techniques).
 - 👁 **Test a read-modify-write through the update function it passes** — template
   [Setup Techniques](csharp-tests.instructions.md#setup-techniques) (`DefaultSessionServiceTests`,
-  [ADR-1222](../../docs/decisions/1222-a-grants-payload-is-changed-by-a-read-modify-write.md)).
+  [ADR-1222](../../docs/decisions/1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md)).
 - 👁 **A mocked `OpenIdContext` or `OpenIdTenant` that the code under test disposes sets up its protected
   `DisposeAsyncCore`** — template [Setup Techniques](csharp-tests.instructions.md#setup-techniques)
   (`EndedSessionTerminationServiceTests`).

@@ -1,0 +1,50 @@
+# Publish artifacts - publishes the host image, the management console image and the host chart to GHCR (issue #773, ADR-1503).
+#
+# Every push to main (and a manual run on main) publishes three artifacts at one unique prerelease version: the host
+# image, the management console image and the host chart. The version comes from build/artifact-version.ps1:
+# `<version.json prerelease>.<first-parent commit count>`, for example 0.0.1-alpha.57.
+#
+# The signing identity of every signature and attestation is this workflow on main:
+# https://github.com/NCodeGroup/identity/.github/workflows/publish-artifacts.yml@refs/heads/main
+#
+# Package visibility and the Actions access of a package are owner settings in GitHub that no workflow can change; see
+# the chart README, section "Published artifacts".
+name: Publish artifacts
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One publication at a time; a second waits rather than racing the first to the registry.
+concurrency:
+  group: publish-artifacts
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: Compute the version
+    if: github.repository == 'NCodeGroup/identity' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # The version height counts the commit history, which a shallow clone truncates.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Compute the version
+        id: version
+        shell: pwsh
+        run: |
+          $version = ./build/artifact-version.ps1
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "Publishing **$version**." >> $env:GITHUB_STEP_SUMMARY

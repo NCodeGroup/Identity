@@ -166,7 +166,7 @@ the request is refused. Nothing is silently weakened or redirected.**
 - [ADR-1075](1075-runtime-consumption-of-resource-server-secrets.md) (amended: settings combine, and the recipient
   rule); [ADR-1109](1109-fapi-behavioral-rules-and-discovery-validation-details.md) (amended: the sender constraint is
   a ceiling); [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md) (extended: the settings that apply to
-  resource servers); [ADR-1038](1038-setting-merge-lattice-duals.md) — the merge lattice;
+  resource servers); [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — the merge lattice;
   [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md) — profile ceilings;
   [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md) — `server_error` for an
   unsatisfiable configuration.

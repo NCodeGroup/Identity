@@ -7,7 +7,7 @@
 ## Context
 
 Scopes and API resources are not manageable. A scope is only a string in the `scopes_supported` setting, intersected
-`server ∩ tenant ∩ client` ([ADR-1010](1010-supported-settings-unset-means-unrestricted.md)); there is no scope
+`server ∩ tenant ∩ client` ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)); there is no scope
 identity, no per-scope metadata (description, the API it belongs to), and no API-resource/audience entity (the audience
 is just the client id). Operators cannot define an API, declare its permissions, or grant a client access to it.
 
@@ -84,7 +84,7 @@ corruption.
 
 ## References
 
-- [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) — the `scopes_supported` setting this model will
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — the `scopes_supported` setting this model will
   eventually make authoritative from the database.
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — interceptor-managed concurrency tokens reused by the new
   entities.

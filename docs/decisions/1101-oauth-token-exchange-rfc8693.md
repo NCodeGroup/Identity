@@ -43,7 +43,7 @@ Concretely:
 - **Extension-grant seam, no endpoint change.** The handler advertises `GrantTypes = { token-exchange }`; the token
   endpoint routes to it. The grant is **not** in the baseline `grant_types_supported` default — like
   `client_credentials` and `password`, it is a powerful grant an operator opts into (secure-by-default,
-  [ADR-1083](1083-secure-by-default-discovery-metadata.md)); the `grant_types_supported` gate plus per-client grant
+  [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)); the `grant_types_supported` gate plus per-client grant
   enablement authorize its use.
 - **Self-issued tokens only, behind a validator seam.** `ISubjectTokenValidator` validates a presented `subject_token`
   or `actor_token` and resolves it to a `ClaimsPrincipal`. The default `DefaultSubjectTokenValidator` accepts only

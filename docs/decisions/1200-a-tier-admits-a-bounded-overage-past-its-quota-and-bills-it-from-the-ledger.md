@@ -24,7 +24,7 @@ a plan tier opts in, whether an admitting tier still has a hard ceiling, and how
 2. **Setting the allowance is the opt-in, and its value is the hard ceiling.** An effective allowance that is unset or
    `0` refuses at the quota, as before. A tier that sets an allowance is served up to the quota plus the allowance and
    refused past both until midnight UTC. Unset means _none_ here, unlike the unrestricted default of
-   [ADR-1010](1010-supported-settings-unset-means-unrestricted.md): an allowance creates a charge, and a missing
+   [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md): an allowance creates a charge, and a missing
    setting must never bill a customer without limit. A tier that wants effectively unlimited overage sets a large
    value. An allowance without its quota does nothing.
 3. **The quota's counter judges the overage.** The day's shared counter of ADR-1198 is compared with the quota and
@@ -68,7 +68,7 @@ a plan tier opts in, whether an admitting tier still has a hard ceiling, and how
 
 ## References
 
-- [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) — unset means unrestricted
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — unset means unrestricted
 - [ADR-1198](1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) — daily quotas
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — the usage ledger
 - `src/NCode.Identity.OpenId.Authentication/RateLimiting/DefaultRequestRateLimiter.cs`,

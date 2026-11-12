@@ -8,7 +8,7 @@
 
 ## Context
 
-Settings in this family are **layered and merged** at runtime (ADR-1038): the server contributes the baseline (every
+Settings in this family are **layered and merged** at runtime (ADR-1010): the server contributes the baseline (every
 descriptor default plus supported-algorithm and configuration values), a tenant merges its persisted overrides onto the
 server, and a client merges its persisted overrides onto the tenant. What a request actually sees is the _effective_
 (merged) collection — `OpenIdServer.SettingsProvider.Collection`, `OpenIdTenant.SettingsProvider.Collection`, and
@@ -82,5 +82,5 @@ read an entity's persisted settings, you may read its effective view. No new sco
   `ServerApiEndpointHandler.GetEffectiveSettingsAsync`, `BaseApiEndpointHandler.ToEffectiveSettingsElement`,
   `OpenIdTenant.SettingsProvider`, `OpenIdClient.Settings`, `OpenIdServer.SettingsProvider`,
   `IReadOnlySettingCollection.Merge`, `RootSettingsCollectionDataSource`.
-- Prior art: [ADR-1038](1038-setting-merge-lattice-duals.md) (setting merge semantics),
+- Prior art: [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) (setting merge semantics),
   [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md) (authorization model).

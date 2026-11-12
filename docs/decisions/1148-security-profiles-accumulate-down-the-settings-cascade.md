@@ -43,7 +43,7 @@ every selected profile applies; and a profile's ceiling may only use settings wh
 that selects it.**
 
 1. **`security_profiles` is a list merged with `Union`.** It is the join of the lattice the cascade already uses
-   ([ADR-1038](1038-setting-merge-lattice-duals.md)), so a child can add a profile but never remove one a parent
+   ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)), so a child can add a profile but never remove one a parent
    selects: the guarantee follows from the merge's algebra, as it does for every other floor, and no profile name
    appears in the merge. The default is the empty list, which selects none; every value names a registered profile, and
    when none is registered the list must be empty.
@@ -53,7 +53,7 @@ that selects it.**
    another's. `EvaluateRequirementsAsync` runs the requirements of every profile in the effective set; a requirement
    instance that several profiles share runs once. Selecting several profiles is at least as strict as each. Profiles
    whose ceilings contradict leave nothing permitted on that dimension — a set but empty list permits nothing; only an
-   absent one is unrestricted ([ADR-1010](1010-supported-settings-unset-means-unrestricted.md)) — which fails closed.
+   absent one is unrestricted ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)) — which fails closed.
 3. **A profile builds on another by selecting it.** A profile's ceiling may set `security_profiles`, and expansion
    repeats until every profile the scope carries has contributed its ceiling, so selecting a layered profile applies
    the profile it builds on, ceilings and requirements both. Inclusion only adds constraints; no profile stands in for
@@ -171,7 +171,7 @@ that selects it.**
   objects (amended: every selected profile's requirements run).
 - [ADR-1140](1140-setting-values-are-validated-against-their-domain.md) — the profile domain (amended: a list of
   registered names).
-- [ADR-1038](1038-setting-merge-lattice-duals.md) — the merge lattice; [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) —
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — the merge lattice; [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) —
   an absent list is unrestricted, an empty one permits nothing; [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) —
   renaming a setting ships with a data migration; [ADR-1075](1075-runtime-consumption-of-resource-server-secrets.md) —
   resource-server token encryption.

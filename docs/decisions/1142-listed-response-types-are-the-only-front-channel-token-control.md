@@ -1,7 +1,7 @@
 # 1142. The listed response types are the only control over the tokens the authorization endpoint returns
 
 - **Status:** Accepted (extends [ADR-1141](1141-response-types-are-whole-values.md); retires a setting of
-  [ADR-1038](1038-setting-merge-lattice-duals.md); amended by
+  [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md); amended by
   [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
   migration rewrites stored data; amended by
@@ -16,7 +16,7 @@ The response type decides whether the authorization endpoint returns an access t
 the `token` name returns one (OAuth 2.0 Multiple Response Type Encoding Practices). The server accepts exactly the whole
 response types listed in `response_types_supported`, and the list merges as a ceiling (intersection) down the
 server → tenant → client cascade ([ADR-1141](1141-response-types-are-whole-values.md),
-[ADR-1038](1038-setting-merge-lattice-duals.md)). Listing `token`, `id_token token`, `code token`, or
+[ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)). Listing `token`, `id_token token`, `code token`, or
 `code id_token token` permits an access token from the authorization endpoint; a tenant or client that lists none of
 them forbids it; discovery advertises the tenant's list; and dynamic client registration refuses a response type the
 tenant does not list.
@@ -26,7 +26,7 @@ response type that includes `token`, with `unauthorized_client`. It is a second 
 the two disagree:
 
 - An operator who lists `code token` but leaves the boolean `false` (or the reverse) has a flow that is advertised and
-  registrable but refused at every request. [ADR-1083](1083-secure-by-default-discovery-metadata.md)'s guarantee —
+  registrable but refused at every request. [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)'s guarantee —
   advertisement and enforcement share one source, so there is no second switch to forget — does not hold.
 - The refusal is always `unauthorized_client`, even when the tenant imposes it, where RFC 6749 §4.1.2.1 calls for
   `unsupported_response_type`.
@@ -41,7 +41,7 @@ is why the default list excludes them; it is not a reason for a second control.
 **`response_types_supported` is the only control over the tokens the authorization endpoint returns.** The
 `allow_unsafe_token_response` setting — its descriptor, setting name, setting key, and check — is removed. A tenant or
 client forbids access tokens from the authorization endpoint by listing no response type that includes `token`. The
-secure-by-default baseline lists only `code` (ADR-1083), so by default the authorization endpoint returns no token.
+secure-by-default baseline lists only `code` (ADR-1010), so by default the authorization endpoint returns no token.
 
 **Stored settings documents are rewritten to the setting's meaning, not stripped of it.** Retiring a setting rewrites
 the stored documents ([ADR-1139](1139-setting-names-are-a-closed-vocabulary.md)); a data migration rewrites every stored
@@ -65,7 +65,7 @@ path (ADR-1139); the operator removes it and narrows `response_types_supported` 
 
 - **Keep the boolean and make discovery and registration read it too.** Rejected: every reader of the response types
   would have to combine two settings, the refusal would still not say which scope imposed it, and it is the second
-  switch ADR-1083 rules out.
+  switch ADR-1010 rules out.
 - **Keep the boolean as a server-wide kill switch only.** Rejected: the server's own `response_types_supported` already
   is that switch, since it caps every tenant by intersection.
 - **Remove the setting and drop it from stored documents.** Rejected: a document that set it to `false` would silently
@@ -92,13 +92,13 @@ path (ADR-1139); the operator removes it and narrows `response_types_supported` 
 
 - [ADR-1141](1141-response-types-are-whole-values.md) — response types are whole values; the list this decision makes
   the only control.
-- [ADR-1083](1083-secure-by-default-discovery-metadata.md) — advertisement and enforcement share one source.
-- [ADR-1038](1038-setting-merge-lattice-duals.md) — the merge lattice; intersection and conjunction are both ceilings.
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — advertisement and enforcement share one source.
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — the merge lattice; intersection and conjunction are both ceilings.
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) — stored documents fail closed; retiring a setting rewrites
   them.
 - [ADR-1113](1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md) — read-time upcasting, scoped to grant
   payloads.
-- [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) — an unset list is unrestricted.
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — an unset list is unrestricted.
 - RFC 6749 §4.1.2.1, RFC 9700 §2.1.2, OAuth 2.0 Multiple Response Type Encoding Practices.
 - Code: `NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Handlers.DefaultValidateAuthorizationRequestHandler`,
   `NCode.Identity.OpenId.Settings.DefaultSettingDescriptorDataSource`, and the `RetireAllowUnsafeTokenResponse`

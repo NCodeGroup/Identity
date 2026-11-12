@@ -14,7 +14,7 @@ The refresh token of a public client has to be sender-constrained or rotated
 confidential client is bound to its client authentication (RFC 6749 §6), so it needs neither.
 
 `refresh_token_rotation_enabled` defaulted to `false` and merged as a floor with `Or`
-([ADR-1038](1038-setting-merge-lattice-duals.md)). Nothing required rotation or a sender constraint for a client that is
+([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)). Nothing required rotation or a sender constraint for a client that is
 not confidential, so a public client without DPoP received a reusable bearer refresh token.
 
 Rotation also has a cost for the clients that do not need it. FAPI 2.0 §5.3.2.1-9 and its Note 1 forbid it for a
@@ -89,7 +89,7 @@ client, and the `refresh_token_rotation_policy` setting replaces the `refresh_to
 
 ## References
 
-- [ADR-1038](1038-setting-merge-lattice-duals.md) — the merge polarity that the flag used and the policy replaces.
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — the merge polarity that the flag used and the policy replaces.
 - [ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md) — the reuse detection of a rotated token.
 - [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md) — a profile supplies defaults for the
   settings that do not merge with a lattice operation.

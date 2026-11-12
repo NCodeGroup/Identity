@@ -1,6 +1,6 @@
 # 1411. The platform is the deployment root and a team groups a customer's tenants
 
-- **Status:** Accepted (amends [ADR-1010](1010-supported-settings-unset-means-unrestricted.md),
+- **Status:** Accepted (amends [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md),
   [ADR-1011](1011-secret-management-api.md),
   [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md),
   [ADR-1014](1014-server-generated-opaque-resource-ids.md),
@@ -150,7 +150,7 @@ the platform and its tenants in the settings cascade and in authority.**
 
 ## References
 
-- [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) — unset settings are unrestricted
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — unset settings are unrestricted
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — pre-release posture
 - [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) — hosted platform environment model
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — vocabularies are open unless provably closed

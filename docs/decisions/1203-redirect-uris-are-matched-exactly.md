@@ -80,7 +80,7 @@ both. FAPI 2.0 Security Profile §5.3.2.2-8 refuses `http` except for the loopba
    private-use scheme without a period). The setting `redirect_uri_kinds_supported` lists the permitted kinds. It
    applies to tenants and clients, merges with `Intersect`, is not advertised, accepts registered kind names only, and
    permits every registered kind while it is unset
-   ([ADR-1010](1010-supported-settings-unset-means-unrestricted.md)). Kinds compare by name, and a URI is permitted when
+   ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)). Kinds compare by name, and a URI is permitted when
    any listed kind matches it. A value that is not an absolute URI, or that no registered kind matches (`javascript:`,
    `data:`, `file:`, `ftp:`, `ws:`, `myapp:`), is never permitted, whether or not the setting is set.
 8. **The FAPI profiles cap the kinds.** `fapi1-advanced` caps `redirect_uri_kinds_supported` at `https` and keeps

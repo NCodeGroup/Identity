@@ -32,7 +32,7 @@ infrastructure instance of the whole server — they do not give a tenant its ow
   filter — keeping tenants from seeing one another. It is not a separate machine.
 - **One control plane manages servers and tenants together.** The control plane is the central administrative surface:
   it manages the server (the deployment-root settings and secrets tenants narrow,
-  [ADR-1010](1010-supported-settings-unset-means-unrestricted.md)) and provisions/administers tenants. `GlobalAdmin` is
+  [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)) and provisions/administers tenants. `GlobalAdmin` is
   its realm (manage servers + tenants); `TenantAdmin` is a workload tenant's realm (manage that tenant's clients,
   resource servers, scopes, and grants). These are management _realms_ over one database, not separate databases.
 - **The root/system tenant is the control plane's tenant**
@@ -76,7 +76,7 @@ infrastructure instance of the whole server — they do not give a tenant its ow
 
 ## References
 
-- [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) — the server baseline that tenants narrow, read when
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — the server baseline that tenants narrow, read when
   materializing a tenant within the one database.
 - [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) — the ambient-tenant query filter that is the
   sole tenant-isolation mechanism.

@@ -162,8 +162,8 @@ never compresses.**
 - [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) — the validator the
   inbound policies configure.
 - [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md) (amended: the request-object, UserInfo, and ID token
-  lists apply to clients), [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) (amended: an unset list at a
-  trust boundary permits nothing), [ADR-1083](1083-secure-by-default-discovery-metadata.md),
+  lists apply to clients), [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) (amended: an unset list at a
+  trust boundary permits nothing), [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md),
   [ADR-1085](1085-ciba-grant.md) and [ADR-1090](1090-durable-outbound-delivery-dispatch-adapter.md) (amended: no
   encrypted CIBA requests), [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md).
 - Code: `NCode.Identity.OpenId.Authentication.Clients.DefaultClientJwtCredentialSelector`, `ClientJwtProtectionSettings`,

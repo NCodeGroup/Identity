@@ -95,7 +95,7 @@ Concretely:
   only set the header name when the app is reachable exclusively through the proxy that sets it, otherwise a client
   could spoof it.
 
-- **Discovery (secure-by-default, [ADR-1083](1083-secure-by-default-discovery-metadata.md)).**
+- **Discovery (secure-by-default, [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)).**
   `dpop_signing_alg_values_supported` advertises the asymmetric signing set; `tls_client_certificate_bound_access_tokens`
   states that the server supports certificate-bound access tokens (RFC 8705 §3.3). It defaults to `false` and is
   advertised `true` only once a deployment has wired certificate forwarding and opted in.

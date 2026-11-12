@@ -13,7 +13,7 @@ as BCP 47 language tags ordered by preference, and says an unsupported locale SH
 Logout 1.0 §2 defines the same parameter for the end-session request. Discovery advertises the locales the provider's
 interface supports as `ui_locales_supported`. The authorization endpoint parses the parameter into
 `IAuthorizationRequest.UiLocales`, and the `ui_locales_supported` tenant setting is a discoverable `*_supported`
-ceiling whose unset value is unrestricted ([ADR-1010](1010-supported-settings-unset-means-unrestricted.md)).
+ceiling whose unset value is unrestricted ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)).
 
 The interface the preference applies to is the interactive surface: the server-rendered no-JavaScript login, consent,
 logout confirmation and authorization error pages, and the `apps/auth` bundle that mounts over them and draws the
@@ -146,7 +146,7 @@ forms carry on.**
 - [RP-Initiated Logout 1.0 §2](https://openid.net/specs/openid-connect-rpinitiated-1_0.html#RPLogout): `ui_locales`
   at the end-session endpoint.
 - [RFC 4647 §3.4](https://www.rfc-editor.org/rfc/rfc4647#section-3.4): lookup.
-- [ADR-1010](1010-supported-settings-unset-means-unrestricted.md), [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md), [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md).
 - Issue [#540](https://github.com/NCodeGroup/identity/issues/540).
 - Code: `src/NCode.Identity.OpenId.Abstractions/Locales/`, `src/NCode.Identity.OpenId.Core/Locales/`,

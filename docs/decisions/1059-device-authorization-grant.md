@@ -78,8 +78,7 @@ Concretely:
 - **New error codes.** `OpenIdConstants.ErrorCodes` gains `authorization_pending`, `slow_down`, and `expired_token`
   (`access_denied` already exists), returned as `400` OAuth error responses from the token handler.
 - **Settings & discovery.** New settings — `device_code_lifetime`, `device_code_polling_interval`,
-  `user_code_length` — follow the descriptor/merge conventions ([ADR-1010](1010-supported-settings-unset-means-unrestricted.md),
-  [ADR-1038](1038-setting-merge-lattice-duals.md)). The device authorization endpoint advertises itself as
+  `user_code_length` — follow the descriptor/merge conventions ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)). The device authorization endpoint advertises itself as
   `device_authorization_endpoint`, and `urn:ietf:params:oauth:grant-type:device_code` joins the default
   `grant_types_supported`, so both appear in `.well-known/openid-configuration` automatically.
 
@@ -130,7 +129,7 @@ Concretely:
   grant follows.
 - [ADR-1009](1009-endpoint-families-own-their-route-group.md) — endpoint families own their routes and discovery
   advertisement.
-- [ADR-1010](1010-supported-settings-unset-means-unrestricted.md), [ADR-1038](1038-setting-merge-lattice-duals.md) —
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) —
   the settings descriptor and merge conventions the new settings follow.
 - [ADR-1028](1028-token-revocation-refresh-tokens-only.md) — the `PersistedGrant` revoke/consume semantics reused here.
 - [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md) — why avoiding a new migration matters.

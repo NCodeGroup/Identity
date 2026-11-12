@@ -15,7 +15,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// defaults purely through configuration, and that the widened values are then both advertised in
 /// discovery and accepted by the authorization endpoint.
 /// </summary>
-// See ADR-1083.
+// See ADR-1010.
 public class DiscoveryInsecureOverrideTests(InsecureConfigApplicationFactory factory)
     : IClassFixture<InsecureConfigApplicationFactory>
 {

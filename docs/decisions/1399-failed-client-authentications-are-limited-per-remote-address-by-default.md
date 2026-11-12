@@ -25,7 +25,7 @@ either:
 - `rate_limit_client_per_minute` is judged at the `client_authentication` stage, which a request reaches only once its
   client has authenticated, so a wrong guess never counts against it.
 - `rate_limit_address_per_minute` and `rate_limit_tenant_per_minute` count every request, successful ones included, and
-  have no default ([ADR-1010](1010-supported-settings-unset-means-unrestricted.md)). A value low enough to bound
+  have no default ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)). A value low enough to bound
   guessing, such as ten a minute, refuses the legitimate traffic of a busy client or of every client behind one NAT
   gateway, and a value that admits that traffic, thousands a minute, admits millions of guesses a day.
 

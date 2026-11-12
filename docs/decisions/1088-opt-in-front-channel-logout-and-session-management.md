@@ -99,5 +99,5 @@ Concretely:
 - [ADR-1074](1074-session-management-and-logout.md) — the end-user session model and the two cookie-independent logout
   mechanisms; this ADR reverses its outright decline of the two iframe-based mechanisms.
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — greenfield, best-long-term-design posture.
-- [ADR-1083](1083-secure-by-default-discovery-metadata.md) — secure-by-default discovery advertisement.
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — secure-by-default discovery advertisement.
 - [ADR-1009](1009-endpoint-families-own-their-route-group.md) — endpoints self-register and self-advertise.

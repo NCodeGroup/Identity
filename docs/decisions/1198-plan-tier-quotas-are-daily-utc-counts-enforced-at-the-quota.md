@@ -60,7 +60,7 @@ ceiling.**
       handler then refuses has still cost the platform its work.
 
     Each is an integer of at least one with no default, merged with `Min`, and unset means unlimited
-    ([ADR-1010](1010-supported-settings-unset-means-unrestricted.md)). They are not discoverable.
+    ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)). They are not discoverable.
 
 4. **A plan tier is a set of tenant settings.** The platform's provisioning writes a tier's quotas on the tenant through
    the management API; the server's settings are the platform's ceiling, and the `Min` merge means no tier can raise a
@@ -103,7 +103,7 @@ ceiling.**
 
 ## References
 
-- [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) — unset means unrestricted
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — unset means unrestricted
 - [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) — rate limits and the counter set
 - [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) — protocol metrics
 - `src/NCode.Identity.OpenId.Authentication/RateLimiting/DefaultRequestRateLimiter.cs`,

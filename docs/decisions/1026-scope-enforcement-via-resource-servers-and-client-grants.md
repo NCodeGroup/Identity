@@ -78,5 +78,5 @@ subsumed, not lost.
   `IsSystem`-implicit-grant generalization.
 - [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) — the ambient-tenant scoping the resolver sets
   explicitly at the OIDC runtime.
-- [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) — the `*_supported` settings regime that
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — the `*_supported` settings regime that
   `scopes_supported` leaves.

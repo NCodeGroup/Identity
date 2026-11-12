@@ -62,7 +62,7 @@ Concretely:
        address defeats DNS-rebinding (the name is resolved once and connected to that answer), and `AllowAutoRedirect =
 false` stops a redirect from bouncing the fetch to an internal host. This floor is **not** configurable off.
     2. **Optional host allow-list.** `sector_identifier_uri_allowed_hosts` (set-valued, merges by `Intersect`; unset =
-       no host restriction per [ADR-1010](1010-supported-settings-unset-means-unrestricted.md)) further restricts which
+       no host restriction per [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)) further restricts which
        hosts may be fetched.
     3. **Timeout.** `sector_identifier_uri_fetch_timeout` (default 10s, merges by `Min`) bounds the wall-clock fetch via a
        linked `CancellationTokenSource`; a timeout is reported as `invalid_client_metadata`, distinct from caller

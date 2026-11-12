@@ -1,7 +1,7 @@
 # 1144. Authorization codes are bound to PKCE by default
 
 - **Status:** Accepted (amends [ADR-1079](1079-extensible-pkce-code-challenge-methods.md),
-  [ADR-1083](1083-secure-by-default-discovery-metadata.md), and
+  [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md), and
   [ADR-1140](1140-setting-values-are-validated-against-their-domain.md); amended by
   [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md): a client authenticates only with its
   registered method, so the type it authenticates as at the token endpoint is the type it is registered as; amended by
@@ -42,7 +42,7 @@ The server fell short of that in several ways:
 **An authorization code is bound to an `S256` PKCE challenge unless every condition of OAuth 2.1's exception holds.**
 One policy, `CodeChallengeRequirement`, decides it for both endpoints:
 
-1. **`require_pkce` defaults to `true`.** It is a floor ([ADR-1038](1038-setting-merge-lattice-duals.md)), so only the
+1. **`require_pkce` defaults to `true`.** It is a floor ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)), so only the
    server's configuration can relax it, and a tenant or client can require it again. Relaxing it is the deployment's
    statement that it permits the nonce alternative; on its own it exempts nobody.
 2. **A client is exempt only when it is attested.** `pkce_nonce_exemption` (default `false`, override merge) is an
@@ -117,11 +117,11 @@ the status every other OAuth error response uses.
 
 - [ADR-1079](1079-extensible-pkce-code-challenge-methods.md) — the PKCE transformation strategy collection; its
   domain and default are amended here.
-- [ADR-1083](1083-secure-by-default-discovery-metadata.md) — secure-by-default metadata; `plain` is no longer an
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — secure-by-default metadata; `plain` is no longer an
   operator option.
 - [ADR-1140](1140-setting-values-are-validated-against-their-domain.md) — setting domains; PKCE methods move from a
   fixed vocabulary to the registered transformations, and narrowing a domain ships with a data migration.
-- [ADR-1038](1038-setting-merge-lattice-duals.md) — `require_pkce` is a floor.
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — `require_pkce` is a floor.
 - [ADR-1108](1108-fapi-security-profile-merge-lattice-ceiling-injection.md) — the FAPI 2.0 profile requires PKCE.
 - OAuth 2.1 (draft-ietf-oauth-v2-1-16) §4.1.1, §4.1.2.1, §4.1.3, §7.5.1.1, §7.5.2; RFC 9700 §2.1.1, §4.8.2;
   RFC 7636 §4.1, §4.2, §4.4.1, §4.6; RFC 7591 §2; RFC 6749 §5.2; RFC 9126 §2.3.

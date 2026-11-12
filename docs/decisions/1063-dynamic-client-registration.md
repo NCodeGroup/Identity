@@ -31,8 +31,7 @@ JSON settings document, and a secret collection) through `IClientStore`; the man
 way. Client secrets are generated server-side and revealed once by `ISecretGenerator`
 ([ADR-1050](1050-secret-material-revealed-once-on-create.md)). Protocol endpoints self-register and self-advertise in
 discovery ([ADR-1009](1009-endpoint-families-own-their-route-group.md)). Settings cascade server → tenant → client
-through a merge lattice ([ADR-1010](1010-supported-settings-unset-means-unrestricted.md),
-[ADR-1038](1038-setting-merge-lattice-duals.md)). And `IPersistedGrantService` persists "any type of grant and its
+through a merge lattice ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)). And `IPersistedGrantService` persists "any type of grant and its
 payload" as a tenant-scoped, **hash-keyed**, optionally-expiring, status-bearing envelope — the same machinery the
 authorization-code, refresh-token, and device-code flows ride.
 
@@ -175,7 +174,7 @@ Concretely:
   model the endpoint family and the validator seam follow.
 - [ADR-1009](1009-endpoint-families-own-their-route-group.md) — endpoint families own their routes and discovery
   advertisement.
-- [ADR-1010](1010-supported-settings-unset-means-unrestricted.md), [ADR-1038](1038-setting-merge-lattice-duals.md) —
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) —
   the settings descriptor and merge-lattice conventions the `registration_endpoint_allow_anonymous` setting follows.
 - [ADR-1050](1050-secret-material-revealed-once-on-create.md) — the one-time secret reveal reused for the
   `client_secret`.

@@ -38,7 +38,7 @@ client assertions use it through a lattice-bounded setting.**
   earlier of `iat` and `nbf`, or — when the token asserts neither — the validation time plus the clock skew**. A set
   maximum also requires `exp`, since a token without one has an unbounded lifetime.
 - **`client_assertion_max_lifetime`.** A non-discoverable `TimeSpan` setting, default **five minutes** (Auth0's
-  maximum), merged as a `Min` ceiling ([ADR-1038](1038-setting-merge-lattice-duals.md)) so a tenant or client may only
+  maximum), merged as a `Min` ceiling ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)) so a tenant or client may only
   shorten it; an operator who must accept longer-lived assertions raises the server value. The client-assertion handlers
   pass it as the `MaxLifetime`, so an over-long assertion is rejected as `invalid_client` (audit reason
   `assertion_invalid`; the logged validation failure names the exceeded maximum).

@@ -52,7 +52,7 @@ Two consequences worth knowing up front:
   advertises `response_types_supported` as **`code` only**, so the implicit and hybrid combinations that
   [RFC 9700] and OAuth 2.1 remove are off unless an operator deliberately widens the setting. Anonymous dynamic client
   registration is off, and capabilities that weaken posture are opt-in and advertised only when enabled
-  ([ADR-1083](docs/decisions/1083-secure-by-default-discovery-metadata.md)). The resource-owner password grant exists for
+  ([ADR-1010](docs/decisions/1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)). The resource-owner password grant exists for
   hosts that genuinely need it, but it is a separate opt-in registration rather than part of the default composition.
 - **Settings are a merge lattice, not a flag soup.** Platform, team, tenant, resource-server and client settings merge through
   declared rules (a floor cannot be raised by a child, a ceiling cannot be exceeded), so a tenant cannot configure its

@@ -66,7 +66,7 @@ Everything follows from that rule:
   endpoints have no tenant segment, so the filter opens no scope and they operate globally, as `GlobalAdmin` at
   `(Server, rootTenantId)` intends. A server id is never a tenant id, so server endpoints never open a tenant scope.
 - **Effective settings are a by-id merge hierarchy.** Each tier reconstructs the resolved view from the route id and
-  the persisted rows, mirroring exactly what the runtime resolves ([ADR-1038](1038-setting-merge-lattice-duals.md)):
+  the persisted rows, mirroring exactly what the runtime resolves ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)):
   server = the server's own resolved collection; tenant = `server.Merge(tenantPersisted)`; client =
   `tenantEffective.Merge(clientPersisted)`. No tier reads the ambient `OpenIdContext.Tenant`.
 - **The control plane / workload tenant split is unchanged.** The root (control-plane) tenant remains the issuer of

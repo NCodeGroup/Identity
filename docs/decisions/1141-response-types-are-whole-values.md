@@ -1,7 +1,7 @@
 # 1141. Response types are whole values, enforced exactly and consistent with grant types
 
 - **Status:** Accepted (amends [ADR-1140](1140-setting-values-are-validated-against-their-domain.md),
-  [ADR-1083](1083-secure-by-default-discovery-metadata.md), and
+  [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md), and
   [ADR-1063](1063-dynamic-client-registration.md); extended by
   [ADR-1142](1142-listed-response-types-are-the-only-front-channel-token-control.md): the listed response types are the
   only control over the tokens the authorization endpoint returns)
@@ -56,7 +56,7 @@ canonical form — and it is always considered together with the grant types it 
 3. **The authorization endpoint accepts exactly a listed value.** The requested `response_type` is put in canonical
    form — protocol input may order its names freely — and must equal a listed value; its grant types (point 5) must be
    in `grant_types_supported`. An unset list is unrestricted
-   ([ADR-1010](1010-supported-settings-unset-means-unrestricted.md)). A response type the tenant does not support is
+   ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)). A response type the tenant does not support is
    rejected with `unsupported_response_type`, and one the tenant supports but the client may not use with
    `unauthorized_client` (RFC 6749 §4.1.2.1).
 4. **Dynamic client registration registers what the client asked for.** Each `response_types` value is stored in
@@ -109,9 +109,9 @@ canonical form — and it is always considered together with the grant types it 
 ## References
 
 - [ADR-1140](1140-setting-values-are-validated-against-their-domain.md) — the response-type domain this replaces.
-- [ADR-1083](1083-secure-by-default-discovery-metadata.md) — secure-by-default discovery; the baseline stays `code`.
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — secure-by-default discovery; the baseline stays `code`.
 - [ADR-1063](1063-dynamic-client-registration.md) — dynamic client registration.
-- [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) — an unset ceiling is unrestricted.
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — an unset ceiling is unrestricted.
 - RFC 6749 §3.1.1 and §4.1.2.1, RFC 7591 §2, §2.1 and §3.2.2, RFC 8414 §2, OpenID Connect Discovery 1.0 §3, OpenID
   Connect Dynamic Client Registration 1.0 §2, OAuth 2.0 Multiple Response Type Encoding Practices.
 - Code: `NCode.Identity.OpenId.OpenIdConstants.ResponseTypes`, `NCode.Identity.OpenId.Settings.OpenIdSettingRules`,

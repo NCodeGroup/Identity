@@ -3276,7 +3276,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The default `claims_supported` list is part of the replaceable `IDefaultSettingsProvider` baseline.** A host that
   enables `claims_supported_is_strict` extends the allow-list by registering its own baseline provider, unbound by a
-  descriptor literal ([ADR-1010](docs/decisions/1010-supported-settings-unset-means-unrestricted.md)).
+  descriptor literal ([ADR-1010](docs/decisions/1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)).
 
 - **Configuration is bound strictly and checked before the host accepts traffic.** A key that maps to no option stops
   the host with an error naming the section, the options type and the key. This covers the whole OpenID section and the
@@ -4673,7 +4673,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1040](docs/decisions/1040-effective-settings-preview-endpoints.md)).
 
 - **Discovery metadata is secure by default and operator-overridable
-  ([ADR-1083](docs/decisions/1083-secure-by-default-discovery-metadata.md)).** The OpenID Provider advertises no
+  ([ADR-1010](docs/decisions/1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)).** The OpenID Provider advertises no
   deprecated or insecure flows out of the box: `response_types_supported` defaults to `["code"]`,
   `grant_types_supported` omits `implicit`, `code_challenge_methods_supported` defaults to `["S256"]`, and
   `subject_types_supported` defaults to `["public"]` so the required OpenID Connect Discovery field is present. The
@@ -5707,7 +5707,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `federated_identity_*` requirement flags are floors; `allow_*` and `request(_uri)_parameter_supported` are ceilings;
   and `allowed_identity_providers` and `subject_types_supported` merge as intersect ceilings.
   `allowed_identity_providers` is fail-closed: unset means unrestricted, but an explicit or narrowed-to-empty allowlist
-  denies every IdP ([ADR-1038](docs/decisions/1038-setting-merge-lattice-duals.md)).
+  denies every IdP ([ADR-1010](docs/decisions/1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)).
 
 - **Setting values are validated against their domain, not only their type.** A value of the right type that the server
   would not honor is rejected wherever a setting enters: configuration stops the host (and a reload is rejected), a

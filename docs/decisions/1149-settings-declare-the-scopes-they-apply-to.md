@@ -88,7 +88,7 @@ anywhere else is rejected at every entry point, exactly as an unregistered name 
    parent, the reader moves rather than the setting being rejected. `token_endpoint_auth_signing_alg_values_supported` is
    enforced against the authenticating client's effective settings — which carry the tenant's list and every selected
    profile's ceiling — and a set list permits only what it names, an empty one nothing
-   ([ADR-1010](1010-supported-settings-unset-means-unrestricted.md)).
+   ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)).
 8. **Stored documents are migrated.** The `RemoveSettingsOutsideTheirScopes` migration removes from every client
    document the settings that do not apply within a client, and from every resource-server document those that do not
    apply within a resource server. Such a setting never had an effect where it was stored, so it is removed, not
@@ -142,7 +142,7 @@ anywhere else is rejected at every entry point, exactly as an unregistered name 
 - [ADR-1040](1040-effective-settings-preview-endpoints.md) and
   [ADR-1066](1066-resource-server-settings-and-secret-owner.md) — the effective-settings previews and resource-server
   settings documents (amended: scoped to the settings that apply within them).
-- [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) — an unset list is unrestricted; a set one permits only
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — an unset list is unrestricted; a set one permits only
   what it names.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — vocabularies are open unless provably closed.
 - Code: `NCode.Identity.Settings.SettingScopeDescriptor`, `ISettingScopeCollection`, `DefaultSettingScopeCollection`,

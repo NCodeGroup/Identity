@@ -130,10 +130,8 @@ The records are grouped by area; within an area they are in number order.
 
 | ADR | Title | Status |
 | --- | --- | --- |
-| [1010](./1010-supported-settings-unset-means-unrestricted.md) | `*_supported` settings: unset means unrestricted; a replaceable baseline supplies defaults | Accepted |
-| [1038](./1038-setting-merge-lattice-duals.md) | Setting merge is a policy of lattice duals — ceiling, floor, or override | Accepted |
+| [1010](./1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) | Settings merge as ceilings and floors, unset lists restrict nothing, and a secure baseline supplies defaults | Accepted |
 | [1040](./1040-effective-settings-preview-endpoints.md) | Effective-settings preview endpoints for tenant, client, and server | Accepted |
-| [1083](./1083-secure-by-default-discovery-metadata.md) | Secure-by-default discovery metadata, overridable by operators | Accepted |
 | [1108](./1108-fapi-security-profile-merge-lattice-ceiling-injection.md) | FAPI security profile via merge-lattice ceiling injection | Accepted |
 | [1109](./1109-fapi-behavioral-rules-and-discovery-validation-details.md) | FAPI 2.0 behavioral rules and discovery/validation details | Accepted |
 | [1139](./1139-setting-names-are-a-closed-vocabulary.md) | Setting names are a closed vocabulary, and configuration the server cannot honor fails loudly | Accepted |

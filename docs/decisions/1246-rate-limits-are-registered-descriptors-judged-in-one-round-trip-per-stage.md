@@ -43,7 +43,7 @@ billed.**
    - `Stage`, and `Order` within the stage;
    - `Window`, and `IsSliding`;
    - `LimitKey`, the `SettingKey<int>` that holds the limit, where an unset limit is unlimited
-     ([ADR-1010](1010-supported-settings-unset-means-unrestricted.md));
+     ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md));
    - `OverageKey`, the setting that holds the overage allowance of a fixed window;
    - `IsMeteredOnly`, which limits the descriptor to a request that its endpoint meters;
    - `UsageMeter` and `OverageUsageMeter`, the usage meters of an admitted request and of an overage;
@@ -164,7 +164,7 @@ billed.**
 
 ## References
 
-- [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) — an unset limit is unlimited.
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — an unset limit is unlimited.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — vocabularies are open.
 - [ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md) — the shared expiring key set
   and its tenant-scoped keys.

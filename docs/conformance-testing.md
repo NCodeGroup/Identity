@@ -87,7 +87,7 @@ Selected under "Test an OpenID Provider" in the suite:
 2. **Config OP** (`oidcc-config-certification-test-plan`) — validates `/.well-known/openid-configuration`.
 3. **Form Post OP** — `response_mode=form_post` is supported; run per auth profile.
 4. **Implicit OP / Hybrid OP** — the OP does not advertise implicit or hybrid response types by default
-   ([ADR-1083](decisions/1083-secure-by-default-discovery-metadata.md)), so these profiles apply only to a host that
+   ([ADR-1010](decisions/1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)), so these profiles apply only to a host that
    enables them.
 5. **Dynamic OP** — Dynamic Client Registration (RFC 7591) is implemented
    ([ADR-1063](decisions/1063-dynamic-client-registration.md)).

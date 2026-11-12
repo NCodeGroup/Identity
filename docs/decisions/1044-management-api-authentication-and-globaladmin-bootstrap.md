@@ -126,7 +126,7 @@ the `GlobalAdmin` role claim:
   ([ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
 - **The `client_credentials` grant is a separate host opt-in.** The baseline `grant_types_supported` ships with
   `client_credentials` **off** (it permits only `authorization_code`, `implicit`, and `refresh_token`), and the setting
-  is an intersect-merged ceiling ([ADR-1010](1010-supported-settings-unset-means-unrestricted.md)) that cannot be
+  is an intersect-merged ceiling ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)) that cannot be
   widened per-client. A host that uses the bootstrap administrator must therefore enable the grant **at the server
   level** — for example `OpenId:Server:Settings:grant_types_supported` in configuration, whose value replaces the root
   baseline (configuration is applied last when the root settings are assembled, so it widens rather than narrows). Until

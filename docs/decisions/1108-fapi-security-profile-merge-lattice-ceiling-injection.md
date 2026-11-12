@@ -19,7 +19,7 @@ The profile constrains many things the OP already models as settings — signing
 types, code/PAR lifetimes, permitted client-authentication methods — plus a few behavioral rules.
 
 Settings already merge down a `server → tenant → client` cascade through a first-class
-[lattice-dual merge policy](1038-setting-merge-lattice-duals.md): collection ceilings use `Intersect`, requirement
+[lattice-dual merge policy](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md): collection ceilings use `Intersect`, requirement
 floors use `Or`, lifetime ceilings use `Min`. Crucially, **those operations are commutative and idempotent**, so the
 order in which a constraint enters the cascade does not change the result.
 
@@ -61,7 +61,7 @@ un-loosenably, so discovery and request-time enforcement read one source of trut
 
 - **Permitted-method enforcement makes the client-auth ceiling bite.** `DefaultClientAuthenticationService` now rejects
   an authentication whose method is not in the client's effective `token_endpoint_auth_methods_supported` (an empty set
-  means unrestricted, per [ADR-1010](1010-supported-settings-unset-means-unrestricted.md)). This is a general control —
+  means unrestricted, per [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)). This is a general control —
   for a non-profiled client the default set lists every registered method, so nothing changes — but under `fapi2` it
   rejects weak (`client_secret_*`) and public (`none`) authentication at the token endpoint, giving confidential-only,
   strong-authentication enforcement for free.

@@ -78,7 +78,7 @@ than inlining the rationale.
   banned** — template [Nullability and Invariants](csharp.instructions.md#nullability-and-invariants).
 - ⚠️ **`T?` under a `where T : notnull` constraint is not `Nullable<T>` for a value type** — template
   [Nullability and Invariants](csharp.instructions.md#nullability-and-invariants); it bit the settings lattice
-  ([ADR-1010](../../docs/decisions/1010-supported-settings-unset-means-unrestricted.md)).
+  ([ADR-1010](../../docs/decisions/1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)).
 - ✅ **`Debug.Assert` is for internal invariants only, never for input** — template
   [Nullability and Invariants](csharp.instructions.md#nullability-and-invariants).
 - 👁 **Validate untrusted text as written, not only as parsed** — template

@@ -17,7 +17,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 /// operator widens a ceiling simply by configuring it — this fixture proves that operator override path and that
 /// the widened values are then advertised in discovery and accepted by the authorization endpoint.
 /// </remarks>
-// See ADR-1083, ADR-1140 and ADR-1144.
+// See ADR-1010, ADR-1140 and ADR-1144.
 public sealed class InsecureConfigApplicationFactory : HostApplicationFactory
 {
     /// <inheritdoc />

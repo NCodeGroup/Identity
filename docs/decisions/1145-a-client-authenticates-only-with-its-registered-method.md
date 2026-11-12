@@ -147,7 +147,7 @@ API operation.
 - [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749) §2.1, §2.3, §2.3.1, §3.2.1, §5.2;
   [RFC 7591](https://datatracker.ietf.org/doc/html/rfc7591) §2; [RFC 7617](https://datatracker.ietf.org/doc/html/rfc7617) §2;
   [RFC 9700](https://datatracker.ietf.org/doc/html/rfc9700) §2.5.
-- [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) — an unset `*_supported` list is unrestricted; an
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — an unset `*_supported` list is unrestricted; an
   empty one restricts.
 - [ADR-1107](1107-mutual-tls-client-authentication.md) — the mutual-TLS handlers already owned a request only for a
   client registered for their method; every handler now does.

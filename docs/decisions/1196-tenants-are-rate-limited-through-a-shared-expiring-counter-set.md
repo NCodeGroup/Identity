@@ -32,7 +32,7 @@ presence, not counts.
 
 A limit also has to be judged per tenant: the server operator sets the platform's ceiling, and a tenant (or a plan tier
 applied to it) may tighten it but never loosen it. That is the settings cascade's merge lattice
-([ADR-1038](1038-setting-merge-lattice-duals.md)).
+([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)).
 
 ## Decision
 
@@ -80,7 +80,7 @@ client, against per-minute limits that are settings bounded by the merge lattice
    and `rate_limit_client_per_minute` at the tenant and client scopes, so a tenant sets every client's ceiling and a
    client may lower its own. Each is an integer of at least one with no default, merged with `Min`, so a narrower scope
    can only tighten the ceiling the scope above it sets — the server's settings cascade into every tenant. An unset
-   limit is unlimited ([ADR-1010](1010-supported-settings-unset-means-unrestricted.md)). The limits are not
+   limit is unlimited ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)). The limits are not
    discoverable.
 6. **Where it runs.** `RateLimitEndpointFilter` on the OpenID endpoint group runs after
    `OpenIdEnvironmentEndpointFilter`, so the resolved tenant and its merged settings are known, and judges the
@@ -151,7 +151,7 @@ client, against per-minute limits that are settings bounded by the merge lattice
 - [RFC 6585 §4](https://www.rfc-editor.org/rfc/rfc6585#section-4) — `429 Too Many Requests`
 - [RFC 9110 §10.2.3](https://www.rfc-editor.org/rfc/rfc9110#section-10.2.3) — `Retry-After`
 - [ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md) — the shared key set
-- [ADR-1038](1038-setting-merge-lattice-duals.md) — the setting merge lattice
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — the setting merge lattice
 - `src/NCode.Identity.SharedState.Abstractions/IExpiringCounterSet.cs`,
   `src/NCode.Identity.SharedState/InProcess/DefaultInProcessExpiringCounterSet.cs`,
   `src/NCode.Identity.SharedState.Valkey/ValkeyExpiringCounterSet.cs`,

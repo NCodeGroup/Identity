@@ -68,7 +68,7 @@ ADR-1139: name, type, and domain are checked together, at the same entry points,
    - The signing lists for tokens that cross a trust boundary — `id_token`, `userinfo`, `access_token`, and DPoP
      proofs — accept only asymmetric signature algorithms. A symmetric algorithm is not an operator option for them
      (RFC 9449 forbids it for DPoP; a shared key cannot authenticate the issuer to a third party), which amends
-     [ADR-1083](1083-secure-by-default-discovery-metadata.md). Request-object and client-assertion signing keep
+     [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md). Request-object and client-assertion signing keep
      symmetric algorithms, because `client_secret_jwt` legitimately uses the client's secret.
    - A grant type is one the server names (`authorization_code`, `implicit`, `password`, `client_credentials`,
      `refresh_token`; a hybrid flow uses `authorization_code` and `implicit` —
@@ -144,7 +144,7 @@ ADR-1139: name, type, and domain are checked together, at the same entry points,
 
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) — the closed vocabulary of names and types this completes.
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) — validate a value the way it is used.
-- [ADR-1083](1083-secure-by-default-discovery-metadata.md) — secure-by-default metadata, amended for symmetric signing.
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — secure-by-default metadata, amended for symmetric signing.
 - [ADR-1108](1108-fapi-security-profile-merge-lattice-ceiling-injection.md) — security profiles.
 - [ADR-1063](1063-dynamic-client-registration.md) — dynamic client registration.
 - RFC 6749 §4.5, RFC 7591 §3.2.2, RFC 8628 §6.1, RFC 8725 §3.11, RFC 9068 §2.1, RFC 9449, RFC 9700 §4.14.2, OpenID

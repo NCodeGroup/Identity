@@ -49,7 +49,7 @@ classification to active probing without re-architecture.** Concretely:
 - **Phase 1 is discovery-driven ("advertised") classification.** Classification derives entirely from the published
   `/.well-known/openid-configuration`, so the matrix is read-only and needs no OAuth client — the same posture that let
   the security audit ship clientless. The matrix column semantics are therefore **advertised**, and the UI states this,
-  because a secure-by-default OP ([ADR-1083](1083-secure-by-default-discovery-metadata.md)) may implement but not
+  because a secure-by-default OP ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)) may implement but not
   advertise a capability (for example the opt-in `password` grant). Active probes refine *advertised* into *verified* in
   later phases.
 - **An explicit exercise boundary, encoded now.** Every catalog entry is tagged `browser`, `probe-runner`, or
@@ -122,7 +122,7 @@ classification to active probing without re-architecture.** Concretely:
   and group `U` ([#135](https://github.com/NCodeGroup/identity/issues/135), the surface this extends).
 - Surfaces: [ADR-1082](1082-playground-and-conformance-surfaces.md) (the Playground and conformance surfaces this
   builds on), [ADR-1064](1064-frontend-presentation-platform.md) (the presentation platform and its invariants).
-- Discovery: [ADR-1083](1083-secure-by-default-discovery-metadata.md) (why the OP advertises a secure-by-default subset,
+- Discovery: [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) (why the OP advertises a secure-by-default subset,
   which makes Phase 1 semantics "advertised").
 - Conformance oracle: [`docs/conformance-testing.md`](../conformance-testing.md) (the external OpenID Foundation
   Conformance Suite this matrix pre-flights).

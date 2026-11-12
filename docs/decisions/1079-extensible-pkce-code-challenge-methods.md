@@ -32,7 +32,7 @@ and the single boolean with the standard discoverable set.
 - **Setting cutover (clean, per the pre-release posture — [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).**
   The boolean `allow_plain_code_challenge_method` is **removed** in favor of the collection setting
   `code_challenge_methods_supported` (default `["plain", "S256"]`, merge **Intersect** so a child tenant
-  can only narrow, [ADR-1038](1038-setting-merge-lattice-duals.md)). Disallowing `plain` is expressed by
+  can only narrow, [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)). Disallowing `plain` is expressed by
   removing it from the set; `code_challenge_methods_supported` is marked **discoverable**, so it is now
   advertised in the discovery document automatically.
 - **Enforcement.** The authorization endpoint rejects a `code_challenge_method` outside the tenant's

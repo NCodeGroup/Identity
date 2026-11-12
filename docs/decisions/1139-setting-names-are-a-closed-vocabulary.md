@@ -29,7 +29,7 @@
 [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) makes every options section the server
 binds strict and validates it when the host starts. Settings sit outside that: the server, each tenant, each client, and
 each resource server carry a settings document — keyed by setting name, typed by a registered `SettingDescriptor`, and
-merged down the hierarchy ([ADR-1010](1010-supported-settings-unset-means-unrestricted.md)) — and those documents come
+merged down the hierarchy ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)) — and those documents come
 from configuration (`OpenId:Server:Settings`), from the management API, and from dynamic client registration.
 
 A settings document that names no registered setting is configuration accepted without being honored. When a name has
@@ -128,7 +128,7 @@ accepts traffic.
 - [ADR-1026](1026-scope-enforcement-via-resource-servers-and-client-grants.md) — scope entitlement, the reason the
   registration `scope` is derived.
 - [ADR-1063](1063-dynamic-client-registration.md) — the registration metadata now stored as registered client settings.
-- [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) — the settings hierarchy and merge lattice.
+- [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — the settings hierarchy and merge lattice.
 - Code: `NCode.Identity.Settings.DefaultSettingSerializer`, `NCode.Identity.OpenId.Settings.DefaultSettingConfigurationReader`,
   `NCode.Identity.OpenId.Settings.ServerSettingsOptionsValidator`, `NCode.Identity.OpenId.Settings.RootSettingsCollectionDataSource`,
   `NCode.Identity.Server.ReverseProxy.ReverseProxyOptionsValidator`,

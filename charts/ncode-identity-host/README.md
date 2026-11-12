@@ -26,6 +26,45 @@ The chart takes no secret values. It references Secrets you create in the releas
   `backendTls.certManager.issuerRef.name`, a private CA) that issues the pods' serving certificate; see
   [Transport security](#transport-security).
 
+## Published artifacts
+
+Every merge to `main` and every release tag `v*.*.*` publishes three artifacts to GHCR at one version
+(`0.0.1-alpha.<n>` for a merge to `main`, the tag's version for a release tag), through the Publish artifacts workflow ([ADR-1505](../../docs/decisions/1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)):
+
+- `ghcr.io/ncodegroup/ncode-identity-host:<version>`, the host image.
+- `ghcr.io/ncodegroup/ncode-identity-management-console:<version>`, the management console image.
+- `oci://ghcr.io/ncodegroup/charts/ncode-identity-host`, this chart, at version `<version>`.
+
+The chart pins its image tags to its own `appVersion`, so following the chart follows the images. A stable version also tags both images `latest`. A Flux `HelmRelease`
+or `helm install` takes a semver range that includes prereleases, such as `>=0.0.1-alpha`, to follow them.
+
+Verify the chart signature, then the host image provenance:
+
+```bash
+cosign verify ghcr.io/ncodegroup/charts/ncode-identity-host:<version> --certificate-identity-regexp '^https://github.com/NCodeGroup/identity/\.github/workflows/publish-artifacts\.yml@refs/(heads/main|tags/v.+)$' --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+```bash
+gh attestation verify oci://ghcr.io/ncodegroup/ncode-identity-host:<version> --repo NCodeGroup/identity
+```
+
+### Package access
+
+Each package's access is set once, in GitHub: no API sets a package's Actions access, its repository link or its
+visibility. A package the workflow creates is linked to this repository and the workflow can write to it, but it starts
+private. A package first pushed by hand is neither linked nor writable by the workflow, and the workflow's push to it
+fails. For each of `ncode-identity-host`, `ncode-identity-management-console` and `charts/ncode-identity-host`, open the
+package from the organization's **Packages** tab and:
+
+1. In **Package settings**, under **Manage Actions access**, click **Add repository**, choose `NCodeGroup/identity`
+   and give it the **Write** role.
+2. When the package page shows no linked repository, click **Connect repository** and choose `NCodeGroup/identity`.
+3. In **Package settings**, under **Danger Zone**, use **Change visibility** to make the package **Public**, so a
+   cluster pulls it without credentials.
+
+The `verify` job pulls every artifact anonymously, so a package that is still private fails the run with a hint that
+points here.
+
 ## Install
 
 ```bash

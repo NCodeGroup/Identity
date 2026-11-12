@@ -9,7 +9,7 @@
 # provider is registered only when enabled, with or without its location (ADR-1490).
 # The pods serve HTTPS only: the probes, the Service and the Ingress backend use it, a cert-manager Certificate issues
 # the certificate, and the chosen controller verifies it (ADR-1504).
-# Publishing the chart belongs to the release workflow.
+# The Publish artifacts workflow publishes the chart (ADR-1505).
 name: Host chart
 
 on:

@@ -29,7 +29,7 @@ only pruned:
 - the grants issued under it, its refresh tokens among them, stayed active, and its relying parties received no
   back-channel logout, which Auth0 sends with the `session-expired` initiator;
 - a session that the release before the session bounds stored without an expiry was kept until a request found it;
-- the grant prune ([ADR-1218](1218-ended-grants-are-removed-after-a-retention-period.md)) removed an ended session
+- the grant prune ([ADR-1218](1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md)) removed an ended session
   after the retention whether it was terminated or not, so a session could vanish without ever being terminated;
 - an `OpenIdContext` could be built only from an `HttpContext`, and the termination seam needs one, so no background
   work could run it;
@@ -151,7 +151,7 @@ interval, and the grant prune keeps a session until it is terminated.**
 - [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) — the expiring key set that
   holds the lease of an interval.
 - [ADR-1215](1215-a-revocation-wins-a-concurrency-race.md) — `SetRevokedOnceAsync` and its retry.
-- [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period.md) — the grant prune that keeps a session until it
+- [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md) — the grant prune that keeps a session until it
   is terminated.
 - [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — the materialized server
   that background work waits for.

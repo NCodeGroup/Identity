@@ -127,7 +127,7 @@ period that a timer runs on is held to the range that every .NET timer accepts.*
   own options.
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) — the usage ledger and the options that
   configure it.
-- [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period.md) — ended grants are removed after a retention
+- [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md) — ended grants are removed after a retention
   period.
 - [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — the reconciliation that holds
   a lease for `Team.ReconciliationLeaseDuration`.

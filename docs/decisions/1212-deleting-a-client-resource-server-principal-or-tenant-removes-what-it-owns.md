@@ -84,7 +84,7 @@ leaves a dependent behind (issue [#250](https://github.com/NCodeGroup/identity/i
 - A deleted principal leaves no role assignment in any tenant, and no consent or grant.
 - A contributed tenant-owned entity is erased with its tenant without a change to the store.
 - The store loads the grants that it removes into one unit of work; ended grants are pruned after their retention
-  ([ADR-1218](1218-ended-grants-are-removed-after-a-retention-period.md)), which bounds it.
+  ([ADR-1218](1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md)), which bounds it.
 - The InMemory provider enforces no foreign key, so the store tests assert each dependent's absence instead of relying
   on a constraint.
 
@@ -106,7 +106,7 @@ leaves a dependent behind (issue [#250](https://github.com/NCodeGroup/identity/i
 - [ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md) —
   resource servers and their deletion.
 - [ADR-1224](1224-deleting-or-disabling-an-account-ends-its-sessions.md) — a deleted account's sessions end first.
-- [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period.md) — the grant prune.
+- [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md) — the grant prune.
 - Code: `NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores.ClientStore`,
   `NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores.ResourceServerStore`,
   `NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores.FederatedPrincipalStore`,

@@ -1912,7 +1912,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   timeout surfacing as `TaskCanceledException` included, and prunes again at the next tick; only the host's stopping
   token ends it, so a timeout never stops the service or, under `BackgroundServiceExceptionBehavior.StopHost`, the host
   ([#472](https://github.com/NCodeGroup/identity/issues/472),
-  [ADR-1218](docs/decisions/1218-ended-grants-are-removed-after-a-retention-period.md)).
+  [ADR-1218](docs/decisions/1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md)).
 
 - **RP-Initiated Logout is served at the discovery-advertised `end_session_endpoint`, and Back-Channel Logout notifies
   relying parties server to server** (issue [#39](https://github.com/NCodeGroup/identity/issues/39),
@@ -2971,7 +2971,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `GrantRetentionOptions.PruneInterval` (one hour) and removes, in bounded batches, the grants that expired or were
   revoked more than `GrantRetentionOptions.Retention` ago (14 days by default), so the grants table holds live grants
   and those that ended within the retention. `IGrantStore.RemoveEndedBeforeAsync` stages one batch for removal, and
-  `Grants.RevokedWhen` is indexed ([ADR-1218](docs/decisions/1218-ended-grants-are-removed-after-a-retention-period.md),
+  `Grants.RevokedWhen` is indexed ([ADR-1218](docs/decisions/1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md),
   issue [#267](https://github.com/NCodeGroup/identity/issues/267)).
 
 - **The usage ledger adds each numbered batch of a replica's usage once.** `ITenantUsageStore.AddAsync(replicaId,

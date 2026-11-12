@@ -807,7 +807,7 @@ than inlining the rationale.
   its caller saves each batch as one unit of work (`ITenantUsageStore.RemoveBeforeAsync`,
   [ADR-1199](../../docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md);
   `IGrantStore.RemoveEndedBeforeAsync`,
-  [ADR-1218](../../docs/decisions/1218-ended-grants-are-removed-after-a-retention-period.md)).
+  [ADR-1218](../../docs/decisions/1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md)).
 - 👁 **Public metadata is unmetered, and a limit an endpoint enforces refuses through `RateLimitErrors.Refuse`.** An
   endpoint any anonymous caller or cache fetches (discovery, the JSON Web Key Set) is marked `WithOpenIdMetered(false)`,
   so it spends only the per-minute limits, never the tenant's daily quota or billable usage. The limiter marks a

@@ -18,7 +18,7 @@
 An end-user session has two bounds: `session_absolute_lifetime`, how long it lasts however it is used, and
 `session_idle_timeout`, how long it lasts without a request that resolves it. Both defaulted to zero, and zero turned
 the bound off. A session under the defaults therefore never ended: its grant had no expiry, so the grant prune
-([ADR-1218](1218-ended-grants-are-removed-after-a-retention-period.md)) kept it, and a user who signed in stayed signed
+([ADR-1218](1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md)) kept it, and a user who signed in stayed signed
 in until the user signed out (issue [#271](https://github.com/NCodeGroup/identity/issues/271)).
 
 The idle window lived only in the payload of the session grant, so even a configured idle timeout left the grant's row
@@ -68,7 +68,7 @@ request that finds an ended session terminates it.**
    `SessionAbsoluteExpired` (event 2056) or `SessionIdleExpired` (event 2028).
 4. **The prune removes a session one retention after its termination.** A session grant ends when it is revoked, so
    `GrantPruneService` removes it after the retention period of
-   [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period.md) counted from its termination, whether a request
+   [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md) counted from its termination, whether a request
    or the background pass terminated it, and keeps a session that was not terminated
    ([ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)). The grant store reads only
    the type, the expiry, and the revocation time of a grant, so it needs nothing that is specific to sessions.
@@ -127,7 +127,7 @@ request that finds an ended session terminates it.**
   domain.
 - [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md) — a migration keeps the
   previous release working.
-- [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period.md) — ended grants are removed after a retention
+- [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period-in-bounded-batches.md) — ended grants are removed after a retention
   period.
 - Auth0, Configure Session Lifetime Settings — the defaults and the maxima:
   <https://auth0.com/docs/manage-users/sessions/configure-session-lifetime-settings>

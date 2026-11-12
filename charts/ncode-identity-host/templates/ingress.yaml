@@ -6,9 +6,6 @@ metadata:
   labels:
     {{- include "identity-host.labels" . | nindent 4 }}
   {{- $annotations := deepCopy .Values.ingress.annotations }}
-  {{- if eq .Values.backendTls.ingressController "ingress-nginx" }}
-  {{- $annotations = merge $annotations (include "identity-host.backendTls.ingressNginxAnnotations" (dict "root" . "service" (include "identity-host.fullname" .)) | fromYaml) }}
-  {{- end }}
   {{- with $annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}

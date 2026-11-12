@@ -17,7 +17,7 @@ request objects, CIBA requests) and encrypts its ID tokens and UserInfo response
 ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)). They enter the server at four points:
 the JSON Web Key Set a client registers by value at dynamic client registration (RFC 7591,
 [ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)), the set it
-publishes at its `jwks_uri` ([ADR-1106](1106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md)), a key
+publishes at its `jwks_uri` ([ADR-1106](1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md)), a key
 imported for it through the management API ([ADR-1104](1104-import-public-asymmetric-secret-material.md)), and the
 metadata an administrator updates on a stored key. Each entry point checked its keys differently, and the gaps were
 real:

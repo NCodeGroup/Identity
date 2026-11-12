@@ -1587,7 +1587,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **A client's public keys resolve at runtime from its `jwks_uri`** (issue
   [#54](https://github.com/NCodeGroup/identity/issues/54),
-  [ADR-1106](docs/decisions/1106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md)). A FAPI client can
+  [ADR-1106](docs/decisions/1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md)). A FAPI client can
   authenticate with `private_key_jwt`, or present a signed request object (JAR), with keys it rotates without
   re-registering. `IClientKeyResolver` resolves a client's effective key collection, and the `client_assertion` handlers
   and the JAR loader verify against it. The fetch is SSRF-guarded, requires absolute `https`, and is bounded and cached
@@ -1596,7 +1596,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   fetch of a client's key set, and a fetch that yields no key is not repeated for
   `OutboundHttpOptions.FailureCacheDuration` (`OpenId:OutboundHttp:FailureCacheDuration`, one minute), validated when
   the host starts ([#466](https://github.com/NCodeGroup/identity/issues/466),
-  [ADR-1335](docs/decisions/1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md)).
+  [ADR-1106](docs/decisions/1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md)).
 
 - **A `kid` is the client's own name for its key, unique among that client's keys.** Any number of clients, in any
   tenants, register keys with the same `kid`; the management import keeps a JSON Web Key's `kid`, so a client that signs
@@ -4620,7 +4620,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Every server-initiated outbound HTTP call to a client-controlled URL is SSRF-guarded uniformly**
   ([ADR-1093](docs/decisions/1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md),
-  [ADR-1106](docs/decisions/1106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md),
+  [ADR-1106](docs/decisions/1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md),
   [ADR-1111](docs/decisions/1111-complete-outbound-fetch-ssrf-coverage.md)). One injectable guard,
   `IOutboundHttpForgeryGuard`, pins each connection to the resolved IP and refuses loopback, private, CGNAT, link-local,
   unique-local, multicast and reserved ranges (the IANA special-use registry), which defeats DNS rebinding, and no

@@ -132,7 +132,7 @@ internal sealed class DefaultClientKeyResolver(
             return remembered;
 
         // Concurrent misses share one fetch; it runs without the caller's token, so a caller that gives up does not
-        // break it for the others. See ADR-1335 and ADR-1350.
+        // break it for the others. See ADR-1106 and ADR-1350.
         return await Fetches.RunAsync(
             fetchKey,
             retrievalToken => RunFetchAsync(fetchKey, openIdClient, uri, retrievalToken),
@@ -157,7 +157,7 @@ internal sealed class DefaultClientKeyResolver(
         }
 
         // A fetch that yielded no key is remembered, so an unreachable or misbehaving jwks_uri is not fetched again for
-        // every request. See ADR-1335.
+        // every request. See ADR-1106.
         if (!Fetches.IsFailureRemembered(fetchKey))
             return null;
 
@@ -177,7 +177,7 @@ internal sealed class DefaultClientKeyResolver(
     )
     {
         // A caller that checked the cache just before a previous fetch recorded its result and left the in-flight
-        // dictionary starts this one, so the result is checked again before the jwks_uri is fetched. See ADR-1335.
+        // dictionary starts this one, so the result is checked again before the jwks_uri is fetched. See ADR-1106.
         var remembered = GetRememberedKeys(openIdClient, uri, fetchKey);
         if (remembered is not null)
             return remembered;

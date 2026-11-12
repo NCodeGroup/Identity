@@ -230,7 +230,7 @@ The records are grouped by area; within an area they are in number order.
 | --- | --- | --- |
 | [1092](./1092-token-endpoint-401-www-authenticate-challenge.md) | Token-endpoint `401` + `WWW-Authenticate` challenge and the response-header seam | Accepted |
 | [1102](./1102-a-client-authenticates-with-a-single-use-jwt-assertion-signed-by-its-key-or-its-secret.md) | A client authenticates with a single-use JWT assertion signed by its key or its secret | Accepted |
-| [1106](./1106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md) | Runtime `jwks_uri` client-key resolution and a shared, extensible outbound-fetch SSRF guard | Accepted |
+| [1106](./1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md) | A client's jwks_uri key set is fetched when needed, shared between callers, and never served stale | Accepted |
 | [1107](./1107-mutual-tls-client-authentication.md) | Mutual-TLS client authentication (`tls_client_auth` and `self_signed_tls_client_auth`) | Accepted |
 | [1111](./1111-complete-outbound-fetch-ssrf-coverage.md) | Complete outbound-fetch SSRF coverage and bound the `request_uri` fetch | Accepted |
 | [1145](./1145-a-client-authenticates-only-with-its-registered-method.md) | A client authenticates only with its registered method | Accepted |
@@ -245,7 +245,6 @@ The records are grouped by area; within an area they are in number order.
 | [1252](./1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md) | A revocation list retrieval is shared, a failed one is remembered, and soft-fail is opt-in | Accepted |
 | [1259](./1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md) | Revocation is checked by registered sources, OCSP before every CRL form | Accepted |
 | [1315](./1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) | Outbound calls to caller-supplied URLs share one guarded, bounded client | Accepted |
-| [1335](./1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md) | A client's `jwks_uri` is fetched single-flight and a failed fetch is remembered | Accepted |
 | [1350](./1350-a-shared-fetch-is-single-flight-through-one-helper.md) | A shared fetch is single-flight through one helper | Accepted |
 | [1365](./1365-the-bff-and-the-login-redirect-take-no-url-from-the-requests-host.md) | The BFF and the login redirect take no URL from the request's Host | Accepted |
 | [1366](./1366-the-revocation-retrieval-checks-its-caches-again-inside-the-shared-retrieval.md) | The revocation retrieval checks its caches again inside the shared retrieval | Accepted |

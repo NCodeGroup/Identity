@@ -1,7 +1,7 @@
 # 1315. Outbound calls to caller-supplied URLs share one guarded, bounded client
 
 - **Status:** Accepted (amended by
-  [ADR-1335](1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md): the `jwks_uri`
+  [ADR-1106](1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md): the `jwks_uri`
   fetch is single-flight and a failed fetch is remembered; amended by
   [ADR-1385](1385-no-shipping-package-replaces-its-consumers-logging-generator-or-carries-microsoft-extensions-http-resilience.md): the pipeline runs on Polly.Core
   through GuardedResilienceHandler and GuardedResiliencePipelines, which replace the GuardedHttpTimeoutHandler named
@@ -76,14 +76,14 @@ the server does not control.
   cover once the headers have arrived.
 - The `jwks_uri` fetch is single-flight and remembers a failed fetch for `FailureCacheDuration`, as the template's
   decisions 4 and 5 ask
-  ([ADR-1335](1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md)).
+  ([ADR-1106](1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md)).
 - The retry of a revocation-list `GET` runs within `FetchTimeout`, and the remembered failure stays the back-off between
   retrievals ([ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md)).
 
 ## References
 
 - [ADR-1093](1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md),
-  [ADR-1106](1106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md),
+  [ADR-1106](1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md),
   [ADR-1111](1111-complete-outbound-fetch-ssrf-coverage.md),
   [ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md)
 - `GuardedHttpClient.cs`, `GuardedHttpTimeoutHandler.cs`, `OutboundHttpOptions.cs` and `OutboundHttp/DefaultRegistration.cs`

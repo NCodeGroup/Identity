@@ -20,7 +20,7 @@ adds two things a BFF host may need beyond its session and tokens:
 - **A JWKS for `private_key_jwt`.** A BFF that authenticates to the OP with `private_key_jwt` (RFC 7523) registers its
   public keys with the OP. Registered by value, every key rotation needs a new registration. Registered as a
   `jwks_uri`, the OP reads the current keys at runtime
-  ([ADR-1106](1106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md)), so the BFF rotates by adding a
+  ([ADR-1106](1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md)), so the BFF rotates by adding a
   key to its key ring.
 
 Four forces shape both:
@@ -105,7 +105,7 @@ Four forces shape both:
 
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.7 and §5.9
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
-  [ADR-1106](1106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md),
+  [ADR-1106](1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md),
   [ADR-1119](1119-first-class-jwk-jwks-and-thumbprint.md),
   [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md),
   [ADR-1280](1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md),

@@ -8,7 +8,7 @@
 
 ## Context
 
-[ADR-1106](1106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md) consolidated the server-side request
+[ADR-1106](1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md) consolidated the server-side request
 forgery (SSRF) defenses for the OP's outbound fetches of **client-supplied URLs** behind one shared, injectable
 `IOutboundHttpForgeryGuard` and gave the `jwks_uri` and `sector_identifier_uri` fetches a uniform bound set — an
 `https`-only scheme check, an optional host allow-list, a wall-clock fetch timeout, and a streamed response-size cap.
@@ -81,4 +81,4 @@ through SSRF-guarded named clients, and extract the capped reader into one share
 - Three new `request_uri_*` settings and the `IOutboundHttpContentReader` / `OutboundHttpReadResult` seam are new
   public surface; the two delivery clients add no public surface.
 - The private/reserved-address floor and `IOutboundAddressFilter` additive-deny extensibility from
-  [ADR-1106](1106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md) apply uniformly to all five calls.
+  [ADR-1106](1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md) apply uniformly to all five calls.

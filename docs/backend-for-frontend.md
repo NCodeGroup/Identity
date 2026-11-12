@@ -272,7 +272,7 @@ packages, so a BFF in front of a non-NCode OP pulls in no server code: the clien
 - `private_key_jwt` is the default. The signing key comes from `NCode.Identity.Secrets`, so it can rotate and be backed
   by a key-management service. The BFF can publish its public keys at an optional `/bff/jwks` endpoint, and a client
   registered with that `jwks_uri` rotates without re-registration (the NCode OP resolves `jwks_uri` at runtime, per
-  [ADR-1106](decisions/1106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md)).
+  [ADR-1106](decisions/1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md)).
 - `tls_client_auth` and `self_signed_tls_client_auth` use a client certificate from the secrets subsystem, presented
   with the certificates of the authorities that issued it, so an OP that trusts only the root accepts it
   ([ADR-1300](decisions/1300-an-asymmetric-key-carries-its-issuers-certificates-and-a-tls-client-presents-them.md)).

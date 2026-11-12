@@ -13,9 +13,9 @@ asks that concurrent callers of one caller-supplied URL share a single fetch (de
 remembered for a short time (decision 5). The revocation retrieval
 ([ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md)) and the
 `jwks_uri` resolver
-([ADR-1335](1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md)) each kept their own
+([ADR-1106](1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md)) each kept their own
 `ConcurrentDictionary` of lazily started tasks and their own `:unavailable` memory-cache entry, so a fix to one copy
-missed the other ([#482](https://github.com/NCodeGroup/identity/issues/482)). ADR-1335 rejected reusing
+missed the other ([#482](https://github.com/NCodeGroup/identity/issues/482)). ADR-1106 rejected reusing
 `RevocationRetrievalCache` because that type carries the revocation feature's options and logs.
 
 ## Decision
@@ -31,7 +31,7 @@ missed the other ([#482](https://github.com/NCodeGroup/identity/issues/482)). AD
 
 3. **Each owner keeps what is its own.** The owner decides what counts as a failure, keeps the value cache with its key
    and lifetime, makes the check before it calls the helper, and keeps its log entries and options. The `jwks_uri`
-   resolver still checks its caches again inside the retrieval (ADR-1335 decision 1).
+   resolver still checks its caches again inside the retrieval (ADR-1106 decision 1).
 
 4. **Each owner creates its own instance.** The helper is not a dependency-injection service, so the keys of two
    features never share a dictionary.
@@ -41,7 +41,7 @@ missed the other ([#482](https://github.com/NCodeGroup/identity/issues/482)). AD
 ## Options considered
 
 - **Keep two copies.** Rejected: the copies drift, as issue #482 shows.
-- **Reuse the revocation cache.** Rejected: it carries the revocation options and logs (ADR-1335).
+- **Reuse the revocation cache.** Rejected: it carries the revocation options and logs (ADR-1106).
 - **A helper that also caches the value.** Rejected: the owners cache under different keys and lifetimes.
 - **A singleton service.** Rejected: the keys of different features would mix in one dictionary.
 
@@ -55,7 +55,7 @@ missed the other ([#482](https://github.com/NCodeGroup/identity/issues/482)). AD
 ## References
 
 - [ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md) and
-  [ADR-1335](1335-a-clients-jwks-uri-is-fetched-single-flight-and-a-failed-fetch-is-remembered.md)
+  [ADR-1106](1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md)
 - Issue [#482](https://github.com/NCodeGroup/identity/issues/482)
 - `SingleFlight.cs`, `RevocationRetrievalCache.cs` and `DefaultClientKeyResolver.cs` in
   `NCode.Identity.OpenId.Authentication`

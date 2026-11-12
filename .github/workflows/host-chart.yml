@@ -186,7 +186,7 @@ jobs:
           }
           # A parts Secret reaches the pods as one variable per part, and no connection string is built.
           deployment=$(helm template release "$CHART" --values "$parts" --show-only templates/deployment.yaml)
-          expect "$deployment" 'name: OpenIdDatabase__Host' 'name: identity-db-app' 'key: dbname' 'key: user'
+          expect "$deployment" 'name: OpenIdDatabase__Host' 'name: identity-db-app' 'key: "dbname"' 'key: "user"'
           reject "$deployment" 'ConnectionStrings__openiddb'
           # An empty port key leaves the port out.
           reject "$(helm template release "$CHART" --values "$parts" --set database.parts.portKey= \

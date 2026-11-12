@@ -101,8 +101,10 @@ Traefik mode against the ingress controller's own Secret.**
   without `hostnames` (the server's) or without a CA ConfigMap. It refuses `backendTls.caPublisher` with a server
   certificate from another CA, and with a console certificate in `managementConsole.backendTls.existingSecret` when
   `managementConsole.backendTls.caConfigMap` is empty, because the publisher writes only the chart's private CA.
-- The `cluster` job of the `Host chart` workflow proves the Traefik mode in kind; what the chart renders proves the
-  Gateway API mode.
+- The `cluster` job of the `Host chart` workflow proves both the Traefik mode and the Gateway API mode in kind. Behind
+  Envoy Gateway, which implements the Gateway's backend client certificate, the `BackendTLSPolicy` verifies the pods'
+  certificate and the Gateway's `spec.tls.backend.clientCertificateRef` presents the ingress client certificate the
+  pods require.
 - Each mode stays correct for one controller family, and a controller the chart does not configure uses
   `ingress.controller: other`.
 

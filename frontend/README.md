@@ -276,7 +276,7 @@ serving request's own origin, so a single-origin host needs no configuration
   Vite dev server **proxies** `/config/bootstrap.json` to the OP host instead of shipping a static copy (the
   `bootstrapHost` of `defineStandaloneSurfaceConfig` in [`@ncode/vite-config`](packages/vite-config/src/preset.ts)).
   The proxy target comes from the Aspire service-discovery variable the surface's resource receives via
-  `WithReference(api)` ([ADR-1071](../docs/decisions/1071-aspire-local-dev-orchestrator.md)), falling back to the pinned
+  `WithReference(api)` ([ADR-1071](../docs/decisions/1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md)), falling back to the pinned
   origin (`https://localhost:5001`) when run outside Aspire — so local dev exercises the real runtime endpoint.
 
 ## Sessions
@@ -321,7 +321,7 @@ requests (`exchangeCodeForToken`, `refreshAccessToken`). Randomness, SHA-256 and
 ## Running the full stack (VS Code F5)
 
 Pick **`Aspire: Full stack (F5)`** in the Run and Debug view (or press F5) — a **.NET Aspire** AppHost
-([ADR-1071](../docs/decisions/1071-aspire-local-dev-orchestrator.md)) that orchestrates the whole local stack
+([ADR-1071](../docs/decisions/1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md)) that orchestrates the whole local stack
 as one resource graph: the Playground OP host (`api`), the interactive-login build-watcher (`auth`), the
 Management console's build-watcher (`mgmt`) and its BFF host (`console`, `https://localhost:5005`), the flow-explorer Vite
 dev server (`playground`, :5174), and the
@@ -338,7 +338,7 @@ first on `PATH` for the frontend resources — no global `nvs link` required. Be
 also checks the toolchain and **stops at startup** (naming `build/frontend-install.ps1`) when no Node of the pinned
 major is available, or when `node_modules` was installed by another pnpm than the `packageManager` pin or before the
 last `pnpm-lock.yaml` change
-([ADR-1287](../docs/decisions/1287-the-apphost-fails-fast-when-the-frontend-toolchain-is-stale.md)).
+([ADR-1071](../docs/decisions/1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md)).
 
 > **Self-healing / repair.** If a surface fails at dev time with Vite `Failed to resolve import "react-redux"` (or any
 > workspace dependency) — the symptom of `node_modules` symlinks lost out-of-band to a branch switch, antivirus, or an

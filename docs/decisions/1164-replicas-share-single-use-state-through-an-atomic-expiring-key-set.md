@@ -86,7 +86,7 @@ chooses: in-process for a single replica, Valkey for several.**
 
 5. **The reference host and local development use the shared adapter.** The host calls
    `SharedStateLibraryBuilder.AddValkey(configuration)`; the Aspire AppHost
-   ([ADR-1071](1071-aspire-local-dev-orchestrator.md)) runs a Valkey container and injects its connection string, so
+   ([ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md)) runs a Valkey container and injects its connection string, so
    local development runs the adapter a multi-replica deployment runs.
 
 6. **The replica count is enforced by the artifact that sets it.** A replica cannot know how many replicas run, and a

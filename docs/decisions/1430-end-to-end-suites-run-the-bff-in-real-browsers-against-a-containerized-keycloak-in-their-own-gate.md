@@ -19,7 +19,7 @@ logout and back-channel logout against an OP built by someone else, using only i
 Both need Docker and real browsers, and a browser download is roughly 500 MB. The Definition of Done
 ([`build/dod.ps1`](../../build/dod.ps1)) is the one gate that developers, agents and CI run, and a container runtime
 must not become a prerequisite of it, for the reason given in
-[ADR-1071](1071-aspire-local-dev-orchestrator.md). The suites therefore run in their own gate, which has its own check
+[ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md). The suites therefore run in their own gate, which has its own check
 ([ADR-1261](1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md) decision 5).
 
 ## Decision

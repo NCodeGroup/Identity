@@ -138,7 +138,7 @@ compiles it and no gate tests it
   ([ADR-1073](docs/decisions/1073-postgres-dev-database-and-aspire-migration-worker.md),
   [ADR-1180](docs/decisions/1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md),
   [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
-  [ADR-1071](docs/decisions/1071-aspire-local-dev-orchestrator.md))
+  [ADR-1071](docs/decisions/1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md))
 - **Build analyzers** — `NCode.Identity.Analyzers`, under `analyzers/`, the repository's own Roslyn analyzers, which
   every project's build loads and no package ships: `NCID0001` reports a field that could be an auto-property
   ([ADR-1486](docs/decisions/1486-the-repositorys-own-analyzer-project-fails-the-build-on-a-field-an-auto-property-could-replace.md))

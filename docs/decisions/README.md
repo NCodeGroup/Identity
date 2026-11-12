@@ -112,7 +112,7 @@ The records are grouped by area; within an area they are in number order.
 | [1002](./1002-ephemeral-development-keys.md) | Ephemeral development keys are an explicit opt-in, never a silent default | Superseded |
 | [1021](./1021-developer-signing-keys-seeded-through-persistence.md) | Developer signing keys are seeded through the persistence layer, not injected at the read path | Accepted |
 | [1041](./1041-host-owned-ef-migrations-deliberate-outside-development.md) | The reference host owns schema with EF Core migrations, applied deliberately outside Development | Accepted |
-| [1071](./1071-aspire-local-dev-orchestrator.md) | Adopt .NET Aspire as the local development orchestrator | Accepted |
+| [1071](./1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md) | The Aspire AppHost runs the local stack in health-gated order after checking the frontend toolchain | Accepted |
 | [1072](./1072-self-healing-dev-database-and-model-drift-gate.md) | Self-healing local developer database + a Definition-of-Done model-drift gate | Superseded |
 | [1073](./1073-postgres-dev-database-and-aspire-migration-worker.md) | PostgreSQL developer database with an Aspire migration-worker, and data-protection keys stored in the database | Accepted |
 | [1131](./1131-hosted-platform-environment-model-and-hostname-scheme.md) | The hosted platform's environment model and hostname scheme | Accepted |
@@ -131,7 +131,6 @@ The records are grouped by area; within an area they are in number order.
 | [1248](./1248-the-host-image-writes-one-line-json-logs.md) | The host image writes one-line JSON logs | Accepted |
 | [1249](./1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md) | The host image's base images are pinned by digest and tracked by Dependabot | Accepted |
 | [1250](./1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md) | A migration classifies its data change, and a constraint added to an existing table contracts | Accepted |
-| [1287](./1287-the-apphost-fails-fast-when-the-frontend-toolchain-is-stale.md) | The AppHost fails fast when the frontend toolchain is stale | Accepted |
 | [1313](./1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md) | Development conveniences are inert unless configured and run through the production path | Accepted |
 | [1370](./1370-a-host-names-its-root-key-provider-and-development-secrets-are-generated-per-machine.md) | A host names its root key provider, and development secrets are generated per machine | Accepted |
 | [1394](./1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md) | Until the first stable release, each host database context has one initial migration and no migration rewrites stored data | Accepted |

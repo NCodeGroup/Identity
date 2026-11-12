@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amends
   [ADR-1064](1064-frontend-presentation-platform.md),
-  [ADR-1071](1071-aspire-local-dev-orchestrator.md),
+  [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md),
   [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md),
   [ADR-1146](1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md),
   [ADR-1294](1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md); amended by
@@ -79,7 +79,7 @@ forwarded management API share that host's origin.**
      and URIs with its configuration, replacing a client that differs (part of the amendment of ADR-1146).
    - The console host refuses a missing or wildcard `AllowedHosts` in the Production environment, so a deployment lists
      its own host names.
-5. **Local development.** The AppHost ([ADR-1071](1071-aspire-local-dev-orchestrator.md)) runs the console host on
+5. **Local development.** The AppHost ([ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md)) runs the console host on
    `https://localhost:5005` and `http://localhost:5004`. It generates per-machine P-256 keys `mgmt-client.pem` and
    `mgmt-dpop.pem` beside the other development secrets, hands their paths to the console as `Bff__KeyRings__…` and the
    client key's public JWKS to the OP as `DeveloperInteractiveSeed__BffClients__0__Jwks`. `apps/mgmt` is a build-watched

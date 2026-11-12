@@ -142,7 +142,7 @@ Repositories, packages (`NCode.Identity.*`), the chart and images (`ncode-identi
 ## Running the reference server
 
 The `NCode.Identity.OpenId.Host` project is a complete OpenID Provider used as the reference composition and the local test bed.
-[.NET Aspire](docs/decisions/1071-aspire-local-dev-orchestrator.md) orchestrates the whole stack — the provider, a
+[.NET Aspire](docs/decisions/1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md) orchestrates the whole stack — the provider, a
 PostgreSQL container, the schema migration worker, and the frontend apps — with deterministic startup ordering:
 
 ```pwsh

@@ -156,7 +156,7 @@ composition is the server package's job, not `Program.cs`'s. It adds:
   record and enable tracing.
 
 `AddOpenTelemetryMetrics` configures metrics only; a host that collects traces adds `AddSource("NCode.Identity.*")` to
-its own tracing pipeline. The Aspire orchestrator ([ADR-1071](1071-aspire-local-dev-orchestrator.md)) sets the OTLP
+its own tracing pipeline. The Aspire orchestrator ([ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md)) sets the OTLP
 variable.
 
 ### 9. Every instrument is tested and catalogued

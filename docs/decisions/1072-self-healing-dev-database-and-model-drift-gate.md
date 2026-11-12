@@ -58,7 +58,7 @@ the file), and the drift gate guarantees a migration exists before the change **
   but holds **no migrations snapshot** (migrations live in the host), so the test would have to reference the
   executable host — an ugly layering inversion. Rejected in favor of the CLI gate, which targets the project that owns
   the snapshot.
-- **An Aspire migration-worker resource.** Aspire ([ADR-1071](1071-aspire-local-dev-orchestrator.md)) is a runtime
+- **An Aspire migration-worker resource.** Aspire ([ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md)) is a runtime
   orchestrator with no concept of model-vs-migration drift; a dedicated worker would relocate the failure to the
   dashboard but neither **prevent** drift nor remove the inner-loop friction, at the cost of a new project. Deferred as
   optional runtime polish; see [GitHub issues](https://github.com/NCodeGroup/identity/issues).
@@ -75,6 +75,6 @@ the file), and the drift gate guarantees a migration exists before the change **
 
 ## References
 
-- [ADR-1071](1071-aspire-local-dev-orchestrator.md) — Aspire local-dev orchestrator (the host this runs under).
+- [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md) — Aspire local-dev orchestrator (the host this runs under).
 - EF Core `DatabaseFacade.HasPendingModelChanges()` and `dotnet ef migrations has-pending-model-changes`.
 - [`build/dod.ps1`](../../build/dod.ps1) — the Definition of Done that runs the drift gate.

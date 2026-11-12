@@ -1,14 +1,14 @@
 # 1152. The frontend's Node and pnpm are each pinned once and provisioned without Corepack
 
 - **Status:** Accepted (amends [ADR-1064](1064-frontend-presentation-platform.md): pnpm is no longer activated with
-  Corepack; [ADR-1071](1071-aspire-local-dev-orchestrator.md): the AppHost selects the Node major pinned in
+  Corepack; [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md): the AppHost selects the Node major pinned in
   `.node-version`; [ADR-1147](1147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md): the
   runtime is Node 26 and `engines.node` is its floor; amended by
   [ADR-1153](1153-one-release-age-window-gates-frontend-dependencies.md): pnpm also enforces Dependabot's three-day
   release-age window; and by
   [ADR-1249](1249-the-host-images-base-images-are-pinned-by-digest-and-tracked-by-dependabot.md): the host image names
   the Node major as a literal that the Host image workflow checks against .node-version; and by
-  [ADR-1287](1287-the-apphost-fails-fast-when-the-frontend-toolchain-is-stale.md): the AppHost fails at startup when
+  [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md): the AppHost fails at startup when
   the pinned Node or the workspace install is missing or stale)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group

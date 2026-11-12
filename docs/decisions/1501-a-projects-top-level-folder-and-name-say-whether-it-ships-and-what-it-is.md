@@ -14,7 +14,7 @@ analyzer and a pnpm workspace share one folder, the folder hides whether a proje
 Names carry the same signal. `NCode.Identity.Server`, the deployable host and the local-dev orchestrator can read as
 synonyms, although one is a library that ships, one is a process that is deployed and one is a developer-only tool.
 `AppHost` is Aspire's own jargon and sounds like the host of the application, while Aspire is local-development only
-([ADR-1071](1071-aspire-local-dev-orchestrator.md)). A name such as "playground" on something internet-facing invites the
+([ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md)). A name such as "playground" on something internet-facing invites the
 reasoning that leaves ephemeral signing keys, a wildcard `AllowedHosts` and development seeding switched on.
 
 ## Decision
@@ -79,7 +79,7 @@ has a folder of its own, and the build fails a project whose folder and packing 
 - Issue [#759](https://github.com/NCodeGroup/identity/issues/759).
 - [ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md),
   [ADR-1064](1064-frontend-presentation-platform.md),
-  [ADR-1071](1071-aspire-local-dev-orchestrator.md),
+  [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md),
   [ADR-1082](1082-playground-and-conformance-surfaces.md),
   [ADR-1386](1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md),
   [ADR-1430](1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md),

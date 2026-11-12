@@ -54,7 +54,7 @@ document surface-aware so one endpoint can hand each surface its own coordinates
   login/consent surface — that remains `apps/auth` ([#125](https://github.com/NCodeGroup/identity/issues/125)).
 - **Serving model — standalone Vite SPAs, like `apps/mgmt`.** Both are pinned-port Vite dev servers (`playground` →
   `5174`, `conformance` → `5175`) that proxy `/config/bootstrap.json` to the OP host and join the Aspire AppHost graph
-  as one `AddViteApp` line each, health-gated on the API ([ADR-1071](1071-aspire-local-dev-orchestrator.md)). The
+  as one `AddViteApp` line each, health-gated on the API ([ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md)). The
   Playground drives a real redirect round trip, so it has a seeded public `playground-spa` client (its `5174` callback)
   and a developer CORS origin; the conformance dashboard needs only the discovery read (CORS origin, no client).
 - **Surface-aware bootstrap.** `@ncode/config`'s `loadRuntimeConfig` takes the bundle's `SurfaceKind` and sends it as
@@ -98,7 +98,7 @@ document surface-aware so one endpoint can hand each surface its own coordinates
 
 - Issues: [#135](https://github.com/NCodeGroup/identity/issues/135) (frontend), [#124](https://github.com/NCodeGroup/identity/issues/124)/[#125](https://github.com/NCodeGroup/identity/issues/125) (conformance).
 - Platform: [ADR-1064](1064-frontend-presentation-platform.md) (presentation platform and its invariants),
-  [ADR-1071](1071-aspire-local-dev-orchestrator.md) (Aspire local-dev orchestrator),
+  [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md) (Aspire local-dev orchestrator),
   [ADR-1062](1062-opt-in-interactive-login-consent-ui.md) / [ADR-1065](1065-interactive-login-consent-op-hosted-auth-surface.md)
   (the `apps/auth` login/consent surface this does not duplicate).
 - Posture: [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) and the security-practice default in

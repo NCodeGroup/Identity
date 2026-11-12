@@ -3,7 +3,7 @@
 - **Status:** Accepted (supersedes [ADR-1072](1072-self-healing-dev-database-and-model-drift-gate.md); amends
   [ADR-1021](1021-developer-signing-keys-seeded-through-persistence.md),
   [ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md), and
-  [ADR-1071](1071-aspire-local-dev-orchestrator.md))
+  [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md))
 - **Date:** 2026-10-11
 - **Deciders:** NCode Group
 
@@ -22,7 +22,7 @@ Persistent developer signing keys ([ADR-1021](1021-developer-signing-keys-seeded
 hand-deleting the SQLite files **and** the key-ring directory, and keeping the two in sync — delete one but not the
 other and the stored signing key becomes undecryptable.
 
-The AppHost ([ADR-1071](1071-aspire-local-dev-orchestrator.md)) already orchestrates the local stack but had no
+The AppHost ([ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md)) already orchestrates the local stack but had no
 database resource, and [#144](https://github.com/NCodeGroup/identity/issues/144) tracked relocating the database bootstrap out of the
 `api` process into a dedicated Aspire resource so a migration failure surfaces as a failed dashboard resource rather
 than an `api` crash.
@@ -80,7 +80,7 @@ worker; and persist the **Data Protection key ring in that same database** so al
   `build/dev-db-reset.ps1` purges everything (data + signing key + key ring) consistently; a migration failure is a
   visible, isolated dashboard resource; the drift gate keeps migrations authoritative.
 - **Harder / watch for:** a **container runtime (Docker or Podman) is now required** to run the AppHost — this reverses
-  the "no container-runtime prerequisite" note in [ADR-1071](1071-aspire-local-dev-orchestrator.md). Running the
+  the "no container-runtime prerequisite" note in [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md). Running the
   The host **standalone** (without the local-dev orchestrator) now uses an ephemeral in-memory database, so persistent local state
   requires the AppHost. Postgres major-version upgrades can strand an old data volume (purge it with the reset script).
 - **Smells that mean you chose wrong:** a provider branch (SQLite/SQL Server) creeping back into the host; a
@@ -90,7 +90,7 @@ worker; and persist the **Data Protection key ring in that same database** so al
 ## References
 
 - [ADR-1072](1072-self-healing-dev-database-and-model-drift-gate.md) — the self-healing SQLite model this supersedes.
-- [ADR-1071](1071-aspire-local-dev-orchestrator.md) — the AppHost this adds the database + worker resources to.
+- [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md) — the AppHost this adds the database + worker resources to.
 - [ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md) — host-owned migrations (now in the
   host database project).
 - [ADR-1021](1021-developer-signing-keys-seeded-through-persistence.md) — persistent developer signing keys (key ring

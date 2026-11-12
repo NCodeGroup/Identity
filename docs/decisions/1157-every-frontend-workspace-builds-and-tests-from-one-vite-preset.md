@@ -92,7 +92,7 @@ configuration file is a single call to it with that workspace's coverage floors.
   [`frontend/turbo.json`](../../frontend/turbo.json), each workspace's `vite.config.ts` / `vitest.config.ts`
 - [ADR-1151](1151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md) (the test gates),
   [ADR-1064](1064-frontend-presentation-platform.md) (package boundaries),
-  [ADR-1071](1071-aspire-local-dev-orchestrator.md) (the AppHost and service discovery),
+  [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md) (the AppHost and service discovery),
   [ADR-1156](1156-shared-app-shell-containers-live-in-ncode-shell.md) (the shared shell)
 - Turborepo: "Dependent tasks that can be run in parallel" (transit nodes), `globalDependencies`
 - Node.js: [type stripping](https://nodejs.org/api/typescript.html#type-stripping)

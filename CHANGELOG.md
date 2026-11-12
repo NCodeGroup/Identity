@@ -261,7 +261,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [`docs/conformance/reachable-host.md`](docs/conformance/reachable-host.md).
 
 - **The local-dev Aspire graph runs a dedicated conformance OP instance, `conformanceapi`, that opts into the
-  capabilities the stock server keeps off** ([ADR-1071](docs/decisions/1071-aspire-local-dev-orchestrator.md),
+  capabilities the stock server keeps off** ([ADR-1071](docs/decisions/1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md),
   [ADR-1084](docs/decisions/1084-spec-coverage-conformance-harness.md),
   [ADR-1088](docs/decisions/1088-opt-in-front-channel-logout-and-session-management.md),
   [ADR-1144](docs/decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md)). It is the same host project
@@ -289,7 +289,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#235](https://github.com/NCodeGroup/identity/issues/235)).
 
 - **One .NET Aspire launch runs the full local stack**
-  ([ADR-1071](docs/decisions/1071-aspire-local-dev-orchestrator.md), issue
+  ([ADR-1071](docs/decisions/1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md), issue
   [#143](https://github.com/NCodeGroup/identity/issues/143)). The AppHost project `NCode.Identity.OpenId.LocalDev`
   orchestrates Postgres, Valkey, the migration worker, the OpenID host (`api`), the conformance OP (`conformanceapi`),
   the interactive-login build-watcher (`auth`), the management console host (`console`) and its build-watcher (`mgmt`),
@@ -330,7 +330,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The AppHost fails fast when the frontend toolchain is stale.** Before any resource starts it requires a Node of the
   major pinned in `frontend/.node-version` and a `node_modules` that matches the pinned pnpm and `pnpm-lock.yaml`,
   and otherwise stops with one message that names `./build/frontend-install.ps1`
-  ([ADR-1287](docs/decisions/1287-the-apphost-fails-fast-when-the-frontend-toolchain-is-stale.md), issue
+  ([ADR-1071](docs/decisions/1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md), issue
   [#401](https://github.com/NCodeGroup/identity/issues/401)).
 
 - **The standalone Vite surfaces serve HTTPS outside Aspire too.** `./build/frontend-install.ps1` exports the ASP.NET

@@ -1,4 +1,5 @@
 {{- include "identity-host.validate" . }}
+{{- include "identity-host.backendTls.validate" . }}
 {{- $valkey := include "identity-host.valkeyEnabled" . }}
 {{- $googleCloudCredentials := include "identity-host.kmsCredentials.googleCloudCredentialConfiguration" (include "identity-host.kmsCredentials.server" . | fromYaml) }}
 {{- $probeHost := include "identity-host.probeHost" . }}
@@ -74,11 +75,12 @@ spec:
           securityContext:
             {{- include "identity-host.containerSecurityContext" . | nindent 12 }}
           ports:
-            - name: http
-              containerPort: 8080
+            - name: https
+              containerPort: 8443
               protocol: TCP
           env:
             {{- include "identity-host.hostEnv" . | trim | nindent 12 }}
+            {{- include "identity-host.backendTls.env" . | nindent 12 }}
           {{- with .Values.extraEnvFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}
@@ -88,7 +90,8 @@ spec:
           startupProbe:
             httpGet:
               path: /health/live
-              port: http
+              port: https
+              scheme: HTTPS
               httpHeaders:
                 - name: Host
                   value: {{ $probeHost | quote }}
@@ -98,7 +101,8 @@ spec:
           livenessProbe:
             httpGet:
               path: /health/live
-              port: http
+              port: https
+              scheme: HTTPS
               httpHeaders:
                 - name: Host
                   value: {{ $probeHost | quote }}
@@ -108,7 +112,8 @@ spec:
           readinessProbe:
             httpGet:
               path: /health/ready
-              port: http
+              port: https
+              scheme: HTTPS
               httpHeaders:
                 - name: Host
                   value: {{ $probeHost | quote }}
@@ -126,8 +131,15 @@ spec:
           {{- end }}
           volumeMounts:
             {{- include "identity-host.hostVolumeMounts" . | trim | nindent 12 }}
+            - name: backend-tls
+              mountPath: /etc/ncode-identity/tls
+              readOnly: true
       volumes:
         {{- include "identity-host.hostVolumes" . | trim | nindent 8 }}
+        - name: backend-tls
+          secret:
+            secretName: {{ include "identity-host.backendTls.secretName" . }}
+            defaultMode: 0440
       {{- with include "identity-host.scheduling" . }}
       {{- . | trim | nindent 6 }}
       {{- end }}

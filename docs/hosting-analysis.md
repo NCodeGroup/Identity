@@ -641,11 +641,11 @@ speed-test endpoint from the Denver network the users are on.
 - **Kubernetes deployment artifacts** — issue [#85](https://github.com/NCodeGroup/identity/issues/85), done. `NCode.Identity.OpenId.Host` already trusts forwarded headers
   only from configured proxies (set `ForwardedHeaders:KnownNetworks` to the pod CIDR so Traefik's `X-Forwarded-Proto` /
   `Host` are honored) and refuses development-only settings in Production (developer keys, wildcard `AllowedHosts`,
-  developer CORS, seeders). Its image is chiseled, runs non-root on port 8080, is built for amd64 and arm64, and
-  carries the login bundle
+  developer CORS, seeders). Its image is chiseled, runs non-root, serves HTTPS only on port 8443, is built for amd64 and
+  arm64, and carries the login bundle
   ([ADR-1178](decisions/1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)). Its Helm
-  chart runs restricted pods that probe `/health/live` and `/health/ready`, drain before stopping, and require Valkey
-  for more than one replica
+  chart runs restricted pods that probe `/health/live` and `/health/ready` over HTTPS, drain before stopping, and
+  require Valkey for more than one replica
   ([ADR-1179](decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). Before
   each rollout it migrates the database in a Job from the same image, and every migration keeps the previous release
   working ([ADR-1180](decisions/1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Still

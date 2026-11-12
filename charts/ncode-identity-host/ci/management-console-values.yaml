@@ -20,6 +20,8 @@ ingress:
       paths:
         - path: /
           pathType: Prefix
+backendTls:
+  ingressController: traefik
 managementConsole:
   enabled: true
   host: manage.example.com

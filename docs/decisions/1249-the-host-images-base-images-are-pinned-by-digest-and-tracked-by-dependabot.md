@@ -3,7 +3,7 @@
 - **Status:** Accepted (amended by
   [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md): the
   docker stream also tracks the management console image's Dockerfile; amended by
-  [ADR-1503](1503-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md):
+  [ADR-1505](1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md):
   each Dockerfile takes one build argument, the optional `VERSION` its assemblies report, which builds no `FROM`)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group

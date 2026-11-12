@@ -126,7 +126,7 @@ See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-th
 - The host image, the management console image and the host chart publish to GHCR through the `Publish artifacts`
   workflow (`.github/workflows/publish-artifacts.yml`) on every merge to `main` and every release tag, at one version,
   signed and with provenance
-  ([ADR-1503](docs/decisions/1503-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)).
+  ([ADR-1505](docs/decisions/1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)).
 
 ## Definition of Done
 

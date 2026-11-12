@@ -4,7 +4,10 @@
   [ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md):
   the registration and the pipeline step live in `NCode.Identity.AspNetCore`, every host composes them, and a host trusts its
   proxies through the `ForwardedHeaders` section, which `UseTrustedForwardedHeaders()` applies right before
-  `UseStrictTransportSecurity()`)
+  `UseStrictTransportSecurity()`; and by
+  [ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md):
+  the header is sent over the HTTPS that every Production request arrives on, and the redirect that pairs with it is
+  added outside Production only)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0122](project-template/0122-strict-transport-security-outside-development.md)

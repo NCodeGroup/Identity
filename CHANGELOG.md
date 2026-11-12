@@ -343,11 +343,12 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The host ships a production container image.** `hosts/NCode.Identity.OpenId.Host/Dockerfile` builds the host on the
   chiseled `aspnet:10.0-noble-chiseled-extra` runtime. The image has no shell, runs as the non-root `app` user (UID
-  1654), and exposes only port 8080. It builds the `apps/auth` interactive bundle and serves it from `/app/auth`, so the
-  container renders login and consent, and it carries the migration worker in `/app/migrations`. The SDK and Node stages
-  cross-build on the build platform, so the image builds for `linux/amd64` and `linux/arm64` without emulation in one
-  multi-architecture build, whose NuGet cache mount is locked so the two publishes take turns rather than reading
-  packages the other is still extracting; the `Host image` CI workflow builds both. The build context is an allow-list
+  1654), and serves HTTPS only on port 8443 from the PEM certificate and key mounted at `/etc/ncode-identity/tls`. It
+  builds the `apps/auth` interactive bundle and serves it from `/app/auth`, so the container renders login and consent,
+  and it carries the migration worker in `/app/migrations`. The SDK and Node stages cross-build on the build platform,
+  so the image builds for `linux/amd64` and `linux/arm64` without emulation in one multi-architecture build, whose NuGet
+  cache mount is locked so the two publishes take turns rather than reading packages the other is still extracting; the
+  `Host image` CI workflow builds both. The build context is an allow-list
   ([ADR-1178](docs/decisions/1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)).
 
 - **The host image writes one-line JSON logs.** The image sets `Logging__Console__FormatterName=json`,
@@ -359,19 +360,25 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The management console host ships a production container image.**
   `hosts/NCode.Identity.ManagementConsole.Host/Dockerfile` builds the console host on the host image's pinned chiseled
-  base images: no shell, the non-root `app` user, port 8080, the `apps/mgmt` bundle served from `/app/mgmt`, and
-  one-line JSON logs; the `Console image` CI workflow builds it for `linux/amd64` and `linux/arm64`
+  base images: no shell, the non-root `app` user, HTTPS only on port 8443 from the certificate and key mounted at
+  `/etc/ncode-identity/tls`, the `apps/mgmt` bundle served from `/app/mgmt`, and one-line JSON logs; the `Console image`
+  CI workflow builds it for `linux/amd64` and `linux/arm64`
   ([ADR-1458](docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md),
   issue [#610](https://github.com/NCodeGroup/identity/issues/610)).
 
 - **The host has a Helm chart.** `charts/ncode-identity-host` deploys `NCode.Identity.OpenId.Host` on Kubernetes 1.30 or
   later under the restricted Pod Security Standard: non-root, read-only root filesystem, no capabilities, and no default
   service-account token (a cloud root-key provider gets only the projected token its workload identity exchanges). The
-  startup and liveness probes call `/health/live` and the readiness probe calls `/health/ready`, each sending an allowed
-  `Host` header, and a `preStop` sleep drains each pod before shutdown. The chart ships a PodDisruptionBudget and an
-  optional `Ingress`, and its server pods carry `app.kubernetes.io/component: server`, so the Service and
-  PodDisruptionBudget never select the migration Job. The database and Valkey connection strings and the local root key
-  are referenced as existing Secrets and the recovery public key as a ConfigMap, never passed as values. Rendering fails
+  startup and liveness probes call `/health/live` and the readiness probe calls `/health/ready`, each over HTTPS and
+  sending an allowed `Host` header, and a `preStop` sleep drains each pod before shutdown. The chart ships a
+  PodDisruptionBudget and an optional `Ingress`, and its server pods carry `app.kubernetes.io/component: server`, so the
+  Service and PodDisruptionBudget never select the migration Job. The pods serve HTTPS from a certificate that a
+  cert-manager `Certificate` issues, by default from a private CA the chart creates (`backendTls`), or from a Secret the
+  operator provides, and the chart renders the ingress-nginx or Traefik settings that make the ingress controller speak
+  HTTPS to the pods and verify their certificate, against the serving Secret or, when `backendTls.ingressCaSecret` names
+  one, a Secret that holds only the CA, so the controller never receives the pods' private key. The database and Valkey
+  connection strings and the local root key are
+  referenced as existing Secrets and the recovery public key as a ConfigMap, never passed as values. Rendering fails
   for a release the host would refuse to start (an empty or wildcard `allowedHosts`, a missing database Secret, a
   `StaticSingle` issuer that is not `https`, a missing or incomplete root key provider, `ephemeral` or a local provider
   without its Secret in Production, a Production release with no recovery decision), for more than one replica without
@@ -4189,9 +4196,22 @@ Until the first stable release, the [Unreleased] section describes the product a
   The three artifacts share one version on GHCR, are signed and carry build provenance, and a verification job pulls
   them anonymously; a stable version also tags both images `latest`, and the images' assemblies report the version
   they were published at ([#773](https://github.com/NCodeGroup/identity/issues/773),
-  [ADR-1503](docs/decisions/1503-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)).
+  [ADR-1505](docs/decisions/1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)).
 
 ### Security
+
+- **HTTP logging writes a body only for an endpoint that opts in, and never a credential.** `AddGuardedHttpLogging()`
+  (`NCode.Identity.AspNetCore`) registers ASP.NET Core HTTP logging that writes the request and response properties, the
+  allow-listed headers and the duration, and never a request or response body, a query string, a trailer, or the value
+  of an `Authorization`, `Proxy-Authorization`, `Cookie`, `DPoP`, `Set-Cookie` or `Location` header, whatever the log
+  level. It also caps the hosting layer's request lines, which carry the query string, at warnings. An endpoint or
+  route group opts in to its own request or response body with `WithRequestBodyLogging()` or
+  `WithResponseBodyLogging()`; `WithConfidentialBodies()` marks one whose bodies carry credentials or personal data,
+  which never logs a body and refuses an opt-in. The OpenID protocol endpoints, the management API, the interactive
+  sign-in surface and the BFF's endpoints are marked. A host whose `HttpLoggingOptions` enable a body, the query string
+  or a trailer, or allow-list a credential header, refuses to start in every environment. The reference host composes it
+  and runs HTTP logging right after routing ([#778](https://github.com/NCodeGroup/identity/issues/778),
+  [ADR-1503](docs/decisions/1503-http-logging-writes-a-body-only-for-an-endpoint-that-opts-in-and-never-for-one-that-carries-credentials.md)).
 
 - **The host accepts only TLS 1.2 and 1.3 with AEAD cipher suites.** When the host terminates TLS itself, the handshake
   refuses TLS 1.0 and 1.1 on every platform, and on Linux and macOS negotiates only the six AEAD cipher suites with
@@ -4316,6 +4336,21 @@ Until the first stable release, the [Unreleased] section describes the product a
   silent — a deployment that forgets to override it starts, serves traffic, and looks healthy — so each is a startup
   failure rather than a log warning
   ([ADR-1313](docs/decisions/1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md)).
+
+- **The hosts serve HTTPS only in Production and refuse to start otherwise.** `AddTransportSecurity(hostEnvironment)`
+  (`NCode.Identity.AspNetCore`, composed by `AddProductionSafety` for the reference host and called by the management
+  console host) registers a check that runs as the host finishes starting, after Kestrel has bound: the server must be
+  Kestrel and bind at least one endpoint, every endpoint must be HTTPS on a TCP port, and the certificate each serves,
+  read over a loopback TLS handshake that also proves its private key, must be inside its validity period, have an RSA
+  key of at least 2048 bits or an ECDSA key, be signed with SHA-256 or stronger and not be the ASP.NET Core development
+  certificate. A self-signed certificate passes; the proxy decides whether to trust it. Production adds no HTTPS
+  redirection (`UseHttpsRedirectionOutsideProduction`), because it has no plain-HTTP endpoint, and a TLS-terminating
+  proxy that speaks plain HTTP to a pod is not supported. The image serves HTTPS on port 8443, and the chart's pods,
+  probes, Service and Ingress backend do the same, with the proxy's verification of the pod's certificate on (a private
+  CA per release is the default; a pinned self-signed certificate is accepted, and one with verification off is
+  unauthenticated encryption)
+  ([#774](https://github.com/NCodeGroup/identity/issues/774),
+  [ADR-1504](docs/decisions/1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md)).
 
 - **The Data Protection key ring is encrypted at rest under a root key outside the database.** The host persists the key
   ring to the same database as the secrets it unprotects, and encrypts it under the platform master key, whose root key

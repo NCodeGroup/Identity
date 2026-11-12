@@ -1,4 +1,4 @@
-# Publish artifacts - publishes the host image, the management console image and the host chart to GHCR (issue #773, ADR-1503).
+# Publish artifacts - publishes the host image, the management console image and the host chart to GHCR (issue #773, ADR-1505).
 #
 # Every push to main (and a manual run on main) and every release tag v*.*.* publishes three artifacts at one version:
 # the host image, the management console image and the host chart. The version comes from build/artifact-version.ps1:

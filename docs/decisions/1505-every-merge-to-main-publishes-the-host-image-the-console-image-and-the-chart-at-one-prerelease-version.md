@@ -1,4 +1,4 @@
-# 1503. Every merge to main publishes the host image, the console image and the chart at one prerelease version
+# 1505. Every merge to main publishes the host image, the console image and the chart at one prerelease version
 
 - **Status:** Accepted (amends
   [ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md) and

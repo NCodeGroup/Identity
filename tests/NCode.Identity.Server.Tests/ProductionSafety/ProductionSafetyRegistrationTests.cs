@@ -114,6 +114,45 @@ public class ProductionSafetyRegistrationTests
     }
 
     [Fact]
+    public void AddProductionSafety_WhenProduction_RegistersTheTransportSecurityCheck()
+    {
+        var serviceCollection = new ServiceCollection();
+
+        serviceCollection.AddProductionSafety(
+            CreateSafeConfiguration(),
+            CreateEnvironment(Environments.Production)
+        );
+
+        Assert.Single(
+            serviceCollection,
+            descriptor =>
+                descriptor.ServiceType == typeof(IHostedService)
+                && descriptor.ImplementationType?.Name == "TransportSecurityStartupCheck"
+        );
+    }
+
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Staging")]
+    [InlineData("Conformance")]
+    public void AddProductionSafety_WhenNotProduction_RegistersNoTransportSecurityCheck(
+        string environmentName
+    )
+    {
+        var serviceCollection = new ServiceCollection();
+
+        serviceCollection.AddProductionSafety(
+            CreateSafeConfiguration(),
+            CreateEnvironment(environmentName)
+        );
+
+        Assert.DoesNotContain(
+            serviceCollection,
+            descriptor => descriptor.ImplementationType?.Name == "TransportSecurityStartupCheck"
+        );
+    }
+
+    [Fact]
     public void AddProductionSafety_WhenProductionAndMultipleProblems_ReportsAllAtOnce()
     {
         var serviceCollection = new ServiceCollection();

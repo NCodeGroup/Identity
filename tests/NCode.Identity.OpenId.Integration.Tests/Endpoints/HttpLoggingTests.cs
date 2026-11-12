@@ -3,6 +3,7 @@
 
 using System.Net.Http.Headers;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -21,6 +22,10 @@ public sealed class HttpLoggingTests
     private const string BasicSecret = "basic-secret-sentinel-778";
 
     private const string DPoPProof = "dpop-sentinel-778";
+
+    private const string IdTokenHint = "id-token-hint-sentinel-778";
+
+    private const string LoginHint = "login-hint-sentinel-778";
 
     private const string HttpLoggingCategory =
         "Microsoft.AspNetCore.HttpLogging.HttpLoggingMiddleware";
@@ -100,6 +105,52 @@ public sealed class HttpLoggingTests
         Assert.DoesNotContain(
             records,
             x => x.Message.Contains(DPoPProof, StringComparison.Ordinal)
+        );
+    }
+
+    #endregion
+
+    #region GetAuthorization Tests
+
+    [Fact]
+    public async Task GetAuthorization_WithDebugLoggingOutsideDevelopment_WritesNoQueryString()
+    {
+        using var factory = new ConfiguredHostApplicationFactory(
+            new Dictionary<string, string?>
+            {
+                ["Logging:LogLevel:Default"] = "Debug",
+                ["Logging:LogLevel:Microsoft"] = "Debug",
+            }
+        );
+        using var staging = factory.WithWebHostBuilder(builder =>
+            builder
+                .UseEnvironment(StagingEnvironment)
+                .ConfigureLogging(logging => logging.AddFakeLogging())
+        );
+        var clientOptions = new WebApplicationFactoryClientOptions { AllowAutoRedirect = false };
+        using var client = staging.CreateClient(clientOptions);
+        var requestUri =
+            $"{OpenIdConstants.EndpointPaths.Authorization}?client_id=log-probe&response_type=code&scope=openid&id_token_hint={IdTokenHint}&login_hint={LoginHint}";
+
+        using var response = await client.GetAsync(requestUri);
+
+        var records = staging.Services.GetFakeLogCollector().GetSnapshot();
+        Assert.Contains(
+            records,
+            x =>
+                x.Category == HttpLoggingCategory
+                && x.Message.Contains(
+                    OpenIdConstants.EndpointPaths.Authorization,
+                    StringComparison.Ordinal
+                )
+        );
+        Assert.DoesNotContain(
+            records,
+            x => x.Message.Contains(IdTokenHint, StringComparison.Ordinal)
+        );
+        Assert.DoesNotContain(
+            records,
+            x => x.Message.Contains(LoginHint, StringComparison.Ordinal)
         );
     }
 

@@ -56,7 +56,7 @@ registered encryption.**
    `invalid_issuer`. This applies to both kinds of token.
 6. **A decryption failure has its own code.** `TokenValidationFailureCodes.DecryptionFailed` is an alias of
    `JwtValidationFailureCodes.DecryptionFailed` (`decryption_failed`,
-   [ADR-1278](1278-token-validation-failures-carry-a-machine-readable-code.md)). The JWT validator resolves the
+   [ADR-1278](1278-token-validation-failures-carry-a-machine-readable-code-set-where-the-failure-is-detected.md)). The JWT validator resolves the
    signing keys only for the enclosed JWS, which exists only after decryption. A `JwtDecodeException` or
    `JwtSecretKeyNotFoundException` raised before the validator's `ResolveValidationKeysAsync` delegate ran therefore
    came from decryption and maps to `decryption_failed` with a fixed text; after the delegate ran it maps to
@@ -93,7 +93,7 @@ registered encryption.**
 - A client that registers no encryption keeps refusing an encrypted token, now with `algorithm_not_permitted`.
 - This amends [ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) point 8,
   [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md) point 8 and
-  [ADR-1278](1278-token-validation-failures-carry-a-machine-readable-code.md) points 7 and 8, through their status lines
+  [ADR-1278](1278-token-validation-failures-carry-a-machine-readable-code-set-where-the-failure-is-detected.md) points 7 and 8, through their status lines
   only.
 - An end-to-end test against the in-process OP remains.
 
@@ -113,6 +113,6 @@ registered encryption.**
   validator this amends
 - [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md) — the logout-token validator this
   amends
-- [ADR-1278](1278-token-validation-failures-carry-a-machine-readable-code.md) — the failure codes this extends
+- [ADR-1278](1278-token-validation-failures-carry-a-machine-readable-code-set-where-the-failure-is-detected.md) — the failure codes this extends
 - Issues [#347](https://github.com/NCodeGroup/identity/issues/347) and
   [#342](https://github.com/NCodeGroup/identity/issues/342)

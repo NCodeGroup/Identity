@@ -793,7 +793,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `algorithm_not_permitted`, …). A handler fails with `JwtValidationContext.Fail(failureCode, reason)`, and
   `ClaimValueRequirement.FailureCode` names a claim check's code. `JwtValidationException.FailureCode` and
   `JwtValidationResult.FailureCode` report the first failure's code
-  ([ADR-1278](docs/decisions/1278-token-validation-failures-carry-a-machine-readable-code.md),
+  ([ADR-1278](docs/decisions/1278-token-validation-failures-carry-a-machine-readable-code-set-where-the-failure-is-detected.md),
   [#343](https://github.com/NCodeGroup/identity/issues/343)).
 
 - **JWT audience validation follows [RFC 7519 §4.1.3](https://datatracker.ietf.org/doc/html/rfc7519#section-4.1.3).** An
@@ -2658,7 +2658,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   codes with `subject_mismatch`, `nonce_mismatch`, `max_age_exceeded`, `token_hash_mismatch` and `token_replayed`; their
   failure constructors take `(failureCode, failureReason)`, and `FailureReason` is text without the token.
   `NCode.Identity.OpenId.Client.Abstractions` references `NCode.Identity.Jwt.Abstractions`
-  ([ADR-1278](docs/decisions/1278-token-validation-failures-carry-a-machine-readable-code.md), issue
+  ([ADR-1278](docs/decisions/1278-token-validation-failures-carry-a-machine-readable-code-set-where-the-failure-is-detected.md), issue
   [#343](https://github.com/NCodeGroup/identity/issues/343)).
 
 - **The protocol client reads UserInfo, plain or signed and encrypted.** `IUserInfoClient` requests the provider's

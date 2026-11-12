@@ -57,7 +57,7 @@ claims factory live in `NCode.Identity.Jwt`. `NCode.Identity.OpenId.Authenticati
 3. **Handlers vote.** A handler calls `Succeed(requirement)` or `Fail(failureCode, reason)` on `JwtValidationContext`. A
    token is valid only when every requirement succeeded and nothing failed. Failures aggregate into one
    `JwtValidationException` on the result; the codes are
-   [ADR-1278](1278-token-validation-failures-carry-a-machine-readable-code.md)'s.
+   [ADR-1278](1278-token-validation-failures-carry-a-machine-readable-code-set-where-the-failure-is-detected.md)'s.
 4. **Two seams are delegates.** The key resolver and the claims-identity creation are reached through the nullable
    delegates `ResolveValidationKeysAsync` and `CreateClaimsIdentityAsync` on the parameters. When a delegate is null the
    validator uses the built-in default; claim mapping is
@@ -139,7 +139,7 @@ and the server's own tokens follow [ADR-1167](1167-the-server-validates-the-toke
   [ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md): the policies the OpenID callers state.
 - [ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md): the
   lifetime requirements the validator evaluates.
-- [ADR-1278](1278-token-validation-failures-carry-a-machine-readable-code.md): failure codes.
+- [ADR-1278](1278-token-validation-failures-carry-a-machine-readable-code-set-where-the-failure-is-detected.md): failure codes.
 - Code: `NCode.Identity.Jwt.Validation.DefaultJwtValidator`, `JwtValidationParameters`,
   `JwtValidationParametersExtensions`, `JwtValidationContext`, `NCode.Identity.Jwt.DecodedJwt`,
   `NCode.Identity.Jwt.Encoding.DefaultJwtEncoder`.

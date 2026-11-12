@@ -1002,7 +1002,7 @@ invariants, the Law of Demeter, and no call nested in another call's arguments. 
   validation handler fails with `JwtValidationContext.Fail(failureCode, reason)`, naming a `JwtValidationFailureCodes`
   value or a code of its own, and code that acts on why a token failed reads `JwtValidationResult.FailureCode` or a
   result's `FailureCode`, never the message text
-  ([ADR-1278](../../docs/decisions/1278-token-validation-failures-carry-a-machine-readable-code.md)). See
+  ([ADR-1278](../../docs/decisions/1278-token-validation-failures-carry-a-machine-readable-code-set-where-the-failure-is-detected.md)). See
   [ADR-1154](../../docs/decisions/1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md).
 - 👁 **Protect a JWT addressed to a client through `IClientJwtCredentialSelector`.** It signs with the algorithm the
   client registered (`*_signed_response_alg`) and encrypts to a public key the client published, within the client's

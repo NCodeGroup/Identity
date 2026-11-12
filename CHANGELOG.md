@@ -531,7 +531,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   so EdDSA proofs (Ed25519 and Ed448) work once the opt-in EdDSA package is registered. The OpenId DPoP validator
   consumes the service and keeps the server-nonce challenge and the replay cache. The DPoP vocabulary is
   `JoseTokenTypes.DPoPJwt` and `JoseClaimNames.Payload.Htm`, `.Htu`, and `.Ath`
-  ([ADR-1176](docs/decisions/1176-dpop-proofs-are-a-jose-building-block.md),
+  ([ADR-1176](docs/decisions/1176-dpop-proofs-are-created-and-validated-by-a-jose-service.md),
   [ADR-1472](docs/decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md)).
 
 - **Post-quantum ML-DSA signing (FIPS 204 / RFC 9964) is in the core libraries.** The JWA `alg` values `ML-DSA-44`,

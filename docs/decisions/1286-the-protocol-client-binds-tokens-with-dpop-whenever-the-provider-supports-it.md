@@ -11,7 +11,7 @@ DPoP (RFC 9449): one key ring is shared by the whole BFF, the `jkt` is stored pe
 challenge is retried. [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)
 and [ADR-1275](1275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md) left DPoP
 to phase 1b. The JOSE stack already provides `IDPoPProofService`
-([ADR-1176](1176-dpop-proofs-are-a-jose-building-block.md)), and the OP keeps a refresh token's
+([ADR-1176](1176-dpop-proofs-are-created-and-validated-by-a-jose-service.md)), and the OP keeps a refresh token's
 binding continuous across rotation ([ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md)). This ADR records
 how `NCode.Identity.OpenId.Client` creates the proofs, pins the keys, sends `dpop_jkt` and handles nonces.
 
@@ -82,7 +82,7 @@ key says so, and it never accepts a downgrade.**
 
 - [ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md) — refresh-token binding
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
-- [ADR-1176](1176-dpop-proofs-are-a-jose-building-block.md) — the JOSE DPoP service
+- [ADR-1176](1176-dpop-proofs-are-created-and-validated-by-a-jose-service.md) — the JOSE DPoP service
 - [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
 - [ADR-1275](1275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md) — PAR
 - RFC 9449 §4, §5, §5.2, §7, §8, §10 and §10.1 (DPoP)

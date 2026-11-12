@@ -63,7 +63,7 @@ ambient state, so every grant binds alike.
 - `jti` is not a replay, checked through `IDPoPProofReplayCache`.
 
 `jkt` is the RFC 7638 thumbprint of the embedded key. The stateless checks are the JOSE `IDPoPProofService` building
-block ([ADR-1176](1176-dpop-proofs-are-a-jose-building-block.md)).
+block ([ADR-1176](1176-dpop-proofs-are-created-and-validated-by-a-jose-service.md)).
 
 Server nonces ([RFC 9449](https://www.rfc-editor.org/rfc/rfc9449) §8) use `IDPoPNonceService`. `dpop_nonce_required`
 defaults to off. When it is on and the nonce is missing or invalid, the server answers `use_dpop_nonce` with a
@@ -163,6 +163,6 @@ codes are `invalid_dpop_proof` and `use_dpop_nonce`.
   [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md),
   [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md),
   [ADR-1172](1172-a-forwarded-client-certificate-is-decoded-by-the-decoder-registered-for-its-format.md),
-  [ADR-1176](1176-dpop-proofs-are-a-jose-building-block.md),
+  [ADR-1176](1176-dpop-proofs-are-created-and-validated-by-a-jose-service.md),
   [ADR-1202](1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md) and
   [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md).

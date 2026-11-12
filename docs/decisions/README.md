@@ -236,7 +236,7 @@ The records are grouped by area; within an area they are in number order.
 | [1161](./1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md) | Every owner's public keys have one source and are imported under one key policy | Accepted |
 | [1172](./1172-a-forwarded-client-certificate-is-decoded-by-the-decoder-registered-for-its-format.md) | A forwarded client certificate is decoded by the decoder registered for its format | Accepted |
 | [1173](./1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md) | A mutual-TLS client is authenticated by its registered certificate, chained to configured trust anchors | Accepted |
-| [1176](./1176-dpop-proofs-are-a-jose-building-block.md) | DPoP proofs are a JOSE building block | Accepted |
+| [1176](./1176-dpop-proofs-are-created-and-validated-by-a-jose-service.md) | DPoP proofs are created and validated by a JOSE service | Accepted |
 | [1252](./1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md) | A revocation list retrieval is shared, a failed one is remembered, and soft-fail is opt-in | Accepted |
 | [1259](./1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md) | Revocation is checked by registered sources, OCSP before every CRL form | Accepted |
 | [1315](./1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) | Outbound calls to caller-supplied URLs share one guarded, bounded client | Accepted |

@@ -138,7 +138,7 @@ Secrets stay standalone-reusable — is tracked in [GitHub issues](https://githu
   and the `SecurityStamp` revocation hook a distributed-cache decorator would invalidate on.
 - [ADR-1035](1035-federated-principals-and-identity-resolution.md) — the `FederatedPrincipal` actor the bags inline onto
   and whose resolved `PrincipalId` keys the provider.
-- [ADR-1030](1030-userinfo-endpoint-and-subject-authentication-seam.md) — the UserInfo endpoint and claims-enricher seam
+- [ADR-1401](1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md) — the UserInfo endpoint and claims-enricher seam
   one of the projection handlers extends.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the mediator pipeline that makes projection a
   first-class extension seam.

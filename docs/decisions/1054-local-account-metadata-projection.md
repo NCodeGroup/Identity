@@ -148,7 +148,7 @@ protects `app_metadata`. It is called out here and tracked as management work in
   `ILocalAccountSource` seam whose metadata this ADR projects.
 - [ADR-1035](1035-federated-principals-and-identity-resolution.md) — the subject/principal model the stamped `sub` and
   carried claims resolve through.
-- [ADR-1030](1030-userinfo-endpoint-and-subject-authentication-seam.md) — the UserInfo endpoint and claims-enricher
+- [ADR-1401](1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md) — the UserInfo endpoint and claims-enricher
   seam one of the projection handlers extends.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the mediator pipeline that is the claim-shaping
   (Actions-equivalent) extension seam.

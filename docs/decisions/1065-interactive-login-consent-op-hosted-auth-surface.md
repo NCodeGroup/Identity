@@ -134,7 +134,7 @@ Concretely:
 - Builds on [ADR-1064](1064-frontend-presentation-platform.md) (frontend platform; names `apps/auth`),
   [ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md) (local-account
   credential path), [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) (tenant seed fan-out),
-  [ADR-1030](1030-userinfo-endpoint-and-subject-authentication-seam.md) (subject-authentication seam).
+  [ADR-1401](1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md) (subject-authentication seam).
 - Issues: [#133](https://github.com/NCodeGroup/identity/issues/133), [#139](https://github.com/NCodeGroup/identity/issues/139), [#125](https://github.com/NCodeGroup/identity/issues/125), [#135](https://github.com/NCodeGroup/identity/issues/135); plan
   [`login-consent-ui.md`](../conformance/login-consent-ui.md).
 - Code: [`Host/Program.cs`](../../hosts/NCode.Identity.OpenId.Host/Program.cs),

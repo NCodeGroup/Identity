@@ -22,7 +22,7 @@ accounts are a self-issued connection behind a pluggable seam — stands.
 ## Context
 
 The stack authenticates an end-user by delegating to an ASP.NET Core authentication scheme at the
-subject-authentication seam ([ADR-1030](1030-userinfo-endpoint-and-subject-authentication-seam.md)): the host presents a
+subject-authentication seam ([ADR-1401](1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md)): the host presents a
 `ClaimsPrincipal`, and the runtime resolves it to a durable `PrincipalId`
 ([ADR-1035](1035-federated-principals-and-identity-resolution.md)). That is sufficient when some other authority has
 already authenticated the user, but it leaves three capabilities to the host with no first-class shape:
@@ -208,7 +208,7 @@ Any other store (LDAP, a bespoke table, an external API) is a third implementati
 - [ADR-1035](1035-federated-principals-and-identity-resolution.md) — federated principals and identities; this ADR adds
   the local kind of connection (a `LocalAccount` payload on a self-issued `FederatedIdentity`) and clarifies that a
   connection's `issuer` may be this server.
-- [ADR-1030](1030-userinfo-endpoint-and-subject-authentication-seam.md) — the subject-authentication seam and claims
+- [ADR-1401](1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md) — the subject-authentication seam and claims
   enrichers the account source feeds.
 - [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md) — opaque server-generated ids the `LocalAccount` follows.
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — why the EF reference and the ASP.NET Core

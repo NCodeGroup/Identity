@@ -1275,7 +1275,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   request's subject steps, and the cross-slice
   `ValidateSubjectAuthenticationCommand`/`DefaultValidateSubjectAuthenticationHandler` validate an existing login
   session's `SubjectAuthentication` (tenant, `max_age`, `acr`)
-  ([ADR-1030](docs/decisions/1030-userinfo-endpoint-and-subject-authentication-seam.md)). Subject and resource-request
+  ([ADR-1401](docs/decisions/1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md)). Subject and resource-request
   authentication are separate commands: `AuthenticateSubjectCommand` authenticates only the end-user session, and
   `AuthenticateResourceRequestCommand` authenticates a bearer access token for a set of required audiences
   ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
@@ -1785,7 +1785,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `GetUserInfoClaimsCommand` enricher pipeline, whose default handler supplies only the required `sub` claim, with
   applications registering further `ICommandHandler<GetUserInfoClaimsCommand>` handlers to contribute profile, email and
   other claims. The response is an extensible `[JsonExtensionData]` result (`UserInfoResult`)
-  ([ADR-1030](docs/decisions/1030-userinfo-endpoint-and-subject-authentication-seam.md)). The endpoint validates a
+  ([ADR-1401](docs/decisions/1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md)). The endpoint validates a
   presented `Authorization: Bearer` access token inside the request environment, after the environment resolves the
   tenant's signing keys and issuer, through the self-issued `AuthenticateAccessTokenCommand` path the management API
   uses ([ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)), and requires the
@@ -3092,7 +3092,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   access token. An access token that authenticates but names no client the tenant serves is audited, when the tenant
   turns the setting on, as `denied` with the error code `invalid_token` and no claims.
   `IAuditEventRecorder.RecordUserInfoAccessedAsync` and `RecordUserInfoAccessDeniedAsync` publish the two outcomes
-  ([ADR-1401](docs/decisions/1401-userinfo-access-is-audited-when-a-tenant-or-client-opts-in.md),
+  ([ADR-1401](docs/decisions/1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md),
   [#21](https://github.com/NCodeGroup/identity/issues/21), [audit records](docs/audit-records.md)).
 
 - **Several replicas share DPoP nonces and single-use records through Valkey.**

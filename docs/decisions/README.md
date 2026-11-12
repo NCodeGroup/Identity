@@ -189,7 +189,6 @@ The records are grouped by area; within an area they are in number order.
 | --- | --- | --- |
 | [1026](./1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md) | Resource servers own scopes, settings and keys, and decide a client's scopes and token audiences | Accepted |
 | [1028](./1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md) | The revocation endpoint revokes refresh tokens and their families, and always answers 200 | Accepted |
-| [1030](./1030-userinfo-endpoint-and-subject-authentication-seam.md) | UserInfo is backed by a reusable subject-authentication seam; claims come from enrichers | Accepted |
 | [1039](./1039-requested-claims-acr-and-auth-time-follow-the-request-and-the-authentication-event.md) | Requested claims, acr and auth_time follow the request and the authentication event | Accepted |
 | [1059](./1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md) | The device authorization grant is a pending request in the grant store, approved out of band | Accepted |
 | [1081](./1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md) | Consent is a durable record of decided and granted scopes, enforced at the authorization endpoint | Accepted |
@@ -222,7 +221,7 @@ The records are grouped by area; within an area they are in number order.
 | [1314](./1314-protocol-endpoints-keep-the-http-methods-their-specifications-require.md) | Protocol endpoints keep the HTTP methods their specifications require | Accepted |
 | [1380](./1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md) | Logout ends the session found in server state, confirmed when unsure, and notifies relying parties | Accepted |
 | [1395](./1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md) | Grant payloads have one versioned serializer, and a stored record missing written members fails closed | Accepted |
-| [1401](./1401-userinfo-access-is-audited-when-a-tenant-or-client-opts-in.md) | UserInfo access is audited when a tenant or client opts in | Accepted |
+| [1401](./1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md) | UserInfo authenticates an access token, returns enricher-built claims, and audits disclosures on opt-in | Accepted |
 | [1498](./1498-protocol-endpoints-answer-the-x-fapi-interaction-id-header.md) | Protocol endpoints answer the x-fapi-interaction-id header | Accepted |
 
 ### Client authentication and outbound calls

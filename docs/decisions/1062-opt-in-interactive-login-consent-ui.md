@@ -126,7 +126,7 @@ seeder, the data-driven discovery handler) and need no architectural decision of
   [`discovery-alignment.md`](../conformance/discovery-alignment.md) ([#128](https://github.com/NCodeGroup/identity/issues/128)).
 - Reused seams: [ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md)
   (local-account store + dependency-inverted authentication),
-  [ADR-1030](1030-userinfo-endpoint-and-subject-authentication-seam.md) (subject-authentication seam).
+  [ADR-1401](1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md) (subject-authentication seam).
 - Code: [`DefaultAuthenticateHandler`](../../src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultAuthenticateHandler.cs),
   [`DefaultChallengeHandler`](../../src/NCode.Identity.OpenId.Authentication/Endpoints/Authorization/Handlers/DefaultChallengeHandler.cs),
   [`Host/Program.cs`](../../hosts/NCode.Identity.OpenId.Host/Program.cs).

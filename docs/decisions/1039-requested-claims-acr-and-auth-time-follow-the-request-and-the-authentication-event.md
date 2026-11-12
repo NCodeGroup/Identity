@@ -95,7 +95,7 @@ authentication happens, and emit `auth_time` when it is known or required.**
   `GetUserInfoClaimsCommand`, `IPersistedGrantService`, `IAuthenticationContextReferenceResolver`,
   `DefaultValidateSubjectAuthenticationHandler`, `SessionGrant`.
 - Issues: [#49](https://github.com/NCodeGroup/identity/issues/49), [#57](https://github.com/NCodeGroup/identity/issues/57).
-- Records: [ADR-1030](1030-userinfo-endpoint-and-subject-authentication-seam.md) (the UserInfo enricher seam),
+- Records: [ADR-1401](1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md) (the UserInfo enricher seam),
   [ADR-1028](1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md)
   (persisted grants), [ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md) (the session),
   [ADR-1220](1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md) (the session's lifetime).

@@ -10,7 +10,6 @@ using Microsoft.Extensions.Primitives;
 using NCode.Buffers;
 using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Messages;
-using Nerdbank.Streams;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.Authorization.Results;
 
@@ -214,8 +213,9 @@ internal static class AuthorizationResponseWriter
         httpResponse.SetHtmlPageSecurity(CreateFormPostPolicy(redirectUri));
 
         // The page is rendered into a pooled buffer and transcoded straight into the response pipe, so no per-request
-        // document string is built.
-        using var html = new Sequence<char>(ArrayPool<char>.Shared);
+        // document string is built. The page carries the response parameters (an authorization code, tokens or a JARM
+        // response), so its buffer is sensitive.
+        using var html = BufferFactory.CreatePooledBufferWriter<char>(isSensitive: true);
         WriteFormPostHtml(html, redirectUri, parameters);
 
         httpResponse.StatusCode = StatusCodes.Status200OK;

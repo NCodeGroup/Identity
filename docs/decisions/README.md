@@ -196,10 +196,9 @@ The records are grouped by area; within an area they are in number order.
 | [1063](./1063-dynamic-client-registration.md) | Dynamic Client Registration (RFC 7591/7592) over the persisted-grant store | Accepted |
 | [1074](./1074-session-management-and-logout.md) | End-user sessions, the `sid` claim, and RP-Initiated + Back-Channel Logout | Accepted |
 | [1075](./1075-runtime-consumption-of-resource-server-secrets.md) | Runtime consumption of resource-server secrets and settings at access-token issuance | Accepted |
-| [1076](./1076-consent-persistence-and-enforcement.md) | Durable consent — a first-class persisted aggregate, enforced at authorize | Accepted |
 | [1077](./1077-session-scoped-grant-revocation-on-logout.md) | Logout revokes the terminating session's grants, not the subject's | Accepted |
 | [1079](./1079-extensible-pkce-code-challenge-methods.md) | Extensible PKCE `code_challenge_method` transformations | Accepted |
-| [1081](./1081-granular-consent-and-authorized-applications.md) | Granular per-scope consent and the self-service authorized-applications surface | Accepted |
+| [1081](./1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md) | Consent is a durable record of decided and granted scopes, enforced at the authorization endpoint | Accepted |
 | [1085](./1085-ciba-grant.md) | CIBA grant (OpenID Connect Client-Initiated Backchannel Authentication) over the persisted-grant store | Accepted |
 | [1087](./1087-refresh-token-reuse-detection-and-family-revocation.md) | Refresh-token reuse detection revokes the whole rotation family | Accepted |
 | [1088](./1088-opt-in-front-channel-logout-and-session-management.md) | Opt-in Front-Channel Logout and Session Management (available, disabled by default) | Accepted |

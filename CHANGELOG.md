@@ -1294,7 +1294,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **`prompt=login`, `prompt=select_account` and `prompt=create` run their interactive step once per authorization
   request.** `DefaultAuthorizeHandler` skips them on the resumed continuation (`!IsContinuation`), as it does for
-  `prompt=consent` ([ADR-1081](docs/decisions/1081-granular-consent-and-authorized-applications.md)). The authorization
+  `prompt=consent` ([ADR-1081](docs/decisions/1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md)). The authorization
   then completes, and the re-authenticated ID token carries a later `auth_time`.
 
 - **Response types are whole values, enforced exactly and kept consistent with grant types.** `response_types_supported`
@@ -1937,7 +1937,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   Back-Channel Logout are the recommended mechanisms.
 
 - **End-user consent is a durable, first-class aggregate, separate from the grant store, and enforced at the authorize
-  endpoint** ([ADR-1076](docs/decisions/1076-consent-persistence-and-enforcement.md)). `PersistedConsent`,
+  endpoint** ([ADR-1081](docs/decisions/1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md)). `PersistedConsent`,
   `IConsentStore` and the `ConsentEntity` table, keyed by `(tenant, client, subject)` and upserted in place, survive
   logout. The client setting `require_consent` (default off, and forced by `prompt=consent`) makes
   `DefaultAuthorizeHandler` route a subject whose recorded consent does not cover the request to the interactive consent
@@ -2022,8 +2022,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#612](https://github.com/NCodeGroup/identity/issues/612)).
 
 - **The consent screen shows the real client and a per-scope choice with friendly names, every requested scope
-  pre-selected** ([ADR-1076](docs/decisions/1076-consent-persistence-and-enforcement.md),
-  [ADR-1081](docs/decisions/1081-granular-consent-and-authorized-applications.md), issue
+  pre-selected** ([ADR-1081](docs/decisions/1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md), issue
   [#131](https://github.com/NCodeGroup/identity/issues/131)). `GET /account/consent/details` resolves the pending
   request from the return URL without consuming it and, through `ResolvePendingConsentAsync` and
   `IScopeDescriptionService`, returns the client's `client_name` and each scope's description and already-granted state;
@@ -2051,7 +2050,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The account surface has an authorized-applications page where the end-user reviews and revokes the applications they
   have authorized** (issue [#40](https://github.com/NCodeGroup/identity/issues/40),
-  [ADR-1081](docs/decisions/1081-granular-consent-and-authorized-applications.md)): the `/account/applications` page,
+  [ADR-1081](docs/decisions/1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md)): the `/account/applications` page,
   `/account/applications/list` JSON and an antiforgery-protected `/account/applications/revoke` POST, backed by
   `IConsentService.GetAuthorizedApplicationsAsync` and `RevokeConsentAsync`.
 
@@ -5142,7 +5141,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Consent is granular: the end-user grants a subset of the requested scopes, and the OP issues only that subset**
   (issue [#40](https://github.com/NCodeGroup/identity/issues/40),
-  [ADR-1081](docs/decisions/1081-granular-consent-and-authorized-applications.md)). The consent record tracks the scopes
+  [ADR-1081](docs/decisions/1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md)). The consent record tracks the scopes
   the subject decided on (`PersistedConsent.RequestedScopes`, `ConsentEntity.RequestedScopesJson`) and the subset they
   granted, so the authorize endpoint prompts only when a request introduces an undecided scope and otherwise issues the
   intersection of the request and the granted scopes. `IConsentService.ResolveConsentAsync` returns a

@@ -49,8 +49,7 @@ forms submit as native HTML form POSTs, so the browser, and Selenium with it, fo
   to `Identity.Application` with the subject claim the OP expects, and redirects to the validated `ReturnUrl`; a
   `ReturnUrl` that leaves the OP is rejected (open-redirect guard).
 - **Consent** (`GET/POST /account/consent`, `consent-allow` / `consent-deny`) is durable and granular, enforced through
-  this same surface ([ADR-1076](../decisions/1076-consent-persistence-and-enforcement.md),
-  [ADR-1081](../decisions/1081-granular-consent-and-authorized-applications.md)). The authorize endpoint asks for
+  this same surface ([ADR-1081](../decisions/1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md)). The authorize endpoint asks for
   consent only when the client's `require_consent` setting is on or the request carries `prompt=consent`. The seeded
   conformance clients leave `require_consent` at its default, `false`, so the suite's flows auto-approve and drive
   fewer selectors that could break, while a `prompt=consent` request still reaches the page and its `consent-deny`

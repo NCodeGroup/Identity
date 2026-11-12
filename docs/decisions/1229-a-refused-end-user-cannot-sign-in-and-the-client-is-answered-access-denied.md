@@ -76,7 +76,7 @@ sign-in sends before it creates a session, and whose refusal answers the client 
 ## References
 
 - [ADR-1070](1070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md) — the interactive surface.
-- [ADR-1076](1076-consent-persistence-and-enforcement.md) — the consent surface, whose denial answers the authorization
+- [ADR-1081](1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md) — the consent surface, whose denial answers the authorization
   request.
 - [ADR-1224](1224-deleting-or-disabling-an-account-ends-its-sessions.md) — the account check.
 - [ADR-1225](1225-every-grant-that-issues-tokens-for-a-subject-validates-it.md) — every subject validation.

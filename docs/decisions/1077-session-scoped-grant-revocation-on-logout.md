@@ -48,7 +48,7 @@ available as the deliberate opt-in it already was (the management bulk-revoke of
 - **Global sign-out stays an explicit, separate operation.** "Sign user X out everywhere" is the management
   bulk-revoke ([ADR-1020](1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md)) keyed by `subjectId`; it is a deliberate
   administrative action, not a side effect of a single session's logout. Durable consent is unaffected — it is its own
-  aggregate, not a grant ([ADR-1076](1076-consent-persistence-and-enforcement.md)).
+  aggregate, not a grant ([ADR-1081](1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md)).
 
 The redundant `ISessionService.RevokeAsync` (which revoked only the session grant, leaving its child tokens live) is
 removed: session revocation is now the session-scoped grant revocation, which is both complete and the single path.
@@ -87,7 +87,7 @@ removed: session revocation is now the session-scoped grant revocation, which is
   `sessionId` filter joins, and the management "sign out everywhere" path.
 - [ADR-1052](1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md) — the normalized-companion vs.
   verbatim-indexed-key convention that governs the `SessionId` column.
-- [ADR-1076](1076-consent-persistence-and-enforcement.md) — durable consent is its own aggregate, immune to grant
+- [ADR-1081](1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md) — durable consent is its own aggregate, immune to grant
   revocation.
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the interceptor that bumps row tokens on the grants a
   session-scoped revoke changes.

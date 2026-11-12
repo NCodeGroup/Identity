@@ -214,10 +214,9 @@ The records are grouped by area; within an area they are in number order.
 | [1192](./1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md) | Dynamic client registration rides the client and grant stores, authorized by single-use initial access tokens | Accepted |
 | [1201](./1201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md) | Authorization responses are delivered by registered response-mode handlers | Accepted |
 | [1203](./1203-redirect-uris-are-matched-exactly-as-written-and-their-kinds-are-narrowed-by-settings.md) | Redirect URIs are matched exactly, as written, and their kinds are narrowed by settings | Accepted |
-| [1211](./1211-a-rotated-refresh-token-is-spent-with-its-successor.md) | A rotated refresh token is spent with its successor, and a lost spend is a reuse | Accepted |
 | [1212](./1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md) | Deleting a client, resource server, principal or tenant removes what it owns | Accepted |
 | [1215](./1215-a-revocation-wins-a-concurrency-race.md) | A revocation wins a concurrency race | Accepted |
-| [1216](./1216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md) | A refresh token is rotated unless it is sender-constrained | Accepted |
+| [1216](./1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md) | A refresh token rotates unless it is bound, and rotation spends it with its successor atomically | Accepted |
 | [1217](./1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md) | A rotated refresh token may be retried within a reuse interval | Accepted |
 | [1218](./1218-ended-grants-are-removed-after-a-retention-period.md) | Ended grants are removed after a retention period | Accepted |
 | [1220](./1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md) | An end-user session always ends, and its grant expires when it does | Accepted |

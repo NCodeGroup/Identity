@@ -415,7 +415,7 @@ internal class DefaultRefreshTokenGrantHandler(
     }
 
     // A refresh token presented after it was rotated or revoked, or spent first by a concurrent request, is a reuse
-    // (RFC 9700 §4.14.2). See ADR-1211.
+    // (RFC 9700 §4.14.2). See ADR-1216.
     private async ValueTask<IOpenIdResponse> AnswerReuseAsync(
         OpenIdContext openIdContext,
         OpenIdClient openIdClient,

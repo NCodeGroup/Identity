@@ -1508,7 +1508,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#275](https://github.com/NCodeGroup/identity/issues/275)). Concurrent refreshes that extend a sliding expiration both
   succeed, because the sliding-expiration update keeps the other request's change (issue
   [#260](https://github.com/NCodeGroup/identity/issues/260))
-  ([ADR-1211](docs/decisions/1211-a-rotated-refresh-token-is-spent-with-its-successor.md),
+  ([ADR-1216](docs/decisions/1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md),
   [ADR-1217](docs/decisions/1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md)).
 
 - **Client-authentication methods are named by registered descriptors.** `ClientAuthenticationMethodDescriptor` names a
@@ -5206,7 +5206,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   implements the three members. Of two requests that present one refresh token at once, the losing request receives
   `invalid_grant` and the `token.refresh.replay` audit event, and under `refresh_token_reuse_policy` `revoke_all` the
   whole rotation family is revoked, the winner's successor token included (RFC 9700 §4.14.2)
-  ([ADR-1211](docs/decisions/1211-a-rotated-refresh-token-is-spent-with-its-successor.md), issue
+  ([ADR-1216](docs/decisions/1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md), issue
   [#260](https://github.com/NCodeGroup/identity/issues/260)).
 
 - **A replayed refresh token revokes its whole rotation family** (issue
@@ -5230,7 +5230,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   public client's unbound refresh token (RFC 9700 §4.14.2), and the FAPI 2.0 security profile defaults a client to
   `unbound`. The policy merges by replacement, so a tenant's `always` is a default that a client's own `unbound`
   overrides; a public client's unbound token rotates whatever the policy
-  ([ADR-1216](docs/decisions/1216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md), issue
+  ([ADR-1216](docs/decisions/1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md), issue
   [#268](https://github.com/NCodeGroup/identity/issues/268)).
 
 - **A refresh token family expires at a fixed horizon, which the token response announces.** A rotation family expires

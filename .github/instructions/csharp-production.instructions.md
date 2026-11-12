@@ -611,8 +611,7 @@ than inlining the rationale.
   before any token is minted. A spend that loses to a spend or a revocation is answered as a reuse, and one that loses
   to a write that left the grant active reads the grant again. `RefreshTokenRotationRequirement` decides whether a token
   rotates. A successor stored in a later unit of work can escape the loser's lineage revocation. See
-  [ADR-1211](../../docs/decisions/1211-a-rotated-refresh-token-is-spent-with-its-successor.md),
-  [ADR-1216](../../docs/decisions/1216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md) and
+  [ADR-1216](../../docs/decisions/1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md) and
   [ADR-1217](../../docs/decisions/1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md).
 - 👁 **A store reports a lost optimistic-concurrency race as `StoreConcurrencyException`, never an Entity Framework
   type.** `IStoreManager.SaveChangesAsync` and a store's own concurrency-token check throw it, so no caller references

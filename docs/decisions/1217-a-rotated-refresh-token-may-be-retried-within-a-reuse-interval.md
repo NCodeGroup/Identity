@@ -8,7 +8,7 @@
 
 A rotated refresh token that is presented again is a reuse, and under `refresh_token_reuse_policy = revoke_all` the
 server revokes its lineage
-([ADR-1211](1211-a-rotated-refresh-token-is-spent-with-its-successor.md),
+([ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md),
 [ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md)). A client that lost the response of a rotation
 presents the rotated token again, and so do two tabs of one browser that refresh at the same time, so each of them loses
 its session.
@@ -103,10 +103,10 @@ a reuse.**
 
 - [ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md) — reuse detection and the revocation of the
   rotation family.
-- [ADR-1211](1211-a-rotated-refresh-token-is-spent-with-its-successor.md) — a rotation spends the presented token with
+- [ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md) — a rotation spends the presented token with
   its successor, and a lost spend is a reuse.
 - [ADR-1215](1215-a-revocation-wins-a-concurrency-race.md) — a revocation reads again and retries when it loses a race.
-- [ADR-1216](1216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md) — which refresh tokens rotate.
+- [ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md) — which refresh tokens rotate.
 - [ADR-1028](1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md) — the revocation endpoint revokes refresh tokens.
 - [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700) — OAuth 2.0 Security Best Current Practice (§4.14.2).
 - [RFC 7009](https://www.rfc-editor.org/rfc/rfc7009) — OAuth 2.0 Token Revocation (§2.1).

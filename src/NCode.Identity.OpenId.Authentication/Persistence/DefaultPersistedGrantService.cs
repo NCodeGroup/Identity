@@ -425,7 +425,7 @@ internal class DefaultPersistedGrantService(
             {
                 // Another request changed the grant after it was read. A spend or a revocation leaves it inactive,
                 // and the next read refuses it; a write that left it active, such as a retry within the reuse
-                // interval that marks its lineage, is read again. See ADR-1211 and ADR-1217.
+                // interval that marks its lineage, is read again. See ADR-1216 and ADR-1217.
             }
         }
     }
@@ -501,7 +501,7 @@ internal class DefaultPersistedGrantService(
             {
                 // Another request changed the grant after it was read. A spend or a revocation leaves it inactive,
                 // and the next read refuses it; a write that left it active, such as a retry within the reuse
-                // interval that marks its lineage, is read again. See ADR-1211 and ADR-1217.
+                // interval that marks its lineage, is read again. See ADR-1216 and ADR-1217.
             }
         }
     }
@@ -606,7 +606,7 @@ internal class DefaultPersistedGrantService(
             catch (StoreConcurrencyException) when (attempt < MaxSaveAttempts)
             {
                 // A grant of the lineage changed after it was read, such as a rotation that committed in between.
-                // A revocation must win, so it reads the lineage again. See ADR-1211.
+                // A revocation must win, so it reads the lineage again. See ADR-1216.
             }
         }
     }
@@ -707,7 +707,7 @@ internal class DefaultPersistedGrantService(
         catch (StoreConcurrencyException)
         {
             // Another request changed the grant after it was read, such as a concurrent refresh that extended it,
-            // and its change stands. See ADR-1211.
+            // and its change stands. See ADR-1216.
         }
     }
 

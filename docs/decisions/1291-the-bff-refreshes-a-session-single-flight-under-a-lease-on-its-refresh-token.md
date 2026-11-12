@@ -17,7 +17,7 @@
 A backend-for-frontend session ([ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md))
 holds one refresh token, and a browser fires parallel API calls that may land on different replicas. When the access
 token is about to expire, each of them could refresh it. The NCode OP rotates a refresh token that is not
-sender-constrained ([ADR-1216](1216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md)), and presenting a
+sender-constrained ([ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md)), and presenting a
 rotated token twice is reuse, which revokes the whole family (RFC 9700 §4.14.2). The design (§5.5, D6) chose
 cluster-wide single-flight refresh in the BFF over a reuse grace window at the OP. This ADR records how phase 2
 (issue #394) builds it, how it maps refresh failures, how it binds tokens with DPoP and how applications ask for a
@@ -112,7 +112,7 @@ while the others wait for its result.**
 
 - [Backend-for-frontend design](../backend-for-frontend.md) §5.5, §11.2, D6 and D7
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
-- [ADR-1216](1216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md) — refresh-token rotation
+- [ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md) — refresh-token rotation
 - [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) — versioned values
 - [ADR-1286](1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md) — DPoP in the protocol client
 - [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md) — the session record

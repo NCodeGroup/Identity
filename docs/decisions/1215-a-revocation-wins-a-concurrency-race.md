@@ -22,7 +22,7 @@ or another revocation, made the save of the revocation fail:
   the caller read.
 
 The revocation of a refresh-token lineage read again and retried
-([ADR-1211](1211-a-rotated-refresh-token-is-spent-with-its-successor.md) decision 5), and the other revocations did not
+([ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md) decision 5), and the other revocations did not
 (issue [#269](https://github.com/NCodeGroup/identity/issues/269)).
 
 ## Decision
@@ -63,7 +63,7 @@ a race.**
    `ReplaceOnceOrDefault` spend a grant that must be active, so their outcome depends on what they read. A spend that
    loses to a spend or to a revocation is answered as a second spend or a reuse
    ([ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md),
-   [ADR-1211](1211-a-rotated-refresh-token-is-spent-with-its-successor.md)). A refresh-token spend reads again only
+   [ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md)). A refresh-token spend reads again only
    after a write that left the grant active
    ([ADR-1217](1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md)).
 
@@ -99,7 +99,7 @@ a race.**
   the lost race.
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — a lost race is a
   `StoreConcurrencyException`.
-- [ADR-1211](1211-a-rotated-refresh-token-is-spent-with-its-successor.md) — the lineage revocation that reads again, and
+- [ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md) — the lineage revocation that reads again, and
   the spends that answer a lost race as a reuse.
 - [ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md) — a management write that loses a race is
   answered `412`.

@@ -13,7 +13,7 @@ from one grant shares the family's `RefreshTokenLineageId`. The client setting `
 
 Each issued token got the full `refresh_token_lifetime` from the moment it was issued. A token that is never rotated
 did expire at a fixed point, but a rotation gave the successor a new full lifetime, so under rotation, which a public
-client's unbound token always gets ([ADR-1216](1216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md)),
+client's unbound token always gets ([ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md)),
 `absolute` behaved like `sliding`, and the family lived for as long as it was used. That contradicted the documented
 meaning of `absolute` ("expire at a fixed point in time regardless of use"). `sliding` promised an extension "up to an
 absolute maximum", but no maximum existed. RFC 9700 §4.14.2 expects refresh tokens to expire, and the established
@@ -89,7 +89,7 @@ sound only when the value is a fixed horizon that never moves later within a fam
 
 - [RFC 9700 §4.14.2](https://www.rfc-editor.org/rfc/rfc9700#section-4.14.2) — refresh token protection
 - [ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md) — refresh token lineage
-- [ADR-1216](1216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md) — when a refresh token is rotated
+- [ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md) — when a refresh token is rotated
 - [ADR-1217](1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md) — retries within a reuse interval
 - [ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md) — the BFF caps a
   session at `refresh_token_expires_in`

@@ -1,8 +1,8 @@
 # 1087. Refresh-token reuse detection revokes the whole rotation family
 
-- **Status:** Accepted (amended by [ADR-1211](1211-a-rotated-refresh-token-is-spent-with-its-successor.md): rotation
+- **Status:** Accepted (amended by [ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md): rotation
   spends the presented token with its successor in one unit of work, and a lost spend is a reuse;
-  [ADR-1216](1216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md): which refresh tokens rotate;
+  [ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md): which refresh tokens rotate;
   [ADR-1217](1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md): a rotated token may be retried
   within an opt-in reuse interval)
 - **Date:** 2026-10-12
@@ -57,7 +57,7 @@ Concretely:
   ([ADR-1020](1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md)) so the interceptor still stamps each changed row;
   `IPersistedGrantService.RevokeByRefreshTokenLineageAsync` wraps it for the grant handler. The handler calls it, after
   the replay audit, for a presented token that is revoked and for one whose spend a concurrent request won
-  ([ADR-1211](1211-a-rotated-refresh-token-is-spent-with-its-successor.md)).
+  ([ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md)).
 
 ## Options considered
 

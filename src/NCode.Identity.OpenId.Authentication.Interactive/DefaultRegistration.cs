@@ -38,6 +38,153 @@ public static class DefaultRegistration
     private const string ConfigurationSectionName = "InteractiveAuthentication";
     private const string AntiforgeryHeaderName = "X-XSRF-TOKEN";
 
+    // The index of the registered IUiLocale instance whose tag is languageTag, compared without regard to case as
+    // BCP 47 tags are, or -1 when none is registered.
+    private static int FindUiLocale(IServiceCollection serviceCollection, string languageTag)
+    {
+        for (var index = 0; index < serviceCollection.Count; index++)
+        {
+            if (
+                TryGetUiLocale(serviceCollection[index], out var registered)
+                && string.Equals(
+                    registered.LanguageTag,
+                    languageTag,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    // Registers the IUiLocale instances again in the canonical order, a function of the set of registered locales
+    // alone: the shipped tags in the shipped order, each the registered locale of its tag, then the other tags in
+    // the order they were registered. Both registrations end with it, so the order is the same whichever of them
+    // comes first and however they interleave. The instances take the place of the first of them, so a locale
+    // registered through a type or a factory keeps its place among them.
+    private static void OrderUiLocales(IServiceCollection serviceCollection)
+    {
+        var registered = new List<(ServiceDescriptor Descriptor, IUiLocale Locale)>();
+        var insertIndex = serviceCollection.Count;
+        for (var index = serviceCollection.Count - 1; index >= 0; index--)
+        {
+            var descriptor = serviceCollection[index];
+            if (TryGetUiLocale(descriptor, out var locale))
+            {
+                registered.Add((descriptor, locale));
+                serviceCollection.RemoveAt(index);
+                insertIndex = index;
+            }
+        }
+
+        registered.Reverse();
+
+        var ordered = new List<ServiceDescriptor>(registered.Count);
+        foreach (var shipped in InteractiveLocales.All)
+        {
+            var index = FindUiLocale(registered, shipped.LanguageTag);
+            if (index >= 0)
+            {
+                ordered.Add(registered[index].Descriptor);
+                registered.RemoveAt(index);
+            }
+        }
+
+        foreach (var (descriptor, _) in registered)
+        {
+            ordered.Add(descriptor);
+        }
+
+        foreach (var descriptor in ordered)
+        {
+            serviceCollection.Insert(insertIndex, descriptor);
+            insertIndex++;
+        }
+    }
+
+    // The index of the registered locale whose tag is languageTag, or -1 when none is registered.
+    private static int FindUiLocale(
+        List<(ServiceDescriptor Descriptor, IUiLocale Locale)> registered,
+        string languageTag
+    )
+    {
+        for (var index = 0; index < registered.Count; index++)
+        {
+            if (
+                string.Equals(
+                    registered[index].Locale.LanguageTag,
+                    languageTag,
+                    StringComparison.OrdinalIgnoreCase
+                )
+            )
+            {
+                return index;
+            }
+        }
+
+        return -1;
+    }
+
+    private static bool TryGetUiLocale(
+        ServiceDescriptor descriptor,
+        [MaybeNullWhen(false)] out IUiLocale locale
+    )
+    {
+        if (
+            descriptor.ServiceType == typeof(IUiLocale)
+            && !descriptor.IsKeyedService
+            && descriptor.ImplementationInstance is IUiLocale registered
+        )
+        {
+            locale = registered;
+            return true;
+        }
+
+        locale = null;
+        return false;
+    }
+
+    // Mirrors the cookie handler's own login redirect with the login page of the request's tenant in place of a fixed
+    // login path, as a root-relative URL so the request's Host contributes nothing; its return URL is the challenge's
+    // redirect URI, or the challenged request itself. The challenge's ui_locales parameter, which the authorization
+    // endpoint sets from the request, reaches the page so it renders in the end-user's preferred language.
+    // See ADR-1365 and ADR-1402.
+    private static string BuildLoginRedirectUri(
+        RedirectContext<CookieAuthenticationOptions> context,
+        InteractiveSurfacePaths surfacePaths
+    )
+    {
+        var request = context.Request;
+        var returnUrl = context.Properties.RedirectUri;
+        if (string.IsNullOrEmpty(returnUrl))
+        {
+            returnUrl = request.PathBase + request.Path + request.QueryString;
+        }
+
+        var loginPath = surfacePaths.GetSurfacePath(
+            context.HttpContext,
+            InteractiveAuthenticationDefaults.LoginPath
+        );
+        var query = QueryString.Create(context.Options.ReturnUrlParameter, returnUrl);
+        var uiLocales = context.Properties.GetParameter<string>(
+            OpenIdProtocol.Parameters.UiLocales
+        );
+        if (!string.IsNullOrEmpty(uiLocales))
+        {
+            query = query.Add(OpenIdProtocol.Parameters.UiLocales, uiLocales);
+        }
+
+        return $"{loginPath}{query}";
+    }
+
+    private static string? ResolveBundleRootPath(string? bundleRootPath, string contentRootPath) =>
+        string.IsNullOrWhiteSpace(bundleRootPath)
+            ? bundleRootPath
+            : Path.GetFullPath(bundleRootPath, contentRootPath);
+
     /// <param name="builder">The <see cref="IServiceBuilder{T}"/> for <see cref="OpenIdAuthenticationLibrary"/>.</param>
     extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
     {
@@ -288,151 +435,4 @@ public static class DefaultRegistration
             return builder;
         }
     }
-
-    // The index of the registered IUiLocale instance whose tag is languageTag, compared without regard to case as
-    // BCP 47 tags are, or -1 when none is registered.
-    private static int FindUiLocale(IServiceCollection serviceCollection, string languageTag)
-    {
-        for (var index = 0; index < serviceCollection.Count; index++)
-        {
-            if (
-                TryGetUiLocale(serviceCollection[index], out var registered)
-                && string.Equals(
-                    registered.LanguageTag,
-                    languageTag,
-                    StringComparison.OrdinalIgnoreCase
-                )
-            )
-            {
-                return index;
-            }
-        }
-
-        return -1;
-    }
-
-    // Registers the IUiLocale instances again in the canonical order, a function of the set of registered locales
-    // alone: the shipped tags in the shipped order, each the registered locale of its tag, then the other tags in
-    // the order they were registered. Both registrations end with it, so the order is the same whichever of them
-    // comes first and however they interleave. The instances take the place of the first of them, so a locale
-    // registered through a type or a factory keeps its place among them.
-    private static void OrderUiLocales(IServiceCollection serviceCollection)
-    {
-        var registered = new List<(ServiceDescriptor Descriptor, IUiLocale Locale)>();
-        var insertIndex = serviceCollection.Count;
-        for (var index = serviceCollection.Count - 1; index >= 0; index--)
-        {
-            var descriptor = serviceCollection[index];
-            if (TryGetUiLocale(descriptor, out var locale))
-            {
-                registered.Add((descriptor, locale));
-                serviceCollection.RemoveAt(index);
-                insertIndex = index;
-            }
-        }
-
-        registered.Reverse();
-
-        var ordered = new List<ServiceDescriptor>(registered.Count);
-        foreach (var shipped in InteractiveLocales.All)
-        {
-            var index = FindUiLocale(registered, shipped.LanguageTag);
-            if (index >= 0)
-            {
-                ordered.Add(registered[index].Descriptor);
-                registered.RemoveAt(index);
-            }
-        }
-
-        foreach (var (descriptor, _) in registered)
-        {
-            ordered.Add(descriptor);
-        }
-
-        foreach (var descriptor in ordered)
-        {
-            serviceCollection.Insert(insertIndex, descriptor);
-            insertIndex++;
-        }
-    }
-
-    // The index of the registered locale whose tag is languageTag, or -1 when none is registered.
-    private static int FindUiLocale(
-        List<(ServiceDescriptor Descriptor, IUiLocale Locale)> registered,
-        string languageTag
-    )
-    {
-        for (var index = 0; index < registered.Count; index++)
-        {
-            if (
-                string.Equals(
-                    registered[index].Locale.LanguageTag,
-                    languageTag,
-                    StringComparison.OrdinalIgnoreCase
-                )
-            )
-            {
-                return index;
-            }
-        }
-
-        return -1;
-    }
-
-    private static bool TryGetUiLocale(
-        ServiceDescriptor descriptor,
-        [MaybeNullWhen(false)] out IUiLocale locale
-    )
-    {
-        if (
-            descriptor.ServiceType == typeof(IUiLocale)
-            && !descriptor.IsKeyedService
-            && descriptor.ImplementationInstance is IUiLocale registered
-        )
-        {
-            locale = registered;
-            return true;
-        }
-
-        locale = null;
-        return false;
-    }
-
-    // Mirrors the cookie handler's own login redirect with the login page of the request's tenant in place of a fixed
-    // login path, as a root-relative URL so the request's Host contributes nothing; its return URL is the challenge's
-    // redirect URI, or the challenged request itself. The challenge's ui_locales parameter, which the authorization
-    // endpoint sets from the request, reaches the page so it renders in the end-user's preferred language.
-    // See ADR-1365 and ADR-1402.
-    private static string BuildLoginRedirectUri(
-        RedirectContext<CookieAuthenticationOptions> context,
-        InteractiveSurfacePaths surfacePaths
-    )
-    {
-        var request = context.Request;
-        var returnUrl = context.Properties.RedirectUri;
-        if (string.IsNullOrEmpty(returnUrl))
-        {
-            returnUrl = request.PathBase + request.Path + request.QueryString;
-        }
-
-        var loginPath = surfacePaths.GetSurfacePath(
-            context.HttpContext,
-            InteractiveAuthenticationDefaults.LoginPath
-        );
-        var query = QueryString.Create(context.Options.ReturnUrlParameter, returnUrl);
-        var uiLocales = context.Properties.GetParameter<string>(
-            OpenIdProtocol.Parameters.UiLocales
-        );
-        if (!string.IsNullOrEmpty(uiLocales))
-        {
-            query = query.Add(OpenIdProtocol.Parameters.UiLocales, uiLocales);
-        }
-
-        return $"{loginPath}{query}";
-    }
-
-    private static string? ResolveBundleRootPath(string? bundleRootPath, string contentRootPath) =>
-        string.IsNullOrWhiteSpace(bundleRootPath)
-            ? bundleRootPath
-            : Path.GetFullPath(bundleRootPath, contentRootPath);
 }

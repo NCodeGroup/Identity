@@ -22,6 +22,27 @@ namespace NCode.Identity.OpenId.Accounts.Authentication;
 [PublicAPI]
 public static class DefaultRegistration
 {
+    // The account-sourced UserInfo enricher is grant-agnostic (any access token issued for a local account), so both
+    // the password-grant and interactive registrations wire it; TryAddEnumerable keys on the implementation type, so
+    // registering it from both entry points adds it exactly once.
+    private static void AddLocalAccountUserInfoClaims(IServiceCollection serviceCollection) =>
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                ICommandHandler<GetUserInfoClaimsCommand>,
+                DefaultGetLocalAccountUserInfoClaimsHandler
+            >()
+        );
+
+    // The subject-validation handler is grant-agnostic (it runs wherever an end user's standing is validated), so both
+    // the password-grant and interactive registrations wire it; TryAddEnumerable adds it exactly once.
+    private static void AddLocalAccountSubjectValidation(IServiceCollection serviceCollection) =>
+        serviceCollection.TryAddEnumerable(
+            ServiceDescriptor.Singleton<
+                ICommandHandler<ValidateSubjectStandingCommand>,
+                DefaultValidateLocalAccountSubjectHandler
+            >()
+        );
+
     /// <param name="builder">The <see cref="OpenIdAuthenticationLibrary"/> builder these capabilities extend.</param>
     extension(IServiceBuilder<OpenIdAuthenticationLibrary> builder)
     {
@@ -108,25 +129,4 @@ public static class DefaultRegistration
             return builder;
         }
     }
-
-    // The account-sourced UserInfo enricher is grant-agnostic (any access token issued for a local account), so both
-    // the password-grant and interactive registrations wire it; TryAddEnumerable keys on the implementation type, so
-    // registering it from both entry points adds it exactly once.
-    private static void AddLocalAccountUserInfoClaims(IServiceCollection serviceCollection) =>
-        serviceCollection.TryAddEnumerable(
-            ServiceDescriptor.Singleton<
-                ICommandHandler<GetUserInfoClaimsCommand>,
-                DefaultGetLocalAccountUserInfoClaimsHandler
-            >()
-        );
-
-    // The subject-validation handler is grant-agnostic (it runs wherever an end user's standing is validated), so both
-    // the password-grant and interactive registrations wire it; TryAddEnumerable adds it exactly once.
-    private static void AddLocalAccountSubjectValidation(IServiceCollection serviceCollection) =>
-        serviceCollection.TryAddEnumerable(
-            ServiceDescriptor.Singleton<
-                ICommandHandler<ValidateSubjectStandingCommand>,
-                DefaultValidateLocalAccountSubjectHandler
-            >()
-        );
 }

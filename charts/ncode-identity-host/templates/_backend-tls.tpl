@@ -120,17 +120,6 @@ with root and service (the Service's name).
 {{- end }}
 
 {{/*
-Renders true when the chart creates its private CA, and nothing otherwise: no issuer of the operator's is named, and a
-component takes its certificate from the chart.
-*/}}
-{{- define "identity-host.backendTls.privateCa" -}}
-{{- $consoleNeedsCertificate := and .Values.managementConsole.enabled (not .Values.managementConsole.backendTls.existingSecret) }}
-{{- if and (not .Values.backendTls.certManager.issuerRef.name) (or (not .Values.backendTls.existingSecret) $consoleNeedsCertificate) }}
-{{- true }}
-{{- end }}
-{{- end }}
-
-{{/*
 The rootCAs item of a ServersTransport: the CA ConfigMap when one is set, otherwise the Service's serving Secret. Takes a
 dict with root and service (the Service's name).
 */}}
@@ -230,8 +219,8 @@ Refuses a certificate the chart's Certificate could not describe to cert-manager
 {{- fail "backendTls.caConfigMap must be set, or backendTls.caPublisher.enabled with the chart's private CA, when httpRoute.enabled is true: the BackendTLSPolicy verifies the pods' certificate against the CA in that ConfigMap." }}
 {{- end }}
 {{- end }}
-{{- if and .Values.backendTls.caPublisher.enabled (not (include "identity-host.backendTls.privateCa" .)) }}
-{{- fail "backendTls.caPublisher.enabled needs the chart's private CA: it publishes that CA, so backendTls.certManager.issuerRef.name must be empty and a component must take its certificate from it." }}
+{{- if and .Values.backendTls.caPublisher.enabled (or .Values.backendTls.certManager.issuerRef.name .Values.backendTls.existingSecret) }}
+{{- fail "backendTls.caPublisher.enabled publishes the chart's private CA to the server's CA ConfigMap, so the server must take its certificate from that CA: backendTls.certManager.issuerRef.name and backendTls.existingSecret must be empty." }}
 {{- end }}
 {{- if and $consoleOn $console.httpRoute.enabled }}
 {{- if not $console.httpRoute.parentRefs }}

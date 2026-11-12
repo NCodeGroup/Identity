@@ -98,7 +98,7 @@ The records are grouped by area; within an area they are in number order.
 | [1302](./1302-the-main-branch-is-the-trunk-release-lines-service-shipped-versions-and-prereleases-use-trusted-publishing.md) | The main branch is the trunk, release lines service shipped versions, and prereleases use trusted publishing | Accepted |
 | [1306](./1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-repository-files.md) | Pending work is tracked as GitHub issues, linked by address in repository files | Accepted |
 | [1307](./1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md) | identity-platform records its decisions and pending work in this repository | Accepted |
-| [1309](./1309-csharp-files-carry-a-two-line-spdx-header-that-the-build-checks.md) | C# files carry a two-line SPDX header that the build checks | Accepted |
+| [1309](./1309-c-files-carry-a-two-line-spdx-header-that-the-build-checks.md) | C# files carry a two-line SPDX header that the build checks | Accepted |
 | [1355](./1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md) | General ASP.NET Core helpers live in a dependency-free package | Superseded |
 | [1385](./1385-no-shipping-package-switches-off-its-consumers-logging-generator.md) | No shipping package switches off its consumers' logging generator | Accepted |
 | [1386](./1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md) | Primitives are benchmarked in a project the build compiles and nothing runs | Accepted |

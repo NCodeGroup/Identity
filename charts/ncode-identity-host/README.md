@@ -25,8 +25,8 @@ The chart takes no secret values. It references Secrets you create in the releas
 
 ## Published artifacts
 
-Every merge to `main` and every release tag `v*.*.*` publishes three artifacts to GHCR at one version,
-`0.0.1-alpha.<n>`, through the Publish artifacts workflow ([ADR-1503](../../docs/decisions/1503-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)):
+Every merge to `main` and every release tag `v*.*.*` publishes three artifacts to GHCR at one version
+(`0.0.1-alpha.<n>` for a merge to `main`, the tag's version for a release tag), through the Publish artifacts workflow ([ADR-1503](../../docs/decisions/1503-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)):
 
 - `ghcr.io/ncodegroup/ncode-identity-host:<version>`, the host image.
 - `ghcr.io/ncodegroup/ncode-identity-management-console:<version>`, the management console image.

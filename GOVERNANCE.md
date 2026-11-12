@@ -124,8 +124,8 @@ See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-th
   publishing, and it refuses a version already published
   ([ADR-1302](docs/decisions/1302-prerelease-packages-publish-from-a-prerelease-tag-or-a-manual-run-on-main-through-trusted-publishing.md)).
 - The host image, the management console image and the host chart publish to GHCR through the `Publish artifacts`
-  workflow (`.github/workflows/publish-artifacts.yml`) on every merge to `main` and every release tag, at one prerelease
-  version, signed and with provenance
+  workflow (`.github/workflows/publish-artifacts.yml`) on every merge to `main` and every release tag, at one version,
+  signed and with provenance
   ([ADR-1503](docs/decisions/1503-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)).
 
 ## Definition of Done

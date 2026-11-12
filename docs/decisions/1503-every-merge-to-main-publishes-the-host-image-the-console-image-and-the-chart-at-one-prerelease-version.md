@@ -18,7 +18,7 @@ consumer follows the chart's version alone.
 
 ## Decision
 
-**Every push to `main` publishes the host image, the console image and the chart at one prerelease version.**
+**Every push to `main` and every release tag publishes the host image, the console image and the chart at one version.**
 
 1. **The `Publish artifacts` workflow publishes on every push to `main`** and on a manual run on `main`. Its jobs are
    `version`, `publish` and `verify`. It publishes `ghcr.io/ncodegroup/ncode-identity-host:V`,

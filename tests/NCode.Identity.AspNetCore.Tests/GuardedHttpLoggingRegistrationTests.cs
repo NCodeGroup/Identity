@@ -259,6 +259,7 @@ public sealed class GuardedHttpLoggingRegistrationTests : BaseTests
 
     [Theory]
     [InlineData(false)]
+    [InlineData(true)]
     public async Task AddGuardedHttpLogging_WhenAProviderScopedLevelIsRaised_CapsTheHostingDiagnosticsCategoryAtWarning(
         bool filterFirst
     )
@@ -311,7 +312,68 @@ public sealed class GuardedHttpLoggingRegistrationTests : BaseTests
         AssertOnlyTheWarningIsWritten(records);
     }
 
+    [Theory]
+    [InlineData("Logging:Aliased:LogLevel:Default", "Debug")]
+    [InlineData("Logging:Aliased:LogLevel:Microsoft.AspNetCore.Hosting.Diagnostics", "Information")]
+    public async Task AddGuardedHttpLogging_WhenAProviderAliasIsConfiguredAtAnyLevel_CapsTheHostingDiagnosticsCategoryAtWarning(
+        string key,
+        string level
+    )
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { [key] = level })
+            .Build();
+        var lines = new List<string>();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging(x =>
+        {
+            x.AddConfiguration(configuration.GetSection("Logging"));
+            x.AddProvider(new AliasedLoggerProvider(lines));
+        });
+        serviceCollection.AddGuardedHttpLogging();
+
+        await using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger(
+            GuardedHttpLoggingDefaults.HostingDiagnosticsCategory
+        );
+
+        logger.Log(LogLevel.Information, 0, "information-record", null, (state, _) => state);
+        logger.Log(LogLevel.Warning, 0, "warning-record", null, (state, _) => state);
+
+        Assert.DoesNotContain(
+            lines,
+            x => x.Contains("information-record", StringComparison.Ordinal)
+        );
+        Assert.Contains(lines, x => x.Contains("warning-record", StringComparison.Ordinal));
+    }
+
     #endregion
+
+    [ProviderAlias("Aliased")]
+    private sealed class AliasedLoggerProvider(List<string> lines) : ILoggerProvider
+    {
+        public ILogger CreateLogger(string categoryName) => new AppendingLogger(lines);
+
+        public void Dispose() { }
+    }
+
+    private sealed class AppendingLogger(List<string> lines) : ILogger
+    {
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter
+        ) => lines.Add(formatter(state, exception));
+    }
 
     private static IReadOnlyList<FakeLogRecord> LogHostingDiagnostics(
         ServiceProvider serviceProvider

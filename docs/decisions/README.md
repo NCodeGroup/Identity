@@ -339,7 +339,7 @@ The records are grouped by area; within an area they are in number order.
 | [1381](./1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md) | The BFF serves client and exchanged tokens without a lease and forwards remote APIs through YARP | Accepted |
 | [1382](./1382-the-bffs-browser-security-headers-and-its-client-key-endpoint-are-each-opt-in-for-the-host.md) | The BFF's browser security headers and its client-key endpoint are each opt-in for the host | Accepted |
 | [1432](./1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md) | One BFF serves several frontends, each selected per request by an open rule | Accepted |
-| [1433](./1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md) | A BFF host refuses to start when an endpoint's BFF metadata is incomplete | Accepted |
+| [1433](./1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md) | A BFF host checks every endpoint's BFF metadata at start and again whenever the endpoints change | Accepted |
 | [1434](./1434-open-tabs-learn-that-a-bff-session-ended-from-its-next-answer-not-a-pushed-event.md) | Open tabs learn that a BFF session ended from its next answer, not a pushed event | Accepted |
 | [1435](./1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md) | Server-rendered and Blazor hosts use the BFF session through pages, hubs and two opt-in Blazor packages | Accepted |
 | [1437](./1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md) | The management console is a confidential client served by a BFF host of its own | Accepted |

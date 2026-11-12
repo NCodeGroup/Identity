@@ -100,7 +100,7 @@ compiles it and no gate tests it
   (`AddBffTransforms()`, `AsBffRemoteApis()`)
   ([ADR-1381](docs/decisions/1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)),
   refuses to start when an endpoint's BFF metadata is incomplete
-  ([ADR-1433](docs/decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)),
+  ([ADR-1433](docs/decisions/1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md)),
   and on opt-in sends browser security headers (`UseBffSecurityHeaders()`) and publishes its client keys at `/bff/jwks`
   ([ADR-1382](docs/decisions/1382-the-bffs-browser-security-headers-and-its-client-key-endpoint-are-each-opt-in-for-the-host.md));
   `NCode.Identity.Bff.Server` is its turnkey composition root (`AddIdentityBff(configuration)`), which also loads the

@@ -3,7 +3,7 @@
 - **Status:** Accepted (amends
   [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md) and
   [ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md) decision 1 and
-  [ADR-1433](1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md); decision 4
+  [ADR-1433](1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md); decision 4
   amended by [ADR-1441](1441-a-bff-connection-ends-with-its-session-even-when-idle-and-a-blazor-web-app-proves-it.md):
   an idle hub connection ends with its session; decisions 5 and 6 amended by [ADR-1440](1440-the-names-a-bff-and-its-browser-clients-share-live-in-a-dependency-free-package.md):
   the Blazor server package depends only on abstractions and both halves read their shared names from
@@ -68,7 +68,7 @@ WebAssembly client never holds a token.**
    pages and the Blazor hub as a BFF hub that admits anonymous circuits. A Razor Components convention sees no
    application services, so `AsBffComponents()` attaches an `IBffEndpointStartupRequirement`, which is endpoint
    metadata that `BffEndpointStartupCheck`
-   ([ADR-1433](1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)) evaluates with the
+   ([ADR-1433](1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md)) evaluates with the
    application's services once the host has started. A host that maps `AsBffComponents()` without
    `AddBffBlazorLibrary()` refuses to start. Blazor's own framework endpoints stay outside the BFF. The package depends
    on the abstractions and on the client package.
@@ -114,7 +114,7 @@ WebAssembly client never holds a token.**
   [ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md),
   [ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md),
   [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md),
-  [ADR-1433](1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md),
+  [ADR-1433](1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md),
   [ADR-1434](1434-open-tabs-learn-that-a-bff-session-ended-from-its-next-answer-not-a-pushed-event.md),
   [ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md)
 - [RFC 10017](https://datatracker.ietf.org/doc/html/rfc10017)

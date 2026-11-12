@@ -5606,7 +5606,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   endpoint naming an unconfigured frontend stop the host with one message; a later change of the endpoints or the
   frontends is checked again and logged, and such a route still answers `502`
   ([#522](https://github.com/NCodeGroup/identity/issues/522),
-  [ADR-1433](docs/decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)).
+  [ADR-1433](docs/decisions/1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md)).
 
 - **All persisted OpenID data is tenant-scoped except the platform and teams.** `FederatedPrincipal`, `FederatedIdentity` and
   `LocalAccount` are tenant-owned: their persisted DTOs carry a required `TenantId`, and their server-generated ids and

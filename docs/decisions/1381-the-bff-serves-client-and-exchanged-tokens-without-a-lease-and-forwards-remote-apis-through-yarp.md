@@ -113,7 +113,7 @@ HTTP client that a host configures.
    - A route that names a requirement but is not marked with `AsBffRemoteApis()` fails closed. The token accessor
      serves a token only to an endpoint the BFF guards, so the transform throws, nothing is forwarded, and YARP answers
      `502`. The host's start-time check refuses such a route
-     ([ADR-1433](1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)).
+     ([ADR-1433](1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md)).
    - Path and header policy stay with the route: the route's own pattern and YARP transforms decide what is forwarded,
      including the forwarding headers, as for any YARP route.
 
@@ -171,7 +171,7 @@ HTTP client that a host configures.
 - [ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md)
 - [ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md)
 - [ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md)
-- [ADR-1433](1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)
+- [ADR-1433](1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md)
 - [ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)
 - RFC 6749 §4.4, RFC 8693, RFC 9449, RFC 9700
 - `src/NCode.Identity.Bff/Tokens/`, `src/NCode.Identity.Bff/RemoteApis/`

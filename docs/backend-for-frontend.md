@@ -716,7 +716,7 @@ to one frontend. The keys have no `:`, because YARP's configuration loader reads
   without `AddBffTransforms()`, or when an endpoint names an unconfigured frontend. After startup, a change of the routes
   or the frontends that fails the same checks is logged, and such a route answers `502`: the token accessor serves a
   token only to an endpoint the BFF guards, so nothing is forwarded
-  ([ADR-1433](decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)).
+  ([ADR-1433](decisions/1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md)).
 
 **The SPA contract.** Every request to `/bff/user`, local APIs, and remote APIs carries the configured anti-forgery
 header with its static value (`X-CSRF: 1` by default). Requests are same-origin and send credentials (the `fetch`
@@ -978,7 +978,7 @@ A local API or page serves whichever frontend the request selects, unless it is 
 
 Names from several of these add up. A name that is not configured stops the host from starting, and after a change of
 the endpoints or the frontends it is logged and the endpoint serves no request
-([ADR-1433](decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md),
+([ADR-1433](decisions/1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md),
 [ADR-1442](decisions/1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)).
 
 **Tokens.** A frontend uses its own client registration for every token request: the code exchange, refresh, token
@@ -1167,7 +1167,7 @@ source registers the keyed provider in code and configures no entry for it
 - `Bff:Frontends:{name}:DPoP:Mode` is `required` and the OP does not support DPoP. This check runs when discovery is
   first fetched, not at startup.
 
-The endpoint check of [ADR-1433](decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)
+The endpoint check of [ADR-1433](decisions/1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md)
 runs once the host has started: it stops the host when a YARP route that names a token requirement lacks
 `AsBffRemoteApis()`, when YARP routes are mapped without `AddBffTransforms()`, or when an endpoint names a frontend
 that is not configured. Every failure is listed in one message ([§5.6](#56-accepting-the-bff-cookie-on-apis)). After
@@ -1233,7 +1233,7 @@ reach the page with the session. APIs, hubs and `Lax` frontends keep their chall
 current for inbound activity. `AsBffComponents()` marks component pages as BFF pages and the Blazor hub as a BFF hub
 that admits anonymous circuits. It attaches an `IBffEndpointStartupRequirement` as endpoint metadata, so a host that
 maps it without `AddBffBlazorLibrary()` refuses to start
-([ADR-1433](decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)). Blazor's own
+([ADR-1433](decisions/1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md)). Blazor's own
 framework endpoints stay outside the BFF.
 
 ```csharp
@@ -1564,7 +1564,7 @@ Each capability ends green under `./build/dod.ps1` and records its decisions in 
 | Remote APIs                    | Remote APIs through the forwarder, the `client`, `user_or_client`, `exchange`, and `none` requirements, and token attachment for routes in YARP configuration, with the YARP support in `NCode.Identity.Bff` itself ([ADR-1381](decisions/1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | Browser hardening              | `UseBffSecurityHeaders()` and the `/bff/jwks` endpoint ([ADR-1382](decisions/1382-the-bffs-browser-security-headers-and-its-client-key-endpoint-are-each-opt-in-for-the-host.md)).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | Multiple frontends             | One `Bff:Frontends:{name}` entry per frontend, selected per request by the open `IBffFrontendSelector` rules `host` and `path`, with its own cookies, client registration, endpoints, tokens and security headers, validated as a whole at startup ([§5.10](#510-frontends), [ADR-1432](decisions/1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)). |
-| Endpoint startup check         | The host refuses to start when an endpoint's BFF metadata is incomplete, such as a YARP route that names a token requirement without `AsBffRemoteApis()`; the per-request `502` stays the backstop ([ADR-1433](decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)). |
+| Endpoint startup check         | The host refuses to start when an endpoint's BFF metadata is incomplete, such as a YARP route that names a token requirement without `AsBffRemoteApis()`; the per-request `502` stays the backstop ([ADR-1433](decisions/1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md)). |
 | Server-rendered and Blazor hosts | Pages that accept a form post with the antiforgery token, hubs as a guarded endpoint kind with connection sessions, and the opt-in `NCode.Identity.Bff.Blazor` and `NCode.Identity.Bff.Blazor.Client` packages ([§5.14](#514-server-rendered-and-blazor-hosts), [ADR-1435](decisions/1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md), [ADR-1292](decisions/1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md)). |
 | Key rings                      | `Bff:KeyRings:{name}` registers a keyed `ISecretKeyCollectionProvider` that holds the private keys of its `PemFiles` and the remote keys that a KMS holds (`RemoteKeys:{kid}`), loaded when the host starts ([§5.12](#512-composition-and-configuration), [ADR-1439](decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md), [ADR-1479](decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)). |
 | Management console            | `NCode.Identity.ManagementConsole.Host` serves `apps/mgmt` as the confidential client `mgmt-console` of the control-plane tenant ([§5.15](#515-the-management-console), [ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md), [ADR-1438](decisions/1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)). The Playground stays a public client on purpose.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |

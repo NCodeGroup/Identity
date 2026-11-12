@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amends
   [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md) decisions 7, 8 and 11
-  and [ADR-1433](1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md) decision 4; decision 4
+  and [ADR-1433](1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md) decision 4; decision 4
   amended by
   [ADR-1446](1446-a-set-of-frontends-that-names-an-unregistered-key-ring-is-refused.md): the library also registers
   `BffKeyRingCheck`; decision 1 amended by
@@ -112,7 +112,7 @@ derives from its options reads the current set.**
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1381](1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md),
   [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md),
-  [ADR-1433](1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md),
+  [ADR-1433](1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md),
   [ADR-1443](1443-a-bff-session-ends-when-its-frontend-is-removed-or-registered-as-another-client.md)
 - `src/NCode.Identity.Bff/Frontends/BffFrontendCatalog.cs`, `src/NCode.Identity.Bff/Frontends/BffFrontendSet.cs`,
   `src/NCode.Identity.Bff/Endpoints/BffFrontendEndpointDataSource.cs`

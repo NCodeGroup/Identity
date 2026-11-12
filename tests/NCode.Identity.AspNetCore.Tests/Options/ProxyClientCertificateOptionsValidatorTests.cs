@@ -13,6 +13,8 @@ public sealed class ProxyClientCertificateOptionsValidatorTests : IDisposable
 {
     private static ProxyClientCertificateOptionsValidator Validator { get; } = new();
 
+    private static DateTimeOffset Now { get; } = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
     private DirectoryInfo Root { get; } = Directory.CreateTempSubdirectory("proxy-ca-");
 
     public void Dispose() => Root.Delete(recursive: true);
@@ -23,10 +25,7 @@ public sealed class ProxyClientCertificateOptionsValidatorTests : IDisposable
     {
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var request = new CertificateRequest("CN=ca", ecdsa, HashAlgorithmName.SHA256);
-        using var certificate = request.CreateSelfSigned(
-            DateTimeOffset.UtcNow.AddDays(-1),
-            DateTimeOffset.UtcNow.AddDays(30)
-        );
+        using var certificate = request.CreateSelfSigned(Now.AddDays(-1), Now.AddDays(30));
 
         var path = Path.Combine(Root.FullName, "ca.crt");
         File.WriteAllText(path, certificate.ExportCertificatePem(), SecureEncoding.UTF8);
@@ -158,11 +157,24 @@ public sealed class ProxyClientCertificateOptionsValidatorTests : IDisposable
         );
 
         Assert.True(result.Failed);
-        Assert.Contains(
-            "ProxyClientCertificate:CertificateAuthorityPath",
-            result.FailureMessage,
-            StringComparison.Ordinal
+        Assert.Contains("holds no certificate.", result.FailureMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_WhenRequiredWithAnEmptyFile_Fails()
+    {
+        var result = Validator.Validate(
+            name: null,
+            new ProxyClientCertificateOptions
+            {
+                Required = true,
+                CertificateAuthorityPath = WriteFile(string.Empty),
+                AllowedSubjects = ["CN=ingress"],
+            }
         );
+
+        Assert.True(result.Failed);
+        Assert.Contains("holds no certificate.", result.FailureMessage, StringComparison.Ordinal);
     }
 
     [Fact]

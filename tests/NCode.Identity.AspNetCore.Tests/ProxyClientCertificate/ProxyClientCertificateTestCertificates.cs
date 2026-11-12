@@ -21,7 +21,11 @@ internal static class ProxyClientCertificateTestCertificates
     internal static X509Certificate2 CreateCertificateAuthority(string subject, DateTimeOffset now)
     {
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var request = new CertificateRequest(subject, ecdsa, HashAlgorithmName.SHA256);
+        var request = new CertificateRequest(
+            CreateSubjectName(subject),
+            ecdsa,
+            HashAlgorithmName.SHA256
+        );
         request.CertificateExtensions.Add(
             new X509BasicConstraintsExtension(
                 certificateAuthority: true,
@@ -52,7 +56,11 @@ internal static class ProxyClientCertificateTestCertificates
     )
     {
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var request = new CertificateRequest(subject, ecdsa, HashAlgorithmName.SHA256);
+        var request = new CertificateRequest(
+            CreateSubjectName(subject),
+            ecdsa,
+            HashAlgorithmName.SHA256
+        );
         request.CertificateExtensions.Add(
             new X509BasicConstraintsExtension(
                 certificateAuthority: true,
@@ -94,7 +102,11 @@ internal static class ProxyClientCertificateTestCertificates
     )
     {
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var request = new CertificateRequest(subject, ecdsa, HashAlgorithmName.SHA256);
+        var request = new CertificateRequest(
+            CreateSubjectName(subject),
+            ecdsa,
+            HashAlgorithmName.SHA256
+        );
         AddLeafExtensions(request, usages);
         request.CertificateExtensions.Add(
             X509AuthorityKeyIdentifierExtension.CreateFromCertificate(
@@ -130,6 +142,17 @@ internal static class ProxyClientCertificateTestCertificates
         );
     }
 
+    private static X500DistinguishedName CreateSubjectName(string subject)
+    {
+        const string prefix = "CN=";
+        if (!subject.StartsWith(prefix, StringComparison.Ordinal))
+            throw new ArgumentException("The subject must be a common name.", nameof(subject));
+
+        var builder = new X500DistinguishedNameBuilder();
+        builder.AddCommonName(subject[prefix.Length..]);
+        return builder.Build();
+    }
+
     private static byte[] CreateSerialNumber()
     {
         var serialNumber = new byte[8];
@@ -146,7 +169,11 @@ internal static class ProxyClientCertificateTestCertificates
     internal static X509Certificate2 CreateSelfSignedLeaf(string subject, DateTimeOffset now)
     {
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var request = new CertificateRequest(subject, ecdsa, HashAlgorithmName.SHA256);
+        var request = new CertificateRequest(
+            CreateSubjectName(subject),
+            ecdsa,
+            HashAlgorithmName.SHA256
+        );
         AddLeafExtensions(request, [ClientAuthenticationOid]);
         return request.CreateSelfSigned(now.AddDays(-1), now.AddDays(30));
     }

@@ -19,6 +19,8 @@ public sealed class ProxyClientCertificateRegistrationTests : IDisposable
 
     public void Dispose() => Root.Delete(recursive: true);
 
+    private static DateTimeOffset Now { get; } = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
     #region Helpers
 
     private static IConfiguration CreateConfiguration(
@@ -29,7 +31,7 @@ public sealed class ProxyClientCertificateRegistrationTests : IDisposable
     {
         using var authority = ProxyClientCertificateTestCertificates.CreateCertificateAuthority(
             "CN=ca",
-            DateTimeOffset.UtcNow
+            Now
         );
         var path = Path.Combine(Root.FullName, "ca.crt");
         File.WriteAllText(path, authority.ExportCertificatePem(), SecureEncoding.UTF8);
@@ -235,7 +237,7 @@ public sealed class ProxyClientCertificateRegistrationTests : IDisposable
 
         using var certificate = ProxyClientCertificateTestCertificates.CreateSelfSignedLeaf(
             "CN=anyone",
-            DateTimeOffset.UtcNow
+            Now
         );
         Assert.True(
             validation(

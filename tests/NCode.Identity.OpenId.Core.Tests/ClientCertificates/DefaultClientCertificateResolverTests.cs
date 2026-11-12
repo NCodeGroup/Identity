@@ -77,10 +77,9 @@ public sealed class DefaultClientCertificateResolverTests : BaseTests
         HttpContext.Features.Set(mockTlsFeature.Object);
     }
 
-    private void SetupProxyFeature(X509Certificate2 certificate)
+    private void SetupProxyFeature()
     {
         var mockFeature = CreateStrictMock<IProxyClientCertificateFeature>();
-        mockFeature.SetupGet(x => x.Certificate).Returns(certificate);
         HttpContext.Features.Set(mockFeature.Object);
     }
 
@@ -201,7 +200,7 @@ public sealed class DefaultClientCertificateResolverTests : BaseTests
     {
         using var proxyCertificate = TestCertificates.CreateSelfSigned("CN=proxy");
         HttpContext.Connection.ClientCertificate = proxyCertificate;
-        SetupProxyFeature(proxyCertificate);
+        SetupProxyFeature();
         var context = CreateContext();
         var resolver = CreateResolver(headerName: null);
 
@@ -216,7 +215,7 @@ public sealed class DefaultClientCertificateResolverTests : BaseTests
         using var proxyCertificate = TestCertificates.CreateSelfSigned("CN=proxy");
         using var clientCertificate = TestCertificates.CreateSelfSigned("CN=client");
         HttpContext.Connection.ClientCertificate = proxyCertificate;
-        SetupProxyFeature(proxyCertificate);
+        SetupProxyFeature();
         HttpContext.Request.Headers[HeaderName] = TestCertificates.ToBase64Der(clientCertificate);
         var context = CreateContext();
         var resolver = CreateResolver(HeaderName);

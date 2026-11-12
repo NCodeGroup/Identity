@@ -62,7 +62,9 @@ not a deployment shape.** Development, Staging, Conformance and every other envi
    The mount point is the contract.
 6. **The chart serves HTTPS and has the ingress controller verify the pods.** The values `backendTls` and
    `managementConsole.backendTls` select the ingress controller (`ingress-nginx` by default, `traefik` or `none`), an
-   `existingSecret` (a `kubernetes.io/tls` Secret that also holds `ca.crt`), and the cert-manager `issuerRef`. By
+   `existingSecret` (a `kubernetes.io/tls` Secret that also holds `ca.crt`), the cert-manager `issuerRef`, and an
+   optional `ingressCaSecret` (a Secret that holds only `ca.crt`, which the controller then verifies the pods against in
+   place of the serving Secret; the console's own value falls back to the server's). By
    default the chart creates a cert-manager `Certificate` per component from a private CA that it also creates (a
    self-signed Issuer, a CA Certificate and a CA Issuer), with an ECDSA P-256 key. The container port is 8443, the
    probes use `scheme: HTTPS`, the Service is `https` on port 443 with `appProtocol: https`, and the Ingress backend
@@ -100,6 +102,10 @@ not a deployment shape.** Development, Staging, Conformance and every other envi
   watches, and the check runs at start only.
 - A TLS-terminating proxy has to speak HTTPS to the pod and, to meet the preferred trust tier, verify the pod's
   certificate.
+- With the default `ingress-nginx` or Traefik settings the controller's verification Secret is the serving Secret,
+  because cert-manager issues no CA-only Secret, so the controller, which reads Secrets cluster-wide, receives the pods'
+  private key. `backendTls.ingressCaSecret` names a Secret that holds only `ca.crt`, and the controller then verifies
+  the pods without receiving the key.
 - The HTTPS redirect of the pipeline applies outside Production only.
 - The unit tests of the inspectors and the probe, the check against real Kestrel, the Production gate and the chart's CI
   gate prove the wiring.

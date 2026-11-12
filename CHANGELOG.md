@@ -375,7 +375,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   Service and PodDisruptionBudget never select the migration Job. The pods serve HTTPS from a certificate that a
   cert-manager `Certificate` issues, by default from a private CA the chart creates (`backendTls`), or from a Secret the
   operator provides, and the chart renders the ingress-nginx or Traefik settings that make the ingress controller speak
-  HTTPS to the pods and verify their certificate. The database and Valkey connection strings and the local root key are
+  HTTPS to the pods and verify their certificate, against the serving Secret or, when `backendTls.ingressCaSecret` names
+  one, a Secret that holds only the CA, so the controller never receives the pods' private key. The database and Valkey
+  connection strings and the local root key are
   referenced as existing Secrets and the recovery public key as a ConfigMap, never passed as values. Rendering fails
   for a release the host would refuse to start (an empty or wildcard `allowedHosts`, a missing database Secret, a
   `StaticSingle` issuer that is not `https`, a missing or incomplete root key provider, `ephemeral` or a local provider

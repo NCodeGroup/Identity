@@ -730,8 +730,14 @@ verifies the pods' certificate:
 console's the same way.
 
 The `proxy-ssl-secret` annotation of ingress-nginx also loads the Secret's `tls.crt` and `tls.key` as a client
-certificate that the pods do not ask for. To keep the pods' key out of the controller's configuration, publish the CA
-certificate alone in another Secret and name it in `ingress.annotations`.
+certificate that the pods do not ask for. By default the controller's verification Secret is the serving Secret, which
+holds the pods' private key, because cert-manager issues no CA-only Secret, so the controller, which reads Secrets
+cluster-wide, receives that key. `backendTls.ingressCaSecret` names a Secret in the release namespace that holds only
+`ca.crt`, and the chart then names it in place of the serving Secret (`proxy-ssl-secret` for ingress-nginx, the
+`rootCAsSecrets` entry of the `ServersTransport` for Traefik), so the controller never receives the pods' key. Create it
+with `kubectl create secret generic <name> --from-file=ca.crt=<ca.pem>`, or have a trust distribution tool such as
+trust-manager write it. `managementConsole.backendTls.ingressCaSecret` does the same for the console and, when empty,
+falls back to `backendTls.ingressCaSecret` and then to the console's serving Secret.
 
 ### Trust
 

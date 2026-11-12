@@ -14,6 +14,22 @@ The name of the Secret that holds the management console pods' serving certifica
 {{- end }}
 
 {{/*
+The name of the Secret from which an ingress controller reads the CA that verifies the pods' certificate. Takes a dict
+with root and service (the Service's name). For the management console it is
+managementConsole.backendTls.ingressCaSecret, else backendTls.ingressCaSecret, else the console's serving Secret; for
+the server it is backendTls.ingressCaSecret, else the serving Secret. A CA-only Secret keeps the pods' private key from
+the controller.
+*/}}
+{{- define "identity-host.backendTls.verificationSecretName" -}}
+{{- $root := .root }}
+{{- if eq .service (include "identity-host.managementConsole.fullname" $root) }}
+{{- $root.Values.managementConsole.backendTls.ingressCaSecret | default $root.Values.backendTls.ingressCaSecret | default (include "identity-host.managementConsole.backendTls.secretName" $root) }}
+{{- else }}
+{{- $root.Values.backendTls.ingressCaSecret | default (include "identity-host.backendTls.secretName" $root) }}
+{{- end }}
+{{- end }}
+
+{{/*
 The DNS name an ingress controller verifies the pods' certificate against. Takes a dict with root (the chart's root
 context) and service (the Service's name).
 */}}
@@ -95,12 +111,13 @@ The environment of a pod that serves HTTPS: the one HTTPS endpoint and the certi
 
 {{/*
 The Ingress annotations that make the ingress-nginx controller speak HTTPS to a Service and verify its pods'
-certificate. Takes a dict with root, service and secretName.
+certificate against the Secret that identity-host.backendTls.verificationSecretName chooses. Takes a dict with root and
+service.
 */}}
 {{- define "identity-host.backendTls.ingressNginxAnnotations" -}}
 nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
 nginx.ingress.kubernetes.io/proxy-ssl-verify: "on"
-nginx.ingress.kubernetes.io/proxy-ssl-secret: {{ printf "%s/%s" .root.Release.Namespace .secretName | quote }}
+nginx.ingress.kubernetes.io/proxy-ssl-secret: {{ printf "%s/%s" .root.Release.Namespace (include "identity-host.backendTls.verificationSecretName" .) | quote }}
 nginx.ingress.kubernetes.io/proxy-ssl-name: {{ include "identity-host.backendTls.serverName" . | quote }}
 nginx.ingress.kubernetes.io/proxy-ssl-server-name: "on"
 {{- end }}

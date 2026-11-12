@@ -487,6 +487,9 @@
         "existingSecret": {
           "type": "string"
         },
+        "ingressCaSecret": {
+          "type": "string"
+        },
         "certManager": {
           "type": "object",
           "additionalProperties": false,
@@ -912,6 +915,9 @@
           "additionalProperties": false,
           "properties": {
             "existingSecret": {
+              "type": "string"
+            },
+            "ingressCaSecret": {
               "type": "string"
             }
           }

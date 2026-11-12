@@ -22,7 +22,7 @@ assumed the TLS terminator had already validated the chain against a CA bundle, 
 - **No shared host.** A proxy that validates chains rejects the certificates of `self_signed_tls_client_auth` clients,
   so the two RFC 8705 methods cannot share one mutual-TLS alias host.
 
-[ADR-1172](1172-forwarded-client-certificates-are-decoded-by-a-registered-format.md) already surfaces the intermediate
+[ADR-1172](1172-a-forwarded-client-certificate-is-decoded-by-the-decoder-registered-for-its-format.md) already surfaces the intermediate
 certificates the client presented, so the server has what it needs to build the chain itself.
 
 ## Decision

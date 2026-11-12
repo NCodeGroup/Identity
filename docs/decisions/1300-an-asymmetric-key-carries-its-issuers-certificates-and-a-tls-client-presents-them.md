@@ -11,7 +11,7 @@ The protocol client authenticates with `tls_client_auth` by presenting a certifi
 issues such a certificate from an intermediate CA, while the OP trusts only the root: it validates the presented chain
 to its `tls_client_auth_trust_anchors`
 ([ADR-1107](1107-mutual-tls-client-authentication.md)) and builds that chain from the certificates the client presents
-([ADR-1172](1172-forwarded-client-certificates-are-decoded-by-a-registered-format.md)). TLS 1.3 sends the client's
+([ADR-1172](1172-a-forwarded-client-certificate-is-decoded-by-the-decoder-registered-for-its-format.md)). TLS 1.3 sends the client's
 certificate followed by the certificates that certify it (RFC 8446 §4.4.2), and TLS 1.2 does the same (RFC 5246
 §7.4.6).
 

@@ -451,7 +451,7 @@ Verified against Traefik v3.7 documentation and source:
 - **[#83](https://github.com/NCodeGroup/identity/issues/83) — chain in the forwarded header (resolved).** The default `Base64Der` format reads Traefik's comma-separated
   chain, the client's own certificate first, and surfaces the rest as intermediates for chain building. A forwarded
   value that cannot be decoded fails the request with `invalid_request` rather than reading as no certificate
-  ([ADR-1172](decisions/1172-forwarded-client-certificates-are-decoded-by-a-registered-format.md)).
+  ([ADR-1172](decisions/1172-a-forwarded-client-certificate-is-decoded-by-the-decoder-registered-for-its-format.md)).
 - **[#82](https://github.com/NCodeGroup/identity/issues/82) — chain validation in the server (resolved).** `tls_client_auth` builds the presented certificate's chain to
   the client's `tls_client_auth_trust_anchors` (tenant- or client-scoped PEM CAs, custom root trust, `clientAuth` EKU,
   validity, `tls_client_auth_revocation_mode`) before matching the subject, and trusts no certificate when no anchor is

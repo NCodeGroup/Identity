@@ -1582,7 +1582,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `MutualTlsForwardingOptions` live in `NCode.Identity.OpenId.Authentication.ClientCertificates`, registered by
   `AddClientCertificateServices()`, and `ResolveCertificateAsync` takes an `OpenIdContext`
   ([ADR-1097](docs/decisions/1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md),
-  [ADR-1172](docs/decisions/1172-forwarded-client-certificates-are-decoded-by-a-registered-format.md)).
+  [ADR-1172](docs/decisions/1172-a-forwarded-client-certificate-is-decoded-by-the-decoder-registered-for-its-format.md)).
 
 - **A client's public keys resolve at runtime from its `jwks_uri`** (issue
   [#54](https://github.com/NCodeGroup/identity/issues/54),
@@ -4936,7 +4936,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   is never taken for the client's.** When a forwarded certificate header is configured it is the only source: an absent
   header is no certificate, and a value the configured format cannot decode is `invalid_request` with a warning naming
   the header and the format, so the proxy's own certificate on a re-encrypting hop never stands in for the client's
-  ([ADR-1172](docs/decisions/1172-forwarded-client-certificates-are-decoded-by-a-registered-format.md)).
+  ([ADR-1172](docs/decisions/1172-a-forwarded-client-certificate-is-decoded-by-the-decoder-registered-for-its-format.md)).
 
 - **Client certificates are checked for revocation through OCSP and every CRL form, failing closed.**
   `tls_client_auth_revocation_mode` is `online` (the default), `online_soft_fail`, which refuses a revoked certificate

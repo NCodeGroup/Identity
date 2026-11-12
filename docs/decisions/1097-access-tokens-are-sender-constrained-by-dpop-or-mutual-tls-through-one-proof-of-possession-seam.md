@@ -75,7 +75,7 @@ so every replica sees them.
 
 `IClientCertificateResolver`, configured by `MutualTlsForwardingOptions`, reads the certificate that a forwarded header
 carries through the registered format decoders
-([ADR-1172](1172-forwarded-client-certificates-are-decoded-by-a-registered-format.md)). Behind a proxy the header is the
+([ADR-1172](1172-a-forwarded-client-certificate-is-decoded-by-the-decoder-registered-for-its-format.md)). Behind a proxy the header is the
 only certificate source. Trust is the operator's responsibility: the operator ensures that only the trusted proxy sets
 the header, because otherwise a client could spoof it. The binding logic is identical for every mechanism.
 
@@ -162,7 +162,7 @@ codes are `invalid_dpop_proof` and `use_dpop_nonce`.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md),
   [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md),
   [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md),
-  [ADR-1172](1172-forwarded-client-certificates-are-decoded-by-a-registered-format.md),
+  [ADR-1172](1172-a-forwarded-client-certificate-is-decoded-by-the-decoder-registered-for-its-format.md),
   [ADR-1176](1176-dpop-proofs-are-a-jose-building-block.md),
   [ADR-1202](1202-fapi-1-0-advanced-is-a-registered-profile-and-only-a-request-objects-parameters-count.md) and
   [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md).

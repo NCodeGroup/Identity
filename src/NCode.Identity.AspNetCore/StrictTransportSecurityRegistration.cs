@@ -25,6 +25,30 @@ public static class StrictTransportSecurityRegistration
 {
     private static string[] LoopbackHosts { get; } = ["localhost", "127.0.0.1", "[::1]"];
 
+    private static void ConfigureHsts(
+        HstsOptions hstsOptions,
+        StrictTransportSecurityOptions options
+    )
+    {
+        hstsOptions.MaxAge = options.MaxAge;
+        hstsOptions.IncludeSubDomains = options.IncludeSubDomains;
+        hstsOptions.Preload = options.Preload;
+
+        // The framework excludes the loopback hosts by default, and binding appends to a collection's initial items.
+        // Replace the defaults with exactly the loopback hosts followed by what was configured.
+        hstsOptions.ExcludedHosts.Clear();
+
+        foreach (var host in LoopbackHosts)
+        {
+            hstsOptions.ExcludedHosts.Add(host);
+        }
+
+        foreach (var host in options.ExcludedHosts)
+        {
+            hstsOptions.ExcludedHosts.Add(host);
+        }
+    }
+
     extension(IServiceCollection serviceCollection)
     {
         /// <summary>
@@ -70,30 +94,6 @@ public static class StrictTransportSecurityRegistration
                 );
 
             return serviceCollection;
-        }
-    }
-
-    private static void ConfigureHsts(
-        HstsOptions hstsOptions,
-        StrictTransportSecurityOptions options
-    )
-    {
-        hstsOptions.MaxAge = options.MaxAge;
-        hstsOptions.IncludeSubDomains = options.IncludeSubDomains;
-        hstsOptions.Preload = options.Preload;
-
-        // The framework excludes the loopback hosts by default, and binding appends to a collection's initial items.
-        // Replace the defaults with exactly the loopback hosts followed by what was configured.
-        hstsOptions.ExcludedHosts.Clear();
-
-        foreach (var host in LoopbackHosts)
-        {
-            hstsOptions.ExcludedHosts.Add(host);
-        }
-
-        foreach (var host in options.ExcludedHosts)
-        {
-            hstsOptions.ExcludedHosts.Add(host);
         }
     }
 }

@@ -105,7 +105,7 @@ guard and its internal helpers `NvsNode`, `WorkspaceInstall` and `FrontendPins` 
    `frontend/.node-version` to `PATH`, without duplicates. On every OS it then runs `node --version` (10 s timeout) with
    that `PATH` and requires its major to equal the pinned major. This covers both a `node` of another major and no `node`
    at all. The test is equality with the pinned major, not the `engines.node` range, because the repository pins one
-   major ([ADR-1152](1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)).
+   major ([ADR-1152](1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md)).
 2. **Workspace.** The guard reads files that pnpm writes. `node_modules/.modules.yaml` (JSON despite its extension) must
    name `pnpm@<version>` from `frontend/package.json`'s `packageManager`, which catches a pnpm pin change.
    `node_modules/.pnpm/lock.yaml`, pnpm's copy of the lockfile made at install time, must equal `pnpm-lock.yaml` after
@@ -168,7 +168,7 @@ changes.
 - [`build/frontend-install.ps1`](../../build/frontend-install.ps1) and
   [`frontend/.node-version`](../../frontend/.node-version)
 - [ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md): the frontend presentation platform and runtime discovery.
-- [ADR-1152](1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md): the pinned Node and pnpm.
+- [ADR-1152](1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md): the pinned Node and pnpm.
 - [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md): the Postgres database and the migration worker.
 - [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md): the console BFF
   host.

@@ -113,7 +113,7 @@ the amd64 image lists the three logging settings. `ProgramTests` pins the `json`
 
 - [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md): the shipped artifact
   is the one that is run.
-- [ADR-1152](1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md): the Node major has one
+- [ADR-1152](1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md): the Node major has one
   source.
 - [ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md): the
   protected key ring that production settings require.

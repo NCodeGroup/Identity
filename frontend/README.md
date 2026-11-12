@@ -27,13 +27,13 @@ runner uses the exact same pnpm. Node does not bundle Corepack, so nothing activ
 npm, and CI installs it with `pnpm/action-setup`. A globally installed pnpm 10 or later also switches to the pinned
 version by itself. The pin stays on the newest pnpm major Dependabot supports (10), and Dependabot does not bump it, so
 it moves only by a deliberate change (issue [#153](https://github.com/NCodeGroup/identity/issues/153),
-[ADR-1152](../docs/decisions/1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)).
+[ADR-1152](../docs/decisions/1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md)).
 
 Every pnpm setting lives in [`pnpm-workspace.yaml`](pnpm-workspace.yaml), not `.npmrc` or the `package.json` `pnpm`
 field. Dependency install scripts are denied unless reviewed: `strictDepBuilds` fails an install on any script nobody
 has decided about, and `allowBuilds` records each decision. A version must also be published for three days before pnpm
 resolves it (`minimumReleaseAge`), the same window Dependabot waits for its npm updates
-([ADR-1153](../docs/decisions/1153-one-release-age-window-gates-frontend-dependencies.md)).
+([ADR-1152](../docs/decisions/1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md)).
 
 We deliberately use pnpm's strict, symlinked `node_modules` rather than Yarn Plug'n'Play or
 zero-installs: PnP needs patches for the Vite + Storybook + emotion/MUI stack and zero-installs would
@@ -44,7 +44,7 @@ The Node major version is pinned once, in [`.node-version`](.node-version) (Node
 and fnm honor it, so each repo selects its own Node (nvm reads only `.nvmrc`). `engines.node` states the same
 major as the floor — it is also what makes Turborepo's cache miss when the runtime changes — and `@types/node` tracks
 that major, not the newest release
-([ADR-1147](../docs/decisions/1147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)). Moving to a
+([ADR-1152](../docs/decisions/1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md)). Moving to a
 new major changes `.node-version`, `engines.node`, the `@types/node` ranges, and the Node image of the host
 [`Dockerfile`](../hosts/NCode.Identity.OpenId.Host/Dockerfile) together; the `Host image` workflow checks that image's
 major. With NVS: `nvs auto on` switches automatically on `cd`; it only lasts for the current shell, so persist it in
@@ -514,7 +514,7 @@ with an error naming that script when the files are missing; under Aspire the Ap
   transitive and auto-installed copy to it — without it, `auto-install-peers` resolves Vite's and Vitest's
   `@types/node` peer to the newest major in every workspace that does not declare it. Dependabot ignores its majors;
   move it only together with `.node-version` and `engines.node`
-  ([ADR-1152](../docs/decisions/1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)).
+  ([ADR-1152](../docs/decisions/1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md)).
 - **A dependency with an install script fails `pnpm install` until it is decided.** `strictDepBuilds` turns pnpm's
   "Ignored build scripts" warning into `ERR_PNPM_IGNORED_BUILDS`. Decide whether the script is needed and record it in
   `allowBuilds` in [`pnpm-workspace.yaml`](pnpm-workspace.yaml) (`true` to run it, `false` to skip it); prefer
@@ -528,7 +528,7 @@ with an error naming that script when the files are missing; under Aspire the Ap
   passes again once the version ages. When a fix cannot wait (and is not arriving as a Dependabot security update,
   which bypasses both gates), list the package in `minimumReleaseAgeExclude` with a comment and remove the entry once
   the version is three days old
-  ([ADR-1153](../docs/decisions/1153-one-release-age-window-gates-frontend-dependencies.md)). The gate also re-checks the
+  ([ADR-1152](../docs/decisions/1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md)). The gate also re-checks the
   locked versions a non-frozen install re-resolves, so adding a workspace or a dependency can move a locked transitive
   version younger than three days back to an older one. Review the lockfile diff for such unrelated moves. When a change
   adds no external version (a new workspace, or a workspace dependency), keep the locked versions by running that one

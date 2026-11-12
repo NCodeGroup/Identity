@@ -467,7 +467,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   than reading the clock during render. `@types/node` follows the Node runtime major, pinned workspace-wide by a pnpm
   override, `engines.node` states the toolchain's real floor, and Dependabot ignores TypeScript and `@types/node` majors
   so a grouped update brings no upgrade that cannot land
-  ([ADR-1147](docs/decisions/1147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)).
+  ([ADR-1152](docs/decisions/1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md)).
 
 - **The frontend runs on Node 26, and its Node and pnpm versions are each set in one place.** Node 26 is in Active LTS
   and supported until 2029-04-30. `frontend/.node-version` is the only place the Node major is set: CI reads it
@@ -479,7 +479,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#153](https://github.com/NCodeGroup/identity/issues/153)). Every pnpm setting lives in `pnpm-workspace.yaml`, and a
   dependency's install script fails `pnpm install` until it is allowed or denied there; esbuild's is denied because
   esbuild does not need it
-  ([ADR-1152](docs/decisions/1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md)).
+  ([ADR-1152](docs/decisions/1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md)).
 
 - **Frontend tests fail on warnings, and frontend coverage holds a floor.** A test that logs `console.error` or
   `console.warn` fails, through a console guard in the test-only `@ncode/test-support` workspace (the usual culprit is a
@@ -4375,7 +4375,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   lockfile, and `pnpm add` picks the newest version old enough. The window equals Dependabot's npm cooldown, stated in
   `dependabot.yml`, because on pnpm 10 Dependabot enforces its cooldown on every version already in the lockfile.
   Dependabot security updates bypass both gates, and any other urgent version goes in `minimumReleaseAgeExclude`
-  ([ADR-1153](docs/decisions/1153-one-release-age-window-gates-frontend-dependencies.md)).
+  ([ADR-1152](docs/decisions/1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md)).
 
 - **Dependabot raises security updates, and version updates are held.** The `nuget` and `npm` ecosystems in
   `.github/dependabot.yml` set `open-pull-requests-limit: 0`, GitHub's documented way to hold version updates while

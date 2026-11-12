@@ -243,14 +243,14 @@ directories. Dependabot starts with no cache, and a warm local metadata cache ca
 When an upgrade **cannot land yet** (the upstream ecosystem has not caught up), hold it with an `ignore` rule in
 `dependabot.yml` that explains why, plus an issue for lifting it. That is how TypeScript majors and `@types/node`
 majors are held today
-([ADR-1147](docs/decisions/1147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md)). Without the rule,
+([ADR-1152](docs/decisions/1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md)). Without the rule,
 every weekly group PR fails on the same package.
 
 The frontend has no lockfile-free path: after changing a `package.json`, run `pnpm install` in `frontend` and commit
 `pnpm-lock.yaml`, because CI installs with `--frozen-lockfile`. Frontend versions must be three days old before anyone
 installs them: pnpm's `minimumReleaseAge` gates people and Dependabot's npm `cooldown` gates its updates. Keep the two
 windows equal, because Dependabot fails while the lockfile holds a version younger than its cooldown
-([ADR-1153](docs/decisions/1153-one-release-age-window-gates-frontend-dependencies.md)).
+([ADR-1152](docs/decisions/1152-the-frontend-pins-node-and-pnpm-once-gates-dependencies-by-release-age-and-tracks-supported-upstreams.md)).
 
 Workflows reference GitHub's own `actions/*` by major tag (`actions/checkout@v7`) and every **third-party** action by
 full commit SHA with its version in a trailing comment

@@ -60,7 +60,7 @@ updates:
     open-pull-requests-limit: 0
     # A version must be three days old before Dependabot proposes it. It is the same window as pnpm's
     # minimumReleaseAge in frontend/pnpm-workspace.yaml, and must not be longer: Dependabot enforces this cooldown
-    # on every version already in the lockfile, and pnpm's gate is what keeps a younger one out (ADR-1153). Equal
+    # on every version already in the lockfile, and pnpm's gate is what keeps a younger one out (ADR-1152). Equal
     # windows also mean Dependabot defers to pnpm's own setting. Dependabot's default is 3 days; it is stated here so a
     # change to that default cannot reopen the gap.
     cooldown:
@@ -68,7 +68,7 @@ updates:
     ignore:
       # `@types/node` describes the Node runtime, so its major must equal the one pinned in frontend/.node-version
       # (which CI, NVS, and the Aspire AppHost all read). Types from a newer major let code compile against APIs the
-      # runtime lacks. Bump the runtime and this major together, deliberately (ADR-1147).
+      # runtime lacks. Bump the runtime and this major together, deliberately (ADR-1152).
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
       # TypeScript 7 (the native compiler) no longer ships the JavaScript compiler API that typescript-eslint parses

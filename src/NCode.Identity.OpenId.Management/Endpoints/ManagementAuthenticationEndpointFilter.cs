@@ -20,7 +20,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints;
 /// resolver gives that answer for the rest of the request, so a change the request commits, such as a machine client
 /// deleting itself, does not alter the actor its audit records.
 /// </summary>
-// See ADR-1470 and ADR-1484.
+// See ADR-1470 and ADR-1044.
 internal sealed class ManagementAuthenticationEndpointFilter(
     IClientPrincipalResolver clientPrincipalResolver
 ) : IEndpointFilter

@@ -648,7 +648,7 @@ than inlining the rationale.
   caller. A route that authorizes reads `HttpContext.User`; a route that only authenticates its caller, such as
   `GET /api/capabilities` and `GET /api/me`, reads `IManagementCallerFeature`, answers
   `ManagementProblems.AuthenticationRequired()` without it and declares `401` and no `403`. See
-  [ADR-1484](../../docs/decisions/1484-a-management-routes-caller-is-the-principal-its-management-access-token-authenticates.md).
+  [ADR-1044](../../docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md).
 - 👁 **A stored settings document that cannot be honored is answered `409` once, by the management route group.** A
   management request resolves a document a store holds with
   `IEffectiveSettingsResolver.ResolveStored(parent, scopeName, ownerId, document)`, and the platform's committed one

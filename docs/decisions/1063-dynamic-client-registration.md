@@ -117,7 +117,7 @@ Concretely:
 ## Options considered
 
 - **Put registration on the management API instead of a protocol endpoint.** Rejected. The management API is an
-  operator surface guarded by its own authorization model ([ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md));
+  operator surface guarded by its own authorization model ([ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md));
   RFC 7591/7592 are _protocol_ endpoints a client calls for itself, advertised in discovery, with their own
   initial-access-token / registration-access-token authentication. They belong with the OAuth endpoints, and placing
   them there is what makes the Dynamic OP discovery advertisement and conformance profile work.

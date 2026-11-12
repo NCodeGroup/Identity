@@ -1,7 +1,7 @@
 # 1046. The API reference (OpenAPI document + Scalar) is owned by the composition layer and turnkey for every environment
 
 - **Status:** Accepted (extends the GlobalAdmin bootstrap of
-  [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md); reinforces
+  [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md); reinforces
   [ADR-1011](1011-secret-management-api.md) — no secret material on the surface —, the opaque-id rule of
   [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md), and the composition boundary of
   [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md); credentials location amended by
@@ -80,6 +80,6 @@ form, to expose it; and a secret is never pre-filled into a served document outs
 - [ADR-1011](1011-secret-management-api.md) — no secret material on the surface.
 - [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md) — server-generated opaque identifiers.
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — composition wires implementations.
-- [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md) — management auth and the GlobalAdmin bootstrap.
+- [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md) — management auth and the GlobalAdmin bootstrap.
 - `src/NCode.Identity.Server/IdentityServerApiReferenceEndpointRouteBuilderExtensions.cs`,
   `src/NCode.Identity.Server/OpenApi/` (document transformers), `src/NCode.Identity.Server/IdentityServerBuilder.cs`.

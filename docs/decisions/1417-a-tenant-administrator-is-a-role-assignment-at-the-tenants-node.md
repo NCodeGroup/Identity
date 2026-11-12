@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amends [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md),
   [ADR-1034](1034-persisted-role-assignments-and-ownership.md),
-  [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md),
+  [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md),
   [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md); amended by
   [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md): the administrators of every team above a tenant grant its
   administrators, and a `TenantAdmin` assignment never reaches a team)
@@ -43,7 +43,7 @@ management authority except the bootstrap `GlobalAdmin`.**
    the tenant's own identifier, as the tenant's owners are.
 3. **No role claim but the bootstrap `GlobalAdmin` confers management authority.** Production tokens carry no role
    claim; the bootstrap client's `GlobalAdmin` stamp
-   ([ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md)) is the one exception. Every other
+   ([ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)) is the one exception. Every other
    authority is a persisted assignment that a listing shows.
 4. **The control-plane tenant's administrators manage its own tenant plane.** A `TenantAdmin` assignment at the root
    tenant's node manages the root tenant's clients (the management console's included), resource servers, settings,
@@ -78,7 +78,7 @@ management authority except the bootstrap `GlobalAdmin`.**
 
 - [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md) — authorization model: scopes, roles and ownership
 - [ADR-1034](1034-persisted-role-assignments-and-ownership.md) — persisted role assignments and ownership
-- [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md) — management API authentication and the
+- [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md) — management API authentication and the
   `GlobalAdmin` bootstrap
 - [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md) — the management API
   authenticates against the control-plane tenant

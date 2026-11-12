@@ -1,6 +1,6 @@
 # 1482. Only an authenticated management caller reads the management capabilities
 
-- **Status:** Accepted (amends [ADR-1067](1067-secret-type-capability-catalog-and-capabilities-discovery.md), [ADR-1480](1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md); amended by [ADR-1484](1484-a-management-routes-caller-is-the-principal-its-management-access-token-authenticates.md))
+- **Status:** Accepted (amends [ADR-1067](1067-secret-type-capability-catalog-and-capabilities-discovery.md), [ADR-1480](1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md); amended by [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md))
 - **Date:** 2026-11-09
 - **Deciders:** NCode Group
 

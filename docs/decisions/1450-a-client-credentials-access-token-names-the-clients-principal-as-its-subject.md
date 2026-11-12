@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amends
   [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md) decision 2 and
-  [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md);
+  [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md);
   amended by [ADR-1470](1470-a-callers-acting-client-is-resolved-once-per-request.md))
 - **Date:** 2026-11-06
 - **Deciders:** NCode Group
@@ -51,6 +51,6 @@ acting for itself.**
 
 - [RFC 9068](https://www.rfc-editor.org/rfc/rfc9068), [RFC 8693](https://www.rfc-editor.org/rfc/rfc8693)
 - [ADR-1035](1035-federated-principals-and-identity-resolution.md),
-  [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md),
+  [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md),
   [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)
 - Issue [#587](https://github.com/NCodeGroup/identity/issues/587)

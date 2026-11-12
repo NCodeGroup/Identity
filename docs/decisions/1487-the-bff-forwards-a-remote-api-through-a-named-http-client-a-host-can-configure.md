@@ -59,6 +59,6 @@ no redirect, sends or stores no cookie, uses no proxy and decompresses no respon
   the BFF forwards a remote API through YARP.
 - [ADR-1387](1387-the-client-assertion-audience-and-the-dpop-htu-are-compared-with-the-tenants-published-urls.md): the
   DPoP `htu` is compared with the tenant's published URLs.
-- [ADR-1484](1484-a-management-routes-caller-is-the-principal-its-management-access-token-authenticates.md): a
+- [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md): a
   management route's caller is the principal its management access token authenticates.
 - [#716](https://github.com/NCodeGroup/identity/issues/716)

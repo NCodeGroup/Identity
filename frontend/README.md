@@ -284,7 +284,7 @@ serving request's own origin, so a single-origin host needs no configuration
 The Management console holds no token. Its BFF host (`NCode.Identity.ManagementConsole.Host`) is the confidential client
 `mgmt-console` of the control-plane tenant; the browser holds only the BFF's session cookie, and the BFF obtains the
 `urn:ncode:management`-audience access token it presents to the management API (authority is role-based `GlobalAdmin`;
-any management scope binds the audience — see [ADR-1044](../docs/decisions/1044-management-api-authentication-and-globaladmin-bootstrap.md),
+any management scope binds the audience — see [ADR-1044](../docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md),
 [ADR-1437](../docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
 [ADR-1438](../docs/decisions/1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)).
 

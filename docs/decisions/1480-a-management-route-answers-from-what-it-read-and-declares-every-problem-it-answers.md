@@ -1,6 +1,6 @@
 # 1480. A management route answers from what it read and declares every problem it answers
 
-- **Status:** Accepted (amended by [ADR-1481](1481-a-management-routes-problem-responses-say-when-each-occurs.md); amended by [ADR-1482](1482-only-an-authenticated-management-caller-reads-the-management-capabilities.md); amended by [ADR-1483](1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md); amended by [ADR-1484](1484-a-management-routes-caller-is-the-principal-its-management-access-token-authenticates.md))
+- **Status:** Accepted (amended by [ADR-1481](1481-a-management-routes-problem-responses-say-when-each-occurs.md); amended by [ADR-1482](1482-only-an-authenticated-management-caller-reads-the-management-capabilities.md); amended by [ADR-1483](1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md); amended by [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md))
 - **Date:** 2026-11-08
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0125](project-template/0125-a-write-that-loses-a-race-is-answered-412.md)

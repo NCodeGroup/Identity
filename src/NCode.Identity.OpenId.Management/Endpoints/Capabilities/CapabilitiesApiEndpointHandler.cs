@@ -24,7 +24,7 @@ GET api/capabilities
 /// caller that the management authentication filter authenticated from a management access token, which it reads
 /// from <see cref="IManagementCallerFeature"/>.
 /// </summary>
-// See ADR-1067, ADR-1482 and ADR-1484.
+// See ADR-1067, ADR-1482 and ADR-1044.
 internal class CapabilitiesApiEndpointHandler : IEndpointProvider
 {
     /// <inheritdoc />

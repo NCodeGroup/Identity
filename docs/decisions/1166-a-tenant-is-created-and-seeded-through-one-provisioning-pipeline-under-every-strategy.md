@@ -161,7 +161,7 @@ on the bootstrap client in the bootstrap tenant.
 - [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): the control plane and the root tenant.
 - [ADR-1031](1031-control-plane-management-resource-server-and-root-tenant-seeding.md): plane-aware resource-server
   seeding.
-- [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md): the bootstrap administrator.
+- [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md): the bootstrap administrator.
 - [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md): the issuer
   judged on every write.
 - [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md): the key seed handler.

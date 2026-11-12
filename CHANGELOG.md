@@ -1788,7 +1788,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1030](docs/decisions/1030-userinfo-endpoint-and-subject-authentication-seam.md)). The endpoint validates a
   presented `Authorization: Bearer` access token inside the request environment, after the environment resolves the
   tenant's signing keys and issuer, through the self-issued `AuthenticateAccessTokenCommand` path the management API
-  uses ([ADR-1044](docs/decisions/1044-management-api-authentication-and-globaladmin-bootstrap.md)), and requires the
+  uses ([ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)), and requires the
   OpenID identity audience (`urn:ncode:openid`), so the host configures no authentication scheme for it. It also accepts
   the access token in a form-encoded request body: per RFC 6750 §2.2 and OpenID Connect Core 1.0 §5.3.1, an
   `access_token` form parameter on a non-GET request whose body is `application/x-www-form-urlencoded` is honored beside
@@ -2204,7 +2204,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#566](https://github.com/NCodeGroup/identity/issues/566),
   [#715](https://github.com/NCodeGroup/identity/issues/715),
   [ADR-1420](docs/decisions/1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md),
-  [ADR-1484](docs/decisions/1484-a-management-routes-caller-is-the-principal-its-management-access-token-authenticates.md)).
+  [ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)).
 
 - **The management console opens on the caller's home.** `/home` lists the platform for a caller with platform
   authority and the teams and tenants the caller holds a role at, and opens the only one at once when there is one.
@@ -4204,7 +4204,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#715](https://github.com/NCodeGroup/identity/issues/715),
   [#716](https://github.com/NCodeGroup/identity/issues/716),
   [ADR-1482](docs/decisions/1482-only-an-authenticated-management-caller-reads-the-management-capabilities.md),
-  [ADR-1484](docs/decisions/1484-a-management-routes-caller-is-the-principal-its-management-access-token-authenticates.md)).
+  [ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)).
 
 - **No administrator raises the limits set on its scope.** A limit in a scope's settings is written only by the
   authority above that scope, so a team's administrators cannot lift the plan tier the platform sets, nor a child
@@ -5469,7 +5469,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   handler decodes it into a pinned, zeroed buffer (threaded as `ReadOnlyMemory<byte>`) and stores it as a PBKDF2
   verifier, because the administrator registers `client_secret_basic`, and the OpenAPI example and
   Scalar prefill that surface the presentable secret appear only in the development environment. See
-  [ADR-1044](docs/decisions/1044-management-api-authentication-and-globaladmin-bootstrap.md) and [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md).
+  [ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md) and [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md).
 
 - **Every owner's keys are imported and updated under the client-key policy.** The client, tenant and
   resource-server import endpoints use `IClientKeyImporter.TryImportKey`, so a JSON Web Key keeps its `kid`, a key whose

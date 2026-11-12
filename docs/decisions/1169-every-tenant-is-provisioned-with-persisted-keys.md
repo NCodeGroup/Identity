@@ -37,7 +37,7 @@ default for three reasons:
 The development modes ([ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)) are refused in
 Production, so on a fresh production database no tenant had a key. The JSON Web Key Set was empty and nothing could be
 signed. That included the bootstrap administrator's first management token
-([ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md)), which is the only credential that could
+([ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)), which is the only credential that could
 import a key. The deployment was deadlocked before its first request.
 
 The first two of ADR-1370's objections concern keys held in memory. A key generated once, persisted, and protected by
@@ -210,7 +210,7 @@ key for. The server generates keys only to fill those gaps; it never removes, re
   opt-in, and persisted keys are provisioned by default.
 - [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md) — the persistent developer mode, reduced to
   self-healing over provisioned keys.
-- [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md) — the bootstrap administrator whose
+- [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md) — the bootstrap administrator whose
   first token needs a key.
 - [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) — the seed pipeline.
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) — startup validation.

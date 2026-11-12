@@ -179,7 +179,7 @@ The records are grouped by area; within an area they are in number order.
 | [1034](./1034-persisted-role-assignments-and-ownership.md) | Persisted resource-scoped role assignments and ownership | Accepted |
 | [1042](./1042-management-api-route-driven-tenant-scope.md) | The management API is plane-aware; tenant-bound resources nest under the tenant and drive the ambient scope from the route | Accepted |
 | [1043](./1043-endpoint-registration-is-a-cross-cutting-aspnetcore-package.md) | The hierarchical endpoint-group mechanism is a cross-cutting package layered on the registration builder | Accepted |
-| [1044](./1044-management-api-authentication-and-globaladmin-bootstrap.md) | The management API authenticates self-issued bearer tokens, and the first GlobalAdmin is bootstrapped from configuration | Accepted |
+| [1044](./1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md) | The management API authenticates its own access tokens and a configured client bootstraps the first GlobalAdmin | Accepted |
 | [1046](./1046-api-reference-openapi-document-and-scalar.md) | The API reference (OpenAPI document + Scalar) is owned by the composition layer and turnkey for every environment | Accepted |
 | [1067](./1067-secret-type-capability-catalog-and-capabilities-discovery.md) | Secret-type capability catalog and composable management capabilities discovery | Accepted |
 | [1086](./1086-canonical-openid-endpoint-shape.md) | Canonical OpenID endpoint shape: a thin endpoint over a strongly-typed message and a mediator pipeline | Accepted |
@@ -204,7 +204,6 @@ The records are grouped by area; within an area they are in number order.
 | [1481](./1481-a-management-routes-problem-responses-say-when-each-occurs.md) | A management route's problem responses say when each occurs | Accepted |
 | [1482](./1482-only-an-authenticated-management-caller-reads-the-management-capabilities.md) | Only an authenticated management caller reads the management capabilities | Accepted |
 | [1483](./1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md) | A management request whose binding fails is answered as a problem its route declares | Accepted |
-| [1484](./1484-a-management-routes-caller-is-the-principal-its-management-access-token-authenticates.md) | A management route's caller is the principal its management access token authenticates | Accepted |
 
 ### Protocol endpoints, grants and tokens
 

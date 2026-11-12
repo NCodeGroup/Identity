@@ -4185,9 +4185,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#573](https://github.com/NCodeGroup/identity/issues/573),
   [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md)).
 
-- **Every merge to `main` publishes the host image, the management console image and the chart.** The three artifacts
-  share one prerelease version on GHCR, are signed and carry build provenance, and a verification job pulls them
-  anonymously ([#773](https://github.com/NCodeGroup/identity/issues/773),
+- **Every merge to `main` and every release tag publishes the host image, the management console image and the chart.**
+  The three artifacts share one version on GHCR, are signed and carry build provenance, and a verification job pulls
+  them anonymously; a stable version also tags both images `latest`, and the images' assemblies report the version
+  they were published at ([#773](https://github.com/NCodeGroup/identity/issues/773),
   [ADR-1503](docs/decisions/1503-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)).
 
 ### Security

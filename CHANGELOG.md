@@ -1082,7 +1082,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   implement it from their own DER encoders. Callers that need a live classical algorithm use the family-specific
   `ExportRSA()` / `ExportECDsa()` accessors
   ([ADR-1115](docs/decisions/1115-asymmetric-keys-model-der-material-via-buffer-writers.md),
-  [ADR-1116](docs/decisions/1116-memory-allocations-and-buffer-operations.md)).
+  [ADR-1266](docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)).
 
 - **Verify-only (public-only) asymmetric secret keys.** `ISecretKeyFactory.CreateRsaPublicKey` and `CreateEccPublicKey`
   produce `RsaSecretKey` / `EccSecretKey` instances that hold only the public half (a `SubjectPublicKeyInfo`, stored
@@ -4514,7 +4514,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **Decrypted JOSE payloads are zeroed when released.** A decrypted JWE payload, a payload serialized or compressed
   before encryption, and their decoded text are held in pinned buffers from the secure pool and zeroed on release
   ([#440](https://github.com/NCodeGroup/identity/issues/440),
-  [ADR-1116](docs/decisions/1116-memory-allocations-and-buffer-operations.md)).
+  [ADR-1266](docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)).
 
 - **An `AKP` JWK thumbprint covers `alg`.** The thumbprint is computed over `alg`, `kty` and `pub`, as RFC 9964 §6
   requires, so two `AKP` keys that differ only in algorithm have different thumbprints
@@ -4552,7 +4552,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `request_uri` request objects and other inbound text are decoded strictly. JWT UserInfo and introspection responses
   are written as strict UTF-8 bytes with `Content-Type: application/jwt`, and `text/plain` responses declare
   `charset=utf-8`. The build bans lenient encodings with `RS0030` in every project
-  ([ADR-1266](docs/decisions/1266-text-is-encoded-and-decoded-only-through-strict-encodings.md)).
+  ([ADR-1266](docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)).
 
 - **Stored secrets are protected by a key hierarchy under an external root key.** Stored private and symmetric secrets
   are AES-256-GCM envelopes (`nce1.`) under a fresh data key, wrapped by an HKDF-derived purpose key of the owning

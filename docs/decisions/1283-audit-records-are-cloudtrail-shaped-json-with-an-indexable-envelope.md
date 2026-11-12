@@ -38,7 +38,7 @@ writer, `AuditRecordWriter`, produces it, and the log entry, the span event and 
 record's field names.** The writer takes the event first and the destination last. `Write(IAuditEvent, Utf8JsonWriter)`
 writes directly, and `Write<TWriter>(IAuditEvent, ref TWriter)` (`allows ref struct`) stages the record in a pooled
 buffer and copies it, because `Utf8JsonWriter` cannot hold a ref struct. It never allocates a `byte[]`
-([ADR-1116](1116-memory-allocations-and-buffer-operations.md)), and a record is read back with `JsonElement.Parse`, not
+([ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)), and a record is read back with `JsonElement.Parse`, not
 `JsonDocument`.
 
 1. **Ingestion is unchanged.** `IEventPublisher`, hierarchical dispatch, fault isolation, background delivery, the
@@ -173,7 +173,7 @@ buffer and copies it, because `Utf8JsonWriter` cannot hold a ref struct. It neve
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — breaking changes are acceptable before release
 - [ADR-1047](1047-auditing-and-events-observation-seam.md) — the event seam and the envelope this amends
 - [ADR-1049](1049-openid-errors-audited-from-single-funnel.md) — the single funnel that records `openid.error`
-- [ADR-1116](1116-memory-allocations-and-buffer-operations.md) — the writer uses buffer writers and allocates no
+- [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) — the writer uses buffer writers and allocates no
   `byte[]`
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
 - [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) — bounded metric

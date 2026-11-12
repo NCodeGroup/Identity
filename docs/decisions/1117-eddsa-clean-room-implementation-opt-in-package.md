@@ -34,7 +34,7 @@ The two hashes EdDSA needs — **SHA-512** (Ed25519) and **SHAKE256** (Ed448) �
 2. **The implementation is constant-time.** No secret-dependent branch or memory access: scalar multiplication is
    double-and-add-always with masked conditional selects, scalars/field elements decode and reduce branch-free, and
    secret buffers are zeroed after use (`CryptographicOperations.ZeroMemory`). The crypto hot paths follow the
-   aggressive-optimization convention ([ADR-1116](1116-memory-allocations-and-buffer-operations.md) §6) — the two
+   aggressive-optimization convention ([ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) §6) — the two
    constraints that override speed are constant-time behavior and correctness pinned by test vectors.
 
 3. **EdDSA ships as a separate, opt-in package `NCode.Identity.Jose.EdDsa`** rather than being folded into the core

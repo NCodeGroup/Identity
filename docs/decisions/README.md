@@ -82,7 +82,6 @@ The records are grouped by area; within an area they are in number order.
 | [1056](./1056-abstractions-split-into-framework-free-tiered-packages.md) | `NCode.Identity.Abstractions` is split into framework-free, correctly-tiered packages | Accepted |
 | [1069](./1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md) | DI registration proves every prerequisite at compile time through marker builders | Accepted |
 | [1080](./1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md) | Filtered reads are intent-named store methods, and growing criteria are init-only DTOs | Accepted |
-| [1116](./1116-memory-allocations-and-buffer-operations.md) | Memory allocations and buffer operations use spans, pooled writers, and secure lifetimes | Accepted |
 | [1125](./1125-trunk-based-development-on-main.md) | Trunk-based development on a single `main` trunk | Superseded |
 | [1127](./1127-every-project-builds-with-zero-warnings-and-the-familys-own-banned-apis-bind-shipping-code.md) | Every project builds with zero warnings, and the family's own banned APIs bind shipping code | Accepted |
 | [1130](./1130-distinct-names-for-host-local-dev-orchestrator-and-library.md) | The deployable host, the local-dev orchestrator, and the shipped library have distinct names | Accepted |
@@ -97,7 +96,7 @@ The records are grouped by area; within an area they are in number order.
 | [1262](./1262-minimal-api-request-delegates-are-generated-at-compile-time.md) | Minimal-API request delegates are generated at compile time | Accepted |
 | [1263](./1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md) | Branches and pull requests run an affected gate, and the merge queue runs the full gate | Accepted |
 | [1264](./1264-pending-work-is-tracked-as-github-issues.md) | Pending work is tracked as GitHub issues | Superseded |
-| [1266](./1266-text-is-encoded-and-decoded-only-through-strict-encodings.md) | Text is encoded and decoded only through strict encodings | Accepted |
+| [1266](./1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) | Binary data uses BufferFactory rentals with explicit sensitivity, and text only strict encodings | Accepted |
 | [1302](./1302-prerelease-packages-publish-from-a-prerelease-tag-or-a-manual-run-on-main-through-trusted-publishing.md) | Prerelease packages publish from a prerelease tag or a manual run on main, through trusted publishing | Accepted |
 | [1305](./1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md) | Shipped versions are serviced from release lines beside the trunk | Accepted |
 | [1306](./1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-files.md) | Pending work is tracked as GitHub issues, linked by address in repository files | Accepted |

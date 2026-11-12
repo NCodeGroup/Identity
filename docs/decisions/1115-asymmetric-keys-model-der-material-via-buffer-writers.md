@@ -35,7 +35,7 @@ destination)` replaces it as the one primitive every asymmetric family implement
    decapsulate) remain algorithm-specific seams layered on top (for example `SignatureAlgorithm`), never on the key
    base — matching Microsoft's separation.
 
-2. **The public-key-material primitive follows the general buffer convention** ([ADR-1116](1116-memory-allocations-and-buffer-operations.md)):
+2. **The public-key-material primitive follows the general buffer convention** ([ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)):
    it writes into a caller-supplied `IBufferWriter<byte>` (`void ExportSubjectPublicKeyInfo<TWriter>(ref TWriter
 destination) where TWriter : IBufferWriter<byte>, allows ref struct`) rather than returning a `byte[]`. The derived
    `ExportSubjectPublicKeyInfoPem()` convenience rents a **non-sensitive** pooled writer

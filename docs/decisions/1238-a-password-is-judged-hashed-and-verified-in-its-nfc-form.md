@@ -47,7 +47,7 @@ validator judges a password the server sets.**
 3. **`IPasswordHasher` owns the form.** `DefaultPasswordHasher` hashes and verifies the NFC form of the UTF-8 bytes it
    is given, so the Entity Framework store and any other store that hashes through it need no code of their own. It
    decodes the bytes, normalizes the text and encodes it again in sensitive rentals, which the pinned, zeroing secure
-   pool lends ([ADR-1116](1116-memory-allocations-and-buffer-operations.md)) and which it disposes at once. Bytes that
+   pool lends ([ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)) and which it disposes at once. Bytes that
    are not valid UTF-8 spell no text to normalize, so it hashes them as they are. `ILocalAccountStore` and its callers
    pass the UTF-8 bytes of the password as submitted.
 4. **A stored hash of the submitted form keeps verifying and is replaced.** The hasher verifies the NFC form first.
@@ -108,7 +108,7 @@ validator judges a password the server sets.**
   and its length in code points.
 - [UAX #15](https://unicode.org/reports/tr15/) — the Unicode normalization forms.
 - [RFC 8265](https://www.rfc-editor.org/rfc/rfc8265#section-4.2) §4.2 — the OpaqueString profile normalizes to NFC.
-- [ADR-1116](1116-memory-allocations-and-buffer-operations.md) — sensitive buffers.
+- [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) — sensitive buffers.
 - [ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md) — a locked-out user's
   password is not verified.
 - [ADR-1236](1236-a-password-is-judged-by-one-policy-wherever-it-is-set.md) — the password policy.

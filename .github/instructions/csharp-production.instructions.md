@@ -872,7 +872,7 @@ than inlining the rationale.
   `JwtSecurityTokenHandler` / `JwtSecurityToken` (use `JsonWebTokenHandler`) and no throwing Unix-time factories. Add
   house rules to that file as they emerge. `BannedSymbols.Encoding.txt` bans lenient text
   encodings in every project, tests included
-  ([ADR-1266](../../docs/decisions/1266-text-is-encoded-and-decoded-only-through-strict-encodings.md)).
+  ([ADR-1266](../../docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)).
 - ⏳ **Warnings-as-errors in every project, tests and hosts included, and NuGet vulnerability advisories (`NU190x`) as
   errors in CI** — template [Build](csharp.instructions.md#build) and
   [ADR-1127](../../docs/decisions/1127-every-project-builds-with-zero-warnings-and-the-familys-own-banned-apis-bind-shipping-code.md).
@@ -1160,7 +1160,7 @@ says for a pre-release project.
   `new StreamReader(stream)`, `new StringContent(text)`) is replaced by the one that takes `SecureEncoding.UTF8`;
   `TypedResults.Text`/`Content` always pass `contentEncoding: SecureEncoding.UTF8`, except a media type without a
   charset parameter (`application/jwt`), which is written through `Utf8TextResults.Create`. See
-  [ADR-1266](../../docs/decisions/1266-text-is-encoded-and-decoded-only-through-strict-encodings.md).
+  [ADR-1266](../../docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md).
 - 👁 **Prefer `Span<byte>` / `ReadOnlyMemory<byte>` / `IBufferWriter<byte>` over `byte[]` for binary and key material.**
   A producer writes into a caller-supplied writer — `void Export…<TWriter>(ref TWriter destination) where TWriter :
 IBufferWriter<byte>, allows ref struct` (as in `SymmetricSecretKey.ExportPrivateKey` /
@@ -1173,7 +1173,7 @@ IBufferWriter<byte>, allows ref struct` (as in `SymmetricSecretKey.ExportPrivate
   it — never manual concatenation or `.ToArray()`. This is the general convention for all byte-array/memory/buffer
   usage; existing `byte[]` surfaces migrate incrementally. See
   [project-template ADR-0112](../../docs/decisions/project-template/0112-binary-data-uses-spans-pooled-buffers-and-cleared-secrets.md)
-  and [ADR-1116](../../docs/decisions/1116-memory-allocations-and-buffer-operations.md).
+  and [ADR-1266](../../docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md).
 - 👁 **Allocate a `byte[]` only when an external API demands an array, and then rent or pin it.** A rented buffer
   (`BufferFactory.Rent(…, isSensitive:, out …)`, `CreatePooledBufferWriter(isSensitive:)`) or a small, fixed
   `stackalloc` is the default for every transient; a secret held by an object or across an `await` is a sensitive
@@ -1185,7 +1185,7 @@ IBufferWriter<byte>, allows ref struct` (as in `SymmetricSecretKey.ExportPrivate
   request stream), over a rented or pinned array. An interface method's output is a `Span<T>`/`Memory<T>` with a
   returned count, or a generic `ref TWriter … allows ref struct` writer with a sizing method beside it
   (`IAesKeyWrap.WrapKey` with `GetEncryptedContentKeySizeBytes`); Moq proxies such methods. See
-  [ADR-1116](../../docs/decisions/1116-memory-allocations-and-buffer-operations.md). `BufferFactory.Rent`'s `out` span or
+  [ADR-1266](../../docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md). `BufferFactory.Rent`'s `out` span or
   memory is exactly the requested length — never slice it back to that length — and the `out Span<T>` overload is the
   default; take `out Memory<T>` only for a buffer stored in a field or used across an `await`. A writable `Span<T>` or
   `Memory<T>` parameter is a destination whose size the caller knows before the call — a fixed size, a sizing member
@@ -1201,7 +1201,7 @@ IBufferWriter<byte>, allows ref struct` (as in `SymmetricSecretKey.ExportPrivate
   `Base64Url.GetByteCountForDecode`: `NCode.Base64Url` throws `FormatException` on an invalid length, an illegal
   character, or `=` padding, so a successful decode fills that buffer exactly and needs no slice by `bytesWritten`. A
   sync helper does the span work when the caller is `async` (`ClientAssertionClientAuthenticationHandler`). See
-  [ADR-1116](../../docs/decisions/1116-memory-allocations-and-buffer-operations.md).
+  [ADR-1266](../../docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md).
 - 👁 **Sensitive text is never a `string`.** Read a key or secret file as bytes into a secure buffer
   (`File.OpenHandle` + `RandomAccess.Read`) and decode it from UTF-8; write sensitive XML with an `XmlWriter` over a
   sensitive pooled writer and read it back with an `XmlReader` over that buffer; transform identifiers on hot paths
@@ -1211,12 +1211,12 @@ IBufferWriter<byte>, allows ref struct` (as in `SymmetricSecretKey.ExportPrivate
   buffer and copying it out with `new string(span)`. Pass span inputs through an `internal readonly ref struct`
   state (`string.Create`'s `TState` allows ref structs) and `ReadOnlyMemory<T>` inputs through a value tuple; when an
   interface implementation writes the characters, check `writer.WrittenCount == chars.Length`, so no `'\0'` remainder
-  is ever persisted. See [ADR-1116](../../docs/decisions/1116-memory-allocations-and-buffer-operations.md) and
+  is ever persisted. See [ADR-1266](../../docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) and
   [ADR-1235](../../docs/decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md).
 - 👁 **Size a collection from a count you already know, and keep per-call paths free of avoidable allocations** —
   template [Memory and Performance](csharp.instructions.md#memory-and-performance); test `Count == 0` before a
   `foreach` over an interface, so its boxed enumerator is not created for nothing
-  ([ADR-1116](../../docs/decisions/1116-memory-allocations-and-buffer-operations.md)).
+  ([ADR-1266](../../docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)).
 - 👁 **Cryptographic and numeric hot-path primitives are optimized aggressively; readability is secondary there.**
   Inner loops of the math/crypto primitives (field, scalar, and group arithmetic; encoders; constant-time helpers)
   should use every applicable trick — `[MethodImpl(MethodImplOptions.AggressiveInlining |
@@ -1229,7 +1229,7 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
   rules above, limited to performance-critical primitives. A new optimization of a primitive is justified by a benchmark
   in `benchmarks/NCode.Identity.Jose.EdDsa.Benchmarks`, whose before and after numbers the pull request quotes
   ([project-template ADR-0112](../../docs/decisions/project-template/0112-binary-data-uses-spans-pooled-buffers-and-cleared-secrets.md)).
-  See [ADR-1116](../../docs/decisions/1116-memory-allocations-and-buffer-operations.md) and
+  See [ADR-1266](../../docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) and
   [ADR-1386](../../docs/decisions/1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md).
 
 ## 11. Logging & metrics

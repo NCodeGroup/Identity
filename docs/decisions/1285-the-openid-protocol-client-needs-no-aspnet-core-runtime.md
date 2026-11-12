@@ -63,7 +63,7 @@ the BCL and `Microsoft.Extensions.*`.
 - The only behavior change is that `! * ( ) @` in authorization-request query values are percent-encoded; a provider
   decodes them to the same values.
 - The guard test reads the runtimeconfig with `File.ReadAllText(path, SecureEncoding.UTF8)`, because the banned-API
-  analyzer ([ADR-1266](1266-text-is-encoded-and-decoded-only-through-strict-encodings.md)) forbids the encoding-less overload.
+  analyzer ([ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)) forbids the encoding-less overload.
 - The "no `ConfigureAwait(false)`" rule still holds: the client's callers are server-side hosts without a
   `SynchronizationContext`.
 

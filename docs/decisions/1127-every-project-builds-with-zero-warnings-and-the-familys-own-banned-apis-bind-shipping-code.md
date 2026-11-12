@@ -56,7 +56,7 @@ binds the projects that ship.**
 7. **That list stays off test projects.** Tests use independent implementations as cross-validation oracles, such as the
    `jose-jwt` package that `NCode.Identity.Jose.Tests` references, and banning them would defeat the test strategy. The
    banned-API analyzer itself runs in every project, so `BannedSymbols.Encoding.txt`, added to every project, binds
-   tests too ([ADR-1266](1266-text-is-encoded-and-decoded-only-through-strict-encodings.md)).
+   tests too ([ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)).
 8. **`Microsoft.CodeAnalysis.PublicApiAnalyzers` runs only where `IsPackable` is not `false`.** Test assemblies have no
    tracked public surface. The null-forgiving operator ban is
    [project-template ADR-0118](project-template/0118-the-null-forgiving-operator-is-banned-outside-tests.md)'s, and it
@@ -91,7 +91,7 @@ binds the projects that ship.**
   and [`Directory.Build.targets`](../../Directory.Build.targets)
 - [`.editorconfig`](../../.editorconfig), the `[*.cs]` and `[tests/**/*.cs]` blocks
 - [`BannedSymbols.txt`](../../BannedSymbols.txt) and [`BannedSymbols.Encoding.txt`](../../BannedSymbols.Encoding.txt)
-- [ADR-1266](1266-text-is-encoded-and-decoded-only-through-strict-encodings.md)
+- [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)
 - [project-template ADR-0100](project-template/0100-warnings-are-errors-in-every-project.md),
   [project-template ADR-0102](project-template/0102-disallowed-apis-are-banned-at-build-time.md) and
   [project-template ADR-0118](project-template/0118-the-null-forgiving-operator-is-banned-outside-tests.md)

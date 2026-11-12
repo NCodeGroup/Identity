@@ -29,7 +29,7 @@ Content-Security-Policy and a page the user agent navigates to are HTTP notions 
 [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md) makes `NCode.Identity.AspNetCore` the home of
 general ASP.NET Core helpers that name no identity concept, and says it references only the ASP.NET Core shared
 framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a script, and the strict-encoding rule
-([ADR-1266](1266-text-is-encoded-and-decoded-only-through-strict-encodings.md)) requires `SecureEncoding.UTF8` from
+([ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)) requires `SecureEncoding.UTF8` from
 `NCode.Buffers` for that.
 
 ## Decision
@@ -65,7 +65,7 @@ framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a s
   [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) forbids it to reference another
   implementation package.
 - **Keep `NCode.Identity.AspNetCore` free of `NCode.Buffers` and encode with `Encoding.UTF8`.** Rejected. It breaks the
-  strict-encoding rule ([ADR-1266](1266-text-is-encoded-and-decoded-only-through-strict-encodings.md)) for a hash that
+  strict-encoding rule ([ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)) for a hash that
   must match the script the browser runs.
 - **Keep the `OpenId` names.** Rejected. A general helper that carries an OpenID prefix tells a reader it is part of the
   protocol, and the package holds no OpenID concept.
@@ -90,7 +90,7 @@ framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a s
 - [ADR-1109](1109-fapi-behavioral-rules-and-discovery-validation-details.md)
 - [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md)
 - [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)
-- [ADR-1266](1266-text-is-encoded-and-decoded-only-through-strict-encodings.md)
+- [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)
 - [ADR-1345](1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)
 - [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md)
 - [ADR-1382](1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)

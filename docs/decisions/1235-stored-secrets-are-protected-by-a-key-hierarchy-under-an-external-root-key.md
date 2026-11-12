@@ -72,7 +72,7 @@ service.
 9. **Deletion.** Deleting a tenant deletes its master keys, so its data in the live database is unreadable; backups
    still holding the wrapped master key stay readable until they expire.
 10. **Buffers.** The protector and every primitive behind it follow
-    [ADR-1116](1116-memory-allocations-and-buffer-operations.md): producers write into caller-supplied writers or
+    [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md): producers write into caller-supplied writers or
     spans with a sizing method beside them, transient buffers are rented, secrets live in pinned buffers zeroed on
     release, and sensitive text is never a `string`. A `string` is produced only for a non-secret value at a storage or
     wire boundary — the envelope in a text column, a wrapped key, a key-management encryption context — and is written
@@ -134,7 +134,7 @@ service.
   purposes).
 - [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md) — persisted tenant keys.
 - [ADR-1134](1134-cloud-native-operating-principles.md) — no long-lived credentials; recoverable, off-vendor backups.
-- [ADR-1116](1116-memory-allocations-and-buffer-operations.md) — spans, pooled writers and secure lifetimes for every
+- [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) — spans, pooled writers and secure lifetimes for every
   buffer.
 - Auth0, "Customer Managed Keys" (envelope hierarchy: environment root key → tenant master key → namespace key → data
   key).

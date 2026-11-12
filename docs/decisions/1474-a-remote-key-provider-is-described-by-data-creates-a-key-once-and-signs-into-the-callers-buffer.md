@@ -61,7 +61,7 @@ key it created and could not keep.**
    `IRemoteKeyProvider.SignAsync(RemoteSignatureRequest, Memory<byte> signature, CancellationToken)` returns a
    `ValueTask<int>` and writes the service's bytes into `signature`. `RemoteKeySigning` hashes the signing input into a
    rented buffer, passes the caller's buffer for a row whose signature is not DER and a rented buffer for a DER row
-   (`BufferFactory.Rent` with `isSensitive: false`, [ADR-1116](1116-memory-allocations-and-buffer-operations.md)).
+   (`BufferFactory.Rent` with `isSensitive: false`, [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)).
    `EcdsaSignatureConverter` parses the DER signature from a span with `AsnDecoder`. The AWS provider passes an
    array-backed input without copying (`MemoryMarshal.TryGetArray`); the Azure provider copies the digest because its
    SDK takes an array of exactly the digest's length.
@@ -97,5 +97,5 @@ key it created and could not keep.**
 
 - [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)
 - [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md)
-- [ADR-1116](1116-memory-allocations-and-buffer-operations.md)
+- [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)
 - Issues [#653](https://github.com/NCodeGroup/identity/issues/653), [#655](https://github.com/NCodeGroup/identity/issues/655), [#656](https://github.com/NCodeGroup/identity/issues/656), [#657](https://github.com/NCodeGroup/identity/issues/657), [#659](https://github.com/NCodeGroup/identity/issues/659), [#663](https://github.com/NCodeGroup/identity/issues/663), [#664](https://github.com/NCodeGroup/identity/issues/664)

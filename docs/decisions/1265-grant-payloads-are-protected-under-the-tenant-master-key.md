@@ -32,7 +32,7 @@ A grant's payload is stored only as an `nce1.` envelope under the master key of 
    `DefaultSessionService.GetSessionsAsync`, use it.
 3. **Buffers.** Plaintext is written to and read from sensitive pooled buffers
    (`BufferFactory.CreatePooledBufferWriter(isSensitive: true)`) and never becomes a `string`
-   ([ADR-1116](1116-memory-allocations-and-buffer-operations.md)); only the envelope is a `string`.
+   ([ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)); only the envelope is a `string`.
 4. **Unreadable means absent.** A payload that fails to unprotect (a `CryptographicException` from `GetProtectorAsync`
    or `Unprotect`) makes the grant absent: `null`, `false` or skipped, with a Warning log event
    `GrantPayloadUnreadable`. This fails closed: an altered or foreign row never authorizes anything. In development, it
@@ -69,5 +69,5 @@ A grant's payload is stored only as an `nce1.` envelope under the master key of 
 - [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — the key hierarchy and
   `nce1.` envelope.
 - [ADR-1113](1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md) — the versioned payload document.
-- [ADR-1116](1116-memory-allocations-and-buffer-operations.md) — sensitive buffers.
+- [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) — sensitive buffers.
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — clean cutover.

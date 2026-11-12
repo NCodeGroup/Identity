@@ -37,7 +37,7 @@ vocabulary names it everywhere.**
    them without a new dependency. A new package for three small types is not worth its packaging cost. `UnwrapAsync`
    writes the key into a caller-supplied `IBufferWriter<byte>`, because a caller cannot know an unwrapped key's length
    in advance; it advances the writer only on success and zeroes what it wrote on failure
-   ([ADR-1116](1116-memory-allocations-and-buffer-operations.md)).
+   ([ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)).
 2. **One vocabulary.** The contract is a key wrapper; implementations are `<Kind>KeyWrapper`, their options
    `<Kind>KeyWrapperOptions`, their registration `Add<Kind>KeyWrapper`, the name constants `KeyWrapperNames` and the
    catalog `IKeyWrapperCatalog`. The in-memory AES-GCM helper becomes `AesGcmKeyWrap`, matching JOSE's `IAesKeyWrap` and
@@ -58,7 +58,7 @@ vocabulary names it everywhere.**
    Azure wrapper) and throws `NotSupportedException` from `UnwrapAsync`, because its private key is offline. Its internal
    role interface is `IRecoveryKeyWrapper : IKeyWrapper` with one member, `bool IsConfigured`, which the factory and the
    master key ring's recovery warning use. It is not registered as an `IKeyWrapper` service, so it can never be selected
-   as the root. `GetWrappedLength()` and `Wrap<TWriter>` stay public members of the class, the ADR-1116 sizing method
+   as the root. `GetWrappedLength()` and `Wrap<TWriter>` stay public members of the class, the ADR-1266 sizing method
    beside the writer-based producer.
 7. **JOSE stays separate.** The JOSE `KeyManagementAlgorithm` family is not merged with `IKeyWrapper`: it is a
    synchronous algorithm over local `SecretKey` material whose formats RFC 7518 fixes and which writes `iv`, `tag`, `epk`
@@ -128,4 +128,4 @@ Public names, old to new:
 - [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) — the Azure Key Vault and Google Cloud
   KMS adapters that this renames.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies.
-- [ADR-1116](1116-memory-allocations-and-buffer-operations.md) — the sizing method beside the writer-based producer.
+- [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) — the sizing method beside the writer-based producer.

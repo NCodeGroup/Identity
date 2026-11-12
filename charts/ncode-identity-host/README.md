@@ -795,6 +795,36 @@ httpRoute:
     - id.example.com
 ```
 
+A Traefik release needs Traefik's Kubernetes CRD provider, which reads the `ServersTransport`;
+`ci/high-availability-values.yaml` shows one:
+
+```yaml
+ingress:
+  enabled: true
+  controller: traefik
+  className: traefik
+  hosts:
+    - host: id.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+```
+
+With any other controller the chart renders the Ingress alone. Configure the controller to speak HTTPS to the
+Service's `https` port and to verify the pods against the CA, through `ingress.annotations` or its own resources:
+
+```yaml
+ingress:
+  enabled: true
+  controller: other
+  className: my-controller
+  hosts:
+    - host: id.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+```
+
 ### The CA ConfigMap
 
 `backendTls.caConfigMap` names a ConfigMap in the release namespace that holds the CA under the `ca.crt` key and

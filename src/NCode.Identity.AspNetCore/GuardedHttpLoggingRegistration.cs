@@ -5,6 +5,7 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using NCode.Identity.AspNetCore.Options;
@@ -28,7 +29,9 @@ public static class GuardedHttpLoggingRegistration
         /// </summary>
         /// <remarks>
         /// Options that enable a body, the query string or a trailer, or allow-list a credential header, stop the host
-        /// when it starts.
+        /// when it starts. It also caps the hosting layer's request logging
+        /// (<c>Microsoft.AspNetCore.Hosting.Diagnostics</c>) at warnings, because its request lines carry the query
+        /// string, so a raised log level writes the request only through HTTP logging.
         /// </remarks>
         /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
         public IServiceCollection AddGuardedHttpLogging()
@@ -48,6 +51,14 @@ public static class GuardedHttpLoggingRegistration
                 >()
             );
             serviceCollection.AddOptions<HttpLoggingOptions>().ValidateOnStart();
+
+            // The hosting layer's request lines carry the query string, and HTTP logging's records take their place.
+            serviceCollection.AddLogging(logging =>
+                logging.AddFilter(
+                    GuardedHttpLoggingDefaults.HostingDiagnosticsCategory,
+                    LogLevel.Warning
+                )
+            );
 
             return serviceCollection;
         }

@@ -4191,7 +4191,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`NCode.Identity.AspNetCore`) registers ASP.NET Core HTTP logging that writes the request and response properties, the
   allow-listed headers and the duration, and never a request or response body, a query string, a trailer, or the value
   of an `Authorization`, `Proxy-Authorization`, `Cookie`, `DPoP`, `Set-Cookie` or `Location` header, whatever the log
-  level. An endpoint or route group opts in to its own request or response body with `WithRequestBodyLogging()` or
+  level. It also caps the hosting layer's request lines, which carry the query string, at warnings. An endpoint or
+  route group opts in to its own request or response body with `WithRequestBodyLogging()` or
   `WithResponseBodyLogging()`; `WithConfidentialBodies()` marks one whose bodies carry credentials or personal data,
   which never logs a body and refuses an opt-in. The OpenID protocol endpoints, the management API, the interactive
   sign-in surface and the BFF's endpoints are marked. A host whose `HttpLoggingOptions` enable a body, the query string

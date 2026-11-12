@@ -23,6 +23,11 @@ internal static class GuardedHttpLoggingDefaults
         | HttpLoggingFields.Duration;
 
     /// <summary>
+    /// The logger category of the hosting layer's request lines, which carry the full URL, query string included.
+    /// </summary>
+    public const string HostingDiagnosticsCategory = "Microsoft.AspNetCore.Hosting.Diagnostics";
+
+    /// <summary>
     /// The name of the <c>DPoP</c> request header, whose value is a proof JWT.
     /// </summary>
     public const string DPoPHeaderName = "DPoP";

@@ -15,7 +15,9 @@ management API returns once, and the claims of userinfo and the BFF's user endpo
 
 - **Headers and the query string carry credentials too.** `Authorization`, `Proxy-Authorization`, `Cookie`, `DPoP`,
   `Set-Cookie`, a `Location` that carries a code, and the `code` and `id_token_hint` parameters. The framework logs
-  allow-listed headers only, and its default response allow-list includes `Location`.
+  allow-listed headers only, and its default response allow-list includes `Location`. The hosting layer logs every
+  request's full URL at Information under `Microsoft.AspNetCore.Hosting.Diagnostics`, so the query string reaches the
+  log outside HTTP logging.
 - **A log level is an operator's diagnostic dial.** The chart passes it through `extraEnv`, so a protection that holds
   only while the level stays at `Warning` is none.
 - **The endpoint's code knows whether a body is safe to log.** The code that maps an endpoint knows what its bodies
@@ -29,7 +31,9 @@ enables a body.**
 
 1. **Permitted fields.** `AddGuardedHttpLogging()` (`NCode.Identity.AspNetCore`) sets
    `RequestPropertiesAndHeaders | ResponsePropertiesAndHeaders | Duration`, removes `Location` from the response-header
-   allow-list and keeps the framework's request-header allow-list.
+   allow-list and keeps the framework's request-header allow-list. It caps `Microsoft.AspNetCore.Hosting.Diagnostics`
+   at `Warning`, because that logger's `Request starting` and `Request finished` lines carry the full URL, query string
+   included, and HTTP logging's request and response records take their place.
 2. **An endpoint opts in, in code.** `WithRequestBodyLogging()` and `WithResponseBodyLogging()` opt an endpoint or route
    group in. A registered `IHttpLoggingInterceptor` gives each request the permitted fields plus exactly the bodies its
    endpoint opts into, and strips every other field, including what `[HttpLogging]` or `WithHttpLogging(...)` enables.

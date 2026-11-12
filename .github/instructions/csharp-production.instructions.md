@@ -620,7 +620,7 @@ than inlining the rationale.
   management endpoint never catches it: the management route group's `StoreConcurrencyEndpointFilter` answers it
   `412`. See
   [ADR-1012](../../docs/decisions/1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) and
-  [ADR-1214](../../docs/decisions/1214-a-management-write-that-loses-a-race-is-answered-412.md).
+  [ADR-1483](../../docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md).
 - 👁 **A management route answers from what it read and declares every problem it answers.** A route answers `404` and
   `409` from the rows it loaded before the write — a secret's identifier with
   `BaseApiEndpointHandler.SecretIdConflictOrDefault`, an imported key's `kid` with `KeyIdConflictOrDefault`, a scope
@@ -638,10 +638,10 @@ than inlining the rationale.
   `Map_Always_DeclaresAndDescribesEveryProblemARouteAnswers`, `ManagementRouteProblemDeclarationTests`,
   `ManagementRequestBindingTests` and `ManagementOpenApiDocumentTests` pin them. See
   [ADR-1186](../../docs/decisions/1186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md),
-  [ADR-1480](../../docs/decisions/1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md),
+  [ADR-1483](../../docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md),
   [ADR-1481](../../docs/decisions/1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md),
   [ADR-1067](../../docs/decisions/1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md) and
-  [ADR-1483](../../docs/decisions/1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md).
+  [ADR-1483](../../docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md).
 - 👁 **A management route reads its caller only from what `ManagementAuthenticationEndpointFilter` published.** The
   filter sets `HttpContext.User` to the principal a valid management access token authenticates, or to an anonymous
   principal whatever an authentication scheme set, and sets `IManagementCallerFeature` only for that authenticated
@@ -659,7 +659,7 @@ than inlining the rationale.
   ([ADR-1245](../../docs/decisions/1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)).
 - 👁 **A management problem that asks the caller to wait answers through `RetryAfterProblem.Create`**, which sets
   `Retry-After` and `retryAfterSeconds`; extension members are named by `ManagementProblemMembers`
-  ([ADR-1422](../../docs/decisions/1422-a-management-problem-that-asks-the-caller-to-wait-carries-the-wait-in-retry-after-seconds.md)).
+  ([ADR-1483](../../docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md)).
 - 👁 **A revocation wins a lost race.** Revoke grants through `IPersistedGrantService` (`SetRevokedOnceAsync`,
   `RevokeWhereAsync`, `RevokeByRefreshTokenLineageAsync`), which read again in a new unit of work and retry, never
   through `IGrantStore.RevokeWhereAsync` and a save of your own; a revocation does not depend on what its caller read,

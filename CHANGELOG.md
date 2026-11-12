@@ -1043,9 +1043,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#689](https://github.com/NCodeGroup/identity/issues/689), [#700](https://github.com/NCodeGroup/identity/issues/700),
   [#701](https://github.com/NCodeGroup/identity/issues/701), [#706](https://github.com/NCodeGroup/identity/issues/706),
   [#708](https://github.com/NCodeGroup/identity/issues/708),
-  [ADR-1480](docs/decisions/1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md),
+  [ADR-1483](docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md),
   [ADR-1481](docs/decisions/1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md),
-  [ADR-1483](docs/decisions/1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md)).
+  [ADR-1483](docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md)).
 
 - **A tenant is provisioned only with the keys its settings use.** The tenant key seed merges the tenant's persisted
   settings onto its team's and provisions a configured algorithm only when one of the tenant's effective algorithm
@@ -2219,7 +2219,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Every management write honors optimistic concurrency.** A resource carries its `concurrencyToken`, a write sends it
   as `If-Match`, and a write that loses a concurrency race is answered `412 Precondition Failed`
-  ([ADR-1214](docs/decisions/1214-a-management-write-that-loses-a-race-is-answered-412.md), issue
+  ([ADR-1483](docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md), issue
   [#261](https://github.com/NCodeGroup/identity/issues/261)).
 
 - **`GET /api/capabilities` publishes a management discovery document composed from registered providers
@@ -4098,7 +4098,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   tenant and of the platform with a confirmed "Rekey" action that says how long to wait when it comes too soon
   ([#171](https://github.com/NCodeGroup/identity/issues/171),
   [ADR-1407](docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md),
-  [ADR-1422](docs/decisions/1422-a-management-problem-that-asks-the-caller-to-wait-carries-the-wait-in-retry-after-seconds.md)).
+  [ADR-1483](docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md)).
 
 - **A management problem that asks the caller to wait carries the wait.** A rekey or a root key change that comes too
   soon, and a root key that is unavailable, answer through `RetryAfterProblem.Create` with `Retry-After` and
@@ -4106,7 +4106,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `ManagementProblemMembers` names every extension member the management API writes, and the console's
   `apiErrorMessage` says "Try again in …" with the wait in seconds, minutes or hours
   ([#571](https://github.com/NCodeGroup/identity/issues/571),
-  [ADR-1422](docs/decisions/1422-a-management-problem-that-asks-the-caller-to-wait-carries-the-wait-in-retry-after-seconds.md)).
+  [ADR-1483](docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md)).
 
 - **The host image rewraps every master key offline.** `secret-protection rewrap` wraps every master key under the
   configured root key provider and recovery public key, and `secret-protection rewrap-recovery` replaces only the

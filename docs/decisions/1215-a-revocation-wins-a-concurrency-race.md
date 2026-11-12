@@ -18,7 +18,7 @@ or another revocation, made the save of the revocation fail:
 - the revocation endpoint answered `500`, where RFC 7009 §2.2 answers `200`, and the token stayed active;
 - a logout that terminated a session left the grants of that session active;
 - the management API answered `412`
-  ([ADR-1214](1214-a-management-write-that-loses-a-race-is-answered-412.md)) to a revocation that is correct whatever
+  ([ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md)) to a revocation that is correct whatever
   the caller read.
 
 The revocation of a refresh-token lineage read again and retried
@@ -33,7 +33,7 @@ a race.**
 1. **A revocation retries.** When the save of a revocation throws `StoreConcurrencyException`, the service opens a new
    unit of work, reads again, and retries, up to `MaxSaveAttempts` (3) attempts in total. After the last lost attempt
    the exception propagates: `500` at a protocol endpoint, and `412` at the management API through the filter of
-   [ADR-1214](1214-a-management-write-that-loses-a-race-is-answered-412.md). A revocation does not depend on what its
+   [ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md). A revocation does not depend on what its
    caller read, because its outcome is the same whichever state the grants were in, so a retry is correct, as it is for
    the lineage revocation.
 2. **One filtered revocation.** `IPersistedGrantService.RevokeWhereAsync` revokes every active grant that a
@@ -101,7 +101,7 @@ a race.**
   `StoreConcurrencyException`.
 - [ADR-1211](1211-a-rotated-refresh-token-is-spent-with-its-successor.md) — the lineage revocation that reads again, and
   the spends that answer a lost race as a reuse.
-- [ADR-1214](1214-a-management-write-that-loses-a-race-is-answered-412.md) — a management write that loses a race is
+- [ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md) — a management write that loses a race is
   answered `412`.
 - [RFC 7009](https://www.rfc-editor.org/rfc/rfc7009) — OAuth 2.0 Token Revocation (§2.2).
 - Code: `NCode.Identity.OpenId.Authentication.Persistence.IPersistedGrantService`,

@@ -175,16 +175,13 @@ The records are grouped by area; within an area they are in number order.
 | [1067](./1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md) | Secret key types form one catalog, and authenticated management callers discover the deployment's capabilities | Accepted |
 | [1086](./1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md) | Endpoints compose as a declarative group tree, and a protocol endpoint is a thin mediator-driven provider | Accepted |
 | [1191](./1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md) | A management request is authenticated by the control-plane tenant and scoped by its route's tenant | Accepted |
-| [1214](./1214-a-management-write-that-loses-a-race-is-answered-412.md) | A management write that loses a concurrency race is answered 412 | Accepted |
 | [1257](./1257-the-management-console-addresses-every-owners-secrets-settings-and-roles-through-one-owner-value.md) | The management console addresses every owner's secrets, settings and roles through one owner value | Accepted |
 | [1417](./1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md) | Management authority is a role assignment at a node of the platform, team and tenant hierarchy | Accepted |
-| [1422](./1422-a-management-problem-that-asks-the-caller-to-wait-carries-the-wait-in-retry-after-seconds.md) | A management problem that asks the caller to wait carries the wait in retryAfterSeconds | Accepted |
 | [1424](./1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md) | A management route authorizes at the node it names before it reads, through replaceable validators | Accepted |
 | [1465](./1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md) | Role lists share one audited grant and revoke flow, and a caller discovers its own assignments | Accepted |
 | [1466](./1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md) | A client is its own principal, and a machine client acts only within its owning node | Accepted |
-| [1480](./1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md) | A management route answers from what it read and declares every problem it answers | Accepted |
 | [1481](./1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md) | The composition layer serves the API reference, and each management problem says when it occurs | Accepted |
-| [1483](./1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md) | A management request whose binding fails is answered as a problem its route declares | Accepted |
+| [1483](./1483-every-management-error-is-a-problem-document-that-its-route-declares.md) | Every management error is a problem document that its route declares | Accepted |
 
 ### Protocol endpoints, grants and tokens
 

@@ -43,7 +43,7 @@ internal sealed class ManagementRootGroup : IEndpointGroup
     public RoutePattern GetPrefix(IServiceProvider serviceProvider) =>
         RoutePatternFactory.Parse(RoutePrefix);
 
-    // See ADR-1480.
+    // See ADR-1483.
     /// <inheritdoc />
     public void ConfigureRoutes(RouteGroupBuilder group)
     {

@@ -126,7 +126,7 @@ occurs.
   management authentication and the bootstrap administrator.
 - [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md): the bootstrap client registers
   `client_secret_basic`.
-- [ADR-1480](1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md): a route
+- [ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md): a route
   declares every problem it answers.
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md):
   the composition layer wires implementations.

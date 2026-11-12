@@ -50,7 +50,7 @@ so a write repairs it.**
    ([ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)).
 2. **One filter answers it.** `UnreadableSettingsEndpointFilter` is installed once on the management root group
    (`ManagementRootGroup`), beside `StoreConcurrencyEndpointFilter`
-   ([ADR-1483](1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md)), so the
+   ([ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md)), so the
    nested route groups, such as the local accounts', are covered. No handler catches the exception, so the answers
    cannot drift apart.
 3. **The answer is `409` with a problem.** RFC 9110 §15.5.10 defines `409 Conflict` as a conflict with the current
@@ -202,7 +202,7 @@ The chosen option is the typed exception, one filter, log-and-continue walks and
   reports the clients a change makes incoherent.
 - [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md) — authorization
   before a read.
-- [ADR-1483](1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md) — the
+- [ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md) — the
   endpoint filter on the management root group.
 - Code: `NCode.Identity.OpenId.Settings.UnreadableSettingsException`,
   `NCode.Identity.OpenId.Settings.IEffectiveSettingsResolver`,

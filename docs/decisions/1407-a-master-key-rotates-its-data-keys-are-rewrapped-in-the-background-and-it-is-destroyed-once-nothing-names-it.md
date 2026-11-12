@@ -7,7 +7,7 @@
   `master-key-maintenance:platform`, and the platform's keys are reported and rekeyed under
   `/api/platform/encryption-keys` with the `platform_encryption_keys` scope family; amended by
   [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): rotation wraps the successor under the owner's root key, the status reports it, and an owner-rooted cache entry is re-validated; amended by
-  [ADR-1422](1422-a-management-problem-that-asks-the-caller-to-wait-carries-the-wait-in-retry-after-seconds.md): a
+  [ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md): a
   rekey too soon also carries the wait in the problem's retryAfterSeconds)
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group
@@ -117,7 +117,7 @@ a retired key is destroyed once a scan finds no value that still names it. The p
     is never created for an unknown owner), and the caller needs `Read` or `Update` on it. The scope families are
     `encryption_keys` in the tenant plane and `server_encryption_keys` in the control plane. A rekey that loses a race to
     another rekey answers 412 through `StoreConcurrencyEndpointFilter`
-    ([ADR-1214](1214-a-management-write-that-loses-a-race-is-answered-412.md)), and a rekey within twice
+    ([ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md)), and a rekey within twice
     `RefreshInterval` of the last rotation answers 409 with `Retry-After`.
 14. **Master key changes are audit events.** `master_key.rotated` and `master_key.destroyed` belong to the `key` category
     with the resources `master_key` and the owner. The reason is `requested`, `rotation_period_elapsed` or

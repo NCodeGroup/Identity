@@ -57,7 +57,7 @@ seeds.**
    `/api/me/tenants` read `IManagementCallerFeature`, never `HttpContext.User.Identity.IsAuthenticated`, and answer
    `ManagementProblems.AuthenticationRequired()` (`401`) when the feature is absent, also when the filter did not run.
    They have no authority check, so they declare `401` and no `403`
-   ([ADR-1480](1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md),
+   ([ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md),
    [ADR-1481](1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md)); an authenticated caller that
    resolves to no principal gets `200` with a null `principalId`, because the answer describes the caller.
 6. **Every other route authorizes imperatively from `HttpContext.User`.** It uses `IAuthorizationService.AuthorizeAsync`
@@ -83,7 +83,7 @@ seeds.**
 11. **`BootstrapAdminHostManagedClientPolicy` (an `IHostManagedClientPolicy`) marks the client host-managed.** The API
     answers `409` to any change to it after authorizing the caller, `GlobalAdmin` included, so no root-tenant
     administrator obtains a `GlobalAdmin` token through it
-    ([ADR-1483](1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md) holds the
+    ([ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md) holds the
     management API's answers to a lost race).
 12. **A host enables `client_credentials` at the platform**, under `OpenId:Platform:Settings:grant_types_supported`
     ([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)),
@@ -142,7 +142,7 @@ seeds.**
   rule.
 - [ADR-1465](1465-role-lists-share-one-audited-grant-and-revoke-flow-and-a-caller-discovers-its-own-assignments.md),
   [ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md),
-  [ADR-1480](1480-a-management-route-answers-from-what-it-read-and-declares-every-problem-it-answers.md): the
+  [ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md): the
   authenticated-caller routes.
 - RFC 6750 section 3.
 - [#715](https://github.com/NCodeGroup/identity/issues/715),

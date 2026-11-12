@@ -64,7 +64,7 @@ that changes its slice, and a lost race surfaces as a store-neutral `StoreConcur
    the stored one throws a `StoreConcurrencyException` when they differ: `PlatformStore`, `TeamStore`, `TenantStore`,
    `ClientStore`, `ClientGrantStore`, `GrantStore`, `ResourceServerStore`, `MasterKeyStore`, `OwnerRootKeyStore` and
    `SecretEnvelopeStore`. The management API checks a caller's staleness at the edge with `If-Match`, and answers a lost
-   write `412` ([ADR-1214](1214-a-management-write-that-loses-a-race-is-answered-412.md)); the stores' own check is the
+   write `412` ([ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md)); the stores' own check is the
    second line.
 9. **`ConsumeOnceOrDefault` answers the loser as a second spend.** It catches `StoreConcurrencyException` around its
    update and save and returns `null`, as it does for a grant that is unknown, expired or already consumed. Every caller
@@ -117,7 +117,7 @@ that changes its slice, and a lost race surfaces as a store-neutral `StoreConcur
 - [ADR-1112](1112-authorization-code-replay-revokes-session.md),
   [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md),
   [ADR-1211](1211-a-rotated-refresh-token-is-spent-with-its-successor.md),
-  [ADR-1214](1214-a-management-write-that-loses-a-race-is-answered-412.md),
+  [ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md),
   [ADR-1215](1215-a-revocation-wins-a-concurrency-race.md)
 - Code: `NCode.Identity.OpenId.Persistence.EntityFramework.Configuration.ConcurrencyTokenSaveChangesInterceptor`,
   `NCode.Identity.OpenId.Persistence.EntityFramework.Stores.BaseStore`,

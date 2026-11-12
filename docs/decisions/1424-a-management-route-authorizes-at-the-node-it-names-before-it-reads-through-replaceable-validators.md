@@ -84,7 +84,7 @@ names, before it opens a store, through one replaceable validator per entity.**
 10. **A precondition fails on a queried fact.** A precondition fails only on a fact a validator or handler queried,
     never on a caught exception, so stores expose facts such as existence and dependents as query methods. A lost race
     is answered as
-    [ADR-1483](1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md) decides.
+    [ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md) decides.
 
 ## Options considered
 
@@ -127,7 +127,7 @@ names, before it opens a store, through one replaceable validator per entity.**
   limit is set by the authority above its scope
 - [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md) — a team nests
   beneath a parent team
-- [ADR-1483](1483-a-management-request-whose-binding-fails-is-answered-as-a-problem-its-route-declares.md) — the
+- [ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md) — the
   management API's answer to a lost race
 - [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — tenant
   selection and scoping

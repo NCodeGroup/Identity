@@ -86,7 +86,7 @@ and tenant it serves with the store's and evicts only those whose token differs 
 - A reconciliation record write changes a team's token, so that team is evicted too, which is conservative.
 - A root key change makes every replica's secrets poll read the tenant's secrets again.
 - A management write that read the tenant row before a root key change is answered `412`
-  ([ADR-1214](1214-a-management-write-that-loses-a-race-is-answered-412.md)) and a retry succeeds.
+  ([ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md)) and a retry succeeds.
 - When marking a tenant's secrets changed fails, the announcement still goes out, so a replica that receives it evicts
   the tenant. A replica that misses it finds the row token unchanged and serves the cached tenant until
   `TenantCacheLifetime` expires it, which bounds that window.
@@ -106,7 +106,7 @@ and tenant it serves with the store's and evicts only those whose token differs 
   — a master key rotates, and its data keys are rewrapped in the background
 - [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) — a tenant is provisioned
   through one pipeline
-- [ADR-1214](1214-a-management-write-that-loses-a-race-is-answered-412.md) — a management write that loses a
+- [ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md) — a management write that loses a
   concurrency race is answered 412
 - [project-template ADR-0140](project-template/0140-replicas-converge-through-reconciliation.md) — replicas converge
   through reconciliation

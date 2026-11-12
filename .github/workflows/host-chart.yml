@@ -280,6 +280,30 @@ jobs:
           refuse --values "$gateway" --set-json 'httpRoute.hostnames=[]'
           refuse --values "$gateway" --set backendTls.caConfigMap=
           refuse --values "$gateway" --set-json 'managementConsole.httpRoute.parentRefs=[]'
+          # With the chart's private CA, a post-install and post-upgrade hook Job publishes the CA's ca.crt to the
+          # <release>-ca ConfigMap. It mounts only that key, never the CA's private key, and its Role reads and patches
+          # only that ConfigMap.
+          private_ca="$CHART/ci/gateway-api-private-ca-values.yaml"
+          job=$(helm template release "$CHART" --values "$private_ca" --show-only templates/ca-publisher-job.yaml)
+          expect "$job" 'helm.sh/hook: post-install,post-upgrade' 'key: ca.crt' 'name: release-ncode-identity-host-ca$'
+          reject "$job" 'key: tls.key'
+          publisher=$(helm template release "$CHART" --values "$private_ca" --show-only templates/ca-publisher.yaml)
+          expect "$publisher" '- name: release-ncode-identity-host-ca$' 'resourceNames:' \
+            '- release-ncode-identity-host-ca$'
+          # backendTls.caConfigMap names the ConfigMap the publisher writes.
+          named=$(helm template release "$CHART" --values "$private_ca" --set backendTls.caConfigMap=published-ca \
+            --show-only templates/ca-publisher.yaml)
+          expect "$named" '- name: published-ca$' '- published-ca$'
+          reject "$named" 'release-ncode-identity-host-ca$'
+          # The publisher writes only the chart's private CA, so the chart refuses it with a server certificate from
+          # another CA, and with a console certificate of the operator's whose CA no console ConfigMap names.
+          refuse --values "$private_ca" --set backendTls.certManager.issuerRef.name=corp-ca
+          refuse --values "$private_ca" --set backendTls.existingSecret=my-tls
+          refuse --values "$private_ca" --set managementConsole.backendTls.existingSecret=console-tls
+          console_ca=$(helm template release "$CHART" --values "$private_ca" \
+            --set managementConsole.backendTls.existingSecret=console-tls \
+            --set managementConsole.backendTls.caConfigMap=console-ca)
+          expect "$console_ca" 'name: console-ca'
           # The console's Certificate needs the private CA even when the server's Secret is the operator's.
           console_only=$(helm template release "$CHART" --values "$CHART/ci/management-console-values.yaml" \
             --set backendTls.existingSecret=my-tls)

@@ -113,3 +113,8 @@ NCode.Identity.AspNetCore.HttpBodyLoggingEndpointExtensions
 NCode.Identity.AspNetCore.HttpBodyLoggingEndpointExtensions.extension(Microsoft.AspNetCore.Http.Endpoint?)
 NCode.Identity.AspNetCore.HttpBodyLoggingEndpointExtensions.extension(Microsoft.AspNetCore.Http.Endpoint?).HasConfidentialBodies.get -> bool
 NCode.Identity.AspNetCore.HttpBodyLoggingEndpointExtensions.extension(Microsoft.AspNetCore.Http.Endpoint?).LoggableBodyFields.get -> Microsoft.AspNetCore.HttpLogging.HttpLoggingFields
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder)
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithConfidentialBodies() -> TBuilder
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithRequestBodyLogging() -> TBuilder
+NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithResponseBodyLogging() -> TBuilder

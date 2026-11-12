@@ -1820,11 +1820,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   persisted as a short-lived stateful grant (`OpenIdConstants.PersistedGrantTypes.UserInfoClaims`) keyed by the access
   token's `jti` and bounded by its lifetime, then resolved at UserInfo, so the access token itself is never inflated.
   `value`/`values` are advisory and `essential` is best-effort; a host imposes stricter semantics with a higher-priority
-  claims handler ([ADR-1039](docs/decisions/1039-claims-request-parameter.md)).
+  claims handler ([ADR-1039](docs/decisions/1039-requested-claims-acr-and-auth-time-follow-the-request-and-the-authentication-event.md)).
 
 - **Tokens carry the authentication context: `amr`, an `acr` from a replaceable resolver, and `auth_time` when it is
   due** (issue [#49](https://github.com/NCodeGroup/identity/issues/49),
-  [ADR-1091](docs/decisions/1091-acr-emission-and-conditional-auth-time.md)). Local interactive sign-in and the
+  [ADR-1039](docs/decisions/1039-requested-claims-acr-and-auth-time-follow-the-request-and-the-authentication-event.md)). Local interactive sign-in and the
   resource-owner-password subject handler record `amr=["pwd"]` (RFC 8176) and resolve `acr` through the async,
   DI-overridable `IAuthenticationContextReferenceResolver`: the default asserts the PAPE multi-factor URN
   (`OpenIdConstants.AuthenticationContextClassReferences.MultiFactor`) when several factors were used and otherwise the
@@ -5138,7 +5138,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `DefaultValidateSubjectAuthenticationHandler` denies with `access_denied` unless the subject's satisfied `acr` is
   among the requested values, so no token is issued with a mismatched `acr`. Voluntary `acr` requests, including the
   whole `acr_values` parameter, stay best-effort
-  ([ADR-1091](docs/decisions/1091-acr-emission-and-conditional-auth-time.md)).
+  ([ADR-1039](docs/decisions/1039-requested-claims-acr-and-auth-time-follow-the-request-and-the-authentication-event.md)).
 
 - **Consent is granular: the end-user grants a subset of the requested scopes, and the OP issues only that subset**
   (issue [#40](https://github.com/NCodeGroup/identity/issues/40),

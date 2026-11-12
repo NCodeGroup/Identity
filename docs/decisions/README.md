@@ -191,7 +191,7 @@ The records are grouped by area; within an area they are in number order.
 | [1028](./1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md) | The revocation endpoint revokes refresh tokens and their families, and always answers 200 | Accepted |
 | [1029](./1029-token-introspection-endpoint.md) | Token introspection resolves JWT access tokens and refresh-token grants | Accepted |
 | [1030](./1030-userinfo-endpoint-and-subject-authentication-seam.md) | UserInfo is backed by a reusable subject-authentication seam; claims come from enrichers | Accepted |
-| [1039](./1039-claims-request-parameter.md) | The OpenID Connect `claims` request parameter is honored end-to-end | Accepted |
+| [1039](./1039-requested-claims-acr-and-auth-time-follow-the-request-and-the-authentication-event.md) | Requested claims, acr and auth_time follow the request and the authentication event | Accepted |
 | [1059](./1059-device-authorization-grant.md) | Device Authorization Grant (RFC 8628) over the persisted-grant store | Accepted |
 | [1063](./1063-dynamic-client-registration.md) | Dynamic Client Registration (RFC 7591/7592) over the persisted-grant store | Accepted |
 | [1074](./1074-session-management-and-logout.md) | End-user sessions, the `sid` claim, and RP-Initiated + Back-Channel Logout | Accepted |
@@ -204,7 +204,6 @@ The records are grouped by area; within an area they are in number order.
 | [1087](./1087-refresh-token-reuse-detection-and-family-revocation.md) | Refresh-token reuse detection revokes the whole rotation family | Accepted |
 | [1088](./1088-opt-in-front-channel-logout-and-session-management.md) | Opt-in Front-Channel Logout and Session Management (available, disabled by default) | Accepted |
 | [1089](./1089-pushed-authorization-requests.md) | Pushed Authorization Requests (PAR, RFC 9126) | Accepted |
-| [1091](./1091-acr-emission-and-conditional-auth-time.md) | `acr` emission via a replaceable resolver, and conditional `auth_time` | Accepted |
 | [1093](./1093-pairwise-subject-identifiers.md) | Pairwise subject identifiers via a stateless, deterministic projection | Accepted |
 | [1095](./1095-sector-identifier-uri-fetch-and-ssrf-guard.md) | Registration-time `sector_identifier_uri` fetch and validation with an SSRF-guarded client | Accepted |
 | [1096](./1096-end-session-subject-from-server-state.md) | End-session resolves the stable subject from server-owned state, never by reversing a pairwise `sub` | Accepted |

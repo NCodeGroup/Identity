@@ -87,7 +87,7 @@ sequenceDiagram
   protecting the reference under the master key, exporting a key to agree locally and Azure `Decrypt` in place of
   `UnwrapKey`:
   [ADR-1471, Options considered](../decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md#options-considered).
-- Asynchronous twins beside the synchronous members, synchronous twins beside the asynchronous decode members,
+- Synchronous twins beside the asynchronous members,
   blocking on a task, signing before encoding, a callback on the credentials and verifying a remote decryption another
   way: [ADR-1472, Options considered](../decisions/1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md#options-considered).
 - Separate provider packages:

@@ -3291,8 +3291,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   a tenant's document, and a client's or resource server's document, with the security profiles' ceilings and defaults:
   `ReadScopeSettings`, which takes the parent settings, and `Resolve` read a scope's document and merge it onto its
   parent's effective settings, and the two `ResolvePlatformAsync` overloads resolve a proposed or the committed platform
-  document onto the configured settings and `ResolveTeamAsync` resolves a team's. Every effective-settings merge, `DefaultOpenIdTenantFactory` and
-  `EphemeralOpenIdTenantFactory` included, goes through it. Seeds and management previews read the platform's committed
+  document onto the configured settings and `ResolveTeamAsync` resolves a team's. Every effective-settings merge,
+  `DefaultOpenIdTenantFactory` included, goes through it. Seeds and management previews read the platform's committed
   settings rather than a replica's 5-minute poll of them, and `ITenantStore` and `IClientStore` expose
   `GetSettingsPageAsync`, which a custom store implements. Its default is registered with `TryAddSingleton`, so a host
   registers its own ([ADR-1204](docs/decisions/1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md),

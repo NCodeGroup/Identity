@@ -200,7 +200,7 @@ it across 3 replicas, so it isn't used.
 **Hostnames** — the issuer URL is baked into every client's configuration, so choose these once (decided in
 [ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)). The scheme uses
 **functional namespaces** under the apex — `auth` for the OpenID protocol, `mtls` for its certificate-bound aliases,
-`manage` for the management plane — mirroring Auth0 (`{tenant}.us.auth0.com` for tenants, `manage.auth0.com` for the
+`manage` for the management console — mirroring Auth0 (`{tenant}.us.auth0.com` for tenants, `manage.auth0.com` for the
 dashboard). The platform's hosts live on `ncodeid.net`, which carries nothing else, and the site, docs, status page
 and mail live on `ncodeid.com` ([ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)):
 
@@ -209,7 +209,7 @@ and mail live on `ncodeid.com` ([ADR-1495](decisions/1495-the-hosted-platform-ru
 | `auth.ncodeid.net`                              | Root (control-plane) tenant issuer — where admins sign in and management-API tokens are issued ([ADR-1417](decisions/1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md)) | `auth.ncodeid.net`            |
 | `{tenant}.auth.ncodeid.net`                     | Workload tenant issuers, resolved by `DynamicByHost` (e.g. `acme.auth.ncodeid.net`)                     | `*.auth.ncodeid.net`          |
 | `mtls.ncodeid.net`, `{tenant}.mtls.ncodeid.net` | RFC 8705 mTLS endpoint aliases — the only hosts where Traefik requests a client certificate. `DynamicByHost` routes each tenant's alias host to it (ADR-1165) | `mtls.…` + `*.mtls.ncodeid.net` |
-| `manage.ncodeid.net`                            | Management API (`/api`) and admin console — the control-plane surface ([ADR-1191](decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)) | `manage.ncodeid.net`          |
+| `manage.ncodeid.net`                            | The management console only; the management API is `/api` on `auth.ncodeid.net` ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)) | `manage.ncodeid.net`          |
 | `ncodeid.net`, `www.ncodeid.net`                  | Redirect (301) to `https://ncodeid.com`, with the HSTS header                                            | `ncodeid.net` + `www.ncodeid.net` (cert-manager) |
 | `ncodeid.com`, `www.ncodeid.com`, `status.ncodeid.com` | Project site, docs and status page — the brand domain ([ADR-1495](decisions/1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)) | Hosting provider               |
 
@@ -224,8 +224,9 @@ Why this shape:
   changing its issuer.
 - **`mtls` is a sibling namespace, not `mtls.{tenant}.auth…`:** a wildcard covers one label only, so nesting would need a
   certificate per tenant.
-- **`manage` is separate from `auth`:** the management plane gets its own CORS, rate-limit, and IP-allow-list policy at
-  Traefik, and `/api` is routed **only** on `manage` (blocked on `auth` / `mtls` hosts) as defense in depth.
+- **`manage` is separate from `auth`:** the management console is a confidential client with a BFF host and origin of
+  its own, so it gets its own CORS, rate-limit, and IP-allow-list policy at Traefik, and calls the management API at
+  `/api` on `auth` ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)).
 - **Custom domains later** (Auth0 parity): the tenant's issuer is its single origin — it both routes the tenant and
   anchors every published URL ([ADR-1165](decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)) — so a
   custom domain (`login.customer.com`, CNAME'd to the platform) *becomes* the tenant's issuer. Choose it before clients
@@ -241,8 +242,7 @@ Why this shape:
   is created when the first request reaches `auth.ncodeid.net`, with the bootstrap administrator named into it
   (`BootstrapAdmin:TenantId = root`,
   [ADR-1166](decisions/1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md)). `/api` is served on
-  `manage.ncodeid.net`, which is no tenant's host, because the management API authenticates against the root tenant
-  rather than the host it is called on
+  `auth.ncodeid.net`, the root tenant's host, because the management API authenticates the root tenant's tokens
   ([ADR-1191](decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)).
 
 **Environments.** Customer environments are just tenants on production (`acme-dev.auth.ncodeid.net`), so they need no
@@ -648,8 +648,9 @@ speed-test endpoint from the Denver network the users are on.
   require Valkey for more than one replica
   ([ADR-1458](decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)). Before
   each rollout it migrates the database in a Job from the same image, and every migration keeps the previous release
-  working ([ADR-1180](decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)). Still
-  needed: publishing the image and chart ([#87](https://github.com/NCodeGroup/identity/issues/87)).
+  working ([ADR-1180](decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)). Every
+  merge to `main` publishes the image and the chart
+  ([ADR-1505](decisions/1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)).
 - **Per-tenant rate limits and quotas** — issues [#84](https://github.com/NCodeGroup/identity/issues/84) and [#118](https://github.com/NCodeGroup/identity/issues/118), done
   ([ADR-1246](decisions/1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md),
   [ADR-1198](decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md)); the mTLS work ([#82](https://github.com/NCodeGroup/identity/issues/82), [#83](https://github.com/NCodeGroup/identity/issues/83),

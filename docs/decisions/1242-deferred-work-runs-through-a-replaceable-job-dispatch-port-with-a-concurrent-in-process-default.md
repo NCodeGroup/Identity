@@ -11,7 +11,7 @@ Several flows perform an outbound side effect after the request that triggered t
 it succeeds:
 
 - the CIBA ping and push delivery to a client's `client_notification_endpoint`
-  ([ADR-1085](1085-ciba-grant.md)); a push-mode client never polls, so a lost push is unrecoverable;
+  ([ADR-1085](1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md)); a push-mode client never polls, so a lost push is unrecoverable;
 - the back-channel logout notification ([ADR-1074](1074-session-management-and-logout.md));
 - the key maintenance that runs in the background: the rewrap of data keys under a new master key and the sweep of
   remote keys that no stored secret names.
@@ -182,7 +182,7 @@ best effort ([ADR-1047](1047-auditing-and-events-observation-seam.md)).
   `NCode.Identity.Server.IdentityServerBuilderExtensions`.
 - Issue [#25](https://github.com/NCodeGroup/identity/issues/25), the durable adapter, and
   [project-template ADR-0141](project-template/0141-side-effects-after-a-commit-go-through-an-outbox.md).
-- [ADR-1085](1085-ciba-grant.md) — the CIBA grant whose delivery the dispatcher carries.
+- [ADR-1085](1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md) — the CIBA grant whose delivery the dispatcher carries.
 - [ADR-1074](1074-session-management-and-logout.md) — the back-channel logout notification the dispatcher delivers.
 - [ADR-1047](1047-auditing-and-events-observation-seam.md) — the events background-delivery pattern the in-process
   dispatcher generalizes.

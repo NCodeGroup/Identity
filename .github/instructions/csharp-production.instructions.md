@@ -371,7 +371,7 @@ than inlining the rationale.
   **default handler reports “unsupported/undecided”** (reuse `AuthenticateSubjectDisposition` where it fits) so a
   capability package replaces it via `TryAddSingleton`. A side-effecting **transport** (notification, back-channel
   delivery) stays an injectable service invoked **from** a handler, not a mediator command. Exemplars: the token,
-  end-session, and CIBA ([ADR-1085](../../docs/decisions/1085-ciba-grant.md)) endpoints; the device-authorization endpoint is
+  end-session, and CIBA ([ADR-1085](../../docs/decisions/1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md)) endpoints; the device-authorization endpoint is
   the pre-convention outlier (issue [#56](https://github.com/NCodeGroup/identity/issues/56)), **not** a template to copy.
 - 👁 **Protocol endpoints are served under the tenant route.** The OpenID protocol group's prefix is the configured
   tenant route (`/{tenantId}`, a literal path, or empty), so an endpoint's own route is relative to the tenant; never

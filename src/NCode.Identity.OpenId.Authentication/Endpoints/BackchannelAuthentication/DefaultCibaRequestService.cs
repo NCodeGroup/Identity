@@ -160,7 +160,7 @@ internal sealed class DefaultCibaRequestService(
 
     // A denial reaches a ping or push client so it does not wait for a request that can no longer be approved. A ping
     // tells the client to poll, and the token endpoint answers access_denied; a push carries the error payload (CIBA
-    // Core §10.2, §12). See ADR-1231.
+    // Core §10.2, §12). See ADR-1085.
     private async ValueTask NotifyDeniedAsync(
         OpenIdClient openIdClient,
         string authReqId,
@@ -253,7 +253,7 @@ internal sealed class DefaultCibaRequestService(
             return false;
 
         // Only the call that decides a pending request notifies, so a concurrent decision sends no second
-        // notification. See ADR-1231.
+        // notification. See ADR-1085.
         await NotifyDeniedAsync(openIdClient, authReqId, pendingOrNull.Value, cancellationToken);
 
         return true;

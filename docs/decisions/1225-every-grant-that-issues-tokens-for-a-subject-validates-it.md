@@ -3,7 +3,7 @@
 - **Status:** Accepted (amended by
   [ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md): the end user's
   standing is its own command, which every subject validation includes;
-  [ADR-1231](1231-a-ping-or-push-client-is-told-when-its-ciba-request-is-denied.md): a denial is delivered to a ping or
+  [ADR-1085](1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md): a denial is delivered to a ping or
   push client)
 - **Date:** 2026-10-23
 - **Deciders:** NCode Group
@@ -13,7 +13,7 @@
 [ADR-1224](1224-deleting-or-disabling-an-account-ends-its-sessions.md) refuses a disabled or deleted account wherever
 `ValidateSubjectAuthenticationCommand` is sent: the authorization request and the authorization-code, refresh-token and
 password grants. Three grants that issue tokens for an end user did not send it: the device-code grant
-([ADR-1059](1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md)), the CIBA grant ([ADR-1085](1085-ciba-grant.md)) and token exchange
+([ADR-1059](1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md)), the CIBA grant ([ADR-1085](1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md)) and token exchange
 ([ADR-1101](1101-oauth-token-exchange-rfc8693.md)). Four gaps followed:
 
 - An end user whose account was disabled or deleted kept redeeming an approved device code or `auth_req_id` and kept
@@ -48,7 +48,7 @@ that client.**
 4. **A CIBA approval validates the approving subject.** `DefaultCibaRequestService.ApproveAsync` validates the subject
    before it records the approval, for every delivery mode, because push delivery issues tokens at the approval. A
    refused subject denies the request (`DenyAsync`) and `ApproveAsync` returns `false`. A ping or push client is told of
-   the denial ([ADR-1231](1231-a-ping-or-push-client-is-told-when-its-ciba-request-is-denied.md)).
+   the denial ([ADR-1085](1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md)).
 5. **A subject can be validated outside a protocol request.** `ValidateSubjectAuthenticationCommand.OpenIdRequest` is
    `IOpenIdRequest?`, and `null` means that the subject is validated outside a protocol request, as at a CIBA approval.
    `DefaultValidateSubjectAuthenticationHandler` then skips the `max_age` of the request, the `idp:` values of its
@@ -90,7 +90,7 @@ that client.**
 - A CIBA approval callback passes a subject that carries its tenant and is authenticated, as a token request requires.
 - The allowed identity providers of the exchanging client apply to the `idp` of the subject token.
 - A denied CIBA request is delivered to a ping or push client
-  ([ADR-1231](1231-a-ping-or-push-client-is-told-when-its-ciba-request-is-denied.md)).
+  ([ADR-1085](1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md)).
 - **Breaking:** `ValidateSubjectAuthenticationCommand.OpenIdRequest` is nullable, `ICibaRequestService.ApproveAsync`
   returns `false` for a refused subject, a device code or `auth_req_id` that another client presents is
   `invalid_grant`, and `DefaultAuthenticateSubjectHandler` depends on `ISessionService`.
@@ -99,7 +99,7 @@ that client.**
 ## References
 
 - [ADR-1059](1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md) — the device authorization grant and its verification endpoint.
-- [ADR-1085](1085-ciba-grant.md) — the CIBA grant and its delivery modes.
+- [ADR-1085](1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md) — the CIBA grant and its delivery modes.
 - [ADR-1101](1101-oauth-token-exchange-rfc8693.md) — token exchange.
 - [ADR-1112](1112-authorization-code-replay-revokes-session.md) — the replay of an authorization code, which is why that
   grant spends its code first.

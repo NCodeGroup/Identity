@@ -199,7 +199,7 @@ The records are grouped by area; within an area they are in number order.
 | [1077](./1077-session-scoped-grant-revocation-on-logout.md) | Logout revokes the terminating session's grants, not the subject's | Accepted |
 | [1079](./1079-extensible-pkce-code-challenge-methods.md) | Extensible PKCE `code_challenge_method` transformations | Accepted |
 | [1081](./1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md) | Consent is a durable record of decided and granted scopes, enforced at the authorization endpoint | Accepted |
-| [1085](./1085-ciba-grant.md) | CIBA grant (OpenID Connect Client-Initiated Backchannel Authentication) over the persisted-grant store | Accepted |
+| [1085](./1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md) | CIBA is a pending request in the grant store, delivered by poll, ping or push | Accepted |
 | [1087](./1087-refresh-token-reuse-detection-and-family-revocation.md) | Refresh-token reuse detection revokes the whole rotation family | Accepted |
 | [1088](./1088-opt-in-front-channel-logout-and-session-management.md) | Opt-in Front-Channel Logout and Session Management (available, disabled by default) | Accepted |
 | [1089](./1089-pushed-authorization-requests.md) | Pushed Authorization Requests (PAR, RFC 9126) | Accepted |
@@ -235,7 +235,6 @@ The records are grouped by area; within an area they are in number order.
 | [1225](./1225-every-grant-that-issues-tokens-for-a-subject-validates-it.md) | Every grant that issues tokens for a subject validates it | Accepted |
 | [1227](./1227-a-session-is-terminated-at-most-once-on-every-path.md) | A session is terminated at most once on every path | Accepted |
 | [1228](./1228-a-session-is-terminated-with-the-clients-it-lists-when-claimed-and-a-replayed-code-terminates-it.md) | A session is terminated with the clients it lists when claimed, and a replayed code terminates it | Accepted |
-| [1231](./1231-a-ping-or-push-client-is-told-when-its-ciba-request-is-denied.md) | A ping or push client is told when its CIBA request is denied | Accepted |
 | [1297](./1297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md) | A refresh token family expires at a fixed horizon that the token response announces | Accepted |
 | [1314](./1314-protocol-endpoints-keep-the-http-methods-their-specifications-require.md) | Protocol endpoints keep the HTTP methods their specifications require | Accepted |
 | [1380](./1380-a-logout-without-a-valid-id-token-hint-for-the-current-session-is-confirmed.md) | A logout without a valid `id_token_hint` for the current session is confirmed by the end-user | Accepted |

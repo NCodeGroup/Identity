@@ -111,7 +111,7 @@ mapped onto the root after the groups.
   ([ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md)).
 
 The exemplars are the token, end-session, CIBA backchannel
-([ADR-1085](1085-ciba-grant.md)) and device-authorization endpoints. The device-authorization endpoint is
+([ADR-1085](1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md)) and device-authorization endpoints. The device-authorization endpoint is
 `DeviceAuthorizationRequest : OpenIdMessage<…>` plus `ValidateDeviceAuthorizationRequestCommand` and
 `CreateDeviceAuthorizationRequestCommand`.
 
@@ -167,7 +167,7 @@ The exemplars are the token, end-session, CIBA backchannel
   strategy collection or mediator; the litmus this shape applies.
 - [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md): the registration
   shape, including `AddMessageFactory<T>()`.
-- [ADR-1085](1085-ciba-grant.md): the CIBA endpoint built to this shape and the subject-resolution capability seam.
+- [ADR-1085](1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md): the CIBA endpoint built to this shape and the subject-resolution capability seam.
 - [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md): the tenant
   route that prefixes the OpenID group.
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md):

@@ -116,7 +116,7 @@ The device-code grant type is in the default `grant_types_supported`, so discove
   prune removes the ended rows
   ([ADR-1218](1218-ended-grants-are-removed-after-a-retention-period.md)), so the extra row is bounded.
 - CIBA reuses the pattern of a pending request persisted as a grant payload, approved out of band and polled for
-  completion ([ADR-1085](1085-ciba-grant.md)).
+  completion ([ADR-1085](1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md)).
 - Smell: if retention of short-lived pending rows becomes a hot-path cost, or a third grant needs the same shape with
   materially different columns, promote pending authorizations into a store of their own. The payload-first model keeps
   that change local.
@@ -138,4 +138,4 @@ The device-code grant type is in the default `grant_types_supported`, so discove
 - [ADR-1225](1225-every-grant-that-issues-tokens-for-a-subject-validates-it.md), subject validation and the session
   check.
 - [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period.md), the prune of ended grants.
-- [ADR-1085](1085-ciba-grant.md), the CIBA grant that reuses this pattern.
+- [ADR-1085](1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md), the CIBA grant that reuses this pattern.

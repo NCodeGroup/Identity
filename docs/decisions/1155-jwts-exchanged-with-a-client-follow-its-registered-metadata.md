@@ -164,7 +164,7 @@ never compresses.**
 - [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md) (amended: the request-object, UserInfo, and ID token
   lists apply to clients), [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) (amended: an unset list at a
   trust boundary permits nothing), [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md),
-  [ADR-1085](1085-ciba-grant.md) and [ADR-1242](1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md) (amended: no
+  [ADR-1085](1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md) and [ADR-1242](1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md) (amended: no
   encrypted CIBA requests), [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md).
 - Code: `NCode.Identity.OpenId.Authentication.Clients.DefaultClientJwtCredentialSelector`, `ClientJwtProtectionSettings`,
   `NCode.Identity.OpenId.Authentication.Clients.Coherence.ResponseAlgorithmCoherenceRule`,

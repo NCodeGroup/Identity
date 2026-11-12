@@ -1440,7 +1440,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The OP implements OpenID Connect Client-Initiated Backchannel Authentication (CIBA) with poll, ping and push
   delivery** (issues [#41](https://github.com/NCodeGroup/identity/issues/41) and
-  [#55](https://github.com/NCodeGroup/identity/issues/55), [ADR-1085](docs/decisions/1085-ciba-grant.md)). The pending
+  [#55](https://github.com/NCodeGroup/identity/issues/55), [ADR-1085](docs/decisions/1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md)). The pending
   authorization is a persisted grant, as in the device flow, with no table of its own. The
   `backchannel_authentication_endpoint` (`/oauth2/bc-authorize`) accepts a strongly typed
   `BackchannelAuthenticationRequest` and orchestrates the mediator commands
@@ -1469,7 +1469,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   denied: a denial, also of an approval whose subject is refused, sends the ping notification, after which the token
   endpoint answers `access_denied`, or the push error payload with `error=access_denied`, and only the call that decided
   the request notifies the client
-  ([ADR-1231](docs/decisions/1231-a-ping-or-push-client-is-told-when-its-ciba-request-is-denied.md), issue
+  ([ADR-1085](docs/decisions/1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md), issue
   [#291](https://github.com/NCodeGroup/identity/issues/291)).
 
 - **OAuth 2.0 Token Exchange (RFC 8693)** (issue [#61](https://github.com/NCodeGroup/identity/issues/61),

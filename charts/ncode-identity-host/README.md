@@ -726,7 +726,8 @@ verifies the pods' certificate:
 | `traefik`                 | A `ServersTransport` with `rootCAsSecrets` and `serverName`, and the Service annotations `service.serversscheme` and `service.serverstransport`. |
 | `none`                    | Neither. You configure the controller to speak HTTPS to the Service and to verify the pods' certificate. |
 
-`ingress.annotations` override the chart's annotations.
+`ingress.annotations` override the chart's annotations, and `managementConsole.ingress.annotations` override the
+console's the same way.
 
 The `proxy-ssl-secret` annotation of ingress-nginx also loads the Secret's `tls.crt` and `tls.key` as a client
 certificate that the pods do not ask for. To keep the pods' key out of the controller's configuration, publish the CA

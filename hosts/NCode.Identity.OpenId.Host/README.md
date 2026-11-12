@@ -295,8 +295,8 @@ and private key it finds at `/etc/ncode-identity/tls/tls.crt` and `/etc/ncode-id
 (`Kestrel__Certificates__Default__Path` and `__KeyPath`), so mount them there, as a Kubernetes `kubernetes.io/tls`
 Secret does; `Kestrel__Endpoints__<name>__…` settings replace the default endpoint and certificate. TLS ends at the pod:
 a proxy in front of it connects over HTTPS. Probe `/health/live` for liveness and `/health/ready` for readiness. The
-image writes one JSON object per line to standard output, with a UTC timestamp, so a log collector keeps an entry and its exception in one record; set
-`Logging__Console__FormatterName=simple` to write text
+image writes one JSON object per line to standard output, with a UTC timestamp, so a log collector keeps an entry and
+its exception in one record; set `Logging__Console__FormatterName=simple` to write text
 ([ADR-1248](../../docs/decisions/1248-the-host-image-writes-one-line-json-logs.md)). CI builds it for `linux/amd64` and
 `linux/arm64`
 ([ADR-1178](../../docs/decisions/1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)).

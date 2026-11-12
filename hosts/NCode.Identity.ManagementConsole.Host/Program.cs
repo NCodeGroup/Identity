@@ -46,7 +46,8 @@ builder.Services.AddTrustedForwardedHeaders(builder.Configuration);
 // Send Strict-Transport-Security as configured by the 'StrictTransportSecurity' configuration section.
 builder.Services.AddStrictTransportSecurity(builder.Configuration);
 
-// In Production, refuse to start unless Kestrel serves HTTPS only with a certificate that loads and passes the transport checks (ADR-1504). Inert in every other environment.
+// In Production, refuse to start unless Kestrel serves HTTPS only with a certificate that loads and passes the
+// transport checks (ADR-1504). Inert in every other environment.
 builder.Services.AddTransportSecurity(builder.Environment);
 
 builder.Services.AddHealthChecks();

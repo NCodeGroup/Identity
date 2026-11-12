@@ -345,10 +345,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   chiseled `aspnet:10.0-noble-chiseled-extra` runtime. The image has no shell, runs as the non-root `app` user (UID
   1654), and serves HTTPS only on port 8443 from the PEM certificate and key mounted at `/etc/ncode-identity/tls`. It
   builds the `apps/auth` interactive bundle and serves it from `/app/auth`, so the container renders login and consent,
-  and it carries the migration worker in `/app/migrations`. The SDK and Node stages
-  cross-build on the build platform, so the image builds for `linux/amd64` and `linux/arm64` without emulation in one
-  multi-architecture build, whose NuGet cache mount is locked so the two publishes take turns rather than reading
-  packages the other is still extracting; the `Host image` CI workflow builds both. The build context is an allow-list
+  and it carries the migration worker in `/app/migrations`. The SDK and Node stages cross-build on the build platform,
+  so the image builds for `linux/amd64` and `linux/arm64` without emulation in one multi-architecture build, whose NuGet
+  cache mount is locked so the two publishes take turns rather than reading packages the other is still extracting; the
+  `Host image` CI workflow builds both. The build context is an allow-list
   ([ADR-1178](docs/decisions/1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)).
 
 - **The host image writes one-line JSON logs.** The image sets `Logging__Console__FormatterName=json`,
@@ -361,21 +361,22 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The management console host ships a production container image.**
   `hosts/NCode.Identity.ManagementConsole.Host/Dockerfile` builds the console host on the host image's pinned chiseled
   base images: no shell, the non-root `app` user, HTTPS only on port 8443 from the certificate and key mounted at
-  `/etc/ncode-identity/tls`, the `apps/mgmt` bundle served from `/app/mgmt`, and one-line JSON logs; the `Console image` CI workflow builds it for `linux/amd64` and `linux/arm64`
+  `/etc/ncode-identity/tls`, the `apps/mgmt` bundle served from `/app/mgmt`, and one-line JSON logs; the `Console image`
+  CI workflow builds it for `linux/amd64` and `linux/arm64`
   ([ADR-1458](docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md),
   issue [#610](https://github.com/NCodeGroup/identity/issues/610)).
 
 - **The host has a Helm chart.** `charts/ncode-identity-host` deploys `NCode.Identity.OpenId.Host` on Kubernetes 1.30 or
   later under the restricted Pod Security Standard: non-root, read-only root filesystem, no capabilities, and no default
   service-account token (a cloud root-key provider gets only the projected token its workload identity exchanges). The
-  startup and liveness probes call `/health/live` and the readiness probe calls `/health/ready`, each over HTTPS and sending an allowed
-  `Host` header, and a `preStop` sleep drains each pod before shutdown. The chart ships a PodDisruptionBudget and an
-  optional `Ingress`, and its server pods carry `app.kubernetes.io/component: server`, so the Service and
-  PodDisruptionBudget never select the migration Job. The pods serve HTTPS from a certificate that a
+  startup and liveness probes call `/health/live` and the readiness probe calls `/health/ready`, each over HTTPS and
+  sending an allowed `Host` header, and a `preStop` sleep drains each pod before shutdown. The chart ships a
+  PodDisruptionBudget and an optional `Ingress`, and its server pods carry `app.kubernetes.io/component: server`, so the
+  Service and PodDisruptionBudget never select the migration Job. The pods serve HTTPS from a certificate that a
   cert-manager `Certificate` issues, by default from a private CA the chart creates (`backendTls`), or from a Secret the
   operator provides, and the chart renders the ingress-nginx or Traefik settings that make the ingress controller speak
-  HTTPS to the pods and verify their certificate. The database and Valkey connection strings and the local root key
-  are referenced as existing Secrets and the recovery public key as a ConfigMap, never passed as values. Rendering fails
+  HTTPS to the pods and verify their certificate. The database and Valkey connection strings and the local root key are
+  referenced as existing Secrets and the recovery public key as a ConfigMap, never passed as values. Rendering fails
   for a release the host would refuse to start (an empty or wildcard `allowedHosts`, a missing database Secret, a
   `StaticSingle` issuer that is not `https`, a missing or incomplete root key provider, `ephemeral` or a local provider
   without its Secret in Production, a Production release with no recovery decision), for more than one replica without

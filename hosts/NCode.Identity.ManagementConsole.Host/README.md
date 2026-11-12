@@ -19,7 +19,8 @@ private key it finds at `/etc/ncode-identity/tls/tls.crt` and `/etc/ncode-identi
 (`Kestrel__Certificates__Default__Path` and `__KeyPath`), so mount them there, as a Kubernetes `kubernetes.io/tls`
 Secret does; `Kestrel__Endpoints__<name>__…` settings replace the default endpoint and certificate. TLS ends at the pod:
 a proxy in front of it connects over HTTPS. Probe `/health/live` for liveness and `/health/ready` for readiness. The
-image writes one JSON object per line to standard output, with a UTC timestamp. The `Console image` workflow builds it for `linux/amd64` and `linux/arm64`
+image writes one JSON object per line to standard output, with a UTC timestamp. The `Console image` workflow builds it
+for `linux/amd64` and `linux/arm64`
 ([ADR-1458](../../docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)).
 
 The image starts in the `Production` environment, which refuses to start until the deployment provides:

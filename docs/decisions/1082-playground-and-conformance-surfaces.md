@@ -99,7 +99,7 @@ document surface-aware so one endpoint can hand each surface its own coordinates
 - Issues: [#135](https://github.com/NCodeGroup/identity/issues/135) (frontend), [#124](https://github.com/NCodeGroup/identity/issues/124)/[#125](https://github.com/NCodeGroup/identity/issues/125) (conformance).
 - Platform: [ADR-1064](1064-frontend-presentation-platform.md) (presentation platform and its invariants),
   [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md) (Aspire local-dev orchestrator),
-  [ADR-1062](1062-opt-in-interactive-login-consent-ui.md) / [ADR-1065](1065-interactive-login-consent-op-hosted-auth-surface.md)
+  [ADR-1062](1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md) / [ADR-1062](1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md)
   (the `apps/auth` login/consent surface this does not duplicate).
 - Posture: [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) and the security-practice default in
   [`.github/instructions/repository.instructions.md`](../../.github/instructions/repository.instructions.md).

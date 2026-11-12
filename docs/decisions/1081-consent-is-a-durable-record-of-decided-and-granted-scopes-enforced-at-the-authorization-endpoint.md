@@ -100,8 +100,7 @@ requested scopes narrowed to the granted subset.**
 - Code: `PersistedConsent`, `IConsentStore`, `ConsentEntity`, `IConsentService`, `DefaultConsentService`,
   `ConsentResolution`, `IScopeDescriptionService`, `DefaultAuthorizeHandler`, `AuthorizeDisposition`,
   `IAuthorizationRequest.GrantedScopes`, `ConsentChallengeCommand`
-- [ADR-1062](1062-opt-in-interactive-login-consent-ui.md),
-  [ADR-1070](1070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md): the interactive surface that
+- [ADR-1062](1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md): the interactive surface that
   serves the consent screen
 - [ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md): the session whose logout leaves consent in place
 - [ADR-1212](1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md),

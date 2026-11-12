@@ -1951,15 +1951,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`InteractiveAuthenticationDefaults.CookieSchemeName`) that the authorize endpoint's challenge redirects into, issues
   the cookie session, and honors a server-validated local return URL. The shell resolves its surfaces (account, consent,
   login) through a declarative route table, and the forms expose stable automation ids (`username`, `password`, `login`,
-  `consent-allow`, `consent-deny`). See [ADR-1062](docs/decisions/1062-opt-in-interactive-login-consent-ui.md) and
-  [ADR-1065](docs/decisions/1065-interactive-login-consent-op-hosted-auth-surface.md); issues
+  `consent-allow`, `consent-deny`). See [ADR-1062](docs/decisions/1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md); issues
   [#125](https://github.com/NCodeGroup/identity/issues/125), [#135](https://github.com/NCodeGroup/identity/issues/135).
 
 - **The interactive login surface is backend-agnostic through a pluggable credential verifier.** Credential verification
   goes through the `IInteractiveCredentialVerifier` seam in the `.Abstractions` package; its local-account
   implementation lives in `NCode.Identity.OpenId.Accounts.Authentication`, is registered by
   `AddLocalAccountInteractiveAuthentication()`, and shares the path the resource-owner password grant uses. See
-  [ADR-1070](docs/decisions/1070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md); issue
+  [ADR-1062](docs/decisions/1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md); issue
   [#142](https://github.com/NCodeGroup/identity/issues/142).
 
 - **Local accounts have one pluggable, backing-store-agnostic seam: `ILocalAccountStore`.** Credential handling is a set

@@ -28,7 +28,7 @@ and siblings). Several converging needs now require a real presentation layer:
 - **Management (`api/...`).** Tenants, clients, resource servers/scopes, grants, secrets, and settings are
   only reachable by hand-driving REST. The global surface (`api/servers/...`) and the tenant-scoped surface
   (`api/tenants/{tenantId}/...`) sit on **different security boundaries** and must be browsed distinctly.
-- **Interactive auth ([#125](https://github.com/NCodeGroup/identity/issues/125)/[ADR-1062](1062-opt-in-interactive-login-consent-ui.md)).** Conformance needs a
+- **Interactive auth ([#125](https://github.com/NCodeGroup/identity/issues/125)/[ADR-1062](1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md)).** Conformance needs a
   browser-drivable login + consent surface over the existing cookie-challenge seam.
 - **Consent ([#40](https://github.com/NCodeGroup/identity/issues/40)).** Durable consent will need a user-facing approval screen.
 - **Playground & OIDC conformance.** A reference host and a scriptable OP surface.
@@ -152,7 +152,7 @@ services/logic — so every layer is independently testable.** Concretely:
 
 - Issues: interactive UI ([#125](https://github.com/NCodeGroup/identity/issues/125)), consent ([#40](https://github.com/NCodeGroup/identity/issues/40)), presentation
   platform (new group `U`).
-- Related: [ADR-1062](1062-opt-in-interactive-login-consent-ui.md) (opt-in login/consent UI and its
+- Related: [ADR-1062](1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md) (opt-in login/consent UI and its
   stable-locator contract — the Auth surface of this platform must honor it),
   [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) (greenfield posture),
   [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) (service/strategy/mediator model the

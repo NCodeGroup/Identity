@@ -12,7 +12,7 @@ the OpenId Authentication library, local-account management over the Management 
 login/consent surface over the OpenID server
 ([ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md),
 [ADR-1057](1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md),
-[ADR-1065](1065-interactive-login-consent-op-hosted-auth-surface.md)). Because an implementation package depends only
+[ADR-1062](1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md)). Because an implementation package depends only
 on abstractions ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)), no package can see another's
 concrete registration to know whether its prerequisites are present. A bolt-on added to a host that never registered the
 underlying library is a silent misconfiguration that surfaces far later as a confusing missing handler, a null, or an
@@ -166,5 +166,5 @@ methods on the bare `IServiceCollection`.
   strategy and mediator model these registrations wire up.
 - [ADR-1051](1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md),
   [ADR-1057](1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md) and
-  [ADR-1065](1065-interactive-login-consent-op-hosted-auth-surface.md): the opt-in capabilities that gate on these
+  [ADR-1062](1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md): the opt-in capabilities that gate on these
   builders.

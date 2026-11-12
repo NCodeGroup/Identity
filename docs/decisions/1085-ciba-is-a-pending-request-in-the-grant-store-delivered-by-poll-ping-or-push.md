@@ -108,7 +108,7 @@ poll, ping or push.**
 - **A built-in hint resolver or authentication-device transport.** Rejected: both are deployment-specific. A built-in
   username lookup would assume what a hint means, and a built-in transport would assume the authentication-device
   channel. Injectable seams with safe defaults keep the protocol correct and the environment pluggable, as the
-  credential-verifier seam does ([ADR-1070](1070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md)).
+  credential-verifier seam does ([ADR-1062](1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md)).
 - **An OP-hosted approval page that mirrors the device verification endpoint.** Rejected: CIBA's defining property is
   that approval happens on a separate authentication device, so approval is an `ICibaRequestService` operation that the
   device's callback invokes.
@@ -156,7 +156,7 @@ poll, ping or push.**
 - [ADR-1242](1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md):
   the delivery job.
 - [ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md): the injectable-transport seam that the notifier mirrors.
-- [ADR-1070](1070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md): the credential-verifier
+- [ADR-1062](1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md): the credential-verifier
   seam.
 - Code: `NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.DefaultCibaRequestService`,
   `NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Delivery.CibaDeliveryJob`,

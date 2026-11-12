@@ -87,8 +87,7 @@ compiles it and no gate tests it
 - **Interactive login and consent** — `NCode.Identity.OpenId.Authentication.Interactive(.Abstractions)`: the opt-in
   sign-in, consent and account surface that the OP serves from the `apps/auth` bundle, with a pluggable credential
   verifier
-  ([ADR-1062](docs/decisions/1062-opt-in-interactive-login-consent-ui.md),
-  [ADR-1070](docs/decisions/1070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md))
+  ([ADR-1062](docs/decisions/1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md))
 - **OpenID protocol client** — `NCode.Identity.OpenId.Client(.Abstractions)`: an OAuth 2.0 / OIDC client for server-side
   callers (discovery, JWKS, client authentication, token and revocation requests) built on the family's JOSE stack
   ([ADR-1285](docs/decisions/1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md))

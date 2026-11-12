@@ -134,7 +134,7 @@ var conformanceApi = builder
     .WithExternalHttpEndpoints();
 
 // The interactive login/consent surface (apps/auth) is a BACKEND-SERVED bundle: its `dev` script is `vite build
-// --watch`, which continuously rebuilds `dist` for the host to serve under /account/* (ADR-1065). It is a
+// --watch`, which continuously rebuilds `dist` for the host to serve under /account/* (ADR-1062). It is a
 // build-watcher with no HTTP endpoint of its own, so it is modeled as a plain JavaScript app resource, not a Vite dev
 // server. The host serves whatever `dist` exists; on a cold start give the first build a moment to finish.
 // `install: false` — the pnpm workspace is installed ONCE out-of-band by build/frontend-install.ps1; letting each app

@@ -11,7 +11,7 @@
 ## Context
 
 The host renders working no-JavaScript login, consent and authorization error pages
-([ADR-1065](1065-interactive-login-consent-op-hosted-auth-surface.md),
+([ADR-1062](1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md),
 [ADR-1114](1114-an-openid-response-is-written-by-a-content-negotiated-response-formatter-json-by-default.md)). When the `apps/auth` bundle is
 present, the host writes the page into the bundle's `#root` element and the bundle replaces it (progressive
 enhancement). Two forces decide how that replacement happens:
@@ -87,7 +87,7 @@ the tenant's branding in the page, and the bundle reads the branding and the pag
 
 ## References
 
-- [ADR-1065](1065-interactive-login-consent-op-hosted-auth-surface.md): interactive login/consent as the OP-hosted
+- [ADR-1062](1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md): interactive login/consent as the OP-hosted
   `apps/auth` surface.
 - [ADR-1114](1114-an-openid-response-is-written-by-a-content-negotiated-response-formatter-json-by-default.md): non-redirectable authorization
   errors are content-negotiated.

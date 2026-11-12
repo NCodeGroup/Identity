@@ -38,7 +38,7 @@ shared between concurrent callers, remembered when the fetch fails, and never se
 
 3. **The URI is validated and the fetch is bounded.** The URI must be absolute `https` and pass `jwks_uri_allowed_hosts`.
    The set is fetched through the guarded client of
-   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) under
+   [ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md) under
    `jwks_uri_fetch_timeout` and `jwks_uri_max_size_bytes`, and imported with
    `IClientKeyImporter.TryImportPublishedKeySet`.
 
@@ -47,7 +47,7 @@ shared between concurrent callers, remembered when the fetch fails, and never se
    absolute expiration without eviction cleanup.
 
 5. **Concurrent misses share one fetch.** The in-flight fetches are the shared `SingleFlight<TResult>` of
-   [ADR-1350](1350-a-shared-fetch-is-single-flight-through-one-helper.md), keyed by the URI and the fetch limits (the
+   [ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md), keyed by the URI and the fetch limits (the
    timeout and the size cap), so a client or tenant with lower limits never makes another client's fetch fail or be
    suppressed. The accepted-set cache stays keyed by the URI alone.
 
@@ -102,8 +102,7 @@ shared between concurrent callers, remembered when the fetch fails, and never se
   decisions 4 and 5
 - [ADR-1104](1104-import-public-asymmetric-secret-material.md),
   [ADR-1161](1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md),
-  [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md),
-  [ADR-1350](1350-a-shared-fetch-is-single-flight-through-one-helper.md)
+  [ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md)
 - Issues [#54](https://github.com/NCodeGroup/identity/issues/54) and
   [#466](https://github.com/NCodeGroup/identity/issues/466)
 - `DefaultClientKeyResolver.cs` and `OutboundHttpOptions.cs` in `NCode.Identity.OpenId.Authentication`

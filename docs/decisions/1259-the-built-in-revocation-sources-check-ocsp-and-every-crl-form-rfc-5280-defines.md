@@ -39,7 +39,7 @@ as RFC 5280 §6.3.3 describes. Together they cover OCSP and every CRL form: comp
 signed by another key.** Which sources run and in what order is
 [ADR-1400](1400-the-revocation-sources-are-described-and-configuration-selects-and-orders-them.md)'s; every request
 goes through the guarded client of
-[ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md).
+[ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md).
 
 1. **A check carries its path.** `IClientCertificateRevocationSource` has a `Name` and `CheckAsync`, and
    `ClientCertificateRevocationSourceNames` names the built-in `ocsp` and `crl`. `CheckAsync` receives a
@@ -167,7 +167,7 @@ validate.
   chain to configured trust anchors.
 - [ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md): a
   revocation list retrieval is shared, a failed one is remembered, and soft-fail is opt-in.
-- [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md): the guarded client
+- [ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md): the guarded client
   every retrieval goes through.
 - [ADR-1400](1400-the-revocation-sources-are-described-and-configuration-selects-and-orders-them.md): configuration
   selects and orders the sources.

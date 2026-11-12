@@ -3193,7 +3193,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The guarded client's options are its only time bound.** The one client that serves every fetch of, and delivery to,
   a caller-supplied URL has `HttpClient`'s own timeout off, so `OutboundHttpOptions.TotalTimeout` applies in full, above
   100 seconds included ([#481](https://github.com/NCodeGroup/identity/issues/481),
-  [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)).
+  [ADR-1315](docs/decisions/1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md)).
 
 - **The BFF measures and traces its refreshes and its session store.** The `NCode.Identity.Bff` meter records
   `ncode.identity.bff.token.refresh.duration` (with the result `refreshed`, `joined` or `failed`, lock and lease waits
@@ -4615,12 +4615,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   bounded by default to 10 seconds per attempt and 30 seconds in total, so an endpoint that takes longer than 10 seconds
   to answer fails that delivery attempt, and back-channel logout and CIBA deliveries do not read the response body
   ([#444](https://github.com/NCodeGroup/identity/issues/444),
-  [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)).
+  [ADR-1315](docs/decisions/1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md)).
 
 - **Every server-initiated outbound HTTP call to a client-controlled URL is SSRF-guarded uniformly**
   ([ADR-1093](docs/decisions/1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md),
   [ADR-1106](docs/decisions/1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md),
-  [ADR-1111](docs/decisions/1111-complete-outbound-fetch-ssrf-coverage.md)). One injectable guard,
+  [ADR-1315](docs/decisions/1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md)). One injectable guard,
   `IOutboundHttpForgeryGuard`, pins each connection to the resolved IP and refuses loopback, private, CGNAT, link-local,
   unique-local, multicast and reserved ranges (the IANA special-use registry), which defeats DNS rebinding, and no
   guarded call follows a redirect, so a registered internal URL cannot turn the OP into a confused deputy. That address

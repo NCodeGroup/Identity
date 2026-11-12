@@ -77,7 +77,7 @@ internal sealed class RevocationRetrievalCache(
         }
 
         // Concurrent checks share one retrieval; it runs without the caller's token, so a caller that gives up does
-        // not break it for the others. See ADR-1252 and ADR-1350.
+        // not break it for the others. See ADR-1252 and ADR-1315.
         var value = await Retrievals.RunAsync(
             key,
             retrievalToken => RetrieveAsync(key, retrieve, retrievalToken),

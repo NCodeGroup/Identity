@@ -230,7 +230,6 @@ The records are grouped by area; within an area they are in number order.
 | --- | --- | --- |
 | [1102](./1102-a-client-authenticates-with-a-single-use-jwt-assertion-signed-by-its-key-or-its-secret.md) | A client authenticates with a single-use JWT assertion signed by its key or its secret | Accepted |
 | [1106](./1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md) | A client's jwks_uri key set is fetched when needed, shared between callers, and never served stale | Accepted |
-| [1111](./1111-complete-outbound-fetch-ssrf-coverage.md) | Complete outbound-fetch SSRF coverage and bound the `request_uri` fetch | Accepted |
 | [1145](./1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md) | A client authenticates only with its registered method, which a registered descriptor names | Accepted |
 | [1155](./1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md) | JWTs exchanged with a client follow its registered metadata within its effective ceilings | Accepted |
 | [1161](./1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md) | Every owner's public keys have one source and are imported under one key policy | Accepted |
@@ -239,8 +238,7 @@ The records are grouped by area; within an area they are in number order.
 | [1176](./1176-dpop-proofs-are-created-and-validated-by-a-jose-service.md) | DPoP proofs are created and validated by a JOSE service | Accepted |
 | [1252](./1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md) | A revocation list retrieval is shared, a failed one is remembered, and soft-fail is opt-in | Accepted |
 | [1259](./1259-the-built-in-revocation-sources-check-ocsp-and-every-crl-form-rfc-5280-defines.md) | The built-in revocation sources check OCSP and every CRL form RFC 5280 defines | Accepted |
-| [1315](./1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) | Outbound calls to caller-supplied URLs share one guarded, bounded client | Accepted |
-| [1350](./1350-a-shared-fetch-is-single-flight-through-one-helper.md) | A shared fetch is single-flight through one helper | Accepted |
+| [1315](./1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md) | Calls to caller-supplied URLs share one guarded, bounded client and one single-flight helper | Accepted |
 | [1365](./1365-the-bff-and-the-login-redirect-take-no-url-from-the-requests-host.md) | The BFF and the login redirect take no URL from the request's Host | Accepted |
 | [1366](./1366-the-revocation-retrieval-checks-its-caches-again-inside-the-shared-retrieval.md) | The revocation retrieval checks its caches again inside the shared retrieval | Accepted |
 | [1387](./1387-the-client-assertion-audience-and-the-dpop-htu-are-compared-with-the-tenants-published-urls.md) | The client-assertion audience and the DPoP `htu` are compared with the tenant's published URLs | Accepted |

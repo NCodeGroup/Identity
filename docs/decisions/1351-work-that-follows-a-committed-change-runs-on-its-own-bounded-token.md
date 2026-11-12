@@ -72,7 +72,7 @@ Work that wholly follows a committed change runs on its own bounded token, never
    repeating the idempotent request, which answers `204`.
 10. **The bound is fixed.** It is a backstop behind the store's and the Valkey client's own timeouts, and it equals the
     guarded client's default `TotalTimeout`
-    ([ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)). It is not an option.
+    ([ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md)). It is not an option.
 
 ## Options considered
 
@@ -104,5 +104,5 @@ Work that wholly follows a committed change runs on its own bounded token, never
 - `PostCommitWork` in `NCode.Identity.Persistence.Abstractions`.
 - `TenantChangedHandler`, `TeamChangedHandler`, `PlatformSettingsChangedHandler`, `IManagementAuditRecorder`,
   `DefaultManagementAuditRecorder`, `IPostCommitSecurityEffects` and `DefaultPostCommitSecurityEffects`.
-- [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md).
+- [ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md).
 - [project-template ADR-0141](project-template/0141-side-effects-after-a-commit-go-through-an-outbox.md).

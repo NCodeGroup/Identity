@@ -188,7 +188,7 @@ so a bare ADR number names one record. Ten family records override template reco
 - [ADR-1424](docs/decisions/1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md)
   supersedes project-template ADR-0129's decision 6 for the management API, which answers a caller without authority
   `403` for any identifier, because it authorizes at a node before it reads, so the answer discloses nothing.
-- [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) supersedes
+- [ADR-1315](docs/decisions/1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md) supersedes
   two points of project-template ADR-0145: a client-supplied document's fetch limits stay settings that a tenant or
   client can only lower, and revocation data is fetched over `http`, where RFC 5280 publishes it.
 - [ADR-1385](docs/decisions/1385-no-shipping-package-replaces-its-consumers-logging-generator-or-carries-microsoft-extensions-http-resilience.md) supersedes

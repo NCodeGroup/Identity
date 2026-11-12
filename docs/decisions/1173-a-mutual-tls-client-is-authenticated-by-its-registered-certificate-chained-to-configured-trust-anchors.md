@@ -139,7 +139,7 @@ subject, and trusts no certificate when none are configured. The proxy only requ
 - A stored `tls_client_auth_subject_dn` written with `;` separators or in the `/C=US/O=Example` form is refused by the
   parser, so it is written as an RFC 4514 string.
 - Revocation data is fetched only through the guarded outbound client
-  ([ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)), so a certificate
+  ([ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md)), so a certificate
   cannot direct the server to an internal address, and the platform chain engine retrieves nothing.
 - A deployment with a bespoke trust source (an HSM-held bundle, a remote validation service) replaces
   `IClientCertificateChainValidator` without editing a handler.
@@ -163,5 +163,5 @@ subject, and trusts no certificate when none are configured. The proxy only requ
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1172](1172-a-forwarded-client-certificate-is-decoded-by-the-decoder-registered-for-its-format.md),
   [ADR-1259](1259-the-built-in-revocation-sources-check-ocsp-and-every-crl-form-rfc-5280-defines.md),
-  [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md),
+  [ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md),
   [ADR-1400](1400-the-revocation-sources-are-described-and-configuration-selects-and-orders-them.md).

@@ -88,7 +88,7 @@ generator of every project that references it, so a library that adds it changes
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md),
   [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md),
   [ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
-  [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)
+  [ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md)
 - Issues [#469](https://github.com/NCodeGroup/identity/issues/469) and [#471](https://github.com/NCodeGroup/identity/issues/471)
 - `ProviderResilienceHandler.cs`, `ProviderResiliencePipelines.cs` and `OpenIdClientOptions.cs` in
   `NCode.Identity.OpenId.Client`

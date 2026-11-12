@@ -91,7 +91,7 @@ verifies.**
   only when a `sector_identifier_uri` is present. The default requires an absolute `https` URI whose document is a JSON
   array of strings that lists every registered redirect URI (ordinal match).
 - **The fetch goes through the shared guarded outbound client** (`GuardedHttpClient` with
-  `DefaultOutboundHttpForgeryGuard`, [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)),
+  `DefaultOutboundHttpForgeryGuard`, [ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md)),
   which pins the connection away from private, loopback and link-local addresses and follows no redirect. The block is
   the non-negotiable floor and no setting turns it off.
 - **Three tenant settings bound the fetch**, merged as
@@ -143,6 +143,6 @@ verifies.**
   [ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md) (registration),
   [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)
   (setting merges),
-  [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) (the guarded client),
+  [ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md) (the guarded client),
   [ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md) (end session) and
   [ADR-1101](1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md) (token exchange).

@@ -25,7 +25,7 @@ consumers' logging generator.
    call of the guarded outbound client goes through `GuardedResilienceHandler` over `GuardedResiliencePipelines`: the
    total timeout, then a jittered exponential retry, then a per-attempt timeout. Which requests retry, what a
    connection error does, `Retry-After` and the exception a timeout throws are those of
-   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md). A timeout surfaces as a
+   [ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md). A timeout surfaces as a
    `TaskCanceledException` with a `TimeoutException` inner exception, as `HttpClient.Timeout` produces, and both
    pipelines read time from the registered `TimeProvider`.
 
@@ -64,7 +64,7 @@ consumers' logging generator.
 
 ## References
 
-- [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md),
+- [ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md),
   [ADR-1336](1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md)
 - [project-template ADR-0145](project-template/0145-outbound-calls-are-bounded-and-caller-supplied-urls-are-guarded.md)
 - Issue [#471](https://github.com/NCodeGroup/identity/issues/471)

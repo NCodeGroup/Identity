@@ -55,7 +55,7 @@ response is sent.
    `authorization_encrypted_response_enc` (default `A128CBC-HS256`), within the discoverable ceilings
    `authorization_signing_alg_values_supported`, `authorization_encryption_alg_values_supported` and
    `authorization_encryption_enc_values_supported`. The ceilings are asymmetric only, as for the other JWTs addressed to
-   a client ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)). The response is always
+   a client ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)). The response is always
    signed and is encrypted only when the client registers an encryption algorithm. Dynamic Client Registration accepts
    and reports the metadata. The `fapi2` profile caps signing at `PS256`/`ES256` and defaults the client's to `PS256`.
 9. **One delivery.** The internal `IAuthorizationResponseDeliveryResolver` derives the public
@@ -98,6 +98,6 @@ response is sent.
 - [ADR-1141](1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md): the
   response type and front-channel tokens.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md): open vocabularies.
-- [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md): JWTs addressed to a client.
+- [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md): JWTs addressed to a client.
 - JWT Secured Authorization Response Mode for OAuth 2.0 (JARM), RFC 9207, issue
   [#122](https://github.com/NCodeGroup/identity/issues/122).

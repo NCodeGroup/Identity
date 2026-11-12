@@ -66,7 +66,7 @@ and checks every header against them before any cryptographic operation.**
 The library's defaults stay permissive where they cannot know the caller's policy (`null` lists), but they are never
 unsafe: no default accepts an unsigned token, decrypts with a verification key, or skips the algorithm check a caller
 states. Every OpenID caller states its policy: a caller at a trust boundary passes the algorithm lists its settings
-permit and names its decryption keys ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+permit and names its decryption keys ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 
 ## Options considered
 
@@ -102,7 +102,7 @@ permit and names its decryption keys ([ADR-1155](1155-jwts-exchanged-with-a-clie
   verification, §3.2 appropriate algorithms, §3.3 validate all cryptographic operations, §3.6 avoid compression).
 - [RFC 7519](https://www.rfc-editor.org/rfc/rfc7519) §5.2 (Nested JWT), [RFC 7517](https://www.rfc-editor.org/rfc/rfc7517)
   §4.2 / §4.4 (`use` / `alg`).
-- [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md) — the policies the OpenID callers
+- [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md) — the policies the OpenID callers
   state.
 - [ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md) — the lifetime requirements the validator
   evaluates.

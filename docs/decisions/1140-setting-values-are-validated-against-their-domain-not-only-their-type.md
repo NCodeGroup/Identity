@@ -54,7 +54,7 @@ point with the same outcome.
      authorization responses, DPoP proofs, CIBA requests) accept only asymmetric algorithms. RFC 9449 forbids a
      symmetric one for DPoP, and a shared key cannot authenticate the issuer. Request-object and client-assertion
      signing keep symmetric algorithms for `client_secret_jwt`. The asymmetric-only encryption lists are decided in
-     [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
+     [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md).
    - A grant type is one the server names (`authorization_code`, `implicit`, `password`, `client_credentials`,
      `refresh_token`) or an absolute URI (RFC 6749 §4.5), so an extension grant needs no catalog change.
 3. **Fixed vocabularies are enumerated.** Subject types, CIBA delivery modes, response modes, prompt and display values

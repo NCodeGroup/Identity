@@ -21,7 +21,7 @@ the two failures apart. That difference is the padding oracle, and it allows the
 
 The OpenID provider and the protocol client are not exposed. `SettingAlgorithms.IsSelectable` and
 `ClientDecryptionPolicy` refuse `RSA1_5` by name, and both validate with explicit allow-lists
-([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md),
+([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md),
 [ADR-1280](1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md)). A consumer that uses the
 Jose or Jwt packages directly, without an allow-list, is the one at risk.
 
@@ -72,7 +72,7 @@ Jose or Jwt packages directly, without an allow-list, is the one at risk.
 ## References
 
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)
-- [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)
+- [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)
 - [ADR-1280](1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md)
 - RFC 7516 §11.5 (timing attacks and Bleichenbacher)
 - RFC 7518 §4.2–4.3 (RSAES-PKCS1-v1_5 and RSAES-OAEP key encryption)

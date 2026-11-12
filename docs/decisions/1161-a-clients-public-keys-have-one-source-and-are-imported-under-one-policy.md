@@ -14,7 +14,7 @@
 
 A client's public keys are the keys the server verifies the client's signatures with (`private_key_jwt`, signed
 request objects, CIBA requests) and encrypts its ID tokens and UserInfo responses to
-([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)). They enter the server at four points:
+([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)). They enter the server at four points:
 the JSON Web Key Set a client registers by value at dynamic client registration (RFC 7591,
 [ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)), the set it
 publishes at its `jwks_uri` ([ADR-1106](1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md)), a key

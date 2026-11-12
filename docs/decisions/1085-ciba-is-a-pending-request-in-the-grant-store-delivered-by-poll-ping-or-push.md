@@ -60,7 +60,7 @@ poll, ping or push.**
    shape of the resource-owner-password grant's `AuthenticatePasswordGrantCommand`.
 4. **A signed `request` object.** A signed `request` is verified with an asymmetric algorithm that the client's
    settings permit within `backchannel_authentication_request_signing_alg_values_supported`, and an encrypted one is
-   rejected ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)). Its claim and lifetime
+   rejected ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)). Its claim and lifetime
    rules are those of [ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md).
 5. **Polling mirrors the device grant.** The token handler answers `slow_down` for a poll that comes too soon,
    stamping `LastPolledWhen` through `UpdatePayloadAsync`, `authorization_pending` while the request is `Pending`,
@@ -147,7 +147,7 @@ poll, ping or push.**
   grant-handler and command shapes.
 - [ADR-1086](1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md):
   endpoints own their route and discovery advertisement.
-- [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md): the algorithms of a signed
+- [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md): the algorithms of a signed
   request.
 - [ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md): a request object's claims.
 - [ADR-1222](1222-a-grant-is-changed-by-a-read-modify-write-and-a-revocation-that-retry-a-lost-race.md): only the call that decides a request acts.

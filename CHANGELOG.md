@@ -1278,7 +1278,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1401](docs/decisions/1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md)). Subject and resource-request
   authentication are separate commands: `AuthenticateSubjectCommand` authenticates only the end-user session, and
   `AuthenticateResourceRequestCommand` authenticates a bearer access token for a set of required audiences
-  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 
 - **The authorization endpoint treats an invalid end-user session cookie as no session.** A cookie that is present but
   fails authentication (expired, tampered, or undecryptable after a data-protection key change) leads to interactive
@@ -1660,7 +1660,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   https notification endpoint, and a client may claim the `user_code` parameter only where the tenant supports it;
   otherwise registration answers `invalid_client_metadata`. `backchannel_user_code_parameter_supported` also applies to
   clients, where the registered flag is stored (issue [#105](https://github.com/NCodeGroup/identity/issues/105),
-  [ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+  [ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 
 - **Dynamic client registration accepts every logout member, and logout follows what the tenant advertises.**
   `RegisterClientRequest` and `RegisterClientResponse` carry `BackchannelLogoutUri` and
@@ -1700,14 +1700,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   `introspection_encrypted_response_alg` or `authorization_encrypted_response_alg` without the matching `enc` gets the
   default `enc` (the tenant's, normally `A128CBC-HS256`); when the tenant's supported `enc` values exclude that default,
   registration answers `invalid_client_metadata`, so no client is registered whose responses cannot be encrypted
-  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 
 - **A custom token service can protect ID tokens as the client registered.** `IClientJwtCredentialSelector`,
   `ClientJwtCredentials`, and `ClientJwtProtectionSettings` are public in
   `NCode.Identity.OpenId.Authentication.Abstractions`. Every issuer of a JWT addressed to a client resolves the
   selector, and a deployment can register its own before `AddIdentityServer()` (issue
   [#108](https://github.com/NCodeGroup/identity/issues/108),
-  [ADR-1181](docs/decisions/1181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md)).
+  [ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 
 - **The end-session endpoint accepts an `id_token_hint` the client re-encrypted to the server.** OpenID Connect
   RP-Initiated Logout 1.0 §2 lets a relying party that received an encrypted ID token re-encrypt the signed token to the
@@ -2269,7 +2269,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   mismatch is reported when the settings are written rather than at issuance.
   `OpenIdPlatform.ConfiguredSettingsProvider` holds the settings the platform derives from its defaults and the host's
   configuration, onto which its persisted settings document
-  is merged ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md),
+  is merged ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md),
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md)).
 
 - **The management API lists a tenant's incoherent clients.** `GET api/tenants/{tenantId}/incoherent-clients` checks a
@@ -4444,7 +4444,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   the CIBA signing list admits only asymmetric signatures; and no list offers `RSA1_5`. The request-object, UserInfo and
   ID token lists apply to clients as well as tenants, and `RegisterClientRequest` and `RegisterClientResponse` carry
   that registration metadata
-  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 
 - **ES256, ES384, ES512 and ES256K accept only their own curve.** RFC 7518 §3.4 binds `ES256`, `ES384` and `ES512` to
   P-256, P-384 and P-521, and RFC 8812 binds `ES256K` to secp256k1, so a 256-bit key on another curve does not sign as
@@ -4818,7 +4818,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   its `private_key_jwt` and `client_secret_jwt` assertions
   ([ADR-1149](docs/decisions/1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)). At these trust boundaries an unset
   list, or a list narrowed to nothing, permits no algorithm
-  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 
 - **The `fapi1-advanced` security profile requires `nonce` and `state`.** It refuses, with `invalid_request`, an
   authorization request for the `openid` scope without `nonce` and any other request without `state` (FAPI 1.0 Advanced
@@ -5090,7 +5090,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The UserInfo endpoint requires an access token.** It authenticates only a bearer access token (in the
   `Authorization` header or the form body) whose audience includes the OpenID resource server, issued to an enabled
   client, and never the end-user's session cookie; anything else, an invalid or expired token included, is `401`
-  `invalid_token` ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+  `invalid_token` ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 
 - **The ID token carries only the OpenID Connect ID-token claim set.** The client is identified in the ID token by the
   standard `azp` (authorized party) alone (`DefaultGetIdTokenPayloadClaimsHandler`); `tid` and `client_id` are JWT
@@ -5103,7 +5103,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `id_token_encryption_required`, a client that registers no `id_token_encrypted_response_alg` is refused rather than
   given a guess. Logout tokens follow the client's ID token registration, and one the server cannot protect as
   registered is skipped with a warning
-  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+  ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 
 - **Every authentication entry point resolves the verified credential to one stable, server-owned principal id** (issue
   [#60](https://github.com/NCodeGroup/identity/issues/60),

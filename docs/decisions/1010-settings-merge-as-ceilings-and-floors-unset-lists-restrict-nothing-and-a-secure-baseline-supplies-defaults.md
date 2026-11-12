@@ -79,7 +79,7 @@ A narrower scope therefore never loosens a broader scope's security setting.
   policy, and a package enables an extension grant or a custom scope by registering it.
 - The exception is an algorithm list that decides what the server accepts from another party or protects a token
   with. `GetPermittedAlgorithms` treats an unset list as permitting nothing, because the root always supplies those
-  lists ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+  lists ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 - A value-type setting without a default, such as `subject_max_age`, stays absent. `SettingDescriptor<TValue>.HasDefault`
   tracks a configured default, and `GetValueOrNull<TValue>() where TValue : struct` reads the setting, so an unset
   value is never materialized as `default(TValue)`.
@@ -138,7 +138,7 @@ omits settings that are unset.
 - `NCode.Identity.Settings.Abstractions`: `SettingMerge`, `SettingDescriptor<TValue>`.
 - `RootSettingsCollectionDataSource`, `IDefaultSettingsProvider`, `DefaultSettingsProvider`.
 - [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md): the one `Union` list.
-- [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md): algorithm lists that decide
+- [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md): algorithm lists that decide
   what the server accepts.
 - [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): the cascade's
   scopes.

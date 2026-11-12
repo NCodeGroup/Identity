@@ -56,7 +56,7 @@ client.**
    ([ADR-1039](1039-requested-claims-acr-and-auth-time-follow-the-request-and-the-authentication-event.md)).
 5. **The response.** It is a `UserInfoResult` (`[JsonExtensionData]`), or a signed and optionally encrypted JWT per the
    client's `userinfo_*` metadata
-   ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)). Its `sub` is the access token's
+   ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)). Its `sub` is the access token's
    projected `sub`, equal to the ID token's
    ([ADR-1093](1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md)).
 6. **The setting.** `audit_userinfo_access` (`OpenIdSettingNames.AuditUserInfoAccess`, a `bool`) applies to tenants and
@@ -129,7 +129,7 @@ client.**
   [ADR-1093](1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md),
   [ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md),
   [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md),
-  [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md),
+  [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md),
   [ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md),
   [ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md).
 - [Audit records](../audit-records.md).

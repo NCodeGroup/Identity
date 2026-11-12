@@ -89,7 +89,7 @@ that consumes it.**
      RFC 9701 §6; the FAPI 2.0 profile defaults it to `PS256`) and encrypted when the client registers
      `introspection_encrypted_response_{alg,enc}`. The credential selection and ceilings are those of ID tokens and
      UserInfo responses
-     ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)).
+     ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
    - **Refusals (`406`):** an ordinary client asking for a JWT, since RFC 9701 defines it for resource servers only; and
      a resource-server client that registered encryption but asks for JSON, since a response is never weaker than the
      client registered.

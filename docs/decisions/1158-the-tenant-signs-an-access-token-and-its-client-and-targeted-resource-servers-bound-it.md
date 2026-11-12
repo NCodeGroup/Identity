@@ -105,7 +105,7 @@ within every bound, or the request is refused. Nothing is silently weakened or r
 9. **Refusals name their cause.** A refusal the request can avoid is `invalid_request`: a missing or unverifiable
    sender constraint, or an encrypted token for several resource servers one of which decrypts its own tokens. A
    configuration that cannot be satisfied is `server_error` (`500`), as for a client's registered algorithms
-   ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)): no tenant key within the
+   ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)): no tenant key within the
    permitted signing or encryption algorithms, or no key of a resource server that decrypts its own tokens within the
    combined settings.
 10. **Policy lives with issuance; the resolver supplies data.** The public `IAccessTokenPolicyService`, with the
@@ -173,7 +173,7 @@ within every bound, or the request is refused. Nothing is silently weakened or r
   profile ceilings.
   [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md): the scopes a
   setting applies to.
-  [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md): `server_error` for an unsatisfiable
+  [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md): `server_error` for an unsatisfiable
   configuration.
   [ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md): a system resource server never
   decrypts its own tokens.

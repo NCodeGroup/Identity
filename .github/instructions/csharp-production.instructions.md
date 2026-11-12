@@ -108,7 +108,7 @@ than inlining the rationale.
   [Public API](csharp.instructions.md#public-api): a replacement of `ITokenService` resolves
   `IAccessTokenPolicyService` and `IClientJwtCredentialSelector`
   ([ADR-1158](../../docs/decisions/1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md),
-  [ADR-1181](../../docs/decisions/1181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md)).
+  [ADR-1155](../../docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 - 👁 **A token the server issued is validated only through `IIssuedTokenValidator`.** Never build
   `JwtValidationParameters` for an access token, ID token, or `id_token_hint` the tenant minted. The seam states the
   tenant's algorithm allow-lists, keys, `typ`, issuer, lifetime, and session check in one place, and hand-built copies
@@ -1010,7 +1010,7 @@ invariants, the Law of Demeter, and no call nested in another call's arguments. 
   "the first listed algorithm" for a client-addressed token, never encrypt one to a tenant or shared key, and never
   compress a JWT the server produces (RFC 8725 §3.6). Add a new kind of client-addressed JWT as a new
   `ClientJwtProtectionSettings` profile. See
-  [ADR-1155](../../docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md).
+  [ADR-1155](../../docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md).
 - 👁 **A key in a JOSE header carries only its public members.** An `epk` (RFC 7518 §4.6.1.1) or a DPoP `jwk`
   (RFC 9449 §4.2) is written without any member its `JsonWebKeyTypeDescriptor.PrivateMembers` lists, and a received
   one that carries such a member is refused: a header is readable by anyone holding the token, so an ephemeral private

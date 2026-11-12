@@ -78,7 +78,7 @@ anywhere else is rejected at every entry point, exactly as an unregistered name 
    ([ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md)), and every setting
    that applies to resource servers merges with a lattice operation, which a test pins.
 8. **Examples.** The request-object, UserInfo and ID token algorithm lists apply to clients
-   ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)); the access-token lifetime,
+   ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)); the access-token lifetime,
    signing and sender-constraint settings apply to resource servers
    ([ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md)).
 9. **Previews show what governs the scope.** A management effective-settings preview lists only the settings that apply
@@ -136,7 +136,7 @@ anywhere else is rejected at every entry point, exactly as an unregistered name 
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md):
   an unset list is unrestricted; a set one permits only what it names.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md): vocabularies are open unless provably closed.
-- [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md),
+- [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md),
   [ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md),
   [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md) and
   [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md): the settings that apply to clients and resource servers,

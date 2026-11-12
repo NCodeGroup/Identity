@@ -143,9 +143,7 @@ named for its tenant, and one general helper reads a single-page bundle and serv
 - [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md): the
   protocol endpoints are served under the tenant route.
 - [ADR-1151](1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md): every frontend workspace builds
-  from one Vite preset.
-- [ADR-1151](1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md): bundles split
-  into vendor and surface chunks.
+  from one Vite preset; bundles split into vendor and surface chunks.
 - [ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md): the bundle mounts over the
   page the host rendered.
 - [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md): the

@@ -15,7 +15,7 @@ namespace NCode.Identity.OpenId.Tenants.Keys;
 /// name that matches no setting.
 /// </summary>
 // See ADR-1137 (configuration is validated at startup), ADR-1149 (a setting applies within the scopes its own
-// cascade into), ADR-1137 and ADR-1404.
+// cascade into) and ADR-1404.
 internal sealed class TenantKeyRolloverOptionsValidator(
     ISettingDescriptorCollectionProvider settingDescriptorCollectionProvider,
     ISettingScopeCollectionProvider settingScopeCollectionProvider

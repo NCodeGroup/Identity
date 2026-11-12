@@ -19,7 +19,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// <param name="TeamId">The identifier of the team whose effective settings are reconciled.</param>
 /// <param name="Settings">The team's effective settings, the parent of each of its tenants, that everything derived
 /// from them is brought in line with.</param>
-// See ADR-1412, ADR-1411 and ADR-1412.
+// See ADR-1412 and ADR-1411.
 [PublicAPI]
 public readonly record struct ReconcileTeamSettingsCommand(
     string TeamId,

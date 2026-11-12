@@ -14,7 +14,6 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 /// private half of the public half the service returned is never stored.
 /// </summary>
 // See ADR-1476.
-// See ADR-1476.
 // See ADR-1471.
 internal interface IRemoteSecretImporter
 {

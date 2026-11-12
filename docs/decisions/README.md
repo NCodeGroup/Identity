@@ -2,8 +2,7 @@
 
 This directory records the **architecturally significant decisions** made for the
 **NCode.Identity** library family and for the hosted platform's infrastructure in
-[`NCodeGroup/identity-platform`](https://github.com/NCodeGroup/identity-platform)
-([ADR-1502](./1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)), using lightweight
+[`NCodeGroup/identity-platform`](https://github.com/NCodeGroup/identity-platform), using lightweight
 [Architecture Decision Records (ADRs)](https://adr.github.io/).
 The private `NCodeGroup/identity-cloud` keeps its own decisions, and a decision about a public contract it relies on is
 recorded here ([ADR-1502](./1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)).

@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Settings;
 /// selected.
 /// </para>
 /// </remarks>
-// See ADR-1148 (profiles), ADR-1140 (the security_profiles domain), ADR-1148 (profiles accumulate down the cascade),
+// See ADR-1148 (profiles), ADR-1140 (the security_profiles domain)
 // and ADR-1149 (the scope a setting applies within).
 internal sealed class DefaultSecurityProfileCatalog(
     IEnumerable<ISecurityProfile> profiles,

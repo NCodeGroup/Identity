@@ -330,8 +330,7 @@ subject than the ID token's
 (OIDC Core §5.3.2). Each UserInfo claim type replaces the ID token's claims of that type, except the claims that anchor
 the session (`iss`, `sub`, `sid`, `auth_time`, `acr`, `amr`); the session claim contributors and the login gates then
 see the merged claims. A failed request ends the login with `userinfo_failed`, or `provider_unavailable` when the OP
-cannot be reached. Without the option, the session's claims come from the ID token
-([ADR-1301](decisions/1301-the-protocol-client-reads-userinfo-as-json-or-a-registered-jwt-under-the-familys-claim-mapping.md)).
+cannot be reached. Without the option, the session's claims come from the ID token.
 When the frontend registered `userinfo_signed_response_alg` (`Bff:Frontends:{name}:UserInfo:SigningAlgorithms`), the
 response must be a JWT
 the OP signed under those algorithms, with its `iss` and an `aud` naming the client, and a Nested JWT that decrypts with
@@ -475,7 +474,7 @@ SharedState therefore gains a second primitive next to it:
   or one client of a frontend without scanning
   ([ADR-1443](decisions/1443-a-bff-session-ends-when-its-frontend-is-removed-or-registered-as-another-client.md)).
 
-The in-process adapter implements both primitives and stays the default. As ADR-1164 decided for the OP, it is correct
+The in-process adapter implements both primitives and stays the default. As decided for the OP, it is correct
 for a single replica, including a single-replica production deployment. Several replicas register the **Valkey**
 adapter, which implements the primitives with `SET NX PX`, `GETDEL`, and compare-and-swap and compare-and-remove
 scripts, and the index is a sorted set scored by member expiry
@@ -809,7 +808,7 @@ Without a session, logout is idempotent: it redirects to the allow-listed return
 - A `jti` already recorded in `IExpiringKeySet` is refused as a replay.
 
 The protocol client's `ILogoutTokenValidator` performs all of these checks, including the `jti` lookup, and bounds a
-token's lifetime to 10 minutes ([ADR-1274](decisions/1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md)).
+token's lifetime to 10 minutes.
 It looks the `jti` up but does not record it: the BFF calls `TryRecordHandledAsync` only after it has ended the sessions
 ([ADR-1274](decisions/1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md)).
 
@@ -948,8 +947,7 @@ every registered rule, and `IsMatch` reads only the request. Two rules are built
   change must name a key ring that the host already has, or the change is refused
   ([ADR-1442](decisions/1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md),
   [ADR-1439](decisions/1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md),
-  [ADR-1479](decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md),
-  [ADR-1439](decisions/1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md)).
+  [ADR-1479](decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)).
 - **Removal.** A removed frontend serves no request, so its cookie is never read. A session records its frontend's
   `Authority` and `ClientId`: a request or a connection ends a session whose frontend is configured with another
   (`client_changed`), and a background pass on one replica, at start and after each change, ends every stored session

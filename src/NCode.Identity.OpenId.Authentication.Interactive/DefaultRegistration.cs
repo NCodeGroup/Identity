@@ -225,7 +225,7 @@ public static class DefaultRegistration
                 );
 
             // The surface is served under the tenant route (ADR-1193): the session cookie is host-only and named for
-            // the tenant (ADR-1193), and a challenge redirects to the login page of the tenant that issued it.
+            // the tenant, and a challenge redirects to the login page of the tenant that issued it.
             serviceCollection
                 .AddOptions<CookieAuthenticationOptions>(
                     InteractiveAuthenticationDefaults.CookieSchemeName

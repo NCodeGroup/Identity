@@ -19,8 +19,7 @@ The [`Conformance` launch profile](../../hosts/NCode.Identity.OpenId.Host/Proper
 https://host.docker.internal:5001` makes the discovery `issuer` byte-match the origin in the Appendix D
   `server.discoveryUrl`, deterministically and independent of request host / proxy headers. The issuer is a property
   of the tenant ([ADR-1165](../decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)): every served
-  tenant has one and nothing derives it from the request
-  ([ADR-1165](../decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)), so the pin
+  tenant has one and nothing derives it from the request, so the pin
   is required. The issuer is stored on the static tenant when it is first provisioned, so a database that holds the
   tenant keeps its stored issuer until it is reset ([`build/dev-db-reset.ps1`](../../build/dev-db-reset.ps1)). The pin
   lives in the launch profile (not `appsettings.Conformance.json`) because the shared `Conformance` environment overlay

@@ -97,11 +97,9 @@ OIDC.**
 ## References
 
 - [Hosting analysis](../hosting-analysis.md): bootstrap, delivery and backups.
-- [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md): the environment model and hostnames.
+- [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md): the environment model and hostnames; the platform's domains.
 - [ADR-1502](1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md):
   repository placement.
-- [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md):
-  the platform's domains.
 - [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md): knowledge lives
   in the repository.
 - GitHub: [deployment environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)

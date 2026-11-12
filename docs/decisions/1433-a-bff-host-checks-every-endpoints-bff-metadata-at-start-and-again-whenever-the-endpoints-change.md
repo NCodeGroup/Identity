@@ -89,7 +89,6 @@ the request-time refusals stay the backstop.**
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.6
 - [ADR-1381](1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md),
   [ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md),
-  [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md),
-  [ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md)
+  [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-opt-in-packages.md)
 - `src/NCode.Identity.Bff/Hosting/BffEndpointStartupCheck.cs`
 - Issue [#522](https://github.com/NCodeGroup/identity/issues/522)

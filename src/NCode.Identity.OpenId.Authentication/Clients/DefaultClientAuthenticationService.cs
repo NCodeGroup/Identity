@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// handler's method has a <see cref="ClientAuthenticationMethodDescriptor"/>, no two handlers authenticate one method,
 /// and every described method has a handler.
 /// </summary>
-// See ADR-1145, ADR-1246, ADR-1145 and ADR-1246.
+// See ADR-1145 and ADR-1246.
 internal class DefaultClientAuthenticationService(
     IEnumerable<IClientAuthenticationHandler> handlers,
     IClientAuthenticationMethodCatalog clientAuthenticationMethodCatalog,

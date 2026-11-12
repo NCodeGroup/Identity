@@ -70,8 +70,7 @@ sequenceDiagram
 <details>
 <summary>Options we rejected</summary>
 
-See the Options considered of [ADR-1405](../decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md#options-considered)
-and [ADR-1405](../decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md#options-considered).
+See the Options considered of [ADR-1405](../decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md#options-considered).
 
 </details>
 

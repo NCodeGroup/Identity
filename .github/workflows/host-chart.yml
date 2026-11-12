@@ -5,7 +5,7 @@
 # it, or its replicas would not share state — must fail to render. The pre-deploy migration Job must render unless
 # disabled (ADR-1180). The chart's management console component is checked too: it must render on a host of its own
 # that routes every path to the console, call the management API at its authority's origin, stay opt-in (ADR-1458,
-# ADR-1437), and hold its key rings in a key management service under its own identity (ADR-1485). A server remote key
+# ADR-1437), and hold its key rings in a key management service under its own identity. A server remote key
 # provider is registered only when enabled, with or without its location (ADR-1485).
 # Publishing the chart belongs to the release workflow.
 name: Host chart

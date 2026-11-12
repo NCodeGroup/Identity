@@ -148,8 +148,7 @@ keys, principals and environment-bound values stay with their environment.**
 - [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md) — a limit is set by
   the authority above the scope whose document carries it
 - [ADR-1466](1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md) — a client acting for
-  itself is a principal that holds role assignments
+  itself is a principal that holds role assignments; a machine client
+  belongs to the platform or a team and acts only within it
 - [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md) — a management
   route authorizes the caller at the node it names before it reads
-- [ADR-1466](1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md) — a machine client
-  belongs to the platform or a team and acts only within it

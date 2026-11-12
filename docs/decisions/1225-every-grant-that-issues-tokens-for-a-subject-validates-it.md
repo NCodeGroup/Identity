@@ -6,8 +6,7 @@
 
 ## Context
 
-A disabled or deleted account is refused wherever `ValidateSubjectAuthenticationCommand` is sent
-([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)). The end user's standing is its own check,
+A disabled or deleted account is refused wherever `ValidateSubjectAuthenticationCommand` is sent. The end user's standing is its own check,
 which every subject validation includes
 ([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)). Every grant that
 issues tokens for an end user must therefore send the command: the authorization-code, refresh-token and password
@@ -106,8 +105,7 @@ that client.**
 - [ADR-1101](1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md) — token exchange.
 - [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — the replay of an authorization code, which is why that grant spends its code first.
 - [ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md) — a credential is spent after every check has passed.
-- [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) — the account check that every grant shares.
-- [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) — the end user's standing, which every subject validation includes.
+- [ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md) — the account check that every grant shares; the end user's standing, which every subject validation includes.
 - [RFC 8628](https://datatracker.ietf.org/doc/html/rfc8628) §3.4–3.5 — the device access token request and response.
 - OpenID Connect CIBA Core 1.0 §10–11 — the token delivery modes and the token request:
   <https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html>

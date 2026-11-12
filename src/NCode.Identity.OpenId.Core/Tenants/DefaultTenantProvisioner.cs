@@ -23,9 +23,8 @@ namespace NCode.Identity.OpenId.Tenants;
 /// logged, the remaining steps run, and the seed stands, because its unit of work has committed. It then reads the tenant
 /// again in a fresh unit of work and returns the row its seed committed.
 /// </summary>
-// See ADR-1166 (one seeding pipeline), ADR-1166 (a tenant is provisioned through one pipeline under every strategy),
-// ADR-1351 (an effect that follows a committed change runs on its own bounded token) and ADR-1166 (a seeded tenant is
-// returned as its seed committed it).
+// See ADR-1166 (one seeding pipeline) and ADR-1351 (an effect that follows a committed change runs on its own bounded
+// token).
 internal sealed class DefaultTenantProvisioner(
     IStoreManagerFactory storeManagerFactory,
     IAmbientTenantAccessor ambientTenantAccessor,

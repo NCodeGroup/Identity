@@ -63,7 +63,6 @@ package that depends on nothing but the runtime.**
 4. **A hub filter keeps the connection current.** `BffHubFilter`, registered for every hub, revalidates a connection on
    an invocation once the interval has passed, slides the session from the invocation and makes the connection current
    for `AddBffAccessTokenHandler` through `IBffConnectionSessionAccessor`. How a connection ends with its session is
-   [ADR-1441](1441-a-bff-connection-ends-with-its-session-even-when-idle-and-every-watcher-learns-at-once.md)'s and
    [ADR-1441](1441-a-bff-connection-ends-with-its-session-even-when-idle-and-every-watcher-learns-at-once.md)'s.
 5. **`NCode.Identity.Bff.Blazor` serves the server half.** `AddBffBlazorLibrary()` registers the revalidating server
    `AuthenticationStateProvider`, which revalidates a circuit's connection every `RevalidationInterval` and signs the

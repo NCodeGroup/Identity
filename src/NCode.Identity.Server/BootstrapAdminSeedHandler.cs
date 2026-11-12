@@ -234,7 +234,7 @@ internal sealed class BootstrapAdminSeedHandler(
         var now = TimeProvider.GetUtcNow();
 
         // Persist the configured client_secret through the client-secret issuer (ADR-1391), in the form the client's
-        // method needs: a PBKDF2 verifier when the method only compares it, reversible when it keys from it (ADR-1391).
+        // method needs: a PBKDF2 verifier when the method only compares it, reversible when it keys from it.
         var request = new SharedSecretRequest
         {
             // An opaque, unique id per secret (the repo-wide CSPRNG resource-id scheme) so a refresh (remove-then-add

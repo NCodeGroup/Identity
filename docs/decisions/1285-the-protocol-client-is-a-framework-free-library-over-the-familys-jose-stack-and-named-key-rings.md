@@ -153,9 +153,7 @@ configuration. No package of the client references an ASP.NET Core shared framew
 - [ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md): ID-token
   validation
 - [ADR-1300](1300-the-protocol-client-authenticates-with-a-key-rings-tls-client-certificate-and-its-issuers-certificates.md): mutual TLS client
-  authentication
-- [ADR-1300](1300-the-protocol-client-authenticates-with-a-key-rings-tls-client-certificate-and-its-issuers-certificates.md): client
-  certificates
+  authentication; client certificates
 - [ADR-1336](1336-the-protocol-client-bounds-every-call-with-a-polly-core-pipeline-and-retries-only-safe-requests.md): time bounds
 - [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md): key management service
   keys

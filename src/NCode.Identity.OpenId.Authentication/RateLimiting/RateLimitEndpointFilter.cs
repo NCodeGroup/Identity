@@ -17,7 +17,7 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// as well. Once the endpoint has run, the usage meters that the stages admitting the request added are recorded as the
 /// tenant's usage, unless a stage refused the request, here or inside the endpoint.
 /// </summary>
-// See ADR-1246, ADR-1198 and ADR-1246; a request every stage admits is the tenant's usage (ADR-1199).
+// See ADR-1246 and ADR-1198; a request every stage admits is the tenant's usage (ADR-1199).
 internal sealed class RateLimitEndpointFilter(
     IRequestRateLimiter rateLimiter,
     ITenantUsageRecorder usageRecorder

@@ -5,10 +5,7 @@ headless `BrowserControl` can drive end-to-end: stable element locators, a deter
 consent outcome — so a protocol-correct authorization flow completes under automation. Tracking issue:
 [#125](https://github.com/NCodeGroup/identity/issues/125). Parent design:
 [`docs/conformance-testing.md`](../conformance-testing.md) (prerequisite #2 and Appendix B). Decision records:
-[ADR-1062](../decisions/1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md) (seam + stable-locator contract),
-[ADR-1062](../decisions/1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md) (the OP-hosted `apps/auth` surface),
-[ADR-1062](../decisions/1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md) (leaf capability
-package + pluggable credential verifier).
+[ADR-1062](../decisions/1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md) (seam + stable-locator contract).
 
 ## The surface
 
@@ -24,8 +21,7 @@ route ([ADR-1193](../decisions/1193-the-interactive-surface-uses-the-tenant-rout
 ([`InteractiveAuthenticationEndpointHandler`](../../src/NCode.Identity.OpenId.Authentication.Interactive/InteractiveAuthenticationEndpointHandler.cs)).
 The `Identity.Application` name lines up with the `authorization_authenticate_scheme` /
 `authorization_challenge_scheme` setting defaults, so no per-client override is needed. The server-driven cookie
-challenge is the authentication model and the UI is only its form surface
-([ADR-1062](../decisions/1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md)). The surface is served from the OP's own origin,
+challenge is the authentication model and the UI is only its form surface. The surface is served from the OP's own origin,
 so the `LoginPath` redirect, the antiforgery-protected POST and the `ReturnUrl` round-trip stay same-origin, and its
 forms submit as native HTML form POSTs, so the browser, and Selenium with it, follows the `Set-Cookie` and the redirect
 ([ADR-1062](../decisions/1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md)).

@@ -27,8 +27,7 @@ enforces the return and token shape in every project, production and tests alike
   bounded token, so no caller can pass a token that drops it. Work a decision makes uncancellable runs on
   `CancellationToken.None`, because a caller's abort must not drop it
   ([ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md),
-  [ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md),
-  [ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md)).
+  [ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md)).
 
 ## Decision
 
@@ -101,8 +100,7 @@ method that returns `Task` or `Task<T>` and with `NCID0003` on an own asynchrono
   the analyzer project
 - [ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md): the post-commit
   rule that the justifications cite
-- [ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md),
-  [ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md) and
-  [ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md): the uncancellable work that
+- [ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md) and
+  [ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md): the uncancellable work that
   the justifications cite
 - `analyzers/NCode.Identity.Analyzers/AsyncMethodShapeAnalyzer.cs`

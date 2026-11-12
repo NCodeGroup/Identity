@@ -62,8 +62,7 @@ decrypt; and `DataProtectionKeyRing:RevokedKeyIds` revokes keys by ID so that an
    has a repository, and the gate would then judge keys that an earlier run wrote under another master key. Each
    `HostApplicationFactory` uses its own in-memory `DeveloperDataProtectionDbContext`, and a bare test host uses an
    in-memory `XmlRepository`.
-8. **Rotation and destruction follow ADR-1407.** The platform master key rotates and is destroyed under the rules of
-   [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md):
+8. **Rotation and destruction follow ADR-1407.** The platform master key rotates and is destroyed under those rules:
    new ring keys and host data use the new version. An existing ring key is never re-encrypted
    (`DataProtectionKeyRingValueSource.RewrapAsync` rewraps nothing), so a retired version stays while a live ring key
    names it, and the warmup loads it. A host that protects its own data under the platform registers a protected-value

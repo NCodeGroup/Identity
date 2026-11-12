@@ -117,8 +117,7 @@ presence of the capability handler, not a flag: a rejected credential is a failu
 `TryAddEnumerable`, the account-sourced UserInfo enricher `DefaultGetLocalAccountUserInfoClaimsHandler` (OpenID Connect
 Core section 5.4) and `DefaultValidateLocalAccountSubjectHandler`
 ([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)), which refuses a
-subject whose account is disabled or gone
-([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)).
+subject whose account is disabled or gone.
 
 ### Borrowed from ASP.NET Core Identity
 

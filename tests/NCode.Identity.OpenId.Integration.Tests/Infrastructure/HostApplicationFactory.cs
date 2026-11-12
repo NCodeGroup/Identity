@@ -567,8 +567,8 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         using var scope = Services.CreateScope();
         var serviceProvider = scope.ServiceProvider;
 
-        // Persist the given client_secret through the same shared-secret primitives production uses (ADR-1391,
-        // ADR-1391), protected under the tenant's master key.
+        // Persist the given client_secret through the same shared-secret primitives production uses (ADR-1391),
+        // protected under the tenant's master key.
         var persistedSecret = await CreateSharedSecretAsync(
             serviceProvider,
             $"{clientId}-secret",

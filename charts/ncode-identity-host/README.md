@@ -2,8 +2,7 @@
 
 The Helm chart for `NCode.Identity.OpenId.Host`, the OpenID Connect and OAuth 2.0 server. It runs the host image as a
 non-root deployment that meets the restricted Pod Security Standard, probes `/health/live` and `/health/ready`, and
-drains each pod before stopping it
-([ADR-1458](../../docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)).
+drains each pod before stopping it.
 Setting `managementConsole.enabled` also deploys the management console host on a host name of its own
 ([ADR-1458](../../docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)).
 It requires Kubernetes 1.30 or later.

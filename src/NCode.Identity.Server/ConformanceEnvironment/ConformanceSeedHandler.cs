@@ -345,7 +345,7 @@ internal sealed class ConformanceSeedHandler(
         var now = TimeProvider.GetUtcNow();
 
         // Persist the given client_secret through the client-secret issuer (ADR-1391), in the form the client's method
-        // needs: a supplied secret is stored as its PBKDF2 verifier unless the method keys from it (ADR-1391).
+        // needs: a supplied secret is stored as its PBKDF2 verifier unless the method keys from it.
         var request = new SharedSecretRequest
         {
             // An opaque, unique id per secret (the repo-wide CSPRNG resource-id scheme) so the id reveals nothing.

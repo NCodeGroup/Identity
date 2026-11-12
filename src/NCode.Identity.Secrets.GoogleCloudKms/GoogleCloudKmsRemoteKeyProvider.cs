@@ -48,7 +48,6 @@ namespace NCode.Identity.Secrets.GoogleCloudKms;
 /// </para>
 /// </remarks>
 // See ADR-1471.
-// See ADR-1471.
 internal class GoogleCloudKmsRemoteKeyProvider(
     IGoogleCloudKmsClientFactory clientFactory,
     IOptions<GoogleCloudKmsRemoteKeyProviderOptions> options,

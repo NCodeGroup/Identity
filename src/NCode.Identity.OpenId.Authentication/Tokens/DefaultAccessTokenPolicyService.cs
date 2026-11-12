@@ -35,7 +35,7 @@ namespace NCode.Identity.OpenId.Authentication.Tokens;
 /// is encrypted to the tenant's key, and its resource servers introspect it. Access tokens are always signed with the
 /// tenant's key. </para>
 /// </remarks>
-// See ADR-1158 (amending ADR-1158).
+// See ADR-1158.
 internal class DefaultAccessTokenPolicyService(
     IAlgorithmCollectionProvider algorithmCollectionProvider,
     ICredentialSelector credentialSelector,

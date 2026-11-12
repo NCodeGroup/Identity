@@ -166,11 +166,10 @@ validate.
 - [ADR-1173](1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md): `tls_client_auth` certificates
   chain to configured trust anchors.
 - [ADR-1400](1400-client-certificate-revocation-is-checked-by-configured-sources-under-the-clients-revocation-mode.md): a
-  revocation list retrieval is shared, a failed one is remembered, and soft-fail is opt-in.
+  revocation list retrieval is shared, a failed one is remembered, and soft-fail is opt-in; configuration
+  selects and orders the sources.
 - [ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md): the guarded client
   every retrieval goes through.
-- [ADR-1400](1400-client-certificate-revocation-is-checked-by-configured-sources-under-the-clients-revocation-mode.md): configuration
-  selects and orders the sources.
 - Code: `src/NCode.Identity.OpenId.Authentication.Abstractions/ClientCertificates/` for
   `ClientCertificateRevocationContext`, `IClientCertificateRevocationSource` and
   `ClientCertificateRevocationSourceNames`, and `src/NCode.Identity.OpenId.Authentication/ClientCertificates/` for

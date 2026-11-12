@@ -9,8 +9,7 @@
 
 A replica serves teams and tenants from `IOpenIdTeamCache` and `IOpenIdTenantCache`. The `team-changed` and
 `tenant-changed` channels announce a change to every replica
-([ADR-1205](1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md),
-[ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)).
+([ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)).
 A replica whose subscription was interrupted may have missed a message, which the broadcast port tells its handler
 through `IReplicaBroadcastHandler.HandleMissedMessagesAsync`
 ([ADR-1205](1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md)). This record decides what the `team-changed`

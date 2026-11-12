@@ -2569,8 +2569,7 @@ internal class ClientApiEndpointHandler(
         GeneratedSecret generatedSecret;
         try
         {
-            // A client's shared secret is its client_secret (ADR-1391), stored in the form the client's method needs
-            // (ADR-1391).
+            // A client's shared secret is its client_secret (ADR-1391), stored in the form the client's method needs.
             generatedSecret = ClientSecretIssuer.GenerateClientSecret(
                 protector,
                 tokenEndpointAuthMethod,

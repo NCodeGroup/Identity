@@ -41,8 +41,7 @@ than inlining the rationale.
   The second is a method an ADR makes uncancellable: its whole awaited work runs on `CancellationToken.None` because a
   caller's abort must not drop it
   ([ADR-1291](../../docs/decisions/1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md),
-  [ADR-1293](../../docs/decisions/1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md),
-  [ADR-1291](../../docs/decisions/1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md)).
+  [ADR-1293](../../docs/decisions/1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md)).
   It takes no token either, since a parameter it ignores would misstate its cancellation. Each such type or wrapper
   carries a
   `[SuppressMessage("Design", "NCID0003", Justification = "...")]` whose justification cites the ADR. The analyzer
@@ -184,8 +183,7 @@ than inlining the rationale.
   [Serialized and Stored Data](csharp.instructions.md#serialized-and-stored-data) and
   [project-template ADR-0108](../../docs/decisions/project-template/0108-persisted-documents-are-versioned-and-additive.md).
   A domain payload serialized into a stored JSON blob (the `PersistedGrant<TPayload>.Payload` path) is written through
-  `IPersistedPayloadSerializer`
-  ([ADR-1395](../../docs/decisions/1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md)), not a bare
+  `IPersistedPayloadSerializer`, not a bare
   `JsonSerializer` call, and its members never begin with `$`. A stored document that lacks what the serving code
   writes — the envelope, or a member the serving code always sets — is malformed: the reader throws rather than
   supplying a default or a fallback
@@ -211,8 +209,7 @@ than inlining the rationale.
   the concrete type is registered by its own package's `DefaultRegistration.cs` (§4) and referenced in exactly one
   place — the composition root (`AddIdentityServer()` on the `NCode.Identity.Registration` `IServiceBuilder<TMarker>` builder). A
   new capability shared by more than one implementation therefore ships as an abstraction/implementation **pair**. An
-  implementation `.csproj` whose `ProjectReference` names a non-`Abstractions` package is a violation. See
-  [ADR-1500](../../docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md). A foundation package
+  implementation `.csproj` whose `ProjectReference` names a non-`Abstractions` package is a violation. A foundation package
   (`NCode.Identity.Json`, `NCode.Identity.Time`, `NCode.Identity.AspNetCore`) is the exception: any package may
   reference it ([ADR-1500](../../docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 - 👁 **Mark infrastructure-public types** — template [Public API](csharp.instructions.md#public-api), with the summary
@@ -602,8 +599,7 @@ than inlining the rationale.
   every `ValidateSubjectAuthenticationCommand` includes, the interactive sign-in sends before it creates a session, and
   the authorization request answers with `access_denied` instead of a login challenge; a capability with its own reason
   to refuse an end user adds a `ValidateSubjectStandingCommand` handler with `TryAddEnumerable`. See
-  [ADR-1225](../../docs/decisions/1225-every-grant-that-issues-tokens-for-a-subject-validates-it.md),
-  [ADR-1229](../../docs/decisions/1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)
+  [ADR-1225](../../docs/decisions/1225-every-grant-that-issues-tokens-for-a-subject-validates-it.md)
   and
   [ADR-1229](../../docs/decisions/1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md).
 - 👁 **A refresh-token rotation spends the presented token and stores its successor in one unit of work**
@@ -638,9 +634,8 @@ than inlining the rationale.
   `ManagementRequestBindingTests` and `ManagementOpenApiDocumentTests` pin them. See
   [ADR-1161](../../docs/decisions/1161-every-owners-public-keys-have-one-source-and-are-imported-under-one-key-policy.md),
   [ADR-1483](../../docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md),
-  [ADR-1481](../../docs/decisions/1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md),
-  [ADR-1067](../../docs/decisions/1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md) and
-  [ADR-1483](../../docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md).
+  [ADR-1481](../../docs/decisions/1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md) and
+  [ADR-1067](../../docs/decisions/1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md).
 - 👁 **A management route reads its caller only from what `ManagementAuthenticationEndpointFilter` published.** The
   filter sets `HttpContext.User` to the principal a valid management access token authenticates, or to an anonymous
   principal whatever an authentication scheme set, and sets `IManagementCallerFeature` only for that authenticated
@@ -676,8 +671,7 @@ than inlining the rationale.
   [ADR-1223](../../docs/decisions/1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md). Every path that
   terminates a named session goes through `ISessionService`, which claims the session this way before it dispatches
   `OnSessionTerminatedCommand`; never dispatch the command for a named session yourself, and revoke a subject's grants
-  before a subject-wide dispatch. See
-  [ADR-1112](../../docs/decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md). A termination notifies the
+  before a subject-wide dispatch. A termination notifies the
   clients that the claimed grant lists, never the clients an earlier read listed, and a subject-wide termination claims
   every unrevoked session, an ended one included
   ([ADR-1112](../../docs/decisions/1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)).
@@ -715,8 +709,6 @@ than inlining the rationale.
   `assets`, so nothing outside `assets`, the bundle's `index.html` included, is servable, and `ServeAsset` sends a
   served file `Cache-Control: public, max-age=31536000, immutable`. Every surface that serves a built bundle registers
   its own `SinglePageBundle<TIndex>`. See
-  [ADR-1193](../../docs/decisions/1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)
-  and
   [ADR-1193](../../docs/decisions/1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md).
 - 👁 **Every HTML page the server writes sets its headers through `SetHtmlPageSecurity`.** Build the page's
   `HtmlPageSecurityPolicy` from the strict default (`default-src 'none'`, `base-uri 'none'`, `form-action 'none'`,
@@ -757,9 +749,8 @@ than inlining the rationale.
   `ICollectionDataSource<RateLimitDescriptor>` and judged by `IRequestRateLimiter.AcquireAsync` at its stage, which
   counts the stage's limits in one `IncrementUntilExceededAsync` call; never call the counter set for a limit from an
   endpoint. See
-  [ADR-1246](../../docs/decisions/1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md),
-  [ADR-1198](../../docs/decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) and
-  [ADR-1246](../../docs/decisions/1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md).
+  [ADR-1246](../../docs/decisions/1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md) and
+  [ADR-1198](../../docs/decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md).
 - 👁 **A password is judged by `IPasswordPolicy` wherever it is set.** The management API's create and reset, an
   `IInteractivePasswordChanger`, and a configuration seeder pass the tenant's effective settings, the account's user
   name and email, and the password to `IPasswordPolicy.ValidateAsync` before the store hashes it, and answer a refusal
@@ -791,8 +782,7 @@ than inlining the rationale.
   refuses it whatever the result. A store never sets a password through an API that runs the host's password validators
   (`UserManager<TUser>.CreateAsync(user, password)`, `ResetPasswordAsync`); it hashes and stores the hash itself
   ([ADR-1238](../../docs/decisions/1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md),
-  [ADR-1239](../../docs/decisions/1239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md),
-  [ADR-1238](../../docs/decisions/1238-a-password-is-hashed-and-verified-in-its-nfc-form-on-every-path.md)).
+  [ADR-1239](../../docs/decisions/1239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md)).
 - 👁 **A write that a background loop retries is idempotent** — template
   [Concurrency and Shared State](csharp.instructions.md#concurrency-and-shared-state): the usage ledger's per-replica
   batch checkpoint ([ADR-1199](../../docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md)).

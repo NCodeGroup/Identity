@@ -347,7 +347,6 @@ internal sealed class DefaultSecretValidator(
 
     /// <inheritdoc />
     // See ADR-1476.
-    // See ADR-1476.
     public SecretCreateValidation ValidateImportRemote(
         ImportRemoteSecretRequest request,
         DateTimeOffset createdWhen

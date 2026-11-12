@@ -60,7 +60,7 @@ Counter, unit `{request}`, meter `NCode.Identity.OpenId.Authentication`. Recorde
 descriptor a stage judges for a protocol request
 ([ADR-1246](decisions/1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)), including the daily quotas
 ([ADR-1198](decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md)) and the overage a tier admits past
-them ([ADR-1198](decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md)).
+them.
 
 | Attribute                                | Values                                                                                                                                                |
 | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |

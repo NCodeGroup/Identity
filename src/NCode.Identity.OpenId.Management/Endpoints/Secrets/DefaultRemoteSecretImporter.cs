@@ -23,7 +23,6 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Secrets;
 /// any other failure is logged and is a <c>502</c>.
 /// </summary>
 // See ADR-1476.
-// See ADR-1476.
 // See ADR-1471.
 internal class DefaultRemoteSecretImporter(
     ISecretGenerator secretGenerator,

@@ -227,7 +227,6 @@ internal class TenantRemoteSecretApiEndpointHandler(
     /// <response code="412">Another request changed the tenant's secrets after this request read them.</response>
     /// <response code="502">The key management service failed or refused reading the key's public half or the proof of the binding.</response>
     // See ADR-1476.
-    // See ADR-1476.
     [EndpointName("api/tenants/secrets/import-remote")]
     internal virtual async ValueTask<IResult> ImportRemoteSecretAsync(
         HttpContext httpContext,

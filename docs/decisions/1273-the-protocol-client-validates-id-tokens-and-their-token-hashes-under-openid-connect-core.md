@@ -91,9 +91,8 @@ Connect claims and the token hashes, and returns an invalid token as data.**
   policy
 - [ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
 - [ADR-1392](1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md) — fully specified signature
-  algorithms and their token hash
-- [ADR-1280](1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md) — the shared provider-JWT core
-- [ADR-1392](1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md) — the token hash
+  algorithms and their token hash; the token hash
   function of a signature algorithm
+- [ADR-1280](1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md) — the shared provider-JWT core
 - OpenID Connect Core 1.0 §3.1.3.6–3.1.3.8 (ID token validation) and §12.2 (refresh token response)
 - Issue #335

@@ -180,7 +180,7 @@ exact-type only; universal sinks then register per concrete event type instead o
 - **Two reliability tiers.** Best-effort observation swallows handler failures and may drop under
   back-pressure. **Compliance-grade audit requires at-least-once delivery** and cannot be lost on
   crash; that durability (a transactional outbox, retry, and publish-after-commit) is a separable
-  concern specified in [ADR-1048](./1048-durable-audit-delivery-outbox.md).
+  concern specified in [ADR-1242](./1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md).
 
 ### Handler lifetime and scoping
 
@@ -396,7 +396,7 @@ example.
   delivery creates its own scope and uses an application-lifetime cancellation token.
 - Best-effort observation and compliance-grade audit are distinct tiers; durable, at-least-once audit
   (outbox, retry, publish-after-commit) is specified separately in
-  [ADR-1048](./1048-durable-audit-delivery-outbox.md) so this seam stays small.
+  [ADR-1242](./1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md) so this seam stays small.
 - Events are safe to serialize anywhere because they carry identifiers and metadata, never secrets; a
   versioned audit schema lets external sinks evolve independently of in-process API tracking.
 - Logging, audit, metrics, and traces all derive from one event stream, so a host adds any signal by
@@ -432,7 +432,7 @@ example.
   / mediator ladder this decision extends.
 - [ADR-1500](./1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — abstractions vs.
   implementation package split for `NCode.Identity.Events(.Abstractions)`.
-- [ADR-1048](./1048-durable-audit-delivery-outbox.md) — durable, at-least-once audit delivery (outbox,
+- [ADR-1242](./1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md) — durable, at-least-once audit delivery (outbox,
   retry, publish-after-commit) layered on this seam.
 - [project-template ADR-0105](./project-template/0105-the-canonical-implementation-is-named-defaultfoo.md) — `DefaultEventPublisher` naming.
 - [ADR-1025](./1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — breaking-change latitude for

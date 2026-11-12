@@ -46,7 +46,7 @@ composition root chooses: in-process for one replica, Valkey for several.**
 1. **The packages.** The ports are in `NCode.Identity.SharedState.Abstractions` (namespace
    `NCode.Identity.SharedState`), the in-process defaults in `NCode.Identity.SharedState`, and the Valkey adapters in the
    opt-in package `NCode.Identity.SharedState.Valkey`, as `NCode.Identity.Jose.EdDsa` is opt-in. The family follows the
-   job-dispatch port ([ADR-1090](1090-durable-outbound-delivery-dispatch-adapter.md)): a `SharedStateLibrary` marker
+   job-dispatch port ([ADR-1242](1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md)): a `SharedStateLibrary` marker
    minted by `AddSharedStateServices()`, and adapters as opt-ins on its builder. The ports are `IExpiringKeySet`,
    `IExpiringValueSet`, `IExpiringIndexSet`, `IExpiringCounterSet`
    ([ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md)) and
@@ -170,7 +170,7 @@ composition root chooses: in-process for one replica, Valkey for several.**
   ephemeral state lives in the shared-state port, backed by Valkey
 - [ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md) and
   [ADR-1102](1102-jwt-bearer-client-authentication.md): the nonce and replay records
-- [ADR-1090](1090-durable-outbound-delivery-dispatch-adapter.md),
+- [ADR-1242](1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md),
   [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md),
   [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md),
   [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),

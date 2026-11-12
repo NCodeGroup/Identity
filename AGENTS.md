@@ -207,7 +207,7 @@ so a bare ADR number names one record. Ten family records override template reco
   a family record is rewritten in place and relates only to template records.
 
 One family record conflicts with a template record:
-[ADR-1242](docs/decisions/1242-the-in-process-dispatcher-is-configured-under-the-openid-section.md) with
+[ADR-1242](docs/decisions/1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md) with
 project-template ADR-0141, tracked in [#25](https://github.com/NCodeGroup/identity/issues/25).
 
 [`convention-audit.instructions.md`](.github/instructions/convention-audit.instructions.md) holds this repository's

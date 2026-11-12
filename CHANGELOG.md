@@ -1462,7 +1462,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **CIBA ping and push delivery and back-channel logout are delivered at least once through the dispatch port** (issue
   [#24](https://github.com/NCodeGroup/identity/issues/24),
-  [ADR-1090](docs/decisions/1090-durable-outbound-delivery-dispatch-adapter.md)). On approval `ICibaRequestService`
+  [ADR-1242](docs/decisions/1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md)). On approval `ICibaRequestService`
   dispatches a CIBA delivery job whose handler performs the HTTP `POST` to the client and throws on failure so the
   dispatcher retries; the default `IBackChannelLogoutNotifier` builds the signed `logout_token` and dispatches its
   delivery the same way. The concrete delivery jobs are internal. A ping or push client is also told when its request is
@@ -3035,9 +3035,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   in-memory queue drained by hosted workers that retry with exponential back-off. A deployment registers its own
   `IJobDispatcher` for a durable or distributed backend (a transactional outbox, a broker such as RabbitMQ, a scheduler
   such as Quartz) without changing producers or handlers; the durable-audit outbox
-  ([ADR-1048](docs/decisions/1048-durable-audit-delivery-outbox.md)) is one adapter of this port
+  ([ADR-1242](docs/decisions/1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md)) is one adapter of this port
   ([#24](https://github.com/NCodeGroup/identity/issues/24),
-  [ADR-1090](docs/decisions/1090-durable-outbound-delivery-dispatch-adapter.md)).
+  [ADR-1242](docs/decisions/1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md)).
 
 - **The in-process dispatcher runs jobs concurrently and is configured from `OpenId:InProcessJobDispatcher`.** Up to
   `MaxConcurrentJobs` jobs (16 by default) run at once, so a delivery that waits on an unreachable endpoint holds one
@@ -3046,8 +3046,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   subsection, which `InProcessJobDispatcherOptions.SectionName` names, and the host refuses to start on an unknown key,
   a `QueueCapacity` or `MaxConcurrentJobs` below 1, or a `FullMode` that names no member of `BoundedChannelFullMode`;
   each failure names its key
-  ([ADR-1232](docs/decisions/1232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md),
-  [ADR-1242](docs/decisions/1242-the-in-process-dispatcher-is-configured-under-the-openid-section.md), issues
+  ([ADR-1242](docs/decisions/1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md), issues
   [#276](https://github.com/NCodeGroup/identity/issues/276) and
   [#294](https://github.com/NCodeGroup/identity/issues/294)).
 
@@ -3056,7 +3055,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `HttpClient` timeout during a back-channel logout or CIBA delivery, fails the attempt and retries the job with
   back-off without ending the dispatcher's worker or stopping the host. A job whose handlers fail is retried once per
   attempt, however many of them failed, and a handler that cannot be resolved fails the attempt
-  ([ADR-1232](docs/decisions/1232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md), issue
+  ([ADR-1242](docs/decisions/1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md), issue
   [#276](https://github.com/NCodeGroup/identity/issues/276)).
 
 - **The event bus is a marker-bearing library

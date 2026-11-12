@@ -151,9 +151,7 @@ The records are grouped by area; within an area they are in number order.
 | [1018](./1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) | Tenant selection is shared and tenant-bound rows are scoped at the persistence layer | Accepted |
 | [1024](./1024-control-plane-and-per-tenant-planes.md) | Deployment model: one control plane with logical tenant isolation; physical isolation is a separate deployment | Accepted |
 | [1036](./1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md) | One factory materializes every OpenID context, for a request, an addressed tenant or a job | Accepted |
-| [1048](./1048-durable-audit-delivery-outbox.md) | Durable audit delivery: an outbox with at-least-once, publish-after-commit semantics | Proposed |
 | [1053](./1053-a-host-configured-behavioral-hook-is-declared-on-the-openid-environment-and-combined-with-tenant-data.md) | A host-configured behavioral hook is declared on the OpenID environment and combined with tenant data | Accepted |
-| [1090](./1090-durable-outbound-delivery-dispatch-adapter.md) | Durable outbound delivery via a generic job-dispatch adapter (BYO orchestration) | Accepted |
 | [1160](./1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md) | A tenant is named by its creator, validated by its strategy, and never reissued | Accepted |
 | [1164](./1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) | Replicas share expiring keys, values and indexes through ports with in-process and Valkey adapters | Accepted |
 | [1165](./1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md) | A tenant's stored issuer is its single origin, and its mTLS alias a routed second host | Accepted |
@@ -162,8 +160,7 @@ The records are grouped by area; within an area they are in number order.
 | [1198](./1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) | A daily quota counts a UTC day and a tier may admit a bounded billed overage | Accepted |
 | [1199](./1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) | Tenant usage is a daily ledger that replicas add to once and prune in batches | Accepted |
 | [1205](./1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md) | Replicas announce changes to each other through a best-effort broadcast port | Accepted |
-| [1232](./1232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md) | The in-process dispatcher runs jobs concurrently up to a limit | Accepted |
-| [1242](./1242-the-in-process-dispatcher-is-configured-under-the-openid-section.md) | The in-process dispatcher is configured under the OpenID section | Accepted |
+| [1242](./1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md) | Deferred work runs through a replaceable job-dispatch port with a concurrent in-process default | Accepted |
 | [1246](./1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md) | Rate limits are registered descriptors judged in one round trip per stage | Accepted |
 | [1351](./1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md) | A committed change is applied and announced on its own bounded token | Accepted |
 | [1411](./1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) | The platform is the deployment root and a team groups a customer's tenants | Accepted |

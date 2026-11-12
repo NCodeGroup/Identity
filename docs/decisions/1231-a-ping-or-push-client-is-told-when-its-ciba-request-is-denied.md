@@ -26,7 +26,7 @@ carries an approval.**
    that denied the request.
 4. **A poll client is not notified.** It learns the denial from the token endpoint.
 5. **The job carries the error.** `CibaDeliveryJob.Error` holds the error code, and `CibaDeliveryJobHandler` adds it to
-   the body. The job retries as every delivery does ([ADR-1090](1090-durable-outbound-delivery-dispatch-adapter.md)).
+   the body. The job retries as every delivery does ([ADR-1242](1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md)).
 
 ## Options considered
 
@@ -45,7 +45,7 @@ carries an approval.**
 - [CIBA Core 1.0](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html)
   §10.2 (ping callback), §10.3 (push callback) and §12 (the error payload of a push request).
 - [ADR-1085](1085-ciba-grant.md) — the CIBA grant and its delivery modes.
-- [ADR-1090](1090-durable-outbound-delivery-dispatch-adapter.md) — the delivery job that retries.
+- [ADR-1242](1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md) — the delivery job that retries.
 - [ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md) — only the call that decides a request acts.
 - [ADR-1225](1225-every-grant-that-issues-tokens-for-a-subject-validates-it.md) — a refused approval denies the request.
 - Code: `NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.DefaultCibaRequestService`,

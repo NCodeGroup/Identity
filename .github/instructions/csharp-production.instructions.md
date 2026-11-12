@@ -68,7 +68,7 @@ than inlining the rationale.
   ([ADR-1500](../../docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 - 👁 **A background loop treats an `OperationCanceledException` as a failure unless its own stopping token is
   cancelled** — template [Language and Async](csharp.instructions.md#language-and-async) (`JobDispatchWorker`,
-  [ADR-1232](../../docs/decisions/1232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md)).
+  [ADR-1242](../../docs/decisions/1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md)).
 - ✅ **Collection expressions** — template [Collection Expressions](csharp.instructions.md#collection-expressions).
 - ✅ **`const` for compile-time literal values** — template
   [Constants for Literals](csharp.instructions.md#constants-for-literals).
@@ -411,7 +411,7 @@ than inlining the rationale.
   `NCode.Identity.OpenId.AbsoluteUri.TryParse`, which requires its own `scheme:` and no whitespace, never with
   `Uri.TryCreate` alone, and keep a value compared verbatim, such as a CORS origin, in the form it is compared in. An
   options validator refuses an enum value that `Enum.IsDefined` rejects (`InProcessJobDispatcherOptionsValidator`,
-  [ADR-1242](../../docs/decisions/1242-the-in-process-dispatcher-is-configured-under-the-openid-section.md)). See
+  [ADR-1242](../../docs/decisions/1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md)). See
   [ADR-1137](../../docs/decisions/1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md),
   [ADR-1139](../../docs/decisions/1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md), and
   [ADR-1140](../../docs/decisions/1140-setting-values-are-validated-against-their-domain-not-only-their-type.md).

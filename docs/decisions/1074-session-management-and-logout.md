@@ -120,10 +120,10 @@ Concretely:
   revocation path (`RevokeWhereAsync`).
 - **Harder / follow-ups:** The OP must track participating clients on the session as tokens are issued (a write on the
   issuance path). Back-channel delivery is now **retried out of band** via the generic job-dispatch port
-  ([ADR-1090](1090-durable-outbound-delivery-dispatch-adapter.md)) \u2014 the default notifier builds the signed
+  ([ADR-1242](1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md)) \u2014 the default notifier builds the signed
   `logout_token` and dispatches a `BackChannelLogoutDeliveryJob` rather than `POST`ing inline, so a failed delivery is
   retried (and becomes crash-durable under a durable dispatcher adapter, cf.
-  [ADR-1048](1048-durable-audit-delivery-outbox.md)). `max_age` / re-authentication semantics and
+  [ADR-1242](1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md)). `max_age` / re-authentication semantics and
   the `auth_time` conditionality ([#49](https://github.com/NCodeGroup/identity/issues/49), [#51](https://github.com/NCodeGroup/identity/issues/51)) interact with the session's recorded
   `auth_time`. Front-Channel Logout / Session Management remain unavailable **by default** (now implementable as an
   opt-in capability via [ADR-1088](1088-opt-in-front-channel-logout-and-session-management.md)); a deployment that

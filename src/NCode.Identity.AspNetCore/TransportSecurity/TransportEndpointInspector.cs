@@ -30,6 +30,7 @@ internal static class TransportEndpointInspector
                 Uri.TryCreate(address, UriKind.Absolute, out var uri)
                 && uri.Scheme == Uri.UriSchemeHttps
                 && uri.Host != "unix"
+                && uri.Host != "pipe"
                 && uri.Port > 0
             )
             {

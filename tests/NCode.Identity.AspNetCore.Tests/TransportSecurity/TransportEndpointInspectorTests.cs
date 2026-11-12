@@ -81,5 +81,28 @@ public sealed class TransportEndpointInspectorTests
         Assert.Empty(inspection.TlsEndpoints);
     }
 
+    [Fact]
+    public void Inspect_WhenTheEndpointIsAnHttpNamedPipe_ReportsPlainHttp()
+    {
+        var inspection = TransportEndpointInspector.Inspect(["http://pipe:/mypipe"]);
+
+        var failure = Assert.Single(inspection.Failures);
+        Assert.Equal("The server serves plain HTTP at 'http://pipe:/mypipe'.", failure);
+        Assert.Empty(inspection.TlsEndpoints);
+    }
+
+    [Fact]
+    public void Inspect_WhenTheEndpointIsAnHttpsNamedPipe_ReportsNotATcpEndpoint()
+    {
+        var inspection = TransportEndpointInspector.Inspect(["https://pipe:/mypipe"]);
+
+        var failure = Assert.Single(inspection.Failures);
+        Assert.Equal(
+            "The server binds 'https://pipe:/mypipe', which is not an HTTPS endpoint on a TCP port.",
+            failure
+        );
+        Assert.Empty(inspection.TlsEndpoints);
+    }
+
     #endregion
 }

@@ -79,7 +79,7 @@ any package may reference.**
 13. **Names and placement.** No package is named for who uses it (`.Common`, `.Shared`, `.Utilities`, `.Helpers`); it is
     named for its capability. Shared code lives in a public package, never in linked source. A type lives in the package
     whose capability it is, and a public type stays public. Where a package's repository and artifacts live is
-    [ADR-1502](1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md)'s.
+    [ADR-1502](1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)'s.
 
 ## Options considered
 
@@ -117,7 +117,7 @@ any package may reference.**
   [ADR-1052](1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1447](1447-forwarded-header-trust-and-strict-transport-security-are-general-aspnet-core-helpers-each-host-composes.md),
-  [ADR-1502](1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md)
+  [ADR-1502](1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)
 - [project-template ADR-0104](project-template/0104-no-cross-assembly-internalsvisibleto.md),
   [project-template ADR-0105](project-template/0105-the-canonical-implementation-is-named-defaultfoo.md)
 - [`csharp-production.instructions.md`](../../.github/instructions/csharp-production.instructions.md) §2, §4.

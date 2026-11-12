@@ -3,10 +3,10 @@
 This directory records the **architecturally significant decisions** made for the
 **NCode.Identity** library family and for the hosted platform's infrastructure in
 [`NCodeGroup/identity-platform`](https://github.com/NCodeGroup/identity-platform)
-([ADR-1307](./1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md)), using lightweight
+([ADR-1502](./1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)), using lightweight
 [Architecture Decision Records (ADRs)](https://adr.github.io/).
 The private `NCodeGroup/identity-cloud` keeps its own decisions, and a decision about a public contract it relies on is
-recorded here ([ADR-1502](./1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md)).
+recorded here ([ADR-1502](./1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)).
 
 An ADR captures a single decision as it holds in the code: the context that forces it, the decision itself, the
 options weighed and the consequences. When a decision changes, its record is rewritten in place, and git history
@@ -93,7 +93,6 @@ The records are grouped by area; within an area they are in number order.
 | [1266](./1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) | Binary data uses BufferFactory rentals with explicit sensitivity, and text only strict encodings | Accepted |
 | [1302](./1302-the-main-branch-is-the-trunk-release-lines-service-shipped-versions-and-prereleases-use-trusted-publishing.md) | The main branch is the trunk, release lines service shipped versions, and prereleases use trusted publishing | Accepted |
 | [1306](./1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-repository-files.md) | Pending work is tracked as GitHub issues, linked by address in repository files | Accepted |
-| [1307](./1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md) | identity-platform records its decisions and pending work in this repository | Accepted |
 | [1309](./1309-c-files-carry-a-two-line-spdx-header-that-the-build-checks.md) | C# files carry a two-line SPDX header that the build checks | Accepted |
 | [1385](./1385-no-shipping-package-replaces-its-consumers-logging-generator-or-carries-microsoft-extensions-http-resilience.md) | No shipping package replaces its consumers' logging generator or carries Microsoft.Extensions.Http.Resilience | Accepted |
 | [1386](./1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md) | Primitives are benchmarked in a project the build compiles and nothing runs | Accepted |
@@ -103,7 +102,7 @@ The records are grouped by area; within an area they are in number order.
 | [1496](./1496-an-analyzer-reports-an-own-async-method-that-returns-task-or-lacks-a-trailing-cancellation-token.md) | An analyzer reports an own async method that returns Task or lacks a trailing cancellation token | Accepted |
 | [1500](./1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) | Every package names one capability under the NCode.Identity prefix, as an abstractions and implementation pair | Accepted |
 | [1501](./1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md) | A project's top-level folder and name say whether it ships and what it is | Accepted |
-| [1502](./1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md) | Code a self-hoster could use is public, and the product's repositories and artifacts follow one naming scheme | Accepted |
+| [1502](./1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md) | Code a self-hoster could use is public, and identity holds the product's and platform's decisions | Accepted |
 | [1503](./1503-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md) | A decision record is rewritten when its decision changes and relates only to template records | Accepted |
 
 ### Deployment and local development

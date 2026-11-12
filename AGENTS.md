@@ -24,7 +24,7 @@ It holds until the first stable release.
 This repository, `NCodeGroup/identity`, holds the product: packages, hosts, images, the chart, the frontend, and the
 decisions and issues of the product and its platform. `NCodeGroup/identity-platform` holds the platform's
 infrastructure, and the private `NCodeGroup/identity-cloud` only the managed offering's proprietary parts
-([ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md)).
+([ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)).
 
 A project's top-level folder says whether it ships
 ([ADR-1501](docs/decisions/1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)): `src/` holds only the published
@@ -238,7 +238,7 @@ its area (and a non-obvious decision in an ADR), not in chat history or volatile
 closes it with `Closes #<number>`. The same issues and [`docs/decisions/`](docs/decisions/) also hold the pending work
 and decisions of [`NCodeGroup/identity-platform`](https://github.com/NCodeGroup/identity-platform), whose pull
 requests close an issue here with `Closes NCodeGroup/identity#<number>`
-([ADR-1307](docs/decisions/1307-identity-platform-records-its-decisions-and-pending-work-in-this-repository.md)).
+([ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)).
 
 ## Plan-and-execute workflow
 

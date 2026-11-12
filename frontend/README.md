@@ -5,7 +5,7 @@ Management, Auth/Consent/Login, Playground, and OIDC conformance. Decision recor
 [ADR-1064](../docs/decisions/1064-frontend-presentation-platform.md).
 
 > **One workspace of scoped packages.** It lives under `frontend/` in the product's repository
-> ([ADR-1502](../docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md)),
+> ([ADR-1502](../docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)),
 > and every shared concern is a scoped `@ncode/*` package consumed only through its public entry point (no deep
 > cross-package imports).
 

@@ -3725,7 +3725,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `NCodeGroup/identity-cloud` holds only the managed offering's proprietary parts. NuGet packages are named
   `NCode.Identity.*`, the chart and images `ncode-identity-*`, the npm workspace packages `@ncode/*`, all private,
   and the platform's domains `ncodeid.*` ([#760](https://github.com/NCodeGroup/identity/issues/760),
-  [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md)).
+  [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-identity-holds-the-products-and-platforms-decisions.md)).
 
 - **The build reports a field that could be an auto-property.** `NCode.Identity.Analyzers`, the repository's own Roslyn
   analyzer project, which every project of the solution loads and no package ships, fails the build with `NCID0001` on

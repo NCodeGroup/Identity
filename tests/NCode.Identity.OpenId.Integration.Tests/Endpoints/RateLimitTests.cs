@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 /// Drives a tenant past its <c>rate_limit_tenant_per_minute</c> limit and its daily quotas through the real host and
 /// confirms the refused request is answered <c>429 Too Many Requests</c> with <c>Retry-After</c>.
 /// </summary>
-// See ADR-1196 and ADR-1198.
+// See ADR-1246 and ADR-1198.
 public class RateLimitTests
 {
     private const string ClientId = "it-quota-client";

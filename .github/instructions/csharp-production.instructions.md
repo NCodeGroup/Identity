@@ -760,9 +760,9 @@ than inlining the rationale.
   `ICollectionDataSource<RateLimitDescriptor>` and judged by `IRequestRateLimiter.AcquireAsync` at its stage, which
   counts the stage's limits in one `IncrementUntilExceededAsync` call; never call the counter set for a limit from an
   endpoint. See
-  [ADR-1196](../../docs/decisions/1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
+  [ADR-1246](../../docs/decisions/1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md),
   [ADR-1198](../../docs/decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) and
-  [ADR-1246](../../docs/decisions/1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md).
+  [ADR-1246](../../docs/decisions/1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md).
 - 👁 **A password is judged by `IPasswordPolicy` wherever it is set.** The management API's create and reset, an
   `IInteractivePasswordChanger`, and a configuration seeder pass the tenant's effective settings, the account's user
   name and email, and the password to `IPasswordPolicy.ValidateAsync` before the store hashes it, and answer a refusal
@@ -820,7 +820,7 @@ than inlining the rationale.
   `RateLimitErrors.Refuse`. See
   [ADR-1198](../../docs/decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md),
   [ADR-1199](../../docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) and
-  [ADR-1246](../../docs/decisions/1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md).
+  [ADR-1246](../../docs/decisions/1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md).
 - 👁 **A response that reveals a secret is marked `.WithNoStore()`.** Map every endpoint whose response can carry
   secret material (a generated secret or key, an initial access token, a `client_secret` or
   `registration_access_token`, or a one-time credential: a `request_uri`, a `device_code` and `user_code`, or an

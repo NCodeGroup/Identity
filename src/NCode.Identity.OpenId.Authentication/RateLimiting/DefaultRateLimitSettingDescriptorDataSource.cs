@@ -16,7 +16,7 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// limit: the administrators above the scope whose document carries it set it, so a tenant or a client never raises its
 /// own.
 /// </summary>
-// See ADR-1196.
+// See ADR-1246.
 // See ADR-1418.
 internal class DefaultRateLimitSettingDescriptorDataSource(INullChangeToken nullChangeToken)
     : ICollectionDataSource<SettingDescriptor>

@@ -73,7 +73,7 @@ the result.**
 ## Consequences
 
 - Every failed attempt costs a password hash whether or not the account exists, and the request rate limiter bounds the
-  rate ([ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)).
+  rate ([ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)).
 - Tests record that the hasher verified the dummy hash, never the time, because elapsed time is flaky in a parallel run.
 - **Breaking:** `IPasswordHasher` gains `DummyPasswordHash`, which a custom hasher implements.
 - This implements issue [#298](https://github.com/NCodeGroup/identity/issues/298).
@@ -84,7 +84,7 @@ the result.**
   cannot be deduced from failed authentication.
 - [OWASP Authentication Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html) —
   the responses to a failed authentication are the same whether or not the account exists.
-- [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) — the request rate limiter.
+- [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md) — the request rate limiter.
 - [ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md) — a locked-out user's
   password is not verified.
 - [ADR-1237](1237-failed-password-attempts-are-limited-per-account.md) — the limit on failed attempts.

@@ -3119,7 +3119,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   default, which `AddIdentityServer` registers beside the in-process key set, and `AddValkey` registers in its place a
   Valkey adapter that runs `INCR` and `PEXPIRE` as one script, so every replica counts against one counter. It is the
   foundation of per-tenant rate limiting
-  ([ADR-1196](docs/decisions/1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md), issue
+  ([ADR-1246](docs/decisions/1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md), issue
   [#84](https://github.com/NCodeGroup/identity/issues/84)).
 
 - **Shared state holds versioned expiring values and membership indexes.** `IExpiringValueSet` stores an opaque,
@@ -3564,7 +3564,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IExpiringCounterSet.IncrementUntilExceededAsync`, which every implementation of the port implements, counts a stage's
   limits in one call (one Valkey script, measured as `counter.increment_until_exceeded`). Shared-state keys carry the
   tenant in braces as a hash tag, and the `RateLimitExceeded` log event names the window
-  ([ADR-1246](docs/decisions/1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md),
+  ([ADR-1246](docs/decisions/1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md),
   [#232](https://github.com/NCodeGroup/identity/issues/232)).
 
 - **The rate limiter bounds its store calls and pauses them during an outage.** Each counter call is bounded to 100 ms
@@ -3572,7 +3572,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`store_unavailable`) before trying it again. The failure that opens the pause logs one warning and the answer that
   ends it logs one information message (`RateLimitStoreRecovered`), so an outage is logged once per replica. Valkey
   stays a readiness dependency, since single-use state fails closed without it
-  ([ADR-1196](docs/decisions/1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)).
+  ([ADR-1246](docs/decisions/1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)).
 
 - **Per-tenant daily quotas.** Two tenant settings bound a tenant's consumption per UTC calendar day for plan tiers:
   `quota_tenant_requests_per_day` (requests to its metered protocol endpoints, judged after the per-minute rate limits)
@@ -5859,7 +5859,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IExpiringCounterSet` with a two-window sliding estimate, so the limits hold across replicas that share Valkey.
   A refused request is answered `429 Too Many Requests` with `temporarily_unavailable`, `Retry-After`, and
   `Cache-Control: no-store`, and is neither handled nor audited
-  ([ADR-1196](docs/decisions/1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
+  ([ADR-1246](docs/decisions/1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md),
   [ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [#84](https://github.com/NCodeGroup/identity/issues/84),
   [#563](https://github.com/NCodeGroup/identity/issues/563)).

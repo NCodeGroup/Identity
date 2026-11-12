@@ -42,7 +42,7 @@ is counted under that user name.**
 3. **Every result that is not verified is counted.** The caller calls `RecordFailureAsync` with
    `CancellationToken.None` and the `UserName` of the result, so a refusal does exactly the work of a failed
    verification: one increment of the counter. The counter keeps the expiry of its first failure, so a refusal does not
-   extend the window ([ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)).
+   extend the window ([ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)).
 4. **The callers pass the limiter.** The interactive sign-in (`LocalAccountInteractiveCredentialVerifier`), the password
    grant (`DefaultAuthenticatePasswordGrantHandler`) and the self-service change of a password
    (`LocalAccountInteractivePasswordChanger`) pass the `IsRefusedAsync` of a `PasswordAttemptGate`, which asks
@@ -95,7 +95,7 @@ is counted under that user name.**
   cannot be deduced from failed authentication.
 - [NIST SP 800-63B-4](https://pages.nist.gov/800-63-4/sp800-63b/authenticators/) §3.2.2 — rate limiting of failed
   attempts.
-- [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) — the counter set and its
+- [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md) — the counter set and its
   increment.
 - [ADR-1237](1237-failed-password-attempts-are-limited-per-account.md) — the limit on failed attempts.
 - [ADR-1239](1239-a-password-is-verified-in-the-same-time-whether-or-not-its-account-exists.md) — a verification takes

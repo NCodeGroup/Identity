@@ -42,7 +42,7 @@ prunes the days past retention in bounded batches.**
    caller rather than at every flush.
 3. **Every tenant is metered, with or without a quota.** `RateLimitEndpointFilter` records the meters that the
    limiter's stages added once the endpoint has run, unless a stage refused the request
-   ([ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md)). Public metadata and
+   ([ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)). Public metadata and
    refused requests are not usage. Each meter is recorded at most once per request.
 4. **Replicas count in memory and add to the ledger.** `ITenantUsageRecorder.Record` increments an in-memory count
    under a lock and costs no I/O on the request path. `TenantUsageFlushService` drains the counts every
@@ -125,7 +125,7 @@ prunes the days past retention in bounded batches.**
   protocol metrics
 - [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) — daily quotas and
   the overage meters
-- [ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md) — rate-limit stages
+- [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md) — rate-limit stages
 - [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) and
   [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md) — teams and team paths
 - `src/NCode.Identity.OpenId.Authentication/Usage/`,

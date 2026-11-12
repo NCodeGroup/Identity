@@ -156,12 +156,11 @@ The records are grouped by area; within an area they are in number order.
 | [1164](./1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) | Replicas share expiring keys, values and indexes through ports with in-process and Valkey adapters | Accepted |
 | [1165](./1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md) | A tenant's stored issuer is its single origin, and its mTLS alias a routed second host | Accepted |
 | [1166](./1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) | A tenant is created and seeded through one provisioning pipeline under every strategy | Accepted |
-| [1196](./1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) | Tenants are rate limited through a shared expiring counter set | Accepted |
 | [1198](./1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) | A daily quota counts a UTC day and a tier may admit a bounded billed overage | Accepted |
 | [1199](./1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) | Tenant usage is a daily ledger that replicas add to once and prune in batches | Accepted |
 | [1205](./1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md) | Replicas announce changes to each other through a best-effort broadcast port | Accepted |
 | [1242](./1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md) | Deferred work runs through a replaceable job-dispatch port with a concurrent in-process default | Accepted |
-| [1246](./1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md) | Rate limits are registered descriptors judged in one round trip per stage | Accepted |
+| [1246](./1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md) | Rate limits are registered descriptors counted in a shared expiring counter set | Accepted |
 | [1351](./1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md) | A committed change is applied and announced on its own bounded token | Accepted |
 | [1411](./1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) | The platform is the deployment root and a team groups a customer's tenants | Accepted |
 | [1425](./1425-a-team-promotes-one-tenants-configuration-to-another-and-environment-bound-values-stay.md) | A team promotes one tenant's configuration to another, and environment-bound values stay | Accepted |

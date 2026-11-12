@@ -17,7 +17,7 @@
 The interactive sign-in, the password grant and the self-service change of a password
 ([ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md)) verify a password as often
 as they are asked, so a password can be guessed without end (issue [#293](https://github.com/NCodeGroup/identity/issues/293)). The request rate limiter
-([ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)) counts requests per tenant, per
+([ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)) counts requests per tenant, per
 address and per client, never per account, so a guesser that spreads its attempts across addresses is not limited by
 it.
 
@@ -63,7 +63,7 @@ of its first failure ends, with exactly the answer that a wrong password gets.**
    authentication, and the change reports `invalid_current_password`. After a failed verification, a refusal included,
    `RecordFailureAsync` calls `IncrementAsync` with an expiry of the current time plus
    `password_failed_attempts_window`. The counter set starts a counter at one with that expiry and leaves the expiry of
-   a live counter unchanged ([ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)), so the
+   a live counter unchanged ([ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)), so the
    window starts at the first failure, and a refused password is counted and does not extend it. The refusal lasts
    until the window ends.
 4. **Two tenant settings set the limit.** Both apply to tenants and neither is discoverable
@@ -95,7 +95,7 @@ of its first failure ends, with exactly the answer that a wrong password gets.**
    ([metrics](../metrics.md)).
 9. **A failure of the counter store fails closed.** `DefaultPasswordAttemptLimiter` lets the exception propagate, so the
    sign-in, the grant or the change fails. The request rate limiter fails open, because it guards capacity
-   ([ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)); this limit is a security
+   ([ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)); this limit is a security
    control, and an outage of the shared state must not lift it.
 10. **The ASP.NET Core Identity adapter keeps its own meaning of lockout.** It does not call `AccessFailedAsync`, and
     Identity's lockout means that the account is disabled
@@ -142,7 +142,7 @@ of its first failure ends, with exactly the answer that a wrong password gets.**
   attempts.
 - [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) — the shared state that the
   replicas use.
-- [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) — the counter set and its
+- [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md) — the counter set and its
   increment.
 - [ADR-1229](1229-a-refused-end-user-cannot-sign-in-and-the-client-is-answered-access-denied.md) — the lockout of
   ASP.NET Core Identity is a disabled account.

@@ -651,7 +651,7 @@ speed-test endpoint from the Denver network the users are on.
   working ([ADR-1180](decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)). Still
   needed: publishing the image and chart ([#87](https://github.com/NCodeGroup/identity/issues/87)).
 - **Per-tenant rate limits and quotas** — issues [#84](https://github.com/NCodeGroup/identity/issues/84) and [#118](https://github.com/NCodeGroup/identity/issues/118), done
-  ([ADR-1196](decisions/1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
+  ([ADR-1246](decisions/1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md),
   [ADR-1198](decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md)); the mTLS work ([#82](https://github.com/NCodeGroup/identity/issues/82), [#83](https://github.com/NCodeGroup/identity/issues/83),
   [#86](https://github.com/NCodeGroup/identity/issues/86), and [#117](https://github.com/NCodeGroup/identity/issues/117)) is done.
 

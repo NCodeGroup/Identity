@@ -18,7 +18,7 @@ The settings merge declares which scopes a setting applies to
 ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)). It does not
 declare who may write the setting in a given scope's document, and the plan tier's quotas
 ([ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md)) and the tenant rate limits
-([ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)) are the settings that most need a
+([ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)) are the settings that most need a
 writer above their scope.
 
 A console that edits the whole document would also offer limits the caller cannot change, and the caller would learn
@@ -96,7 +96,7 @@ change them.**
 
 - [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md) — settings
   declare the scopes they apply to
-- [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) — tenants are rate limited through
+- [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md) — tenants are rate limited through
   a shared expiring counter set
 - [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) — plan-tier quotas are daily UTC
   counts enforced at the quota

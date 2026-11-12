@@ -17,7 +17,7 @@ The platform is observable through OpenTelemetry ([ADR-1134](1134-the-platform-a
 Core already measures and traces each inbound request, and `System.Net.Http` each outbound call, so the protocol
 endpoints measure only what neither of them nor the event seam
 ([ADR-1047](1047-auditing-and-events-observation-seam.md)) already measures. The rate limiter's refusals
-([ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md)) and the health of the shared state
+([ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)) and the health of the shared state
 those refusals depend on are such mechanisms.
 
 Two forces of the family's own add to those:
@@ -109,7 +109,7 @@ tenant, client or subject.
   [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md)) and
   `ncode.identity.rate_limiting.result` (`admitted`, `rejected`, `store_unavailable`), recorded once per judged
   partition, mirroring ASP.NET Core's `aspnetcore.rate_limiting.requests`. `store_unavailable` makes the fail-open path
-  of [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) alertable.
+  of [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md) alertable.
 - **Shared state** (each networked adapter, in its own package's meter, such as `NCode.Identity.SharedState.Valkey`):
   histogram `ncode.identity.shared_state.operation.duration` (`s`) with `ncode.identity.shared_state.operation`
   (`key_set.try_add`, `key_set.contains`, `counter.increment`, `counter.get`), `ncode.identity.shared_state.adapter`
@@ -200,6 +200,6 @@ is a deliberate change that updates the catalog.
   `IMeterFactory` and `MetricCollector<T>`
 - Issue [#119](https://github.com/NCodeGroup/identity/issues/119)
 - [ADR-1047](1047-auditing-and-events-observation-seam.md): the event seam and its catalog
-- [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md): the rate limiter
+- [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md): the rate limiter
 - [`docs/backend-for-frontend.md` §5.13](../backend-for-frontend.md#513-observability): the BFF's observability design
 - `src/NCode.Identity.Events/DefaultEventMetricsHandler.cs`

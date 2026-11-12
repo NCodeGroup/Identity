@@ -6,7 +6,7 @@
 
 ## Context
 
-Per-minute rate limits ([ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md))
+Per-minute rate limits ([ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md))
 protect capacity from bursts, but they do not bound what a tenant consumes over a day. The hosted platform sells plan
 tiers, and a tier is defined by how much a tenant may use: requests to its protocol endpoints and token requests.
 Customers also run their dev and test environments as tenants on the production platform
@@ -118,7 +118,7 @@ midnight UTC. A tier opts in to an overage by setting an allowance per quota, an
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — unset means unrestricted
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — metering is endpoint metadata
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) — the usage ledger
-- [ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md) — rate limits and the counter set
+- [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md) — rate limits and the counter set
 - [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md) — who writes a limit
 - [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) — customer environments as tenants
 - `src/NCode.Identity.OpenId.Authentication/RateLimiting/DefaultRequestRateLimiter.cs`,

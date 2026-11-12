@@ -18,8 +18,7 @@ secret as a PBKDF2 verifier and bounds the concurrent derivations
 ([ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)), which bounds the processors
 a flood of guesses takes, not the number of guesses.
 
-The request rate limits ([ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
-[ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md)) do not bound guessing
+The request rate limits ([ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)) do not bound guessing
 either:
 
 - `rate_limit_client_per_minute` is judged at the `client_authentication` stage, which a request reaches only once its
@@ -180,9 +179,9 @@ limit until its window ends, the way a rate limit refuses.**
 - [RFC 9700 §4.10](https://www.rfc-editor.org/rfc/rfc9700#section-4.10), client authentication.
 - [NIST SP 800-63B-4 §3.2.2](https://pages.nist.gov/800-63-4/sp800-63b/authenticators/), rate limiting.
 - [OWASP Credential Stuffing Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html).
-- [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
+- [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md),
   [ADR-1237](1237-failed-password-attempts-are-limited-per-account.md),
-  [ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md),
+  [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md),
   [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md).
 - Code: `NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationAttemptLimiter`,
   `NCode.Identity.OpenId.Authentication.Clients.DefaultClientAuthenticationAttemptLimiter`,

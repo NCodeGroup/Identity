@@ -31,7 +31,7 @@ namespace NCode.Identity.OpenId.Authentication.RateLimiting;
 /// request. Every judged limit is counted in <c>ncode.identity.rate_limiting.requests</c> with its result,
 /// so the fail-open path is as visible as a refusal.
 /// </summary>
-// See ADR-1196, ADR-1198 and ADR-1246.
+// See ADR-1246, ADR-1198 and ADR-1246.
 internal class DefaultRequestRateLimiter(
     IRateLimitDescriptorCatalog catalog,
     IExpiringCounterSet counterSet,

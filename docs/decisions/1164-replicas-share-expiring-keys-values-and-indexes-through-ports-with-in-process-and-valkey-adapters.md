@@ -49,7 +49,7 @@ composition root chooses: in-process for one replica, Valkey for several.**
    job-dispatch port ([ADR-1242](1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md)): a `SharedStateLibrary` marker
    minted by `AddSharedStateServices()`, and adapters as opt-ins on its builder. The ports are `IExpiringKeySet`,
    `IExpiringValueSet`, `IExpiringIndexSet`, `IExpiringCounterSet`
-   ([ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md)) and
+   ([ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)) and
    `IReplicaBroadcaster` ([ADR-1205](1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md)).
 2. **The key set.** `IExpiringKeySet.TryAddAsync(key, expiresWhen)` atomically adds a key unless it is present and
    unexpired: of any number of concurrent adds for one key, across every replica that shares the set, at most one
@@ -111,7 +111,7 @@ composition root chooses: in-process for one replica, Valkey for several.**
 7. **The consumers record tenant-scoped, unambiguous, bounded keys.** The DPoP nonce service, the DPoP proof replay cache
    and the client-assertion replay cache record into `IExpiringKeySet` under `{purpose}:{tenant}:{digest}`: the tenant in
    braces is the key's hash tag
-   ([ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md)), and the digest is the
+   ([ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md)), and the digest is the
    base64url SHA-256 of the length-prefixed UTF-8 components (the proof's key thumbprint and `jti`; the client identifier
    and `jti`; the nonce). `IDPoPProofReplayCache.TryRecordAsync` and `IClientAssertionReplayCache.TryRecordAsync` take the
    request's `OpenIdContext`, as `IDPoPNonceService` does, to scope the record by tenant. The library registers no
@@ -173,10 +173,10 @@ composition root chooses: in-process for one replica, Valkey for several.**
 - [ADR-1242](1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md),
   [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md),
   [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md),
-  [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
+  [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md),
   [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md),
   [ADR-1205](1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md),
-  [ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md),
+  [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md),
   [ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md)
 - [RFC 9449](https://www.rfc-editor.org/rfc/rfc9449), [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523)
 - [Backend for frontend](../backend-for-frontend.md), [hosting analysis](../hosting-analysis.md#valkey)

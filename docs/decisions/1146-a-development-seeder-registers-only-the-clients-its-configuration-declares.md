@@ -20,7 +20,7 @@ required). That shape had three problems.
   a list that already holds some, so `DeveloperInteractiveSeed:SpaClients` added clients beside the two built-in ones
   and could not remove or replace them (issue [#98](https://github.com/NCodeGroup/identity/issues/98)). This is the same defect that was fixed for
   `ConformanceClientSeed`'s grant types, and it breaks the binding convention of
-  [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md): a bound collection starts empty.
+  [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md): a bound collection starts empty.
 - **The seed was never inert.** `AddDevelopmentEnvironment` documents that each development convenience does nothing
   when its section is absent. But every non-Production host persisted the two clients, including the Conformance
   environment, which drives an entirely different set of clients. Seeded clients are stored in the database, so they
@@ -45,7 +45,7 @@ document publishes is one the seed registers, and that each seeded client resolv
 each of its redirect URIs, so the two halves cannot drift apart.
 
 **A host's identifiers are not a library default.** A collection option with a genuine default still starts empty and
-applies that default only when nothing is configured (the [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md)
+applies that default only when nothing is configured (the [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)
 convention). When the "default" would be one host's identifiers, such as a seeded client's id and redirect URIs, the
 library has no default; the host's environment overlay declares the entries.
 
@@ -80,7 +80,7 @@ library has no default; the host's environment overlay declares the entries.
 
 - Issue: [#98](https://github.com/NCodeGroup/identity/issues/98).
 - [ADR-1082](1082-playground-and-conformance-surfaces.md): the surfaces and the list-shaped seed this amends.
-- [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md): strict binding, and why a bound
+- [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md): strict binding, and why a bound
   collection starts empty.
 - [ADR-1064](1064-frontend-presentation-platform.md): runtime-discovered client ids ("one bundle, every tier").
 - Code: `NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions`,

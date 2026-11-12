@@ -87,7 +87,7 @@ interval, and the grant prune keeps a session until it is terminated.**
    `SectionName` and `Interval`, which defaults to one minute. `EndedSessionTerminationOptionsValidator` checks when
    the host starts that `Interval` is a period that a timer accepts, and `AddConfiguration` binds the options strictly
    from `OpenId:EndedSessionTermination`
-   ([ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)). The service reads
+   ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)). The service reads
    the options on use, never in its constructor.
 7. **Background work outside the core waits for the server through a public accessor.** `IMaterializedServerAccessor`
    in `NCode.Identity.OpenId.Servers` has `GetServerAsync(cancellationToken)`. The internal
@@ -157,7 +157,7 @@ interval, and the grant prune keeps a session until it is terminated.**
   that background work waits for.
 - [ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md) — the session bounds and the
   termination by a request.
-- [ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md) — the options that
+- [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) — the options that
   are validated when the host starts.
 - [OpenID Connect Back-Channel Logout 1.0](https://openid.net/specs/openid-connect-backchannel-1_0.html) — the logout
   notification that a termination sends.

@@ -17,7 +17,7 @@
   [ADR-1247](1247-a-data-protection-key-the-server-cannot-decrypt-stops-the-host.md), decision 1's warmup (it loads
   the retired server keys that a live ring key names);
   [ADR-1011](1011-secret-management-api.md): key material is immutable, and a rotation rewrites the stored envelope
-  of the same material; [ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md):
+  of the same material; [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md):
   the master key intervals and retentions are configured under `SecretProtection:MasterKeys` and validated when the host
   starts
 

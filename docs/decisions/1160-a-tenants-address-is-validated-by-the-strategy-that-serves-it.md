@@ -15,7 +15,7 @@ discovery document is fetched beneath, and a configured issuer is the tenant's b
 tenant beneath publishes a discovery document conforming clients reject.
 
 Two paths write a tenant's address. Configuration supplies the static tenant's, and it is validated when the host starts
-([ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md)). The management API writes every other
+([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)). The management API writes every other
 tenant's, and a check that exists only for configuration lets the management API store addresses nothing is served
 under: an issuer with a query or fragment, a path tenant `acme` whose issuer does not end in `/acme`, a host tenant with
 no issuer at all. The host strategy routes by the host of a tenant's issuer, and that host is deliberately not unique in
@@ -90,7 +90,7 @@ path that writes an address applies the same rules.**
 ## References
 
 - [ADR-1129](1129-the-tenant-issuer-is-the-single-authoritative-origin.md) — the issuer and the host index.
-- [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md) — configuration validated at startup.
+- [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) — configuration validated at startup.
 - [ADR-1138](1138-protocol-endpoints-are-served-under-the-tenant-route.md) — the tenant route and the base address.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies.
 - [ADR-1159](1159-a-tenant-is-named-by-its-creator.md) — the tenant identifier.

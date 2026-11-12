@@ -47,7 +47,7 @@ domain (`{tenant}.{region}.auth0.com`); a separate friendly name is for display 
 4. **It is validated wherever a tenant identifier enters.** The management API judges it through
    `ITenantResolver.ValidateTenantAsync` ([ADR-1160](1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md)),
    and the configured identifiers (`TenantResolution:RootTenantId`, `TenantResolution:StaticSingle:TenantId`) are
-   validated when the host starts ([ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md)).
+   validated when the host starts ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
 5. **Only tenants.** Servers, clients, resource servers, secrets, and principals keep ADR-1014's server-generated, opaque
    identifiers.
 

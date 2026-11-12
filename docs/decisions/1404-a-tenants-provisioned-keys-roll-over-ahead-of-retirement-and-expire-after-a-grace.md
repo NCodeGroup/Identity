@@ -8,7 +8,7 @@
 - **Amends:** [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md), decision 3's key lifetime and
   decisions 4, 8 and 9's rule that the server never removes, replaces or rotates a key: a provisioned key has a
   lifetime, its successor is generated ahead of its retirement, a key the tenant's settings do not use is retired,
-  and an expired key the server generated is removed; [ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md):
+  and an expired key the server generated is removed; [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md):
   `OpenIdTenantKeyRolloverOptions.Interval` is a timer period validated when the host starts
 
 ## Context

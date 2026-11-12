@@ -3,7 +3,7 @@
 - **Status:** Accepted (amends
   [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md),
   [ADR-1258](1258-the-server-sends-strict-transport-security-outside-development.md) decisions 1 and 6,
-  [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md) decision 1,
+  [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) decision 1,
   [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) decision 6 and
   [ADR-1399](1399-failed-client-authentications-are-limited-per-remote-address-by-default.md))
 - **Date:** 2026-11-06
@@ -37,7 +37,7 @@ Issue [#611](https://github.com/NCodeGroup/identity/issues/611) describes the ne
    which ADR-1137, ADR-1139, ADR-1258 and ADR-1399 name, and `TrustedForwardedHeadersOptionsValidator` applies the rules
    of ADR-1139 decision 6 to it.
 2. **Both sections bind strictly and validate on start.** `NCode.Identity.AspNetCore` references `NCode.Identity.Registration` for strict
-   binding ([ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md)).
+   binding ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
 3. **Each host composes both.** A host calls `UseTrustedForwardedHeaders()` and then `UseStrictTransportSecurity()`
    first in its pipeline. No library adds them.
 4. **The Helm chart sets the section.** The chart's `forwardedHeaders` values set `ForwardedHeaders__…`.
@@ -61,7 +61,7 @@ Issue [#611](https://github.com/NCodeGroup/identity/issues/611) describes the ne
 
 ## References
 
-- [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md),
+- [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md),
   [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md),
   [ADR-1258](1258-the-server-sends-strict-transport-security-outside-development.md),
   [ADR-1355](1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md),

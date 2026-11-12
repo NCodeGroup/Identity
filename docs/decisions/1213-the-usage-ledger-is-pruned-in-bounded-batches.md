@@ -25,7 +25,7 @@ every provider supports it (issue [#264](https://github.com/NCodeGroup/identity/
    tracker, so every provider supports it.
 2. **A hosted service prunes on an interval.** `TenantUsagePruneService` prunes every `TenantUsageOptions.PruneInterval`
    (`OpenId:TenantUsage:PruneInterval`, one hour by default, validated as a timer period when the host starts —
-   [ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)) on a `PeriodicTimer`
+   [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)) on a `PeriodicTimer`
    through the registered `TimeProvider`, in units of work of 256 entries, and repeats while a batch is full.
 3. **A lost race is progress.** A batch whose save loses a race to the prune of another replica counts as progress,
    because the other replica removed rows of it, and the next batch is read.

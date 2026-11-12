@@ -24,10 +24,10 @@ the host starts.**
 1. **The subsection lives under the OpenID section.** `AddConfiguration` recognizes `InProcessJobDispatcher` among the
    subsections of the OpenID section, so a misspelled subsection stops the host and a host's own section name moves it.
    It binds `InProcessJobDispatcherOptions` with `BindStrictly` and `ValidateOnStart`
-   ([ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md)).
+   ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
    `InProcessJobDispatcherOptions.SectionName`, the constant `"InProcessJobDispatcher"`, names the subsection, as the
    retention options name theirs
-   ([ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)). The keys are
+   ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)). The keys are
    `QueueCapacity`, `FullMode` and `MaxConcurrentJobs`, and an environment variable sets one as
    `OpenId__InProcessJobDispatcher__MaxConcurrentJobs`.
 2. **Validation names the key and refuses an undefined `FullMode`.** `InProcessJobDispatcherOptionsValidator` names
@@ -50,10 +50,10 @@ the host starts.**
 
 - **A top-level section.** Rejected: the server composes the dispatcher and only its own jobs run on it. Under the
   OpenID section a misspelled subsection stops the host and a host's section name moves it, as
-  [ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md) reasoned for the
+  [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) reasoned for the
   retention options.
 - **A binding in the dispatch package.** Rejected: the server owns the shape of the OpenID section
-  ([ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md)).
+  ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
 - **Keys in `appsettings.json` and the chart.** Rejected: the defaults are the library's, and the host's files and the
   chart carry no tuning key of the other options.
 
@@ -69,9 +69,9 @@ the host starts.**
 
 - [ADR-1090](1090-durable-outbound-delivery-dispatch-adapter.md) — the job-dispatch adapter and the in-process
   dispatcher.
-- [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md) — configuration binds strictly and is
+- [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) — configuration binds strictly and is
   validated when the host starts.
-- [ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md) — the options that
+- [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) — the options that
   `AddConfiguration` binds beneath the OpenID section.
 - [ADR-1232](1232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md) — the options of the in-process
   dispatcher and their validation.

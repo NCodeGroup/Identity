@@ -72,7 +72,7 @@ internal static class DefaultRegistration
             );
 
             // A platform or tenant interval that a timer refuses stops the host when it starts instead of failing the
-            // first time a timer is created (ADR-1221).
+            // first time a timer is created (ADR-1137).
             serviceCollection.AddOptions<OpenIdOptions>().ValidateOnStart();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

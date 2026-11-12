@@ -414,7 +414,7 @@ than inlining the rationale.
   `Uri.TryCreate` alone, and keep a value compared verbatim, such as a CORS origin, in the form it is compared in. An
   options validator refuses an enum value that `Enum.IsDefined` rejects (`InProcessJobDispatcherOptionsValidator`,
   [ADR-1242](../../docs/decisions/1242-the-in-process-dispatcher-is-configured-under-the-openid-section.md)). See
-  [ADR-1137](../../docs/decisions/1137-configuration-binds-strictly-and-is-validated-at-startup.md),
+  [ADR-1137](../../docs/decisions/1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md),
   [ADR-1139](../../docs/decisions/1139-setting-names-are-a-closed-vocabulary.md), and
   [ADR-1140](../../docs/decisions/1140-setting-values-are-validated-against-their-domain.md).
 - 👁 **Setting names are a closed vocabulary.** Every setting a platform, team, tenant, client, or resource server carries has a
@@ -1341,4 +1341,4 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
   ([ADR-1166](../../docs/decisions/1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md)).
 - 👁 **A period that options hand to a timer is validated when the host starts with `TimerPeriod.IsValid`**
   (`NCode.Identity.Time`) — template [Configuration and Options](csharp.instructions.md#configuration-and-options) and
-  [ADR-1221](../../docs/decisions/1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md).
+  [ADR-1137](../../docs/decisions/1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md).

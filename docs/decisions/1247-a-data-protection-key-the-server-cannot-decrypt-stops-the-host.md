@@ -46,7 +46,7 @@ decrypt, and `DataProtectionKeyRing:RevokedKeyIds` revokes keys by ID so that an
 5. **Revocation by ID is configuration.** `DataProtectionKeyRingOptions` is a public class in
    `NCode.Identity.Server.SecretProtection`, bound from the `DataProtectionKeyRing` section and validated when the host
    starts, as the other options of `AddSecretProtection` are
-   ([ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md)). Its `RevokedKeyIds` is an array of
+   ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)). Its `RevokedKeyIds` is an array of
    `Guid`, so an environment variable names each ID as `DataProtectionKeyRing__RevokedKeyIds__0`, `__1`, and so on. The
    gate revokes a live key that is listed, with the reason `listed in DataProtectionKeyRing:RevokedKeyIds`, without
    decrypting it. Revoking is idempotent: a key that is already revoked is skipped, because the revocation is stored in
@@ -83,7 +83,7 @@ decrypt, and `DataProtectionKeyRing:RevokedKeyIds` revokes keys by ID so that an
 
 ## References
 
-- [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md) — options are bound strictly and
+- [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) — options are bound strictly and
   validated at startup.
 - [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — the key ring is
   encrypted under the server's master key.

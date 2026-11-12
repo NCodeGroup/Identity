@@ -3,7 +3,7 @@
 - **Status:** Accepted (amended by [ADR-1209](1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md): a replica
   numbers its batches and the ledger adds each once; [ADR-1213](1213-the-usage-ledger-is-pruned-in-bounded-batches.md):
   the days past retention are removed in bounded batches every `TenantUsageOptions.PruneInterval`;
-  [ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md): `TenantUsageOptions`
+  [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md): `TenantUsageOptions`
   is bound from `OpenId:TenantUsage` and validated when the host starts;
   [ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md): rate-limit descriptors
   carry the usage meters, recorded once the request completes; amended by
@@ -61,7 +61,7 @@ default and the management API reads it.**
    replica removed first is skipped, so replicas need not coordinate
    ([ADR-1213](1213-the-usage-ledger-is-pruned-in-bounded-batches.md)). `TenantUsageOptions` is bound from
    `OpenId:TenantUsage` and validated when the host starts
-   ([ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)).
+   ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
 5. **The management API reads the ledger.** `GET /api/tenants/{tenantId}/usage?from=&to=` returns the tenant's rows
    for an inclusive range of UTC days, ordered by day and meter. The range defaults to the last 30 days and spans at
    most 366. The endpoint authorizes a read of the tenant's node, as reading the tenant itself does.

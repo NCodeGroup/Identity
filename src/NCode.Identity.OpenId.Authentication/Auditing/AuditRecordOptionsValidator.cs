@@ -9,7 +9,7 @@ namespace NCode.Identity.OpenId.Authentication.Auditing;
 /// <summary>
 /// Validates <see cref="AuditRecordOptions"/> when the host starts.
 /// </summary>
-// See ADR-1303 and ADR-1221.
+// See ADR-1303 and ADR-1137.
 internal sealed class AuditRecordOptionsValidator : IValidateOptions<AuditRecordOptions>
 {
     /// <inheritdoc />

@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amended by
   [ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md): every session grant ends;
-  [ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md): the options are
+  [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md): the options are
   configured and validated when the host starts;
   [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md): a session ends when it is
   terminated; amended by
@@ -58,7 +58,7 @@ supports.**
 4. **`GrantRetentionOptions` configures it.** The options type is `public sealed` with `Retention`, which defaults to 14
    days, and `PruneInterval`, which defaults to one hour. They are validated when the host starts: `Retention` is not
    negative, and `PruneInterval` is a period that a timer accepts. They are bound from `OpenId:GrantRetention`
-   ([ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)).
+   ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
 5. **The retention is 14 days.** A rotated refresh token that is presented again within 14 days after it ended is
    recognized as a reuse
    ([ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md)), and a replayed authorization code still
@@ -87,7 +87,7 @@ supports.**
 - Every session grant ends ([ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md)), so
   an abandoned session is removed after the retention.
 - An operator sets the retention and the interval through configuration
-  ([ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)).
+  ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
 - **Breaking:** `IGrantStore.RemoveEndedBeforeAsync` is added, so every implementation of the store implements it.
 - This implements issue [#267](https://github.com/NCodeGroup/identity/issues/267).
 

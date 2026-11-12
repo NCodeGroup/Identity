@@ -47,7 +47,7 @@ batches; the store keeps a record for 90 days by default.**
    included, is logged (`AuditRecordPruneFailed`) and the prune runs again at the next tick; only the host's stopping
    token ends the service. With `Enabled: false` it does not run, as the writer does not.
 5. **Configuration.** `OpenId:AuditRecords` binds `AuditRecordOptions` strictly and validates it when the host starts
-   ([ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)): `FlushInterval` and
+   ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)): `FlushInterval` and
    `PruneInterval` are periods a timer accepts, `QueueCapacity` is at least one and `Retention` at least one day;
    `Enabled: false` keeps the records out of the store and leaves them in the log.
 6. **The management API looks records up newest first.** `GET api/tenants/{tenantId}/audit-records` returns a page of the

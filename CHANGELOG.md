@@ -3293,7 +3293,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `Settings`, carried by `OpenIdPlatformOptions.Settings`), `Team` (team settings reconciliation), `Tenant` (tenant materialization and caching),
   `TenantResolution` (tenant selection), `MutualTls`, `GrantRetention` and `TenantUsage`; any other subsection is
   rejected. `AddConfiguration` binds the mutual-TLS forwarding options too, so a host's chosen section name applies to
-  them ([ADR-1137](docs/decisions/1137-configuration-binds-strictly-and-is-validated-at-startup.md)).
+  them ([ADR-1137](docs/decisions/1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
 
 - **Intervals and retentions are configured and validated when the host starts, and the host refuses one that a timer
   cannot run.** `AddConfiguration` binds `GrantRetentionOptions` (`OpenId:GrantRetention`: `Retention`, `PruneInterval`)
@@ -3303,7 +3303,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `OpenId:Tenant:TenantCacheLifetime`, `GrantRetentionOptions.PruneInterval` and `TenantUsageOptions.FlushInterval` must
   be between one millisecond and 4,294,967,294 milliseconds (about 49.7 days), and a retention must not be negative; the
   error names the option and its configuration key. `NCode.Identity.Time.TimerPeriod` states the range
-  ([ADR-1221](docs/decisions/1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md), issues
+  ([ADR-1137](docs/decisions/1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md), issues
   [#274](https://github.com/NCodeGroup/identity/issues/274) and
   [#277](https://github.com/NCodeGroup/identity/issues/277)).
 

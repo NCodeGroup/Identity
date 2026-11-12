@@ -143,7 +143,7 @@ ADR-1139: name, type, and domain are checked together, at the same entry points,
 ## References
 
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) — the closed vocabulary of names and types this completes.
-- [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md) — validate a value the way it is used.
+- [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) — validate a value the way it is used.
 - [ADR-1083](1083-secure-by-default-discovery-metadata.md) — secure-by-default metadata, amended for symmetric signing.
 - [ADR-1108](1108-fapi-security-profile-merge-lattice-ceiling-injection.md) — security profiles.
 - [ADR-1063](1063-dynamic-client-registration.md) — dynamic client registration.

@@ -21,7 +21,7 @@ deployment can use, and in what order, depends on its PKI:
 
 The sources are an open vocabulary ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)). A configured
 selection is an operator's input, so it is validated when the host starts
-([ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)); but the sources read
+([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)); but the sources read
 `ClientCertificateRevocationOptions`, the options being validated, so validation cannot construct them to read their
 names. Client-authentication methods meet the same constraint with registered descriptors that name each handler
 ([ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md)).
@@ -55,7 +55,7 @@ when the host starts; empty, the default, asks every registered source in the de
    no descriptor names, two sources of one name, and a descriptor without a source, and the hosted
    `ClientCertificateRevocationCheckerWarmup` resolves the checker as the host starts, after the options are
    validated, so a registration that does not correspond stops the host rather than skipping a source or failing the
-   first mutual-TLS authentication ([ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)).
+   first mutual-TLS authentication ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
 5. **ADR-1259 is amended.** Its decision 2 asks the sources in the configured order or the descriptors' default order,
    not in registration order, and the option it deferred is this decision. A host replaces the checker only to combine
    the sources other than by asking them in turn.
@@ -92,7 +92,7 @@ when the host starts; empty, the default, asks every registered source in the de
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md): vocabularies are open unless provably closed.
 - [ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md): client-authentication
   methods are named by registered descriptors.
-- [ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md): intervals and
+- [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md): intervals and
   retentions are configured and validated when the host starts.
 - [ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md) and
   [ADR-1259](1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md).

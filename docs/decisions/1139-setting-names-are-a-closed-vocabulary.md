@@ -26,7 +26,7 @@
 
 ## Context
 
-[ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md) makes every options section the server
+[ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) makes every options section the server
 binds strict and validates it when the host starts. Settings sit outside that: the server, each tenant, each client, and
 each resource server carry a settings document — keyed by setting name, typed by a registered `SettingDescriptor`, and
 merged down the hierarchy ([ADR-1010](1010-supported-settings-unset-means-unrestricted.md)) — and those documents come
@@ -123,7 +123,7 @@ accepts traffic.
 
 ## References
 
-- [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md) — strict binding and validation on start,
+- [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) — strict binding and validation on start,
   which this decision extends to setting names and the remaining configuration inputs.
 - [ADR-1026](1026-scope-enforcement-via-resource-servers-and-client-grants.md) — scope entitlement, the reason the
   registration `scope` is derived.

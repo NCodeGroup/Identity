@@ -34,7 +34,7 @@ section configures it.**
 
 1. **A registration and a pipeline step.** `AddStrictTransportSecurity(configuration)` binds
    `StrictTransportSecurityOptions` strictly from the top-level `StrictTransportSecurity` section and validates it
-   when the host starts ([ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md)).
+   when the host starts ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
    `UseStrictTransportSecurity()` adds ASP.NET Core's HSTS middleware, which writes the header only when the request
    is HTTPS and its host is not excluded. The reference host calls it right after `UseReverseProxy`, so a request that
    a trusted proxy received over HTTPS counts as HTTPS.
@@ -77,7 +77,7 @@ section configures it.**
   <https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Strict_Transport_Security_Cheat_Sheet.html>
 - OWASP Secure Headers Project: <https://owasp.org/www-project-secure-headers/>
 - The HSTS preload list and its requirements: <https://hstspreload.org/>
-- [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md): configuration binds strictly and is
+- [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md): configuration binds strictly and is
   validated at startup.
 - [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md):
   every page the server writes has a strict Content-Security-Policy and is framed only by design.

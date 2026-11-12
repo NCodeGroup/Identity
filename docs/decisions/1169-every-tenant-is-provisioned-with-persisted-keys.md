@@ -64,7 +64,7 @@ key for. The server generates keys only to fill those gaps; it never removes, re
    - Symmetric and `none` algorithms are refused: a tenant key is published and used across trust boundaries.
    - An unset size is the smallest the algorithm accepts.
    - A configured list replaces the default set.
-   - The startup validator ([ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md)) and the seed
+   - The startup validator ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)) and the seed
      contributor apply one rule set, `ITenantKeyPolicy`, with the same key-to-algorithm rule management writes use. A
      configuration the host accepts is therefore exactly one the seed can honor.
 3. **Defaults.**
@@ -214,7 +214,7 @@ key for. The server generates keys only to fill those gaps; it never removes, re
   first token needs a key.
 - [ADR-1045](1045-tenant-provisioning-and-seeding-pipeline.md) and
   [ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md) — the seed pipeline.
-- [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md) — startup validation.
+- [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) — startup validation.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — keys named by an open vocabulary.
 - Code: `NCode.Identity.OpenId.Tenants.Keys.TenantKeySeedHandler`, `DefaultTenantKeyPolicy`,
   `TenantKeyProvisioningOptionsValidator`, `NCode.Identity.OpenId.OpenIdTenantKeyProvisioningOptions`,

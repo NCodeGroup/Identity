@@ -57,7 +57,7 @@ chooses: in-process for a single replica, Valkey for several.**
 3. **The Valkey adapter is an opt-in package.** `NCode.Identity.SharedState.Valkey` adds `AddValkey(IConfiguration)`:
    - The server address and credentials come from the `ConnectionStrings:valkey` connection string, which accepts every
      StackExchange.Redis setting (TLS, an access-control user); the `Valkey` section binds `ValkeyOptions` strictly
-     ([ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md)) — today its `KeyPrefix`, so several
+     ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)) — today its `KeyPrefix`, so several
      deployments can share one server.
    - Without the connection string the call registers nothing and the in-process adapter stays. A `Valkey` section
      without it, a malformed connection string, or one that names no server stops the host at startup; the error never

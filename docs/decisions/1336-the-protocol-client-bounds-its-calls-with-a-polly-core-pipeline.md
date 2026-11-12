@@ -35,7 +35,7 @@ generator of every project that references it, so a library that adds it changes
    `RetryDelay` (1 second) bound its attempts. The timeouts are between 10 milliseconds and 5 minutes, `AttemptTimeout`
    is not greater than `TotalTimeout`, the retries are between 0 and 10, and the delay is between 0 and 5 minutes.
    These bounds lie inside the range every timer accepts (`NCode.Identity.Time.TimerPeriod`,
-   [ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md)), so a value the
+   [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)), so a value the
    validator accepts is always a valid timer period; the validator checks the tighter bounds directly, and the client
    package does not take a dependency on `NCode.Identity.Time` for a check they already imply. The names match
    `OutboundHttpOptions`, so the family has one vocabulary. The default `TotalTimeout` is 15 seconds, so the BFF's
@@ -85,7 +85,7 @@ generator of every project that references it, so a library that adds it changes
 
 ## References
 
-- [ADR-1221](1221-intervals-and-retentions-are-configured-and-validated-when-the-host-starts.md),
+- [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md),
   [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md),
   [ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)

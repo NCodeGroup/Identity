@@ -92,7 +92,7 @@ the only source of the certificate, and a value that cannot be decoded fails the
 - [ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md) — certificate-bound access tokens and the
   certificate-ingestion seam.
 - [ADR-1107](1107-mutual-tls-client-authentication.md) — mutual-TLS client authentication.
-- [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md) — configuration is validated when the
+- [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) — configuration is validated when the
   host starts.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — vocabularies are open unless provably closed.
 - [Hosting analysis §8](../hosting-analysis.md#8-traefik-mtls-and-tenant-pki) — Traefik's forwarded format.

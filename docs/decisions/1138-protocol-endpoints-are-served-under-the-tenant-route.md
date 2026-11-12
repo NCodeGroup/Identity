@@ -44,7 +44,7 @@ base address exactly.**
 2. **A configured issuer is the base address as-is.** The issuer is the tenant's identity and names where the tenant is
    served, tenant route included, so nothing is appended to it. A static tenant's issuer must therefore end with the
    tenant path, which is validated when the host starts
-   ([ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md)); a path base the host is mounted under
+   ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)); a path base the host is mounted under
    may precede it.
 3. **The request-derived fallback binds only the tenant route's parameters, from a copy.** The base address of a tenant
    without an issuer is the request's origin, its path base, and the tenant route bound from the request's values for

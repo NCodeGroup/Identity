@@ -36,7 +36,7 @@ configured time, and `online_soft_fail` is a revocation mode that a tenant or cl
 
 1. **The limits are options.** `ClientCertificateRevocationOptions` binds strictly from
    `OpenId:ClientCertificateRevocation` and is validated when the host starts
-   ([ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md)):
+   ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)):
    - `FetchTimeout`, the time one retrieval may take, five seconds by default;
    - `MaxResponseSizeBytes`, the largest list read, 10 MiB by default;
    - `MaxCacheDuration`, the longest a verified list is reused, one hour by default;
@@ -100,7 +100,7 @@ configured time, and `online_soft_fail` is a revocation mode that a tenant or cl
   chain to configured trust anchors.
 - [ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md): replicas share single-use
   state through an atomic expiring key set.
-- [ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md): configuration binds strictly and is
+- [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md): configuration binds strictly and is
   validated at startup.
 - [RFC 5280](https://www.rfc-editor.org/rfc/rfc5280): the certificate revocation list profile.
 - [RFC 4055](https://www.rfc-editor.org/rfc/rfc4055): RSASSA-PSS in certificates and revocation lists.

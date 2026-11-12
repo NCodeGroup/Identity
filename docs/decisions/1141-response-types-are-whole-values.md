@@ -50,7 +50,7 @@ canonical form — and it is always considered together with the grant types it 
    specifications use. `OpenIdConstants.ResponseTypes` names all seven values.
 2. **`response_types_supported` lists whole values.** Its domain is the seven response types in canonical form
    (ADR-1140); a value written in another order is outside the domain, because a value compared verbatim is configured
-   in the form it is compared in ([ADR-1137](1137-configuration-binds-strictly-and-is-validated-at-startup.md)).
+   in the form it is compared in ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
    Discovery advertises the list as it is. The merge stays `Intersect`, which is exact on canonical values. The
    secure-by-default baseline is `code` alone; an operator enables a front-channel flow only by listing that flow.
 3. **The authorization endpoint accepts exactly a listed value.** The requested `response_type` is put in canonical

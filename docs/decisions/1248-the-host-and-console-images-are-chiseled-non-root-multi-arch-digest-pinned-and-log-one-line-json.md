@@ -53,7 +53,7 @@ build file must be re-admitted there, or only the image checks find it.
 The build stage disables the git engine (`NBGV_GitEngine=Disabled`, no `.git` in the context), so the version comes
 from `version.json`, whose assembly version omits git height. The version an image reports is stamped by the optional
 `VERSION` build argument, which the Publish artifacts workflow sets on every merge to `main` and every release tag
-([ADR-1505](1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)).
+([ADR-1505](1505-every-merge-to-main-publishes-the-host-image-the-console-image-the-chart-and-the-openapi-document-at-one-prerelease-version.md)).
 
 ### Pinned base images
 

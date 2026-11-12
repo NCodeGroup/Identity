@@ -108,7 +108,7 @@ release the host or the console would refuse.**
 - A single-replica release has downtime on each update.
 - The `Host chart` workflow fails a change that makes an unsafe release render.
 - The Publish artifacts workflow publishes the chart with the images as a signed OCI artifact
-  ([ADR-1505](1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)).
+  ([ADR-1505](1505-every-merge-to-main-publishes-the-host-image-the-console-image-the-chart-and-the-openapi-document-at-one-prerelease-version.md)).
 
 ## References
 

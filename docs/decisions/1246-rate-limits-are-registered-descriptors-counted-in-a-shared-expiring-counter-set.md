@@ -45,7 +45,7 @@ The counter store fails open at a bounded cost.**
 1. **A descriptor is a limit.** `RateLimitDescriptor` is a public sealed class in
    `NCode.Identity.OpenId.Authentication.Abstractions`, contributed through `ICollectionDataSource<RateLimitDescriptor>`
    as the descriptors of
-   [ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md) are. Its members:
+   [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md) are. Its members:
    - `Name`, the unique partition, which is a part of the counter key and the `ncode.identity.rate_limiting.partition`
      attribute of the metric;
    - `Stage`, and `Order` within the stage;
@@ -195,7 +195,7 @@ The counter store fails open at a bounded cost.**
 - [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) — daily quotas and the
   bounded overage
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) — the usage ledger
-- [ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md) — registered descriptors and
+- [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md) — registered descriptors and
   their catalog
 - [ADR-1237](1237-failed-password-attempts-are-limited-per-account.md) — `RemoveAsync` and the password limiter
 - [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md) — who

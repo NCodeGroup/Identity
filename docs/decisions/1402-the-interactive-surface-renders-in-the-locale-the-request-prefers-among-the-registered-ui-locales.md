@@ -36,7 +36,7 @@ forms carry on.**
    renders, as a strategy collection; `IUiLocaleCatalog` (`DefaultUiLocaleCatalog`) indexes them without regard to
    case and refuses a tag that is not well formed or is registered twice. The catalog reads only the registered data,
    so the setting descriptors consult it inside options validation
-   ([ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md)).
+   ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)).
 2. **The settings name registered locales only.** `ui_locales_supported` accepts only registered language tags, so
    discovery advertises only locales the interface renders, and stays unset when the tenant restricts nothing, which
    lets a request select any registered locale. `default_ui_locale` names the registered locale the surface renders

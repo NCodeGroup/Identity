@@ -47,7 +47,7 @@ that consumes it.**
 2. **Resource-server clients.** A client may be bound to one non-system resource server of its tenant, a
    *resource-server client*, the way RFC 9701 §3 treats a resource server as a client. It authenticates through the
    ordinary client authentication path, so every method, the registered-method rule
-   ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md)), key policy, `jwks_uri` and mTLS apply
+   ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)), key policy, `jwks_uri` and mTLS apply
    unchanged. A resource-server client must be confidential, and its resource server enabled; otherwise introspection
    answers `invalid_client`.
 3. **The binding is set once, through the management API.**

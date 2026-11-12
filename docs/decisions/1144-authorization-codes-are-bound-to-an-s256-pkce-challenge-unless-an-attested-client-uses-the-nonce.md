@@ -75,7 +75,7 @@ and token endpoints. It applies only to response types that issue a code, and it
    FAPI 2.0 profile's confidential-client rule uses the same predicate. At the token endpoint it is how the token
    request actually authenticated, so a code that is not bound to PKCE can be redeemed only by a client that
    authenticates. A client authenticates only with its registered method
-   ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md)), so a client registered as confidential
+   ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)), so a client registered as confidential
    cannot redeem a code as public.
 4. **The request must use the nonce.** It requests the `openid` scope and carries a `nonce`. At the token endpoint the
    scopes are the ones the token request is effectively for, so a token request that drops `openid`, and with it the ID
@@ -141,7 +141,7 @@ that registers itself. The one Basic OP module that sends neither PKCE nor a non
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md): `require_pkce` is a floor.
 - [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md): the setting's domain is the
   registered transformations.
-- [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md): a client authenticates only with its
+- [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md): a client authenticates only with its
   registered method.
 - [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md):
   the FAPI 2.0 profile requires PKCE.

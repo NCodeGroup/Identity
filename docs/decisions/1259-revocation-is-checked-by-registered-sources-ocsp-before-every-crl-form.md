@@ -138,7 +138,7 @@ built-in `crl` source processes CRLs as RFC 5280 §6.3.3 describes.**
 - **Configure the order of the sources.** Deferred (issue [#38](https://github.com/NCodeGroup/identity/issues/38)): the names would have to be validated when the
   host starts without constructing the sources, which read the options being validated, and that needs registered
   descriptors, as client-authentication methods have
-  ([ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md)).
+  ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)).
 - **Share the caches across replicas.** Rejected for the reasons of ADR-1252.
 
 ## Consequences
@@ -163,7 +163,7 @@ built-in `crl` source processes CRLs as RFC 5280 §6.3.3 describes.**
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md): vocabularies are open unless provably closed.
 - [ADR-1173](1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md): `tls_client_auth` certificates
   chain to configured trust anchors.
-- [ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md): client-authentication
+- [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md): client-authentication
   methods are named by registered descriptors.
 - [ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md): a
   revocation list retrieval is shared, a failed one is remembered, and soft-fail is opt-in.

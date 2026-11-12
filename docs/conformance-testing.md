@@ -217,7 +217,7 @@ negative tests.
 ## Appendix C — Client seeding checklist (manual, non-DCR path)
 
 The Basic OP plan needs **three** client registrations; each is a distinct client, because a client authenticates only
-with the one method it registers ([ADR-1145](decisions/1145-a-client-authenticates-only-with-its-registered-method.md)). All
+with the one method it registers ([ADR-1145](decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)). All
 must register the suite callback as a redirect URI.
 
 - **`client` (primary):** `token_endpoint_auth_method=client_secret_basic`; grants

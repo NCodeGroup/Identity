@@ -361,7 +361,7 @@ public sealed class DefaultRegistrationTests : BaseTests
     public void AddIdentityServer_RegistersADescriptorForEveryClientAuthenticationHandler()
     {
         // A handler without a descriptor is not advertised or accepted; a descriptor without a handler is advertised
-        // but cannot authenticate (ADR-1207).
+        // but cannot authenticate (ADR-1145).
         using var host = BuildHost([]);
         var catalog = host.Services.GetRequiredService<IClientAuthenticationMethodCatalog>();
 
@@ -378,7 +378,7 @@ public sealed class DefaultRegistrationTests : BaseTests
     public async Task AddIdentityServer_ResolvesTheClientAuthenticationHandlersWithoutDeadlocking()
     {
         // Fails fast instead of hanging when a constructor on a client-authentication handler's dependency path reads
-        // IOptions<OpenIdOptions>.Value (ADR-1204, ADR-1207).
+        // IOptions<OpenIdOptions>.Value (ADR-1204, ADR-1145).
         using var host = BuildHost([]);
 
         var handlers = await Task.Run(() =>
@@ -393,7 +393,7 @@ public sealed class DefaultRegistrationTests : BaseTests
     public async Task AddIdentityServer_ReadingTheOpenIdOptionsDoesNotDeadlock()
     {
         // Fails fast instead of hanging when a constructor on a client-authentication handler's dependency path reads
-        // IOptions<OpenIdOptions>.Value (ADR-1204, ADR-1207).
+        // IOptions<OpenIdOptions>.Value (ADR-1204, ADR-1145).
         using var host = BuildHost([]);
 
         await Task.Run(() => host.Services.GetRequiredService<IOptions<OpenIdOptions>>().Value)
@@ -404,7 +404,7 @@ public sealed class DefaultRegistrationTests : BaseTests
     public void AddIdentityServer_ReadingTheOpenIdOptions_ConstructsNoClientAuthenticationHandler()
     {
         // The setting descriptors name the client-authentication methods from their descriptors, so reading the options
-        // constructs no handler (ADR-1207).
+        // constructs no handler (ADR-1145).
         using var host = BuildHost(
             new Dictionary<string, string?>
             {
@@ -485,7 +485,7 @@ public sealed class DefaultRegistrationTests : BaseTests
     public void AddIdentityServer_ResolvesTheClientAuthenticationService()
     {
         // The service checks at construction that every handler has a descriptor and every descriptor has a handler
-        // (ADR-1207), so the built-in registrations must correspond.
+        // (ADR-1145), so the built-in registrations must correspond.
         using var host = BuildHost([]);
 
         Assert.NotNull(host.Services.GetRequiredService<IClientAuthenticationService>());

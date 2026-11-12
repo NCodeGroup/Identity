@@ -57,7 +57,7 @@ group describes the shared problems once, and tests pin both.**
    `MapApiReferenceUi`, so a host can serve either, both or neither.
 4. **The client-credentials login is wired in every environment.** The token URL, the audience-binding scope and the
    credentials location `Header` are set everywhere, because the bootstrap client registers `client_secret_basic`
-   ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md)). The bootstrap client id and secret are
+   ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)). The bootstrap client id and secret are
    pre-filled only in Development. Elsewhere the operator types them into the Authorize dialog, so the served
    configuration holds no secret.
 5. **Form bodies are shaped in the document, not the renderer.** A form-urlencoded field that must be pre-filled is
@@ -124,7 +124,7 @@ occurs.
 - [ADR-1011](1011-secret-management-api.md): no secret material on the surface.
 - [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md):
   management authentication and the bootstrap administrator.
-- [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md): the bootstrap client registers
+- [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md): the bootstrap client registers
   `client_secret_basic`.
 - [ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md): a route
   declares every problem it answers.

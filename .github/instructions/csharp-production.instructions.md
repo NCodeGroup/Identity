@@ -323,7 +323,7 @@ than inlining the rationale.
   its whole graph inside options validation and deadlocks composition when a constructor on that path reads `Value`.
   When a vocabulary's members are strategies, register a descriptor beside each one and check at composition that they
   correspond
-  ([ADR-1207](../../docs/decisions/1207-client-authentication-methods-are-named-by-registered-descriptors.md)).
+  ([ADR-1145](../../docs/decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)).
 - 👁 **Mediator handlers run in descending `ISupportMediatorPriority` order** — `DefaultMediatorPriorities.High` (100)
   first, `Low` (-100) last. When one handler depends on another's effect, state it with priorities, never with
   registration order. A handler that observes or repairs state for the rest runs `High` (the default validators, the
@@ -398,7 +398,7 @@ than inlining the rationale.
   `IsRegisteredAsConfidential` — and the same validation reads the same fact when it runs at the pushed authorization
   request endpoint; an endpoint that authenticated the client (the token endpoint redeeming a grant) reads
   `OpenIdClient.IsConfidential`, which agrees with it. Never treat a client registered as confidential as having
-  authenticated. See [ADR-1145](../../docs/decisions/1145-a-client-authenticates-only-with-its-registered-method.md) and
+  authenticated. See [ADR-1145](../../docs/decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md) and
   [ADR-1144](../../docs/decisions/1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md).
 - 👁 **Bind configuration strictly and validate it when the host starts** — template
   [Configuration and Options](csharp.instructions.md#configuration-and-options). Bind through `NCode.Identity.Registration`'s
@@ -1137,7 +1137,7 @@ says for a pre-release project.
   the renderer's credential location must match the method the client is registered for (the bootstrap administrator
   registers `client_secret_basic`, so its credentials go in the `Authorization` **header**). See
   [ADR-1481](../../docs/decisions/1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md) and
-  [ADR-1145](../../docs/decisions/1145-a-client-authenticates-only-with-its-registered-method.md).
+  [ADR-1145](../../docs/decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md).
 - 👁 **Handle credential and secret bytes in a pinned, zeroed-on-return buffer.** Encode a password or secret into a
   `SecureMemoryPool<byte>` rental via `SecureEncoding.UTF8` (`NCode.Buffers`) — never a raw `ArrayPool<byte>` +
   manual `CryptographicOperations.ZeroMemory`, and never a plain `Encoding.UTF8.GetBytes` that leaves the plaintext

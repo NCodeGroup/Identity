@@ -56,7 +56,7 @@ client registrations, all registering the suite callback as a redirect URI:
   only one module, the conformance host relaxes `require_pkce` and attests its clients with `pkce_nonce_exemption`, so a
   confidential client's request that carries a `nonce` may omit the challenge. Each seeded client registers one
   `TokenEndpointAuthMethod` as its `token_endpoint_auth_method`, which makes it confidential and is the only method it
-  authenticates with ([ADR-1145](../decisions/1145-a-client-authenticates-only-with-its-registered-method.md)).
+  authenticates with ([ADR-1145](../decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)).
 
 The committed Basic OP plan runs under Dynamic Client Registration
 ([ADR-1192](../decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)), so the suite registers its own clients; the **tenant

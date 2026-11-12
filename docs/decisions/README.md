@@ -228,12 +228,11 @@ The records are grouped by area; within an area they are in number order.
 
 | ADR | Title | Status |
 | --- | --- | --- |
-| [1092](./1092-token-endpoint-401-www-authenticate-challenge.md) | Token-endpoint `401` + `WWW-Authenticate` challenge and the response-header seam | Accepted |
 | [1102](./1102-a-client-authenticates-with-a-single-use-jwt-assertion-signed-by-its-key-or-its-secret.md) | A client authenticates with a single-use JWT assertion signed by its key or its secret | Accepted |
 | [1106](./1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md) | A client's jwks_uri key set is fetched when needed, shared between callers, and never served stale | Accepted |
 | [1107](./1107-mutual-tls-client-authentication.md) | Mutual-TLS client authentication (`tls_client_auth` and `self_signed_tls_client_auth`) | Accepted |
 | [1111](./1111-complete-outbound-fetch-ssrf-coverage.md) | Complete outbound-fetch SSRF coverage and bound the `request_uri` fetch | Accepted |
-| [1145](./1145-a-client-authenticates-only-with-its-registered-method.md) | A client authenticates only with its registered method | Accepted |
+| [1145](./1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md) | A client authenticates only with its registered method, which a registered descriptor names | Accepted |
 | [1155](./1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md) | JWTs exchanged with a client follow its registered metadata | Accepted |
 | [1161](./1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md) | A client's public keys have one source and are imported under one policy | Accepted |
 | [1172](./1172-forwarded-client-certificates-are-decoded-by-a-registered-format.md) | Forwarded client certificates are decoded by a registered format | Accepted |
@@ -241,7 +240,6 @@ The records are grouped by area; within an area they are in number order.
 | [1176](./1176-dpop-proofs-are-a-jose-building-block.md) | DPoP proofs are a JOSE building block | Accepted |
 | [1181](./1181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md) | Every issuer of a JWT addressed to a client resolves one public credential selector | Accepted |
 | [1186](./1186-every-owners-keys-are-imported-and-updated-under-the-client-key-policy.md) | Every owner's keys are imported and updated under the client-key policy | Accepted |
-| [1207](./1207-client-authentication-methods-are-named-by-registered-descriptors.md) | Client-authentication methods are named by registered descriptors | Accepted |
 | [1252](./1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md) | A revocation list retrieval is shared, a failed one is remembered, and soft-fail is opt-in | Accepted |
 | [1259](./1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md) | Revocation is checked by registered sources, OCSP before every CRL form | Accepted |
 | [1315](./1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) | Outbound calls to caller-supplied URLs share one guarded, bounded client | Accepted |

@@ -47,7 +47,7 @@ point with the same outcome.
    - `security_profiles` values name registered `ISecurityProfile`s.
    - `token_endpoint_auth_method` (default `client_secret_basic`, never empty) and
      `token_endpoint_auth_methods_supported` name registered client-authentication method descriptors
-     ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md)).
+     ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)).
    - Algorithm lists name registered algorithms of their kind, never `none`, `dir` or `RSA1_5`. The defaults and the
      accepted values come from one classification, so they cannot drift apart.
    - The signing settings for tokens that cross a trust boundary (ID token, UserInfo, access token, introspection and

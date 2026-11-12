@@ -34,7 +34,7 @@ assertion's signing-key family, verified against the client's keys, and accepted
   or `AcceptsOnly<SymmetricSecretKey>()`). `none`, an unknown algorithm or the other family's algorithm is left to the
   sibling, so no handler authenticates it.
 - **The assertion identifies the client.** `iss` and `sub` must be present and equal, `sub` locates the client, the
-  client must be registered for the handler's method ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md)),
+  client must be registered for the handler's method ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)),
   and the signature is verified against the keys `IClientKeyResolver` returns. No separate `client_id` parameter is
   required.
 - **`client_secret_jwt` is not FAPI-eligible.** It keys its HMAC from the client's reversible shared secret
@@ -91,7 +91,7 @@ assertion's signing-key family, verified against the client's keys, and accepted
 - `ClientAssertionClientAuthenticationHandler`, `PrivateKeyJwtClientAuthenticationHandler`,
   `ClientSecretJwtClientAuthenticationHandler`, `IClientAssertionReplayCache`, `DefaultClientAssertionReplayCache`,
   `IssuerOnlyAssertionAudienceRequirement`.
-- [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md),
+- [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md),
   [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md),
   [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md),
   [ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md),

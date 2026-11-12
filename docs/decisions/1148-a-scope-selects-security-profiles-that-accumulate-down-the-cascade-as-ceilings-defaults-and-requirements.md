@@ -153,7 +153,7 @@ What FAPI requires but is correct for any client is not gated on a profile:
 
 - [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md): the profile names are the
   registered ones.
-- [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md): the registered client-authentication
+- [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md): the registered client-authentication
   methods that the `fapi2` ceiling narrows.
 - [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md): the scopes a setting applies within.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md): open vocabularies.

@@ -370,7 +370,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   ([ADR-1203](../../docs/decisions/1203-redirect-uris-are-matched-exactly-as-written-and-their-kinds-are-narrowed-by-settings.md)).
 - 👁 **Seed a client registered for the method the test authenticates with.** A client authenticates only with its
   registered `token_endpoint_auth_method`
-  ([ADR-1145](../../docs/decisions/1145-a-client-authenticates-only-with-its-registered-method.md)), so each integration-test
+  ([ADR-1145](../../docs/decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)), so each integration-test
   seeder registers one: `SeedConfidentialClientAsync` (`client_secret_post`), `SeedClientSecretBasicClientAsync`,
   `SeedClientSecretJwtClientAsync`, `SeedSharedSecretClientWithSettingsAsync` (either shared-secret method, with
   redirect URIs and settings), the certificate and `jwks_uri` seeders (`private_key_jwt`), the mutual-TLS seeders, and

@@ -156,7 +156,7 @@ that uses the secret as a key keeps it reversible, and every other method holds 
       it, as a verifier cannot serve a method that keys from its secret, a new secret is issued in the method's form
       and replaces every other shared secret. None of them could authenticate the client any longer, because a client
       authenticates only with the method it is registered for
-      ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md)). Dynamic client registration
+      ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)). Dynamic client registration
       returns the issued `client_secret` in its response (RFC 7592 §2.2), and the management API's settings update
       answers `200 OK` with the `CreatedSecretResource` of the issued secret, revealed only there, and `204 No Content`
       when the client keeps a secret it holds. Issuing the secret needs the authority creating a secret needs.

@@ -1243,7 +1243,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `WWW-Authenticate: Basic realm="<issuer>"` challenge**, as [RFC 6749
   §5.2](https://datatracker.ietf.org/doc/html/rfc6749#section-5.2) requires; body-based (`client_secret_post`) and
   assertion-based methods answer `400` (issue [#48](https://github.com/NCodeGroup/identity/issues/48),
-  [ADR-1092](docs/decisions/1092-token-endpoint-401-www-authenticate-challenge.md)). The challenge rides the general
+  [ADR-1145](docs/decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)). The challenge rides the general
   response-header seam `ISupportResponseHeaders` (sibling of `ISupportStatusCode`), which `IOpenIdError` implements and
   `OpenIdResult<T>` renders, so it covers every client-authenticating endpoint (token, introspection, revocation, device
   authorization, CIBA, PAR) through the shared `IClientAuthenticationService`, and it carries the `WWW-Authenticate`
@@ -1417,7 +1417,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Extension grants ([RFC 6749 §4.5](https://datatracker.ietf.org/doc/html/rfc6749#section-4.5)) are added by
   registering an `ITokenGrantHandler`** whose `GrantTypes` include the grant's absolute-URI identifier; the token
-  endpoint needs no change ([ADR-1092](docs/decisions/1092-token-endpoint-401-www-authenticate-challenge.md)).
+  endpoint needs no change ([ADR-1145](docs/decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)).
 
 - **OAuth 2.0 Device Authorization Grant (RFC 8628).** Input-constrained clients (smart TVs, CLIs, IoT devices) obtain
   tokens by having the end user authorize on a second device. The `device_authorization_endpoint`
@@ -1518,7 +1518,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   registered names and finds a descriptor without constructing a handler. Every client-authentication handler is paired
   with a registered descriptor: the host does not compose when the registered handlers and descriptors differ, and
   options validation constructs no handler
-  ([ADR-1207](docs/decisions/1207-client-authentication-methods-are-named-by-registered-descriptors.md), issue
+  ([ADR-1145](docs/decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md), issue
   [#251](https://github.com/NCodeGroup/identity/issues/251), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
 
 - **JWT-bearer client authentication (`private_key_jwt` / `client_secret_jwt`)** (issue
@@ -1649,7 +1649,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `jwks` or `jwks_uri` (a `jwks` by value with an `x5c` certificate for the latter); `tls_client_auth` requires exactly
   one `tls_client_auth_*` identity parameter, which the read and update responses report. Only the `client_secret_*`
   methods are issued a `client_secret`
-  ([ADR-1145](docs/decisions/1145-a-client-authenticates-only-with-its-registered-method.md)). A client also registers
+  ([ADR-1145](docs/decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)). A client also registers
   `token_endpoint_auth_signing_alg` (OpenID Connect Dynamic Client Registration 1.0 §2), which narrows the client's own
   list to it under the tenant's ceiling, and the client information response reports it.
 
@@ -4859,7 +4859,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   with `invalid_request`. The developer single-page-application clients register `none`, a conformance client registers
   only its configured method, and the bootstrap administrator registers `client_secret_basic` and presents its secret
   with HTTP Basic, as does the API reference's client-credentials login
-  ([ADR-1145](docs/decisions/1145-a-client-authenticates-only-with-its-registered-method.md), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
+  ([ADR-1145](docs/decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md), [ADR-1391](docs/decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
 
 - **Every client secret is held in the form its client's method needs.** `IClientSecretIssuer` issues every client
   secret, for the management API, dynamic client registration and the seeds, as `ClientAuthenticationMethodDescriptor`'s

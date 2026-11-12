@@ -24,7 +24,7 @@ selection is an operator's input, so it is validated when the host starts
 ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)); but the sources read
 `ClientCertificateRevocationOptions`, the options being validated, so validation cannot construct them to read their
 names. Client-authentication methods meet the same constraint with registered descriptors that name each handler
-([ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md)).
+([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)).
 
 ## Decision
 
@@ -90,7 +90,7 @@ when the host starts; empty, the default, asks every registered source in the de
 ## References
 
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md): vocabularies are open unless provably closed.
-- [ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md): client-authentication
+- [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md): client-authentication
   methods are named by registered descriptors.
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md): intervals and
   retentions are configured and validated when the host starts.

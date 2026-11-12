@@ -59,7 +59,7 @@ creates.** No table, store or migration is added.
   the client may request. A `GET` rebuilds the client information response from the settings.
 - `token_endpoint_auth_method` defaults to `client_secret_basic` and must be a registered method within the tenant's
   `token_endpoint_auth_methods_supported`
-  ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md)).
+  ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)).
 - `response_types` and `grant_types` follow
   [ADR-1141](1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md), and
   redirect URIs and their kinds follow [ADR-1203](1203-redirect-uris-are-matched-exactly-as-written-and-their-kinds-are-narrowed-by-settings.md).

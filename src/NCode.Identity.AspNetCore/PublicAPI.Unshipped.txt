@@ -118,3 +118,6 @@ NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.ext
 NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithConfidentialBodies() -> TBuilder
 NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithRequestBodyLogging() -> TBuilder
 NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithResponseBodyLogging() -> TBuilder
+NCode.Identity.AspNetCore.GuardedHttpLoggingRegistration
+NCode.Identity.AspNetCore.GuardedHttpLoggingRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.AspNetCore.GuardedHttpLoggingRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddGuardedHttpLogging() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

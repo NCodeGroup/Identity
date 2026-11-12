@@ -8,7 +8,8 @@
 # ADR-1488), and hold its key rings in a key management service under its own identity (ADR-1485). A server remote key
 # provider is registered only when enabled, with or without its location (ADR-1490).
 # The pods serve HTTPS only: the probes, the Service and the Ingress backend use it, a cert-manager Certificate issues
-# the certificate, and the chosen controller verifies it (ADR-1504).
+# the certificate, and the chosen controller verifies it (ADR-1504). The pods can require the ingress controller's
+# client certificate, and the chart's ingress certificate and its Secret are checked.
 # Publishing the chart belongs to the release workflow.
 name: Host chart
 
@@ -114,6 +115,9 @@ jobs:
           refuse --set backendTls.certManager.renewBefore=2160h
           refuse --set backendTls.certManager.privateKey.size=1024
           refuse --set backendTls.certManager.privateKey.algorithm=RSA --set backendTls.certManager.privateKey.size=256
+          refuse --set backendTls.clientCertificate.commonName=
+          refuse --set 'backendTls.clientCertificate.commonName=a b'
+          refuse --set backendTls.clientCertificate.required=yes
 
       - name: Migrate before the rollout unless disabled
         run: |
@@ -265,6 +269,20 @@ jobs:
             exit 1
           fi
           expect "$console" 'name: release-ncode-identity-host-management-console-tls'
+          # The pods require the ingress controller's client certificate only when asked: the server and the console
+          # receive the requirement, and Traefik names the certificate in each ServersTransport.
+          console_values="$CHART/ci/management-console-values.yaml"
+          reject "$(helm template release "$CHART" --values "$console_values")" 'ProxyClientCertificate'
+          required=$(helm template release "$CHART" --values "$console_values" --set backendTls.clientCertificate.required=true)
+          expect "$required" 'ProxyClientCertificate__Required' 'ProxyClientCertificate__CertificateAuthorityPath' \
+            'ProxyClientCertificate__AllowedSubjects__0' 'certificatesSecrets:'
+          if [ "$(grep -c 'ProxyClientCertificate__Required' <<< "$required")" -ne 2 ]; then
+            echo "::error::The server and the management console must both require the ingress controller's certificate."
+            exit 1
+          fi
+          # ingress-nginx reads the client certificate from the same Secret as the CA.
+          expect "$(helm template release "$CHART" --values "$console_values" --set backendTls.clientCertificate.required=true \
+            --set backendTls.ingressController=ingress-nginx)" 'proxy-ssl-secret: default/release-ncode-identity-host-ingress'
 
       - name: Deploy the management console on its own host
         run: |

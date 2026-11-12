@@ -39,7 +39,7 @@ and tenant it serves with the store's and evicts only those whose token differs 
    and `TenantRevision(TenantId, ConcurrencyToken)` pairs a tenant with its token.
    - `IOpenIdTeamCache.GetRevisionsAsync` returns a `TeamRevision` for every team a cached team was materialized
      over, its own team and then each parent
-     ([ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md)).
+     ([ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md)).
    - `IOpenIdTenantCache.GetTeamRevisionsAsync` returns the same for every team a cached tenant was materialized
      over.
    - `IOpenIdTenantCache.GetRevisionsAsync` returns a `TenantRevision` for every cached tenant.
@@ -101,7 +101,7 @@ and tenant it serves with the store's and evicts only those whose token differs 
   — the interceptor manages concurrency tokens
 - [ADR-1080](1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md) — store
   query methods push filtering to the DBMS
-- [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md) — a team can nest beneath a parent team
+- [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md) — a team can nest beneath a parent team
 - [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)
   — a master key rotates, and its data keys are rewrapped in the background
 - [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) — a tenant is provisioned

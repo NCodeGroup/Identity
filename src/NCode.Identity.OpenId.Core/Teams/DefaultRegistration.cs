@@ -71,7 +71,7 @@ internal static class DefaultRegistration
             >();
             builder.ServiceCollection.AddHostedService<TeamSettingsReconciliationService>();
 
-            // A team's subtree is walked one page of child teams per level (ADR-1455).
+            // A team's subtree is walked one page of child teams per level (ADR-1426).
             builder.ServiceCollection.TryAddSingleton<
                 ITeamDescendantWalker,
                 DefaultTeamDescendantWalker

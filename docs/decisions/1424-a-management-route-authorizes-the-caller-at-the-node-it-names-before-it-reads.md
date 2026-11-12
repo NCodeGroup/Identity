@@ -1,7 +1,7 @@
 # 1424. A management route authorizes the caller at the node it names before it reads
 
 - **Status:** Accepted (amends [ADR-1015](1015-management-core-validation-via-validators.md); amended by
-  [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md): the node above a child team is its parent, so a team's
+  [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md): the node above a child team is its parent, so a team's
   deletion, like its disable, is authorized at the team's node before the read and at the node above it against the
   stored row; amended by [ADR-1451](1451-every-management-route-authorizes-at-its-node-before-it-reads.md): every
   management route, and every entity validator, takes this shape)

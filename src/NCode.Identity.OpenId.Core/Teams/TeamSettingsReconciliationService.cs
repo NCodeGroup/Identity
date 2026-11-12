@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// <see cref="OpenIdTeamOptions.ReconciliationLeaseDuration"/> has passed. Requests that arrive during a pass coalesce
 /// and none is lost. The service never throws on stop.
 /// </summary>
-// See ADR-1411, ADR-1412, ADR-1426 and ADR-1455.
+// See ADR-1411, ADR-1412, ADR-1426.
 internal sealed class TeamSettingsReconciliationService(
     IMaterializedPlatformRegistry materializedPlatformRegistry,
     IOpenIdPlatformProvider platformProvider,

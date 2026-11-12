@@ -38,7 +38,7 @@ the cache lifetime and the per-team reconciliation pass that refine
    exposes the public `IMaterializedPlatformAccessor.GetPlatformAsync`, which waits for materialization.
 3. **A change evicts the caches it reaches.** A platform settings change clears the team and tenant caches. A
    `team-changed` announcement evicts the team, every team beneath it and their tenants
-   ([ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md)). A replica that may have missed an announcement follows
+   ([ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md)). A replica that may have missed an announcement follows
    [ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md). A
    cached tenant has an absolute `OpenIdTenantOptions.TenantCacheLifetime`, 15 minutes by default, equal to the
    secrets poll.
@@ -123,5 +123,5 @@ what it was last reconciled against, under a lease.
   applied and announced on its own bounded token
 - [ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md) —
   missed team announcements
-- [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md) — a team nests beneath a parent
+- [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md) — a team nests beneath a parent
 - [ADR-1404](1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md) — key rollover

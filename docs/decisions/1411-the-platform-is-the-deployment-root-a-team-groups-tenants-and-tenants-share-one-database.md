@@ -60,7 +60,7 @@ settings cascade and in authority.**
    ([ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)); it has a display
    name, an `isDisabled` flag and a settings document. Every tenant belongs to exactly one team and never moves. A team
    may sit beneath a parent team
-   ([ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md)).
+   ([ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md)).
 6. **The platform's own team.** `TenantResolution:Root:TeamId` (default `platform`) names the team that holds the root
    tenant and every tenant a tenant-resolution strategy creates. It is top-level, holds no teams, and can be neither
    disabled nor deleted.
@@ -155,7 +155,7 @@ settings cascade and in authority.**
 - [ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md) —
   the platform master key
 - [ADR-1255](1255-each-tenant-surface-of-the-management-console-has-its-own-address.md) — console addresses
-- [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md) — nested teams
+- [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md) — nested teams
 - [ADR-1465](1465-a-role-list-tells-its-reader-whether-it-may-grant-and-revoke-the-role.md) — the caller's home
 - [ADR-1466](1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md) — machine clients
 - [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)

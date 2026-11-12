@@ -38,7 +38,7 @@ one service that resolves a scope's effective settings outside a materialized te
 - `ResolvePlatformAsync(settings, ct)` for a proposed platform document, and `ResolvePlatformAsync(ct)` for the
   committed one
 - `ResolveTeamAsync(teamId, ct)`, `ResolveTeamAsync(teamId, settings, ct)` and `ResolveTeamParentAsync(teamId, ct)`,
-  which fold a team's lineage ([ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md))
+  which fold a team's lineage ([ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md))
 
 Its behavior:
 
@@ -121,4 +121,4 @@ a resource server, each addressed by route.
   [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md),
   [ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md),
   [ADR-1289](1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md) and
-  [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md).
+  [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md).

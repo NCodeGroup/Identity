@@ -33,7 +33,7 @@ change them.**
 
 1. **`SettingDescriptor.IsLimit` marks a limit.** Any package marks its own settings. A limit in a team's document is
    set by the authority over the platform for a top-level team, or over the parent team for a nested one
-   ([ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md)); in a tenant's document by the authority over its team;
+   ([ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md)); in a tenant's document by the authority over its team;
    and in a client's or resource server's document by the authority over its tenant. The platform's own document is
    the root: its administrators write its limits.
 2. **A limit merges with a meet.** A limit descriptor whose merge is not a meet (`HasMeetMerge`) is refused when the
@@ -104,6 +104,6 @@ change them.**
   — the management console reaches every owner's secrets and settings through one endpoint per operation
 - [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) — the platform is the
   deployment root and a team groups a customer's tenants
-- [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md) — a team can nest beneath a parent team
+- [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md) — a team can nest beneath a parent team
 - `SettingDescriptor.IsLimit`, `ISettingSerializer.GetChangedLimits`, `ISettingSerializer.GetLimits`,
   `SettingLimitsResource`

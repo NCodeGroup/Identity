@@ -34,7 +34,7 @@ prunes the days past retention in bounded batches.**
    count. A row references its tenant by id, with no foreign key and no tenant query filter, so the usage of a deleted
    tenant survives for its final bill and rolls up to every team above it
    ([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
-   [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md)).
+   [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md)).
 2. **The meter is an open vocabulary**
    ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)). The family records `requests`,
    `token_requests`, `requests_overage` and `token_requests_overage` (`TenantUsageMeters`), and a package records its
@@ -127,7 +127,7 @@ prunes the days past retention in bounded batches.**
   the overage meters
 - [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md) — rate-limit stages
 - [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) and
-  [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md) — teams and team paths
+  [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md) — teams and team paths
 - `src/NCode.Identity.OpenId.Authentication/Usage/`,
   `src/NCode.Identity.OpenId.Persistence.EntityFramework.Core/Stores/TenantUsageStore.cs`,
   `src/NCode.Identity.OpenId.Management/Endpoints/Tenants/TenantApiEndpointHandler.cs`

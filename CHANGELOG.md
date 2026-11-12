@@ -946,7 +946,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   provisioner runs once the seed has committed
   ([ADR-1404](docs/decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
   [ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
   [docs/capabilities/key-rollover.md](docs/capabilities/key-rollover.md), [docs/audit-records.md](docs/audit-records.md),
   [#166](https://github.com/NCodeGroup/identity/issues/166)).
 
@@ -2274,8 +2274,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `OpenIdPlatform.ConfiguredSettingsProvider` holds the settings the platform derives from its defaults and the host's
   configuration, onto which its persisted settings document
   is merged ([ADR-1155](docs/decisions/1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
-  [ADR-1455](docs/decisions/1455-a-teams-subtree-is-walked-depth-first-one-page-of-child-teams-per-level.md)).
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md)).
 
 - **The management API lists a tenant's incoherent clients.** `GET api/tenants/{tenantId}/incoherent-clients` checks a
   page of the tenant's stored clients (`cursor`, `limit` up to 100) against the tenant's effective settings and returns
@@ -3159,7 +3158,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1205](docs/decisions/1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md),
   [ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
   [ADR-1416](docs/decisions/1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
   [ADR-1416](docs/decisions/1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md),
   issue [#249](https://github.com/NCodeGroup/identity/issues/249),
   [#564](https://github.com/NCodeGroup/identity/issues/564),
@@ -3948,7 +3947,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (1 to 8; unset means 8) bounds the depth a team is created at, each team row stores its path from its top-level team
   (`TeamPaths`), a materialized team exposes its `Parent` and `Path`, and the platform's own team holds no teams
   ([#567](https://github.com/NCodeGroup/identity/issues/567),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md)).
 
 - **A team's settings cascade into every team and tenant beneath it.** The settings scopes are `platform`, `team`,
   `tenant`, `client` and `resource_server`; a team's effective settings merge the platform's, then each ancestor team's
@@ -3960,7 +3959,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   beneath it at every level, and a creation that would exceed the limit of any team above it answers `409`
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
   [ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
   [#563](https://github.com/NCodeGroup/identity/issues/563)).
 
 - **A team is an authority node.** Authority runs platform → each team from the top-level team down → tenant → leaf: a
@@ -3971,7 +3970,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   assignment only when it belongs to the node's tenant, because client and resource-server identifiers
   are unique only within a tenant
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md)).
 
 - **A team promotes one tenant's configuration to another.** `POST /api/teams/{teamId}/promotions/preview` reports what
   a promotion would create, update or leave unchanged and `POST /api/teams/{teamId}/promotions` applies it: the
@@ -3982,7 +3981,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   parent team's administrators promote within a child team through that team's route; a promotion needs read authority
   on the source and creation authority on the target, and a promoted limit needs the authority that sets it (`403`
   naming the limit). It records each change and `tenant.promoted`, and the console offers it on a team's tenants page
-  ([ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  ([ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
   [ADR-1425](docs/decisions/1425-a-team-promotes-one-tenants-configuration-to-another-and-environment-bound-values-stay.md),
   [ADR-1466](docs/decisions/1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md),
   [#565](https://github.com/NCodeGroup/identity/issues/565)).
@@ -3999,7 +3998,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   the team for a tenant and the tenant for a client or resource server, or answers `403` naming the limits, and
   `ISettingSerializer.GetChangedLimits` names them
   ([ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
   [#563](https://github.com/NCodeGroup/identity/issues/563)).
 
 - **A caller learns which limits a scope's settings carry and whether it may change them.** `GET …/settings/limits` on
@@ -4036,8 +4035,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#559](https://github.com/NCodeGroup/identity/issues/559)). A team change evicts the team, every team beneath it and
   their tenants on every replica over the `team-changed` channel
   ([ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
-  [ADR-1455](docs/decisions/1455-a-teams-subtree-is-walked-depth-first-one-page-of-child-teams-per-level.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
   [#601](https://github.com/NCodeGroup/identity/issues/601)).
 
 - **Disabling a team suspends every team and tenant beneath it, and a team with tenants or teams cannot be deleted.** A
@@ -4049,14 +4047,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   `GlobalAdmin` or an assignment at the platform node. Creating, deleting, disabling and restoring a child team need
   that authority at its parent team
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md)).
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md)).
 
 - **Usage is queryable per team, across every team beneath it.** Every usage row carries the path of the teams its
   tenant belonged to, so a deleted tenant's or deleted team's final days still bill to every team above it, and
   `GET /api/teams/{teamId}/usage?from=&to=` lists the counts of each tenant of the team and of every team beneath it per
   day and meter, each entry naming its team and tenant
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
   [ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md)).
 
 - **Team and platform changes are audited in the control-plane tenant.** `TeamChangedAuditEvent` (`team`) and
@@ -4075,7 +4073,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `/teams/{teamId}/{tenants|teams|clients|settings|access|usage}` and `/tenants/{tenantId}/…`
   ([#636](https://github.com/NCodeGroup/identity/issues/636),
   [ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
   [ADR-1466](docs/decisions/1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md),
   [ADR-1174](docs/decisions/1174-the-management-consoles-url-is-its-navigation-state.md)).
 
@@ -4214,7 +4212,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   team's the limits its parent team sets, nor a tenant's the limits its team sets. A client's registration update keeps
   the limits its settings carry
   ([ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
-  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
+  [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md),
   [#563](https://github.com/NCodeGroup/identity/issues/563)).
 
 - **A management route answers a caller without authority the same for any identifier.** Every team, tenant, client,

@@ -348,7 +348,7 @@ than inlining the rationale.
   ([ADR-1412](../../docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md));
   walk the teams beneath a team only through `ITeamDescendantWalker`, which holds one page of child teams per level, and
   never read a whole subtree into memory
-  ([ADR-1455](../../docs/decisions/1455-a-teams-subtree-is-walked-depth-first-one-page-of-child-teams-per-level.md));
+  ([ADR-1426](../../docs/decisions/1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md));
   never put such a pass on the in-process job dispatcher, whose bounded workers it would hold.
 - 👁 **State derived from settings converges by reconciliation, not by replaying an event.** A background pass reads the
   current state and repairs what differs, so a pass that a restart interrupted is run again and nothing depends on a

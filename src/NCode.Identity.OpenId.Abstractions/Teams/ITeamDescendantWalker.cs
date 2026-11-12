@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Teams;
 /// Walks the teams beneath a team, every level, each once and each parent before its children, holding at most one page
 /// of child teams per level, so the memory a walk uses is bounded however many teams the subtree holds.
 /// </summary>
-// See ADR-1426 and ADR-1455.
+// See ADR-1426.
 [PublicAPI]
 public interface ITeamDescendantWalker
 {

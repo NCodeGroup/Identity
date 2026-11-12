@@ -320,7 +320,7 @@ public sealed class DefaultRegistrationTests : BaseTests
     [Fact]
     public void AddIdentityServer_RegistersTheTeamDescendantWalker()
     {
-        // A team's subtree is walked one page of child teams per level (ADR-1455).
+        // A team's subtree is walked one page of child teams per level (ADR-1426).
         using var host = BuildHost([]);
 
         Assert.Equal(

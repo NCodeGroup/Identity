@@ -53,7 +53,7 @@ anywhere else is rejected at every entry point, exactly as an unregistered name 
 2. **The OpenID server registers its scopes.** `platform` is the root, `team` is beneath it, `tenant` is beneath the
    team, and `client` and `resource_server` are beneath the tenant, named by the `OpenIdSettingScopes` constants.
    Nested teams fold their lineage in the resolver
-   ([ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md)). A package that stores settings for an entity of its own
+   ([ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md)). A package that stores settings for an entity of its own
    registers that entity's scope beneath the scope it inherits from and declares its own settings for it; the settings
    framework names no entity ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)).
 3. **The descriptor declares its scopes.** `SettingDescriptor.AppliesTo` is a required list of the scopes whose
@@ -139,7 +139,7 @@ anywhere else is rejected at every entry point, exactly as an unregistered name 
 - [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md),
   [ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md),
   [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md) and
-  [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md): the settings that apply to clients and resource servers,
+  [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md): the settings that apply to clients and resource servers,
   the previews, and nested teams.
 - Code: `NCode.Identity.Settings.SettingScopeDescriptor`, `ISettingScopeCollection`, `ISettingScopeCollectionProvider`,
   `DefaultSettingScopeCollection`, `NCode.Identity.Settings.SettingDescriptor.AppliesTo`,

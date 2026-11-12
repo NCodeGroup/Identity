@@ -59,7 +59,7 @@ probe, because it never leaves the store.
 - A store outage during the release costs the losers at most one lease duration; it never turns a refresh whose tokens
   were written into a `503`, and never hides the refresh's own failure.
 - A custom `IExpiringValueSet` adapter and a custom `IBffSessionStore` implement the new members. The family is
-  pre-release ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)), so this is a clean cutover with no shim.
+  pre-release ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)), so this is a clean cutover with no shim.
 - The Valkey script is covered by mock-based tests only, as the other scripts are.
 
 ## References

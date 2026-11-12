@@ -66,7 +66,7 @@ listed `kty` and `pub` only.
 - A contributed key type supplies a `JsonWebKeyTypeDescriptor` through its `ISecretKeyTypeDescriptor`, and its keys
   thumbprint, validate and pass DPoP validation with no library change.
 - `ISecretKeyTypeDescriptor.JwkKeyType` is a breaking change to the property's type, accepted by the pre-release posture
-  ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 - An AKP key thumbprint now includes `alg`, so it differs from the earlier value, and matches RFC 9964.
 - A key built without a descriptor and with an unknown `kty` still cannot be thumbprinted.
 

@@ -66,7 +66,7 @@ falls back to a `500 server_error` for everything else.
 - Families opt in incrementally: Management remains a flat `IEndpointProvider` and can adopt a group
   later without Core changes.
 - A new public surface (`IEndpointGroupProvider`, `AddEndpointGroupProvider<T>()`) is tracked in
-  `PublicAPI.Unshipped.txt` per ADR-1005.
+  `PublicAPI.Unshipped.txt` per ADR-1025.
 - Gotcha: `AddEndpointFilter` on a `RouteGroupBuilder` uses the two-type-parameter overload
   `AddEndpointFilter<TBuilder, TFilterType>()` (builder type first).
 
@@ -78,4 +78,4 @@ falls back to a `500 server_error` for everything else.
 - `src/NCode.Identity.OpenId.Authentication/Endpoints/OpenIdEndpointGroupProvider.cs`
 - `src/NCode.Identity.OpenId.Authentication/Endpoints/OpenIdExceptionEndpointFilter.cs`
 - `src/NCode.Identity.OpenId.Core/Exceptions/DefaultOpenIdExceptionHandler.cs`
-- project-template ADR-0104 (no cross-assembly leakage), ADR-1005 (public API surface)
+- project-template ADR-0104 (no cross-assembly leakage), ADR-1025 (public API surface)

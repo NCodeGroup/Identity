@@ -249,7 +249,7 @@ calling capability methods on the bare `IServiceCollection`.
   `IServiceBuilder<OpenIdManagementLibrary>` and takes `IServiceBuilder<LocalAccountLibrary>`. Each returns its receiver
   builder so the chain continues on the primary library. The `OpenIdManagementLibrary` marker moves into
   `NCode.Identity.OpenId.Management.Abstractions` so a capability referencing only abstractions can name it. These are
-  breaking surface changes, acceptable pre-release ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  breaking surface changes, acceptable pre-release ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 - The **persistence framework** owns `StoreManagerLibrary` (`NCode.Identity.Persistence.Abstractions`): the Entity Framework root
   `AddEntityFrameworkCorePersistence<TDbContext>()` mints it, and the local-account store slices
   (`AddLocalAccountEntityFramework`, `AddAspNetIdentityLocalAccountStore`) receive `IServiceBuilder<StoreManagerLibrary>`
@@ -285,5 +285,5 @@ calling capability methods on the bare `IServiceCollection`.
   hierarchy is registration-time only; the runtime routing tree is a separate mechanism.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the service / strategy /
   mediator extensibility model these registrations wire up.
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — pre-release posture permitting the
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — pre-release posture permitting the
   breaking migration.

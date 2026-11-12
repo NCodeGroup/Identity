@@ -60,5 +60,5 @@ needing a special case.
   `Identifier` that owns its scopes.
 - [ADR-1026](1026-scope-enforcement-via-resource-servers-and-client-grants.md) — scope resolution against the
   resource-server / client-grant model, which this decision reuses to resolve audiences.
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the parity-plus posture under which the audience is
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the parity-plus posture under which the audience is
   derived from scopes rather than a separate request parameter.

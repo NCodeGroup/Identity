@@ -76,7 +76,7 @@ finds them.
 
 - Code: `NCode.Identity.OpenId.Host` — `Program` (host wiring, `MigrationsAssembly`, and `InitializeDatabase`),
   `OpenIdDbContextDesignTimeFactory`, `Migrations/`; `OpenIdDbContext`.
-- Prior art: [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) (pre-release churn),
+- Prior art: [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) (pre-release churn),
   [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) (decisions live in the repo).
 - EF Core: [Applying migrations](https://learn.microsoft.com/ef/core/managing-schemas/migrations/applying),
   [`EnsureCreated()` vs migrations](https://learn.microsoft.com/ef/core/managing-schemas/ensure-created).

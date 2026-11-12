@@ -206,7 +206,7 @@ Auditing is not a separate mechanism — it is events with a **security-grade co
   these once.
 - The **schema version** exists because audit events are also a **serialized wire contract** to external
   sinks (SIEM, bus, cold storage); in-process compatibility is tracked by
-  [ADR-1005](./1005-public-api-surface-is-tracked-and-evolves-compatibly.md), but external consumers need
+  [ADR-1025](./1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md), but external consumers need
   a stable, versioned event name/shape to survive evolution.
 - Concrete audit events (e.g. `TokenIssuedAuditEvent`, `TokenRevokedAuditEvent`,
   `AuthenticationFailedAuditEvent`, `SecretRotatedAuditEvent`, `ManagementResourceChangedAuditEvent`)
@@ -237,7 +237,7 @@ over to events; the allocation argument does not, because event payloads are che
 
 - **Plain domain events (no ambient envelope) → publish raw.** The record constructor is the ergonomic,
   intent-revealing signature; a wrapper that only does `new FooEvent(a, b)` + `PublishAsync` adds public
-  API surface ([ADR-1005](./1005-public-api-surface-is-tracked-and-evolves-compatibly.md)) and ceremony
+  API surface ([ADR-1025](./1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)) and ceremony
   for no value: `await publisher.PublishAsync(new RefreshTokenReusedEvent(grantId, clientId), ct)`.
 
 - **Audit events (shared envelope) → a typed recorder facade.** A single `IAuditEventRecorder`
@@ -412,7 +412,7 @@ example.
   a test pinning its contract.
 - `SecurityTokenIssuedEvent` moves off the mediator onto the event seam and becomes an `IAuditEvent`;
   this is a breaking change, acceptable under the pre-release posture
-  ([ADR-1025](./1025-pre-release-posture-and-auth0-parity-plus.md)) and tracked in
+  ([ADR-1025](./1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)) and tracked in
   `PublicAPI.Unshipped.txt`.
 - **"You chose wrong" smells:**
     - _Event smell:_ a handler needs to reject the operation, return a value the caller consumes, or
@@ -435,7 +435,7 @@ example.
 - [ADR-1048](./1048-durable-audit-delivery-outbox.md) — durable, at-least-once audit delivery (outbox,
   retry, publish-after-commit) layered on this seam.
 - [project-template ADR-0105](./project-template/0105-the-canonical-implementation-is-named-defaultfoo.md) — `DefaultEventPublisher` naming.
-- [ADR-1025](./1025-pre-release-posture-and-auth0-parity-plus.md) — breaking-change latitude for
+- [ADR-1025](./1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — breaking-change latitude for
   re-homing `SecurityTokenIssuedEvent`.
 - [`src/NCode.Identity.OpenId.Authentication.Abstractions/Auditing/TokenIssuedAuditEvent.cs`](../../src/NCode.Identity.OpenId.Authentication.Abstractions/Auditing/TokenIssuedAuditEvent.cs)
   and [`DefaultAuditEventRecorder`](../../src/NCode.Identity.OpenId.Authentication/Auditing/DefaultAuditEventRecorder.cs)

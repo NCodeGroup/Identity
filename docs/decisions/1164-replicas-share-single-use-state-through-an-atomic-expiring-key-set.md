@@ -120,7 +120,7 @@ chooses: in-process for a single replica, Valkey for several.**
   — closed, and the readiness check reports it. A Valkey restart without persistence loses the records, reopening a
   replay window bounded by the proof and assertion lifetimes; enable append-only-file persistence if that matters
   ([hosting analysis](../hosting-analysis.md#valkey)).
-- **Breaking changes**, accepted under the pre-release posture ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)):
+- **Breaking changes**, accepted under the pre-release posture ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)):
   `IDPoPProofReplayCache.TryRecordAsync` and `IClientAssertionReplayCache.TryRecordAsync` take an `OpenIdContext`
   first; the server no longer registers an in-memory `IDistributedCache`, so a host that resolved one registers its
   own; the record keys change, so records in flight across an upgrade are lost — they expire within minutes.

@@ -3,7 +3,7 @@
 These are published libraries: once a release ships a `public` type or member, it is a contract every consumer depends on. This document
 is the procedure for evolving that surface without breaking consumers. The surface itself is tracked by
 `Microsoft.CodeAnalysis.PublicApiAnalyzers` via each packable project's `PublicAPI.Shipped.txt` / `PublicAPI.Unshipped.txt`
-pair ([ADR-1005](decisions/1005-public-api-surface-is-tracked-and-evolves-compatibly.md)).
+pair ([ADR-1025](decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 
 ## The rule
 

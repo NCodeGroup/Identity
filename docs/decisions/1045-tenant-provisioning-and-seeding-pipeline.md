@@ -93,7 +93,7 @@ unit of work, for every tenancy strategy.**
   `SystemScopeDescriptor`, `SystemResourceServerPlane`, and `ISystemTenantSeeder` are removed; `TenantPlane`,
   `TenantSeedContext`, `SeedTenantCommand`, and `ITenantProvisioner` are added. The public
   `DeveloperSigningKeyOpenIdTenantFactory` is removed in favor of an internal seed handler. Acceptable under the
-  pre-release posture ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  pre-release posture ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 - Adding a new reserved contributor is now additive: register one `ICommandHandler<SeedTenantCommand>` that is
   idempotent and plane-aware; it reaches both new and existing tenants on their next provisioning pass.
 - The newly created tenant row commits before the seed fan-out (seed stores resolve the owning tenant from the

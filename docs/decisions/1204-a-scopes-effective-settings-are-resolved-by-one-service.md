@@ -94,7 +94,7 @@ that check reads.
 - A type that needs a scope's effective settings outside a materialized tenant or client takes an
   `IEffectiveSettingsResolver` in its constructor. The public `DefaultOpenIdTenantFactory` and
   `EphemeralOpenIdTenantFactory` take one, so a host that constructs or derives from either supplies it
-  ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)). The same holds for the internal seed, resolver, and
+  ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)). The same holds for the internal seed, resolver, and
   management types listed in the Context.
 - The resolver depends on `IOpenIdServerProvider`, so nothing on the path that builds the server may depend on it.
 - Options validation reads the setting-descriptor catalog, which names the client-authentication methods from

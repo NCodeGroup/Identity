@@ -63,7 +63,7 @@ the create form), deleting its hard-coded list.
   divergence between generator, validator, converter, and UI is structurally impossible.
 - Clients discover server behavior instead of hard-coding it; the capabilities document is open for
   extension (algorithms, curves, and future sections) without modifying the endpoint.
-- Public API churn is expected and accepted per [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md):
+- Public API churn is expected and accepted per [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md):
   new `ISecretKeyTypeDescriptor`/`ISecretKeyTypeCatalog`/`SecretKeyGenerationParameters` in the secrets
   abstractions, new capability contracts in the management abstractions, and the removed per-type
   switches.

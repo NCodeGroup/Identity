@@ -136,7 +136,7 @@ JWE's key-management `alg` was previously checked against the _signing_ set.
   **not a process crash** (an in-memory queue is lost on exit) and does **not** coordinate across nodes. Crash-durable,
   cluster-safe at-least-once is the job of a durable adapter — the whole reason the port exists. A full queue sheds the
   newest write (bounded, best-effort back-pressure), logged for the operator.
-- Public surface churn (greenfield, [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)): two new packages;
+- Public surface churn (greenfield, [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)): two new packages;
   `ICibaNotificationService` loses its two HTTP methods; and four new CIBA encryption settings. The concrete delivery
   jobs (`CibaDeliveryJob`, `BackChannelLogoutDeliveryJob`) are **internal** implementation detail of the producing
   package — the dispatcher is generic over `IDispatchJob`, so no job type is part of the public surface.
@@ -157,6 +157,6 @@ JWE's key-management `alg` was previously checked against the _signing_ set.
   dispatcher generalizes.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the service-vs-strategy extensibility model the
   job/handler split follows.
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the greenfield posture that makes the clean cutover
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the greenfield posture that makes the clean cutover
   (removing the notifier's HTTP methods) preferable to a shim.
 - [OpenID Connect CIBA Core 1.0](https://openid.net/specs/openid-client-initiated-backchannel-authentication-core-1_0.html) §10.

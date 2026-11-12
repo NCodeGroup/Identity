@@ -133,7 +133,7 @@ same mechanism at different scopes.
   storage, and mental model.
 - **Resource-scoped role assignments unifying roles and ownership (chosen).** One hierarchy, one assignment concept,
   built-in roles as sugar over custom scope bundles, ownership as an `Owner` assignment at an instance. Matches the
-  Auth0/Azure/Entra prior art ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)) and lands incrementally.
+  Auth0/Azure/Entra prior art ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)) and lands incrementally.
 
 ## Consequences
 
@@ -160,5 +160,5 @@ same mechanism at different scopes.
   and client grants, which these management scopes extend to the management API.
 - [ADR-1031](1031-control-plane-management-resource-server-and-root-tenant-seeding.md) — the control-plane management
   resource server, revised by Phase 1 into one audience with root-only provisioning scopes.
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the Auth0-parity-plus posture this model follows
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the Auth0-parity-plus posture this model follows
   (familiar RBAC/ownership shapes, more granular and data-driven).

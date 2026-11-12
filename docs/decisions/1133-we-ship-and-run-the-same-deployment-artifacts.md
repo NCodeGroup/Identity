@@ -19,7 +19,7 @@ Forces:
 - **Divergence is the default failure.** Projects that run a hosted edition on private infrastructure code end up with a
   well-tested "cloud" path and a second-class self-hosted path that nobody exercises.
 - **Self-hosting is a differentiator.** Auth0 is SaaS-only; an Auth0-parity-plus product
-  ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)) that can also be self-hosted on the exact artifacts the
+  ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)) that can also be self-hosted on the exact artifacts the
   vendor runs is a stronger offer.
 - **Support budget.** Every published deployment module is a product: versioned, documented, and triaged against other
   people's environments. A small maintainer team can afford only a few.

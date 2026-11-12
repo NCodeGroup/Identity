@@ -29,7 +29,7 @@ tenant mechanisms grown apart over time:
 Two costs follow. First, the environment abstractions (`OpenIdContext`, `OpenIdServer`, `OpenIdTenant`, the context and
 tenant factories, the settings catalog and its descriptor/merge machinery) sit in the **authentication** slice, above
 the management slice, so management cannot reach them — a capability that the data-driven, per-tenant posture
-([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)) and work such as federated-principal resolution
+([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)) and work such as federated-principal resolution
 ([ADR-1035](1035-federated-principals-and-identity-resolution.md)) increasingly need on both surfaces (per-tenant
 resolution knobs, setting validation, an "effective settings at this level" view). Second, the same concept is realized
 three different ways, which is a maintenance and correctness hazard.
@@ -114,13 +114,13 @@ expressed this way, so a tenant can override the server default at runtime.
   while being a harmless no-op for `/tenants` and `/servers` listings.
 - The move is broad — namespaces, `using` directives across the authentication slice, and the published API surface of
   several packages shift. This lands during the pre-release window, where a clean cutover is preferred over compatibility
-  shims ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  shims ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 
 ## References
 
 - [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) — the ambient tenant scope the persistence
   filter reads, now opened by the shared environment pipeline.
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the pre-release posture and data-driven, per-tenant
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the pre-release posture and data-driven, per-tenant
   control philosophy this consolidation serves.
 - [ADR-1035](1035-federated-principals-and-identity-resolution.md) — the principal-resolution and linking knobs that
   become tenant settings on the shared environment.

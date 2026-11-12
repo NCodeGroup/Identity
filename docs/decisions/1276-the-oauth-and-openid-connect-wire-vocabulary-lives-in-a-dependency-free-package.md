@@ -61,7 +61,7 @@ Every wire value stays byte-identical; only where the constants live changes.
   `OpenIdConstants`.
 - The client and the BFF no longer carry protocol literals, and they reference no OP package.
 - This is a breaking rename for consumers of the moved groups. It is accepted under the pre-release posture
-  ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)), with a clean cutover and no forwarding members.
+  ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)), with a clean cutover and no forwarding members.
 - CSharpier can wrap a qualified name across lines, splitting `OpenIdConstants` from `.Group`. A mechanical rename of
   these constants must therefore match across whitespace, or it leaves the wrapped references behind. This was a lesson
   of this change.

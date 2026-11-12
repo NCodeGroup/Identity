@@ -215,7 +215,7 @@ Any other store (LDAP, a bespoke table, an external API) is a third implementati
   Identity adapter are opt-in satellites depending only on abstractions.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the service-vs-mediator model under which the
   default handlers delegate to the `ILocalAccountSource` service.
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the pre-release, Auth0-parity-plus posture: a database
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the pre-release, Auth0-parity-plus posture: a database
   connection to `FederatedIdentity`'s social/enterprise connection.
 - ASP.NET Core Identity (`Microsoft.AspNetCore.Identity`) — prior art for store interface segregation, `SecurityStamp`,
   and password-hasher shape (versioned parameters, rehash-on-verify), borrowed in shape while its aggregate

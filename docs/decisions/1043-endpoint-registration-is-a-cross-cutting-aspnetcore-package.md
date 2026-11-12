@@ -74,7 +74,7 @@ move with it, as they are generic endpoint/operation results, not identity conce
 - The public types moved namespace (`NCode.Identity.Endpoints` → `NCode.Identity.Registration.AspNetCore`) and three symbols were
   renamed (`IIdentityEndpointRouteBuilder` → `IEndpointTreeRouteBuilder`, `MapIdentityEndpoints` → `MapEndpointGroups`,
   and the route-builder default implementation). This is a breaking change to the pre-release surface
-  ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 - An implementation package that maps endpoints now references `NCode.Identity.Registration.AspNetCore` (directly or transitively
   via `NCode.Identity.Abstractions`), which is an abstractions-only, framework-level dependency consistent with
   [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md).

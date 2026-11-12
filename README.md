@@ -20,7 +20,7 @@ through public contracts.
 > **Greenfield, pre-release, under active development.** Nothing is shipped — no stable release, and no packages are
 > published to NuGet. **Anything can break at any time**: the public API, settings names, database schema, and token
 > formats all change without a deprecation cycle or migration path. Breaking changes land as clean cutovers rather
-> than compatibility shims ([ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md)). Do not use this
+> than compatibility shims ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)). Do not use this
 > in production, and do not depend on anything here staying put.
 
 ## Status

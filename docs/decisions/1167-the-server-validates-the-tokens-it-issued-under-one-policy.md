@@ -6,7 +6,7 @@
   [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) and
   [ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md); realizes the
   introspection clause of [ADR-1112](1112-authorization-code-replay-revokes-session.md); amended by
-  [ADR-1397](1397-before-the-first-stable-release-no-identifier-or-version-is-held-for-an-unreleased-state.md): the
+  [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md): the
   event ID `2019` is free; and by
   [ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md):
   the one policy admits only the keys in their validity window)

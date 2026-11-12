@@ -110,7 +110,7 @@ Public names, old to new:
 ## Consequences
 
 - Implementers and callers move to the new names and packages in the table above. This is a breaking rename, accepted
-  under the pre-release posture ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)), with a clean cutover and
+  under the pre-release posture ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)), with a clean cutover and
   no forwarding members.
 - Stored master keys, configuration keys and sections, chart values and wrapper names are unchanged, and so is every
   runtime behavior.

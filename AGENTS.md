@@ -380,7 +380,7 @@ ruleset already requires pull requests through the merge queue
 is `none`; releases are tagged on `release/vX.Y` lines, never one per plan
 ([GOVERNANCE.md](GOVERNANCE.md#releases-branches--tags)), so `release` is `none` and `tag-release.yml` publishes
 nothing; the family has released nothing and
-stores nothing a reader must keep ([ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md)), so
+stores nothing a reader must keep ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)), so
 `pre-release` is `untracked`; a pull request stays a draft until
 its author reviews it ([ADR-1269](docs/decisions/1269-a-pull-request-stays-a-draft-until-its-author-reviews-it.md)),
 so `draft` is `yes`; `gate` is the push protocol's local pre-push gate
@@ -431,7 +431,7 @@ This family is **greenfield and pre-release**: all work lands on the single `mai
 [ADR-1261](docs/decisions/1261-main-accepts-changes-only-through-pull-requests-that-pass-the-gate.md)), breaking changes are
 acceptable (prefer a clean cutover over compatibility shims, and expect `PublicAPI.Unshipped.txt` churn), and the design
 follows an **Auth0-parity-plus** philosophy — familiar Auth0 shapes with more flexible, data-driven controls. See
-[ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md). Because of this posture, **default to the
+[ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md). Because of this posture, **default to the
 best long-term, cohesive design**: when a change forks between a minimal compatibility-preserving patch and the
 comprehensive, correct model, choose the comprehensive model **without** weighing refactor difficulty or public-surface
 breakage, and surface a fork for the user only when the options are genuinely equal in quality. Breaking changes are

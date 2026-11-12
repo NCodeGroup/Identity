@@ -58,7 +58,7 @@ records it once the client has handled the token.**
 - A caller that validates a token must call `TryRecordHandledAsync` after it handles the token, or the token validates
   again until its replay window passes. This is a new obligation on the BFF.
 - `ILogoutTokenValidator` and `LogoutTokenValidationResult` change in the public API
-  ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) accepts that before release).
+  ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) accepts that before release).
 - Two deliveries of one token that run at the same time can both end the sessions; that is idempotent.
 
 ## References

@@ -249,7 +249,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   client. `appsettings.Conformance.json` seeds the three Basic-OP clients (`client` and `client2` with
   `client_secret_basic`, `client-secret-post` with `client_secret_post`, all `S256`), the FAPI clients and
   `conformance-user`. It must not be used in production
-  ([ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md),
+  ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md),
   [ADR-1202](docs/decisions/1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md)).
 
 - **A `Conformance` launch profile runs the OpenID host as an externally reachable HTTPS process for the OpenID
@@ -279,7 +279,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   in one module; the Basic OP module that sends neither PKCE nor a nonce
   (`oidcc-ensure-request-without-nonce-succeeds-for-code-flow`) is an expected failure. The default server keeps the
   secure defaults. Development and conformance convenience only
-  ([ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md)).
+  ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 
 - **FAPI 1.0 Advanced conformance harness.** `build/conformance/run-conformance.ps1 -Fapi1Advanced` runs the conformance
   suite's `fapi1-advanced-final-test-plan` with `private_key_jwt` and `self_signed_tls_client_auth` clients, pushed
@@ -3870,7 +3870,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   shows only the current issuer's audit: a discovery load superseded by an issuer change never updates it, whether it
   fails or succeeds late. It is a standalone Vite SPA on the shared `@ncode/*` platform, on port `5175` in the Aspire
   AppHost, and a development and conformance convenience only
-  ([ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md)).
+  ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 
 - **The headless conformance probe runner exercises the legs a browser cannot drive** (issue
   [#129](https://github.com/NCodeGroup/identity/issues/129),
@@ -3885,7 +3885,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (discovery fetch, the security audit, the spec-coverage catalog and the browser-drivable probes) lives in the shared,
   unit-tested `@ncode/conformance-core` package used by both the dashboard (`apps/conformance`) and the runner.
   Development and conformance tooling only, outside the .NET inner loop
-  ([ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md)).
+  ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 
 - **The probe runner signs its asymmetric legs with Node `crypto`** (issues
   [#130](https://github.com/NCodeGroup/identity/issues/130), [#334](https://github.com/NCodeGroup/identity/issues/334),
@@ -3898,7 +3898,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   client assertion (OIDC Core §9, carrying the JWK `kid` when present) and the DPoP proof (RFC 9449 §4, embedding the
   public JWK in the `dpop+jwt` header); ECDSA uses the JOSE raw `ieee-p1363` encoding and RSA-PSS uses digest-length
   salt. Development and conformance tooling only, outside the .NET inner loop
-  ([ADR-1025](docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md)).
+  ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 
 - **The OpenID Foundation Conformance Suite is the certified oracle behind the in-house pre-flight** (issues
   [#129](https://github.com/NCodeGroup/identity/issues/129), [#131](https://github.com/NCodeGroup/identity/issues/131),

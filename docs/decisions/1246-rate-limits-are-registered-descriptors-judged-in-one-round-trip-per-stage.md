@@ -1,7 +1,7 @@
 # 1246. Rate limits are registered descriptors judged in one round trip per stage
 
 - **Status:** Accepted (amended by
-  [ADR-1397](1397-before-the-first-stable-release-no-identifier-or-version-is-held-for-an-unreleased-state.md): the
+  [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md): the
   event ID `2044` is free)
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group

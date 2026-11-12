@@ -110,7 +110,7 @@ Everything follows from that rule:
   persistence query filter guarantees no cross-tenant row is materialized — the route id is both the scope and the
   authority check.
 - Client management routes change from `/api/clients/{clientId}` to `/api/tenants/{tenantId}/clients/{clientId}`; this
-  is a breaking change to the pre-release management surface ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  is a breaking change to the pre-release management surface ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 - The management `/api` group runs a management-specific filter (environment + server, route-driven scope) rather than
   the protocol environment filter, so management requests no longer resolve or depend on a protocol tenant; the
   dynamic-by-path param-name coupling is gone.

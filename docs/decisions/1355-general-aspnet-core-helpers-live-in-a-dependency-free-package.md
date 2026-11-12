@@ -46,7 +46,7 @@ The helpers need a home that both can reference.
 ## Consequences
 
 - A consumer references `NCode.AspNetCore` and adds `using NCode.AspNetCore;`. The family is pre-release
-  ([ADR-1025](./1025-pre-release-posture-and-auth0-parity-plus.md)), so the move is a clean cutover with no forwarding
+  ([ADR-1025](./1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)), so the move is a clean cutover with no forwarding
   types.
 - The family publishes one more package. Any later general ASP.NET Core helper goes to `NCode.AspNetCore` too.
 

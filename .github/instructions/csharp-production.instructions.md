@@ -221,7 +221,7 @@ than inlining the rationale.
   _"This API supports the NCode.Identity infrastructure and is not intended to be used directly from your code."_
 - ⏳ The public surface is deliberate and tracked by `PublicApiAnalyzers` (`RS0016` / `RS0017` / `RS0024`): a public
   change not recorded in the sibling `PublicAPI.{Shipped,Unshipped}.txt` fails the build. A breaking change is a
-  **major** version bump. See [ADR-1005](../../docs/decisions/1005-public-api-surface-is-tracked-and-evolves-compatibly.md).
+  **major** version bump. See [ADR-1025](../../docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md).
   After a large refactor (types moved/renamed, members added/removed), regenerate the entries with
   `dotnet format analyzers <project> --diagnostics RS0016 RS0017`; it reliably **adds** the missing entries (`RS0016`)
   but does **not** reliably remove the stale ones (`RS0017`), so delete by hand the entries for symbols that moved or
@@ -1256,7 +1256,7 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
   stable number regardless of which assembly emitted it. IDs are **append-only** — never renumber or reuse a shipped
   value (same discipline as enum members and the public API §2), and a band, once assigned, is never renumbered. Until
   the first stable release no ID has shipped: the ID of a removed event is free, and no comment reserves it
-  ([ADR-1397](../../docs/decisions/1397-before-the-first-stable-release-no-identifier-or-version-is-held-for-an-unreleased-state.md)).
+  ([ADR-1025](../../docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
   `*.Abstractions` packages are pure contracts (§2) with no behavior, so they never log and get no band. A **new**
   runtime package added to the family claims the next free band and **adds a row here**:
 

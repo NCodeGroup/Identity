@@ -54,4 +54,4 @@ that hub where it is genuinely consumed — it was not actually unused, only mis
 - One JSON helper home (`NCode.Identity.Json`) instead of two; the bespoke `NCode.Identity.Jose.Extensions.JsonElementExtensions`
   is removed.
 - Expected pre-release churn: new packages, moved `PublicAPI.Unshipped.txt` entries, and a clean cutover with no shims,
-  consistent with the [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) posture.
+  consistent with the [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) posture.

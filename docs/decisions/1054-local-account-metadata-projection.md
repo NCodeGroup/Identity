@@ -28,7 +28,7 @@ UserInfo response:
 - **`SystemMetadata`** — a free-form JSON object managed **only by the server or an administrator**, never end-user
   writable, which may carry authorization-relevant data.
 
-This mirrors the model the pre-release Auth0-parity posture targets ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)):
+This mirrors the model the pre-release Auth0-parity posture targets ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)):
 normalized profile claims, `user_metadata`, and `app_metadata`. The two metadata bags are the same storage shape and
 differ on a single axis — **writability / trust** (owner vs server); `Claims` differ on a second axis —
 **addressability** (individually named vs opaque bag). Those two axes are orthogonal and irreducible: collapsing claims
@@ -152,7 +152,7 @@ protects `app_metadata`. It is called out here and tracked as management work in
   seam one of the projection handlers extends.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the mediator pipeline that is the claim-shaping
   (Actions-equivalent) extension seam.
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the Auth0-parity-plus posture: database-connection
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the Auth0-parity-plus posture: database-connection
   metadata (`user_metadata` / `app_metadata`) surfaced as opt-in, namespaced-or-nested claims.
 - [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) — why this reasoning lives in an ADR rather than
   chat or agent memory.

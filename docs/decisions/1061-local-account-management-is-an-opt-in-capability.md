@@ -21,7 +21,7 @@ or not it wants it, and the management audit abstraction knows the shape of an e
 [ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md) establishes the same
 dependency-inversion principle for the authentication slice: the local-account-specific resource-owner password grant is
 an opt-in package that depends on the account abstractions, so the base authentication slice does not. The family is
-pre-release ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)), which favors the cohesive model over
+pre-release ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)), which favors the cohesive model over
 compatibility.
 
 ## Decision

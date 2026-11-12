@@ -17,7 +17,7 @@ permanent once the first customer integrates:
 
 - **Where customers' non-production environments run.** Every customer needs dev and test environments alongside
   production. They can be separate platform environments (a customer-facing staging cluster) or tenants on the one
-  production platform, as in Auth0's model ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  production platform, as in Auth0's model ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 - **The hostnames.** A tenant's issuer is baked into every client's configuration and into the `iss` of every token it
   mints, and it is also the host the tenant is routed on
   ([ADR-1129](1129-the-tenant-issuer-is-the-single-authoritative-origin.md)). Changing an issuer later breaks every

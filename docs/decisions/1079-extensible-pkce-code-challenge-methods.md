@@ -29,7 +29,7 @@ and the single boolean with the standard discoverable set.
   `S256CodeChallengeMethod` are registered via `TryAddEnumerable`, so a deployment adds a method by
   registering another `ICodeChallengeMethod`. The verifier compares the computed challenge in constant
   time (`CryptographicOperations.FixedTimeEquals`).
-- **Setting cutover (clean, per the pre-release posture — [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).**
+- **Setting cutover (clean, per the pre-release posture — [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).**
   The boolean `allow_plain_code_challenge_method` is **removed** in favor of the collection setting
   `code_challenge_methods_supported` (default `["plain", "S256"]`, merge **Intersect** so a child tenant
   can only narrow, [ADR-1038](1038-setting-merge-lattice-duals.md)). Disallowing `plain` is expressed by

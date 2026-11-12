@@ -127,6 +127,6 @@ Concretely:
   reserved asymmetric public-material exposure as the additive option adopted here.
 - [ADR-1024](1024-control-plane-and-per-tenant-planes.md) — the server/tenant/client ownership planes the
   read scope follows.
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the Auth0-parity-plus philosophy that
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the Auth0-parity-plus philosophy that
   frames a per-key public-material read as parity with familiar admin workflows.
 - RFC 7517 (JSON Web Key) and RFC 7468 (PEM / SubjectPublicKeyInfo) — the two returned representations.

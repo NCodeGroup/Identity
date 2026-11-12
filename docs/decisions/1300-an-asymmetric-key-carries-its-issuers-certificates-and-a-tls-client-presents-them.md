@@ -64,7 +64,7 @@ client presents them with the client certificate.**
   trusts only the root accepts the handshake.
 - `AsymmetricSecretKey`, `RsaSecretKey`, `EccSecretKey` and `ISecretKeyFactory` gain public members; a custom
   `ISecretKeyFactory` must implement the new method, a breaking addition accepted under the pre-release posture
-  ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 - A host that loads a PEM certificate and key builds the leaf with `X509Certificate2.CreateFromPem` and adds the issuer
   certificates it loads separately to the collection.
 

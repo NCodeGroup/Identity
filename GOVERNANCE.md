@@ -75,7 +75,7 @@ See [ADR-1502](docs/decisions/1502-code-a-self-hoster-could-use-is-public-and-th
   [ADR-1003](docs/decisions/1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md)). From the first stable release,
   validation-affecting or otherwise breaking changes are **major** version bumps, and the public surface evolves
   backward-compatibly per [`docs/api-compatibility.md`](docs/api-compatibility.md)
-  ([ADR-1005](docs/decisions/1005-public-api-surface-is-tracked-and-evolves-compatibly.md)); before it, a breaking change
+  ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)); before it, a breaking change
   needs no major version, deprecation step or migration path
   ([project-template ADR-0015](docs/decisions/project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md)).
 

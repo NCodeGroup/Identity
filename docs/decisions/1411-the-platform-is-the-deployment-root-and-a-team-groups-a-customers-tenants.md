@@ -151,7 +151,7 @@ the platform and its tenants in the settings cascade and in authority.**
 ## References
 
 - [ADR-1010](1010-supported-settings-unset-means-unrestricted.md) — unset settings are unrestricted
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — pre-release posture
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — pre-release posture
 - [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md) — hosted platform environment model
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — vocabularies are open unless provably closed
 - [ADR-1159](1159-a-tenant-is-named-by-its-creator.md) — a tenant is named by its creator

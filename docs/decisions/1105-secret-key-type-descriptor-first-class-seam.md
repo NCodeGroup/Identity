@@ -79,7 +79,7 @@ fold the parallel registries and duplicated state into it.
 
 - **Keep `SecretTypes.Certificate` for back-compat.** Rejected. A public constant whose values cannot be deserialized
   (no catalog descriptor is keyed to `x509`) is a latent trap; the greenfield posture
-  ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)) favors removing it over preserving a broken shape.
+  ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)) favors removing it over preserving a broken shape.
 
 - **A separate `PublicKeySecretKey` hierarchy / per-family duplication of certificate state.** Rejected. Lifting the
   shared state onto `AsymmetricSecretKey` keeps a single source of truth without forking key resolution.
@@ -89,7 +89,7 @@ fold the parallel registries and duplicated state into it.
 - One registration — an `ISecretKeyTypeDescriptor` — teaches the whole system (generate, import, export, deserialize,
   JWKS publication, management capabilities) about a new key type. The descriptor is the documented, public extension
   seam; `ISecretKeyFactory` remains the lower-level primitive the descriptors build keys with.
-- **Breaking public-surface churn** (expected pre-release, [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)):
+- **Breaking public-surface churn** (expected pre-release, [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)):
   `IJsonWebKeyConverter` and the typed `JsonWebKey` classes are removed (the JWKS `keys` array is now JSON objects);
   `SecretTypes.Certificate` is removed; `SecretKeyTypeDescriptor` / `AsymmetricSecretKeyTypeDescriptor` are now public;
   the persistence generator/importer/serializer and the descriptor interface gain/lose members.

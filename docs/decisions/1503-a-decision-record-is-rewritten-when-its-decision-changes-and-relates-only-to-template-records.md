@@ -12,7 +12,7 @@ A record that another record amends or supersedes makes a reader assemble one de
 out of date. A chain of `Amends`, `Amended by`, `Superseded by` and `Supersedes` lines grows with every change, and a
 reader who stops at the first file reads a decision the code does not hold.
 
-The family is pre-release ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md),
+The family is pre-release ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md),
 [project-template ADR-0015](project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md)): nothing it
 decided has a released reader that must keep working, and git history keeps every earlier text of a record.
 
@@ -73,4 +73,4 @@ decided and recorded before it is built holds in full.
   [project-template ADR-0010](project-template/0010-a-change-consumers-can-observe-is-decided-before-it-is-built.md),
   [project-template ADR-0012](project-template/0012-the-templates-records-are-numbered-below-1000-a-projects-from-1000.md),
   [project-template ADR-0015](project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md)
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)

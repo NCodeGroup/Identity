@@ -39,7 +39,7 @@ A grant's payload is stored only as an `nce1.` envelope under the master key of 
    also lets a tenant whose master keys `DeveloperSecretPruningSeedHandler` replaced keep working: its users sign in
    again instead of getting a 500. `ConsumeOnceOrDefault` checks the payload before it marks a grant consumed.
 5. **Contract.** `PersistedGrant.PayloadJson` (`JsonElement`) becomes `ProtectedPayload` (`string`), and the same on
-   `GrantEntity`. A clean cutover ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)): the
+   `GrantEntity`. A clean cutover ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)): the
    `ProtectGrantPayloads` `[ContractMigration]` deletes every existing grant row, all short-lived, so users
    re-authenticate, and replaces the column.
 
@@ -70,4 +70,4 @@ A grant's payload is stored only as an `nce1.` envelope under the master key of 
   `nce1.` envelope.
 - [ADR-1113](1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md) — the versioned payload document.
 - [ADR-1116](1116-memory-allocations-and-buffer-operations.md) — sensitive buffers.
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — clean cutover.
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — clean cutover.

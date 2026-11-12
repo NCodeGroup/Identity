@@ -22,7 +22,7 @@ an ADR exists to record how we _apply_ it, not to override it. A self-authored A
 cited as justification to deviate from current authoritative best practice: when an ADR and the
 authoritative guidance conflict, re-evaluate and **rewrite the ADR to align with the standard**
 rather than treating the ADR as having settled the question. This is a direct corollary of the
-greenfield posture ([ADR-1025](./1025-pre-release-posture-and-auth0-parity-plus.md)) — our own
+greenfield posture ([ADR-1025](./1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)) — our own
 docs, code, and ADRs are point-in-time artifacts that may be wrong and are subordinate to the
 standards.
 
@@ -75,10 +75,9 @@ The records are grouped by area; within an area they are in number order.
 | --- | --- | --- |
 | [1001](./1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) | Behavior is a service, a strategy collection or a mediator seam, chosen by one ladder | Accepted |
 | [1003](./1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md) | The family versions in lockstep from one version.json and ships source-linked symbol packages | Accepted |
-| [1005](./1005-public-api-surface-is-tracked-and-evolves-compatibly.md) | The public API surface is tracked and evolves backward-compatibly | Accepted |
 | [1012](./1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) | Concurrency tokens are interceptor-managed, and a lost race surfaces as a store-neutral exception | Accepted |
 | [1016](./1016-implementation-packages-depend-only-on-abstractions.md) | Implementation packages depend only on abstractions; composition wires them | Accepted |
-| [1025](./1025-pre-release-posture-and-auth0-parity-plus.md) | Pre-release posture: greenfield, and an Auth0-parity-plus design philosophy | Accepted |
+| [1025](./1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) | The family is greenfield and pre-release, tracks its public API, and models Auth0-parity-plus | Accepted |
 | [1052](./1052-entity-framework-persistence-is-a-framework-plus-slices.md) | Entity Framework persistence is a reusable framework plus domain slices | Accepted |
 | [1056](./1056-abstractions-split-into-framework-free-tiered-packages.md) | `NCode.Identity.Abstractions` is split into framework-free, correctly-tiered packages | Accepted |
 | [1069](./1069-registration-library-compile-time-marker-nesting.md) | DI registration nests per package and folder through compile-time marker builders | Accepted |
@@ -113,7 +112,6 @@ The records are grouped by area; within an area they are in number order.
 | [1355](./1355-general-aspnet-core-helpers-live-in-a-dependency-free-package.md) | General ASP.NET Core helpers live in a dependency-free package | Superseded |
 | [1385](./1385-no-shipping-package-switches-off-its-consumers-logging-generator.md) | No shipping package switches off its consumers' logging generator | Accepted |
 | [1386](./1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md) | Primitives are benchmarked in a project the build compiles and nothing runs | Accepted |
-| [1397](./1397-before-the-first-stable-release-no-identifier-or-version-is-held-for-an-unreleased-state.md) | Before the first stable release, no identifier or version is held for an unreleased state | Accepted |
 | [1428](./1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors.md) | A package translates the exceptions it owns into protocol errors | Accepted |
 | [1486](./1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md) | An analyzer in every project reports a field that could be an auto-property | Accepted |
 | [1493](./1493-global-json-requires-the-newest-net-sdk-release-past-the-cooldown.md) | global.json requires the newest .NET SDK release past the cooldown | Accepted |

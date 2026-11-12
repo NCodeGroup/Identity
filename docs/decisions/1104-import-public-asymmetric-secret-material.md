@@ -123,7 +123,7 @@ axis so public keys round-trip cohesively.**
   unblocking `private_key_jwt` / `self_signed_tls_client_auth` end-to-end onboarding ([#54](https://github.com/NCodeGroup/identity/issues/54) Phase 1).
 - **Breaking persistence change:** `PersistedSecret` / `SecretEntity` gain a required `SecretEncoding` column (an EF
   migration backfills existing rows: `symmetric` → `symmetric_raw`, `x509` → `x509`, `rsa` / `ecc` → `pkcs8`). Accepted
-  under the greenfield, pre-release posture ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  under the greenfield, pre-release posture ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 - New public surface: `ISecretImporter` + `ImportSecretRequest` (persistence); `SecretEncoding` on `PersistedSecret`;
   `ImportSecretRequest` + `POST .../secrets/import` management contracts; a JWK reader in the Secrets slice.
 - The importer is **public-only by construction**, so no private or symmetric material is ever accepted on an import

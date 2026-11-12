@@ -13,7 +13,7 @@ The family exists to be extended easily and without restriction. Its extension p
 adds a strategy to a collection resolved from DI ([ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md)),
 contributes descriptors through `ICollectionDataSource<T>` (settings, [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md)),
 or registers a named implementation (security profiles, client-authentication methods, PKCE transformations). The
-Auth0-parity-plus posture ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)) asks for data-driven,
+Auth0-parity-plus posture ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)) asks for data-driven,
 flexible controls, which only holds when a deployment or sibling package can add what the library did not foresee.
 
 The convention for vocabularies said: an `enum` for a genuinely closed set, `public const string` values for one a
@@ -98,7 +98,7 @@ relationships in a mask or a chain, closes the behavior and the topology even wh
 
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — services, strategy collections, and mediators,
   the registration seams an open vocabulary uses.
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the pre-release, Auth0-parity-plus posture.
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the pre-release, Auth0-parity-plus posture.
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) — a vocabulary of registered values is closed to unregistered
   input, which is a different thing from a closed type.
 - [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md) — the setting scopes, the case that motivated this rule.

@@ -13,7 +13,7 @@ branch for in-progress work, with the released line protected behind pull-reques
 maintainer approval and no self-approval. Three standing facts make that model inert rather than protective:
 
 1. **Nothing is released.** The family is pre-1.0 with no stable tag and no external consumers
-   ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)). A long-lived integration branch exists to stage work
+   ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)). A long-lived integration branch exists to stage work
    away from a trunk that external consumers are already building against. With no such consumers, the integration
    branch is a second name for the trunk plus a merge step, and the two branches drift for no benefit.
 2. **The approval rule is unsatisfiable.** A single-maintainer project cannot produce "at least one approval, no
@@ -45,7 +45,7 @@ nothing is published, so a broken commit costs one person one fix-forward commit
 
 Protection is adopted at the **first stable release**, not before: a required `Definition of Done` check, and an
 approval requirement once a second maintainer exists. That is the same trigger that ends the pre-release latitude in
-[ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md), so the two move together.
+[ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md), so the two move together.
 
 **Gate deployment with an environment, not a branch.** A branch is a poor deployment gate: it conveys no approval
 and no audit record. Promotion to a hosted environment is gated by a deployment environment with its own required
@@ -79,12 +79,12 @@ others depend on.
   with `nbgv prepare-release`, and a release is still an annotated tag. This ADR removes only the *integration* branch,
   not the release-line model.
 - The latitude recorded here is scoped to the pre-release period in the same way as
-  [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md): the first stable release is an explicit trigger to
+  [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md): the first stable release is an explicit trigger to
   re-evaluate.
 
 ## References
 
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the greenfield pre-release posture whose "no released
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the greenfield pre-release posture whose "no released
   consumers" premise this decision shares. That ADR's decision is unchanged; its incidental references to the former
   integration branch are corrected to name the trunk.
 - [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) — why this stance is recorded in the repository

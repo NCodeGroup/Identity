@@ -11,7 +11,7 @@ Several abstractions have **growing sets of optional selection criteria**. `IGra
 `(subjectId, clientId, sessionId)` to `(subjectId, clientId, sessionId, grantType)`. Each addition was a positional
 parameter.
 
-While the family is [pre-release](1025-pre-release-posture-and-auth0-parity-plus.md) adding a parameter is a free,
+While the family is [pre-release](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) adding a parameter is a free,
 clean cutover. **After GA it is a breaking change**: a new positional (or even optional) parameter changes the method
 signature, breaking source and binary compatibility for implementers and callers. For a published library whose store
 interfaces consumers implement, that is a real cost.
@@ -52,7 +52,7 @@ Apply this specifically to **optional, growing filter/criteria sets**. Do **not*
 
 ## References
 
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the pre-release posture that makes _now_ the time to
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the pre-release posture that makes _now_ the time to
   adopt the pattern before GA freezes the signatures.
 - [`instructions/csharp-production.instructions.md`](../../.github/instructions/csharp-production.instructions.md) —
   carries the convention for day-to-day work.

@@ -73,7 +73,7 @@ single uniform follow-up rather than bolted onto only the new leaves. Both are t
 
 - The four owner types (server, tenant, client, resource server) are now uniform: one settings/secret
   shape, one set of store methods, one endpoint pattern, one set of base helpers. New owners cost less.
-- Greenfield breaking changes land cleanly ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)):
+- Greenfield breaking changes land cleanly ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)):
   `PersistedResourceServer.Settings` changed type, `ResourceServerResource`/`UpdateResourceServerRequest`
   dropped `Settings`, and the store interface grew — all acceptable pre-release, with `PublicAPI`
   churn expected.

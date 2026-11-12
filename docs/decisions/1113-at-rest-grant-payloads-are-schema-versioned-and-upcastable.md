@@ -29,7 +29,7 @@ strings, not ordinals) but has no story for **deliberate schema evolution** of d
   (the in-place `UpdatePayloadAsync` path used by `session`, device, and CIBA grants) **silently drops** the members it
   did not recognize, because nothing captures them.
 
-The family is greenfield and pre-release ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)), so there is no
+The family is greenfield and pre-release ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)), so there is no
 shipped data to migrate today — but the at-rest format is exactly the kind of decision that is cheap to get right now
 and expensive to retrofit once real stores exist. The valuable, non-speculative move is to stamp a version into the data
 from day one and establish the single seam where migration will live.
@@ -98,7 +98,7 @@ long-lived, in-place-mutated payloads.** Concretely:
 
 ## References
 
-- [ADR-1025: Pre-release posture and Auth0-parity-plus](1025-pre-release-posture-and-auth0-parity-plus.md)
+- [ADR-1025: Pre-release posture and Auth0-parity-plus](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)
 - [ADR-1059: Device authorization grant](1059-device-authorization-grant.md) — the `UpdatePayloadAsync` in-place
   mutation path
 - [ADR-1074: Session management and logout](1074-session-management-and-logout.md) — the long-lived `session` grant

@@ -53,7 +53,7 @@ stored settings document that names a setting without a descriptor, or a value o
 [ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)), so a change to
 the setting vocabulary that a deployed database stores needs a data migration of the documents.
 
-Nothing is released ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)). No database outside a developer's
+Nothing is released ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)). No database outside a developer's
 machine holds this schema, no release serves beside a new one, and no rollback returns to one. A chain of migrations
 before the first release replays schema states and data shapes that only development databases ever held: each step is
 code to review, every data rewrite is hand-written SQL that the model-drift gate cannot check, and the chain names
@@ -144,7 +144,7 @@ item 8 for the reference host's two contexts: a re-scaffolded migration ships wi
 
 ## References
 
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the pre-release posture.
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the pre-release posture.
 - [project-template ADR-0015](project-template/0015-a-pre-release-project-describes-the-product-as-it-is.md) — the pre-release
   product is described as it is.
 - [ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md),

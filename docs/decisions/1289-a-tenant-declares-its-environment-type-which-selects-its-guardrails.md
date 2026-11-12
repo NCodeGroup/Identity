@@ -1,7 +1,7 @@
 # 1289. A tenant declares its environment type, which selects its guardrails
 
 - **Status:** Accepted (amended by
-  [ADR-1397](1397-before-the-first-stable-release-no-identifier-or-version-is-held-for-an-unreleased-state.md): the
+  [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md): the
   audit record carries `tenant_environment_type` in its `"1.0"` schema; amended by
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): a team's settings
   document selects the environment type its tenants inherit)
@@ -135,13 +135,13 @@ tenant that declares nothing is `production`.**
 - The audit record schema is 1.1; the new field is additive, so a reader of 1.0 records keeps working. A management
   audit event that names a tenant costs one read of the tenant's settings per tenant per request.
 - `IEffectiveSettingsResolver.ReadScopeSettings` takes the parent settings, a breaking change to the public API,
-  acceptable before release ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  acceptable before release ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 - A package adds an environment type by registering a class; a type that selects an unregistered profile fails when the
   catalog is composed rather than when a tenant is read.
 
 ## References
 
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — pre-release posture
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — pre-release posture
 - [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md) — hosted platform environment model
 - [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md) — security profiles accumulate down the
   cascade

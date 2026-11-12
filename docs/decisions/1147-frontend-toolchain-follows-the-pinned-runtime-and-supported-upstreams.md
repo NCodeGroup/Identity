@@ -57,7 +57,7 @@ rules need to live in the repository rather than be rediscovered per update.
 
 - **Keep `eslint-plugin-react` behind `@eslint/compat`'s `fixupPluginRules`.** Rejected: that shims an unmaintained
   plugin past a peer range it does not declare. The repository prefers a supported design over a compatibility
-  layer ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  layer ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 - **Use `@eslint-react` alone and drop `eslint-plugin-react-hooks`.** Rejected: the React team's plugin is the reference
   for the Rules of Hooks and the only source of the React Compiler diagnostics (`refs`, `immutability`, `globals`,
   `preserve-manual-memoization`, and others).

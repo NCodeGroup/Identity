@@ -70,7 +70,7 @@ migration for no behavioral gain. The boundary reads self-documentingly — `Sub
   cost ROPC already paid — and is subject to the same `IFederatedIdentityLinkingPolicy` (verified-join-key linking),
   which is the intended uniform behavior.
 - **Behavioral change:** a resource-owner-password (and interactive) `sub` is now the resolved opaque principal id, not
-  the raw `LocalAccountId`. Greenfield/pre-release, so no compatibility shim ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md));
+  the raw `LocalAccountId`. Greenfield/pre-release, so no compatibility shim ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md));
   tests assert the stable-and-opaque property instead of the raw id.
 - `IPrincipalResolver` and `SubjectAuthentication` are public API; the overload addition and the `SubjectId` →
   `PrincipalId` rename are expected `PublicAPI.Unshipped.txt` churn.

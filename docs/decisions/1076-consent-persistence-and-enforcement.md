@@ -33,7 +33,7 @@ consent into the grant store would either be silently wiped by the logout bulk-r
 grant type out of that sweep and inventing re-activation semantics for a deterministic key the consume-once grant model
 never needed.
 
-This is a greenfield, pre-release family ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)); the standing
+This is a greenfield, pre-release family ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)); the standing
 posture is to choose the cohesive long-term model over the minimal patch, even when it means new schema and public-API
 churn.
 

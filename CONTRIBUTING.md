@@ -263,7 +263,7 @@ Because these libraries are built for publication, an accidental change to the p
 consumer. The
 [`Microsoft.CodeAnalysis.PublicApiAnalyzers`](https://github.com/dotnet/roslyn-analyzers/blob/main/src/PublicApiAnalyzers/PublicApiAnalyzers.Help.md)
 Roslyn analyzer makes the surface explicit and reviewable via a `PublicAPI.Shipped.txt` / `PublicAPI.Unshipped.txt`
-pair per packable project ([ADR-1005](docs/decisions/1005-public-api-surface-is-tracked-and-evolves-compatibly.md)):
+pair per packable project ([ADR-1025](docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)):
 
 - Add public API → add its lines to `PublicAPI.Unshipped.txt` (the IDE's _"Add to public API"_ code fix generates them).
 - Remove public API → prefix the removed line with `*REMOVED*` in `PublicAPI.Unshipped.txt`.

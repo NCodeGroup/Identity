@@ -97,4 +97,4 @@ unset scalar has no sensible ⊤.
 - Enforcement gates: `DefaultSelectTokenGrantHandlerHandler`, `DefaultValidateTokenRequestHandler`,
   `DefaultValidateAuthorizationCodeGrantHandler`, `DefaultValidateRefreshTokenGrantHandler`,
   `DefaultValidateAuthorizationRequestHandler`, `DefaultAuthorizationEndpointHandler`
-- ADR-1001 (service vs strategy vs mediator), ADR-1005 (public API surface)
+- ADR-1001 (service vs strategy vs mediator), ADR-1025 (public API surface)

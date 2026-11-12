@@ -74,7 +74,7 @@ release writes, and it requires a marker that states what a data change does to 
      `SeparateCertificateBindingRequirement`, `RenameDPoPRequirement` and `RenameRefreshTokenRotationSetting`.
    - Every other migration is unmarked.
 
-   No release exists ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)), so the reason of each contract
+   No release exists ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)), so the reason of each contract
    marker says that the step shipped before any release. From the first release on, a contract step ships a release
    after the expansion that it completes.
 

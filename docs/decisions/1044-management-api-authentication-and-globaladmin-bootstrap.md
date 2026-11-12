@@ -180,7 +180,7 @@ registration on `IdentityServerBuilder`), and the host configures the renderer.
   an OpenAPI security scheme, and a bootstrap seeder; the existing imperative authorization is unchanged, and the
   host selects configuration and renders the Scalar auth affordance. New configuration options (bootstrap client
   id/secret, their presence as the opt-in) and their public API join the surface
-  ([ADR-1005](1005-public-api-surface-is-tracked-and-evolves-compatibly.md)).
+  ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 - The bootstrap credential is durable, rotatable, and idempotent across restarts and replicas; it is never logged and is
   protected at rest. Operators should scope it to cold start and provision durable administrators promptly, then disable
   or rotate it.

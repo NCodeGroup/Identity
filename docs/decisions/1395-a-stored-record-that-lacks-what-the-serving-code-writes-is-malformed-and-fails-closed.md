@@ -6,13 +6,13 @@
   [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md))
 - **Date:** 2026-11-03
 - **Deciders:** NCode Group
-- **Refines:** [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) and
+- **Refines:** [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) and
   [project-template ADR-0108](project-template/0108-persisted-documents-are-versioned-and-additive.md)
 
 ## Context
 
 The family is greenfield and pre-release
-([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)): no released package, deployed database or consumer
+([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)): no released package, deployed database or consumer
 holds a stored record. Every record a store holds is one that the serving code wrote.
 
 A reader that accepts a record lacking what the serving code writes gives that record a meaning the serving code never
@@ -109,7 +109,7 @@ gives it:
 ## References
 
 - [project-template ADR-0108](project-template/0108-persisted-documents-are-versioned-and-additive.md)
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)
 - [ADR-1113](1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md)
 - [ADR-1220](1220-an-end-user-session-always-ends-and-its-grant-expires-when-it-does.md)
 - [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)

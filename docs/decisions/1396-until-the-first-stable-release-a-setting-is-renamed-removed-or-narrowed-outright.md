@@ -23,7 +23,7 @@ one rolls out and after a rollback, and it fails closed on a name it does not kn
 released setting therefore needs a way to keep the name loadable for one release, a copy of its value, and a later
 contract step, and a rename needs a name reserved a release ahead. Each part is shaped by what the first release ships.
 
-Nothing is released ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)). No release serves beside another,
+Nothing is released ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)). No release serves beside another,
 and no stored document exists outside a developer's database, whose migration creates the schema and writes no data
 ([ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)). A
 retired-setting state in the descriptor, and a validator that threads the stored document through every management
@@ -75,7 +75,7 @@ settings update to accept it, would carry a design with no instance in every `IS
 
 ## References
 
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the pre-release posture.
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the pre-release posture.
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) — setting names are a closed vocabulary.
 - [ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md) — migrations keep the
   previous release working.

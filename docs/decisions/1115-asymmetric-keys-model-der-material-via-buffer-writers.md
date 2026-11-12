@@ -50,7 +50,7 @@ destination) where TWriter : IBufferWriter<byte>, allows ref struct`) rather tha
   and its operations attach as algorithm-specific seams. This unblocks [#68](https://github.com/NCodeGroup/identity/issues/68) (EdDSA) and the PQC direction in [#66](https://github.com/NCodeGroup/identity/issues/66).
 - `PublicAPI.Unshipped.txt` churn in `NCode.Identity.Secrets.Abstractions` (removed `ExportAsymmetricAlgorithm`; added
   the writer-based `ExportSubjectPublicKeyInfo<TWriter>`). Expected and acceptable under the greenfield posture
-  ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)); it supersedes the `ExportAsymmetricAlgorithm`-shaped
+  ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)); it supersedes the `ExportAsymmetricAlgorithm`-shaped
   surface described in [ADR-1067](1067-secret-type-capability-catalog-and-capabilities-discovery.md) and
   [ADR-1105](1105-secret-key-type-descriptor-first-class-seam.md).
 - This change adds **no** new algorithms or key types — only the enabling model and convention. The EdDSA (OKP)

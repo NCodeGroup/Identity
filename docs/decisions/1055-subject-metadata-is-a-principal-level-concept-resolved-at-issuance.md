@@ -23,7 +23,7 @@ stamped make the projection reachable for only one of the many ways a subject au
   consult a `LocalAccount` or re-stamp metadata; the refresh-token path replays the persisted principal. So even a
   **local** account only gets its metadata projected through ROPC, not through interactive login or refresh.
 
-This diverges from the Auth0-parity posture ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)) the metadata
+This diverges from the Auth0-parity posture ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)) the metadata
 model targets. In Auth0 `user_metadata` / `app_metadata` is a property of the **normalized user** — present for every
 connection type and surfaced on every issuance — not a property of one connection kind. The actor in this model is the
 `FederatedPrincipal` ([ADR-1035](1035-federated-principals-and-identity-resolution.md)): the single per-human entity
@@ -142,7 +142,7 @@ Secrets stay standalone-reusable — is tracked in [GitHub issues](https://githu
   one of the projection handlers extends.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the mediator pipeline that makes projection a
   first-class extension seam.
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the Auth0-parity-plus posture: per-user metadata
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the Auth0-parity-plus posture: per-user metadata
   available across all connection types.
 - [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) — why this reasoning lives in an ADR rather than
   chat or agent memory.

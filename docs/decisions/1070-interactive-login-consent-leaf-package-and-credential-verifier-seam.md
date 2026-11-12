@@ -73,7 +73,7 @@ The three UI extensibility seams are now explicit and symmetric: the **bundle** 
 - The capability is referenceable on its own; `NCode.Identity.Server` only references it like any other
   capability. The old `NCode.Identity.Server.InteractiveAuthentication.*` public surface is removed and
   reintroduced under `NCode.Identity.OpenId.Authentication.Interactive.*` — breaking `PublicAPI` churn,
-  acceptable pre-release ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  acceptable pre-release ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 - A second credential backend (LDAP, external IdP, passwordless) is now a matter of implementing
   `IInteractiveCredentialVerifier`; no fork of the surface is required.
 - Host wiring moves onto the authentication-library builder:

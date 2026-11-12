@@ -71,7 +71,7 @@ fix is only which tenant that context carries.
   ([ADR-1034](1034-persisted-role-assignments-and-ownership.md)) to principals of the control-plane tenant.
 - `ITenantStrategy`, `ITenantResolver`, `IOpenIdTenantFactory`, and `IOpenIdContextFactory` each gain a member, a
   breaking change for a custom implementation, accepted under the pre-release posture
-  ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 
 ## References
 

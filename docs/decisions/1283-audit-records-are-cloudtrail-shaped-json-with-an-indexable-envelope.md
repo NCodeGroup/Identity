@@ -1,7 +1,7 @@
 # 1283. Audit records are CloudTrail-shaped JSON with an indexable envelope
 
 - **Status:** Accepted (amended by
-  [ADR-1397](1397-before-the-first-stable-release-no-identifier-or-version-is-held-for-an-unreleased-state.md): the
+  [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md): the
   event IDs `14003` and `14004` are free, the record's schema version is `"1.0"` with every field it carries, and a
   field added to a released schema bumps the minor version; amended by
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): a tenant's audit record names
@@ -29,7 +29,7 @@ event acted on, and the caller, stated in the record rather than implied by the 
 Operators of identity providers already know two record shapes. AWS CloudTrail describes an event as the identity of the
 caller, a request context, the resources acted on, an error and event-specific request parameters. Auth0's log events
 use OAuth-vocabulary snake_case names and a stable event type code. An audit record that follows both is familiar to
-those operators and to the tools built around them ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+those operators and to the tools built around them ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 
 ## Decision
 
@@ -148,7 +148,7 @@ buffer and copies it, because `Utf8JsonWriter` cannot hold a ref struct. It neve
 - The change is breaking for public API and for log and metric names: `Action` is `EventName`, `Timestamp` is
   `EventTime`, `OpenIdAuditActions` is `OpenIdAuditEventNames`, and the metric attribute `ncode.identity.audit.action`
   is `ncode.identity.audit.event_name`. This is acceptable under the pre-release posture
-  ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 - A refresh-token replay is logged at Critical, because its severity is `critical`.
 - A record contains personal data: the source address and the subject id. How long records are kept, and who can read
   them, is the host's decision; the library writes the record and keeps none.
@@ -170,7 +170,7 @@ buffer and copies it, because `Utf8JsonWriter` cannot hold a ref struct. It neve
 - [Metrics](../metrics.md) — the audit metric attributes
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the service, strategy-collection and mediator
   shapes; an audit sink stays an event handler
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — breaking changes are acceptable before release
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — breaking changes are acceptable before release
 - [ADR-1047](1047-auditing-and-events-observation-seam.md) — the event seam and the envelope this amends
 - [ADR-1049](1049-openid-errors-audited-from-single-funnel.md) — the single funnel that records `openid.error`
 - [ADR-1116](1116-memory-allocations-and-buffer-operations.md) — the writer uses buffer writers and allocates no

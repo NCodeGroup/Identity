@@ -29,7 +29,7 @@ The allowed set for a client is computed as the union, over the tenant's enabled
 - **every scope of a system resource server** (`IsSystem`) — a system resource server is **implicitly available to
   every client**, with no client grant required (this is how the OpenID Connect identity resource server makes
   `openid`/`profile`/… and `offline_access` "just work," generalized to any system resource server per
-  [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)); and
+  [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)); and
 - **the granted scopes of a non-system resource server, intersected with that resource server's current scopes** — a
   client grant authorizes a non-system API, and a granted scope no longer defined on the resource server is silently
   ignored (**read-time intersection**), so revoking a scope on the API immediately narrows every grant without a
@@ -74,7 +74,7 @@ subsumed, not lost.
 
 - [ADR-1023](1023-scopes-and-resources-management-model.md) — the resource server / scope / client grant model this
   decision enforces at runtime.
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the Auth0-parity-plus philosophy and the
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the Auth0-parity-plus philosophy and the
   `IsSystem`-implicit-grant generalization.
 - [ADR-1018](1018-tenant-scoped-data-access-at-the-persistence-layer.md) — the ambient-tenant scoping the resolver sets
   explicitly at the OIDC runtime.

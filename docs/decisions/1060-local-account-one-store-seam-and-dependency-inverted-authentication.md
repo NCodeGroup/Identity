@@ -33,7 +33,7 @@ write seam and added the management family. Exercising that model surfaced four 
   `AccountConstants` in the accounts package — the one tie that kept the authentication token/UserInfo handlers
   depending on the accounts package.
 
-This family is pre-release ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)), so the response is a clean
+This family is pre-release ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)), so the response is a clean
 cutover rather than compatibility shims.
 
 ## Decision

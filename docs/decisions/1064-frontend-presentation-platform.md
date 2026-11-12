@@ -38,7 +38,7 @@ Building these as independent one-off UIs would duplicate the design system, the
 bootstrapping, and build tooling, and would drift. The decision is to establish **one cohesive frontend
 platform** that all of these surfaces share.
 
-This is **greenfield** ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)): we default to the
+This is **greenfield** ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)): we default to the
 best long-term structure rather than the smallest patch. The platform lives in the monorepo today; a repo
 split is anticipated at GA, so package boundaries are drawn to make that extraction mechanical.
 
@@ -154,7 +154,7 @@ services/logic — so every layer is independently testable.** Concretely:
   platform (new group `U`).
 - Related: [ADR-1062](1062-opt-in-interactive-login-consent-ui.md) (opt-in login/consent UI and its
   stable-locator contract — the Auth surface of this platform must honor it),
-  [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) (greenfield posture),
+  [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) (greenfield posture),
   [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) (service/strategy/mediator model the
   API this UI drives is built on).
 - Management REST surface:

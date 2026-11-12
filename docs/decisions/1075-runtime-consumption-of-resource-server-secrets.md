@@ -101,4 +101,4 @@ which already exists; JWE access tokens are the self-contained alternative for c
   sender-constrained tokens (DPoP / mTLS), PAR, and JAR/JARM — are a separate epic tracked in
   [GitHub issues](https://github.com/NCodeGroup/identity/issues).
 - New public surface: `IResourceServerCredentialResolver` and its resolution/result models. Greenfield,
-  so `PublicAPI.Unshipped.txt` churn is expected ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  so `PublicAPI.Unshipped.txt` churn is expected ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).

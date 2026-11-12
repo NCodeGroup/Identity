@@ -100,7 +100,7 @@ _output_ of resolution, so having `GetSubjectId` return it would be circular.
 - The pattern is reusable: future host-level logic hooks have a clear, documented home instead of being injected ad hoc
   or duplicated per surface.
 - `OpenIdEnvironment` and `OpenIdContext` grow members over time; each is a public abstract/virtual addition, so a new
-  hook is a deliberate surface change tracked in `PublicAPI.Unshipped.txt` ([ADR-1005](1005-public-api-surface-is-tracked-and-evolves-compatibly.md)).
+  hook is a deliberate surface change tracked in `PublicAPI.Unshipped.txt` ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 - A consumer reaches the seam the way its scope dictates: the **end-user** subject through `OpenIdContext.GetSubjectId`
   (tenant-aware), the **admin actor** through the app-level `IOpenIdEnvironmentProvider` with
   `OpenIdConstants.DefaultSubjectClaimTypes` (a self-issued control-plane identity must not read the target tenant's

@@ -156,7 +156,7 @@ renaming an instrument or attribute is a deliberate change.
   service-level indicators on it: availability as the share of protocol requests that are not `5xx`, and latency as a
   percentile of the token endpoint's duration.
 - Renaming the event metric's attributes changes a consumer-visible contract; pre-release, it is made once, cleanly
-  ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 
 ## References
 

@@ -48,7 +48,7 @@ Registration creation keeps its protector because it generates the client secret
 - **Store a JWK or PEM.** A JWK carries `kid`, `use` and `alg`, which can change after the key is stored, and PEM is a
   second format. SPKI is what every descriptor already deserializes. Rejected.
 - **Backfill existing rows at startup.** Needs every owner's master key at startup. Rejected: the family is pre-release
-  ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 - **Store it for public-only secrets too.** Duplicates `EncodedValue` and loses an `x509` certificate. Rejected.
 
 ## Consequences
@@ -64,5 +64,5 @@ Registration creation keeps its protector because it generates the client secret
 
 - [ADR-1058](1058-asymmetric-public-key-material-read-path.md) — the public-key read path this amends.
 - [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — the key hierarchy.
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — pre-release posture, no backfill.
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — pre-release posture, no backfill.
 - [#176](https://github.com/NCodeGroup/identity/issues/176) — the issue.

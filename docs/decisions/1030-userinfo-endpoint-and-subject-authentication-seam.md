@@ -79,7 +79,7 @@ Two naming consequences of introducing a second subject-authentication path were
 - The UserInfo response is extensible and consistent with discovery/introspection; new claims are additive handler
   registrations, not endpoint or response-type changes.
 - The authorization-slice rename is a breaking change to those public command/handler type names, acceptable under the
-  pre-release posture ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  pre-release posture ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 
 ## References
 

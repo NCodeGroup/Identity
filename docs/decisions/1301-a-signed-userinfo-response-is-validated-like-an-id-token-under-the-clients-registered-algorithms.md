@@ -79,7 +79,7 @@ token, under the algorithms it registered; a client that registered no UserInfo 
 - The BFF can register its ID-token signing and encryption algorithms, which it could not before.
 - `ClientRegistration`, `OpenIdProviderMetadata` and `OpenIdProtocol.MetadataNames` gain public members, and
   `BffOptions.LoadUserInfo` becomes `BffOptions.UserInfo.Load`, a breaking change accepted under the pre-release
-  posture ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  posture ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 
 ## References
 

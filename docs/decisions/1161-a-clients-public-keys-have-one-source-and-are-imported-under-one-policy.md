@@ -117,7 +117,7 @@ client key enters.**
   key carrying private material is never stored, echoed, or used.
 - Clients may register `OKP` (EdDSA) and `AKP` (ML-DSA) keys wherever the server registers those key types.
 - Two clients may use the same `kid`; registration no longer fails when they do.
-- **Breaking changes**, accepted under the pre-release posture ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)):
+- **Breaking changes**, accepted under the pre-release posture ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)):
   the `jwks` setting, `OpenIdSettingNames.Jwks`, and `OpenIdSettingKeys.Jwks` are removed (a migration strips the
   setting from stored documents); a registered key without a `kid` is refused; a `jwks_uri` client's stored public
   keys are no longer used; `AsymmetricSecretKeyTypeDescriptor.ExpectedJwkKeyType` becomes the public `JwkKeyType`

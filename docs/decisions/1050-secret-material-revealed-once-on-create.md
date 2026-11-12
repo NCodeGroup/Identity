@@ -150,7 +150,7 @@ Concretely:
   `EncodedValue`.
 - [ADR-1024](1024-control-plane-and-per-tenant-planes.md) — the server/tenant/client ownership planes
   the reveal scope follows.
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the Auth0-parity-plus philosophy that
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the Auth0-parity-plus philosophy that
   frames one-time reveal as parity with familiar client-secret workflows.
 - [ADR-1049](1049-openid-errors-audited-from-single-funnel.md) — the audit funnel that must never
   observe the one-time plaintext.

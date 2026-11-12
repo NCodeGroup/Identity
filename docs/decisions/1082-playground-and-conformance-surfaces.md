@@ -22,7 +22,7 @@ Two design questions had to be settled first:
   that [#124](https://github.com/NCodeGroup/identity/issues/124)/[#125](https://github.com/NCodeGroup/identity/issues/125) drive" — but the Selenium-driven login/consent surface the external suite automates is already
   `apps/auth` ([#125](https://github.com/NCodeGroup/identity/issues/125)). Per the greenfield, security-practice-default posture
   ([repository instructions](../../.github/instructions/repository.instructions.md),
-  [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)),
+  [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)),
   existing prose is a point-in-time artifact, so the surface was (re)defined by what a modern, security-aware identity
   platform should offer.
 - **How does each standalone SPA learn its own public client id?** Each interactive surface is its own public client
@@ -101,7 +101,7 @@ document surface-aware so one endpoint can hand each surface its own coordinates
   [ADR-1071](1071-aspire-local-dev-orchestrator.md) (Aspire local-dev orchestrator),
   [ADR-1062](1062-opt-in-interactive-login-consent-ui.md) / [ADR-1065](1065-interactive-login-consent-op-hosted-auth-surface.md)
   (the `apps/auth` login/consent surface this does not duplicate).
-- Posture: [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) and the security-practice default in
+- Posture: [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) and the security-practice default in
   [`.github/instructions/repository.instructions.md`](../../.github/instructions/repository.instructions.md).
 - Conformance plan: [`docs/conformance-testing.md`](../conformance-testing.md).
 - Platform guide: [`frontend/README.md`](../../frontend/README.md).

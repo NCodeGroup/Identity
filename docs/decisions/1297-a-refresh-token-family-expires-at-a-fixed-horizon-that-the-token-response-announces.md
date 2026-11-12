@@ -78,7 +78,7 @@ sound only when the value is a fixed horizon that never moves later within a fam
   `refresh_token_sliding_lifetime` (default 15 days).
 - Refresh tokens stored before this change carry no family start and are refused at their next use; the users sign
   in again. Nothing is shipped, so no migration is offered
-  ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 - `ITokenService.CreateRefreshTokenAsync`, `RotateRefreshTokenAsync` and `ReissueRefreshTokenAsync` return
   `IssuedRefreshToken`, and `RefreshTokenGrant` gains a positional `LineageCreatedWhen`: breaking changes to the
   public API, acceptable before release.

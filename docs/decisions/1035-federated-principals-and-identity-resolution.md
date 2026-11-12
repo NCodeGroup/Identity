@@ -175,7 +175,7 @@ no code today:
 - [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md) — the authorization model whose abstract principal
   this ADR gives a durable identity.
 - [ADR-1034](1034-persisted-role-assignments-and-ownership.md) — the persisted assignments that reference `PrincipalId`.
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the pre-release, Auth0-parity-plus posture under which
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the pre-release, Auth0-parity-plus posture under which
   the principal-identity surface is refined before release.
 - [ADR-1051](1051-local-accounts-behind-a-pluggable-account-source-seam.md) — adds the local kind of connection: a
   `FederatedIdentity` whose `issuer` is this server, carrying a `LocalAccount` credential/profile/status payload. This

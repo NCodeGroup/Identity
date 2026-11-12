@@ -126,5 +126,5 @@ classification to active probing without re-architecture.** Concretely:
   which makes Phase 1 semantics "advertised").
 - Conformance oracle: [`docs/conformance-testing.md`](../conformance-testing.md) (the external OpenID Foundation
   Conformance Suite this matrix pre-flights).
-- Posture: [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) and the security-practice default in
+- Posture: [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) and the security-practice default in
   [`.github/instructions/repository.instructions.md`](../../.github/instructions/repository.instructions.md).

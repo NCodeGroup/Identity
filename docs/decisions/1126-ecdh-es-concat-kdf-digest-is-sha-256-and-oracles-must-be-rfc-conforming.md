@@ -74,7 +74,7 @@ non-conforming behavior into the assertions.
 
 - ECDH-ES over P-384 / P-521 is now interoperable with conforming JOSE implementations. This is a **breaking change to
   token compatibility**: a JWE this library previously issued on those curves can no longer be decrypted by it. The
-  pre-release posture ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)) makes this a clean cutover with
+  pre-release posture ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)) makes this a clean cutover with
   no compatibility shim. P-256 output is unchanged.
 - `NCode.Identity.Jose.Tests` targets `net10.0` rather than `net10.0-windows`, which is what lets the family build and
   test on a Linux CI runner ([ADR-1125](1125-trunk-based-development-on-main.md) brings that CI online).
@@ -90,7 +90,7 @@ non-conforming behavior into the assertions.
   Agreement; the normative "Digest Method is SHA-256".
 - [NIST SP 800-56A](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-56Ar3.pdf) §5.8.1 — the Concat
   KDF this derivation implements.
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — the pre-release posture that makes the token-format
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the pre-release posture that makes the token-format
   correction a clean cutover.
 - [ADR-1125](1125-trunk-based-development-on-main.md) — the continuous-integration gate whose Linux runner surfaced the
   platform-specific target framework.

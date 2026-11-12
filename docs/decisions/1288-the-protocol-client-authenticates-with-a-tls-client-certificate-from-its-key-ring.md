@@ -86,7 +86,7 @@ to the provider's `mtls_endpoint_aliases` when it has them.**
 ## Consequences
 
 - A custom `IClientAuthenticator` must implement `UsesMutualTls`, a breaking addition accepted under the pre-release
-  posture ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  posture ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 - A host can configure the per-certificate clients by name prefix, for example to set a proxy.
 - A client certificate issued by an intermediate CA reaches the OP with its chain: the key carries its issuers'
   certificates ([ADR-1300](1300-an-asymmetric-key-carries-its-issuers-certificates-and-a-tls-client-presents-them.md)).
@@ -94,7 +94,7 @@ to the provider's `mtls_endpoint_aliases` when it has them.**
 
 ## References
 
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — pre-release posture
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — pre-release posture
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
 - [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
 - [ADR-1285](1285-the-openid-protocol-client-needs-no-aspnet-core-runtime.md) — no ASP.NET Core runtime

@@ -71,7 +71,7 @@ on a shared _context_ — and segregate the service along its two independent re
 - Bespoke one-off validation remains expressible from Abstractions through `AssertionRequirement` (its delegate operates
   only on the Abstractions `JwtValidationContext`), so the escape hatch needs no implementation reference.
 - This was a sizable but mostly mechanical breaking change, acceptable under the greenfield, pre-release posture
-  ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)); `PublicAPI.Unshipped.txt` churn and the package
+  ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)); `PublicAPI.Unshipped.txt` churn and the package
   rename were expected and preferred over compatibility shims.
 - The default claims-identity factory and the default key resolver remain implementation details reached through the
   nullable escape-hatch delegates on `JwtValidationParameters`; when a delegate is null, the validator supplies the

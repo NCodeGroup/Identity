@@ -37,7 +37,7 @@ Several defaults over-advertised capabilities that modern guidance (the OAuth 2.
 
 This was a discovery over-advertisement audit (issue [#128](https://github.com/NCodeGroup/identity/issues/128)): the conformance Config OP profile fails on
 anything advertised that the OP will not deliver, and advertising deprecated/insecure flows contradicts the
-project's secure-by-default posture ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+project's secure-by-default posture ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 
 ## Decision
 

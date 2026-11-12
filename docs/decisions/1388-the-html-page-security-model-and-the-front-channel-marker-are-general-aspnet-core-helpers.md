@@ -73,7 +73,7 @@ framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a s
 ## Consequences
 
 - A consumer references `NCode.Identity.AspNetCore`, adds `using NCode.Identity.AspNetCore;` and calls `WithFrontChannel()`. The family
-  is pre-release ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)), so the move is a clean cutover with
+  is pre-release ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)), so the move is a clean cutover with
   no forwarding types.
 - A package that references `NCode.Identity.AspNetCore` also references `NCode.Buffers`, which most of the family's packages
   already reference.

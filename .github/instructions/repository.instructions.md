@@ -37,7 +37,7 @@ This is a settled decision, not a question. Apply it without asking, and never r
 ## Design posture (greenfield, pre-release)
 
 This family is **greenfield and pre-release** — nothing is shipped and there is **no backward-compatibility to
-preserve** ([ADR-1025](../../docs/decisions/1025-pre-release-posture-and-auth0-parity-plus.md)). **Default to the best
+preserve** ([ADR-1025](../../docs/decisions/1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)). **Default to the best
 long-term, cohesive design.** When a change forks between a minimal, compatibility-preserving patch and the
 comprehensive, correct model, choose the comprehensive model **without** weighing refactor difficulty or public-surface
 breakage — PublicAPI churn, setting renames/removals, signature changes, moved types, and clean cutovers are expected

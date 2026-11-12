@@ -94,4 +94,4 @@ Concretely:
 - [ADR-1022](1022-grant-filters-and-bulk-revocation.md) — the load-and-mutate bulk-revocation pattern this reuses
 - [ADR-1077](1077-session-scoped-grant-revocation-on-logout.md) — session-scoped grant revocation on logout
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — the concurrency-token interceptor that stamps changed rows
-- [ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md) — greenfield, secure-by-default, Auth0-parity-plus posture
+- [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — greenfield, secure-by-default, Auth0-parity-plus posture

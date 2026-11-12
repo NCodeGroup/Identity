@@ -106,7 +106,7 @@ never compresses.**
 
 - **Stop advertising and retire the UserInfo algorithm settings** (the alternative [#102](https://github.com/NCodeGroup/identity/issues/102) offered). Rejected: signed and
   encrypted UserInfo responses are part of OpenID Connect Core and of the Auth0-parity-plus surface
-  ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)); implementing them is the complete model.
+  ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)); implementing them is the complete model.
 - **Keep choosing algorithms from the lists.** Rejected: a client cannot predict the result, so it cannot pin the
   algorithm it verifies with, and a list says nothing about which party's key receives an encrypted response.
 - **Fall back to a permitted algorithm, or pick an encryption algorithm when encryption is required.** Rejected: the

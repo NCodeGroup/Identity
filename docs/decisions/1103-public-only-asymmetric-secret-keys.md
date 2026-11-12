@@ -42,7 +42,7 @@ certificate without a private key.**
 
 - **Keep rejecting public-only material; require callers to hold private keys.** Rejected. It is impossible for the
   genuine use case — a relying party registers only its public key — and conflicts with the greenfield posture of
-  modeling the correct shape ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)).
+  modeling the correct shape ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)).
 
 - **A separate `PublicKeySecretKey` type outside the `RsaSecretKey` / `EccSecretKey` hierarchy.** Rejected. Subclassing
   the existing abstractions means every consumer that resolves keys by `RsaSecretKey` / `EccSecretKey` and the signature

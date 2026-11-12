@@ -81,7 +81,7 @@ false` stops a redirect from bouncing the fetch to an internal host. This floor 
 
 - **Keep accepting the configured host without fetching (status quo from ADR-1093).** Rejected. It is the explicit
   [#58](https://github.com/NCodeGroup/identity/issues/58) gap: without the fetch, sector membership is unverified, so a client can claim another party's host as its
-  sector. The greenfield posture ([ADR-1025](1025-pre-release-posture-and-auth0-parity-plus.md)) prefers the correct,
+  sector. The greenfield posture ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)) prefers the correct,
   spec-complete model.
 
 - **Fetch with the shared default `HttpClient` (as the `request_uri` loader does today).** Rejected for this sink. The

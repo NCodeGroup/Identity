@@ -16,7 +16,7 @@ resolves every stored tenant document, and both writes check the stored clients 
 `IClientCoherenceValidator.Validate`. It throws a `JsonException` for a document that the current settings vocabulary
 cannot honor: an unregistered setting, a value outside its domain, or a setting outside its scope
 ([ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md),
-[ADR-1140](1140-setting-values-are-validated-against-their-domain.md),
+[ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md),
 [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md)).
 
 An exception that escapes fails the write with `500`. One such document therefore blocks every server write, and an

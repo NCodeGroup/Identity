@@ -19,7 +19,7 @@
   [ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md),
   [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md),
   [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md),
-  [ADR-1140](1140-setting-values-are-validated-against-their-domain.md),
+  [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md),
   [ADR-1142](1142-listed-response-types-are-the-only-front-channel-token-control.md),
   [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md),
   [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md),

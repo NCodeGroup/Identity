@@ -49,7 +49,7 @@ lists.**
    root wires them ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)) and a host replaces any of
    them.
 2. **Two tenant settings set the length.** Both apply to tenants and neither is discoverable
-   ([ADR-1140](1140-setting-values-are-validated-against-their-domain.md)).
+   ([ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)).
    - `password_min_length` is an `int` between 8 and 64 that defaults to 15, and merges with `Max`, so a narrower scope
      may only raise the floor. 15 is the requirement for a single-factor password, and 8 is the absolute floor.
    - `password_max_length` is an `int` between 64 and 4096 that defaults to 128, and merges with `Replace`. 64 is the
@@ -145,7 +145,7 @@ lists.**
 - [NIST SP 800-63B-4](https://pages.nist.gov/800-63-4/sp800-63b/authenticators/) §3.1.1.2 — the length, the blocklist
   and the guidance for a password.
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — the composition root wires the defaults.
-- [ADR-1140](1140-setting-values-are-validated-against-their-domain.md) — the domains of the length settings.
+- [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) — the domains of the length settings.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — the error codes are an open vocabulary.
 - [ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md) — the self-service change.
 - [ADR-1237](1237-failed-password-attempts-are-limited-per-account.md) — the limit on failed attempts.

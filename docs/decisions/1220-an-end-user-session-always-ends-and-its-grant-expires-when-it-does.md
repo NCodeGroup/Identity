@@ -39,7 +39,7 @@ request that finds an ended session terminates it.**
 
 1. **Both bounds always apply.** `session_absolute_lifetime` is between one second and 365 days and defaults to 30
    days. `session_idle_timeout` is between one second and 100 days and defaults to 3 days. Both use
-   `SettingRules.Between` ([ADR-1140](1140-setting-values-are-validated-against-their-domain.md)), so a zero is
+   `SettingRules.Between` ([ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)), so a zero is
    refused: no setting may weaken a security control below its safe baseline. The merge stays `Replace`, because a
    tenant owns its users' session policy and the domain caps it. The defaults are Auth0's tenant defaults ("Require log
    in after" 30 days, inactivity 3 days), and the longest values are Auth0's enterprise maxima. NIST SP 800-63B
@@ -109,7 +109,7 @@ request that finds an ended session terminates it.**
 - No touch of a session and no addition of a client to it loses a concurrent write
   ([ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md)).
 - A value outside a domain that the previous release stores during the rollout fails closed
-  ([ADR-1140](1140-setting-values-are-validated-against-their-domain.md)) until it is corrected.
+  ([ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)) until it is corrected.
 - **Breaking:** `CreateSessionRequest.Lifetime` is replaced by the required `CreateSessionRequest.AbsoluteLifetime`, and
   `CreateSessionRequest.IdleTimeout` is required and not nullable. `SessionGrant.AbsoluteExpiresWhen` is added.
   `IPersistedGrantService.UpdatePayloadAndExpirationAsync` is added, so every implementation of the service implements
@@ -123,7 +123,7 @@ request that finds an ended session terminates it.**
 - [ADR-1077](1077-session-scoped-grant-revocation-on-logout.md) — a termination revokes the terminating session's
   grants.
 - [ADR-1098](1098-session-lifecycle-termination-seam.md) — the termination seam that an ended session dispatches.
-- [ADR-1140](1140-setting-values-are-validated-against-their-domain.md) — setting values are validated against their
+- [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) — setting values are validated against their
   domain.
 - [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md) — a migration keeps the
   previous release working.

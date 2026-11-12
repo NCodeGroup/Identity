@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amends [ADR-1079](1079-extensible-pkce-code-challenge-methods.md),
   [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md), and
-  [ADR-1140](1140-setting-values-are-validated-against-their-domain.md); amended by
+  [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md); amended by
   [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md): a client authenticates only with its
   registered method, so the type it authenticates as at the token endpoint is the type it is registered as; amended by
   [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
@@ -119,7 +119,7 @@ the status every other OAuth error response uses.
   domain and default are amended here.
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — secure-by-default metadata; `plain` is no longer an
   operator option.
-- [ADR-1140](1140-setting-values-are-validated-against-their-domain.md) — setting domains; PKCE methods move from a
+- [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) — setting domains; PKCE methods move from a
   fixed vocabulary to the registered transformations, and narrowing a domain ships with a data migration.
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — `require_pkce` is a floor.
 - [ADR-1108](1108-fapi-security-profile-merge-lattice-ceiling-injection.md) — the FAPI 2.0 profile requires PKCE.

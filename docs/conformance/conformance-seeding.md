@@ -35,7 +35,7 @@ so a second run neither duplicates nor fails. Before storing a client it validat
 registered setting descriptors and the client coherence rules, and imports its key set under the policy a dynamically
 registered `jwks` follows; the test user's password must meet the tenant's password policy. A refused value stops the
 seeding with an error naming the client or the test user, rather than storing an identity that fails every request
-([ADR-1140](../decisions/1140-setting-values-are-validated-against-their-domain.md)).
+([ADR-1140](../decisions/1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)).
 
 ## Basic OP registrations
 

@@ -20,7 +20,7 @@
 ## Context
 
 The domain of a setting is checked on its own
-([ADR-1140](1140-setting-values-are-validated-against-their-domain.md)), so it cannot relate two settings. A client's
+([ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)), so it cannot relate two settings. A client's
 registration depends on such relations: an algorithm that the client registers for a JWT must be in the effective list
 that permits it ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)), a redirect URI must
 be of a kind that `redirect_uri_kinds_supported` lists ([ADR-1203](1203-redirect-uris-are-matched-exactly.md)), and the
@@ -161,7 +161,7 @@ authorization.
    setting over the limit that counts the rest. A walk over many clients can report one error per client, and it still
    visits every client, so the count is exact.
 5. **The rules run after the cheaper checks.** Each place validates the settings document against the setting domains
-   ([ADR-1140](1140-setting-values-are-validated-against-their-domain.md)) before it runs the rules, so a rule reads
+   ([ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)) before it runs the rules, so a rule reads
    only values whose domain is accepted. Dynamic registration and the management settings update also check the key
    material of the client before the rules; a seeder imports the keys or the secret of the client after its rules.
 6. **Dynamic registration keeps no relation check of its own.** The request values that become the client's own

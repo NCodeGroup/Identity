@@ -129,7 +129,7 @@ forms carry on.**
 - A tenant advertises only locales the interface renders, chooses which of them a request may select, and chooses
   its default language among them: the advertised set and the rendered default never disagree. A stored
   `ui_locales_supported` or `default_ui_locale` that names an unregistered locale is outside its domain and fails
-  closed like any other setting ([ADR-1140](1140-setting-values-are-validated-against-their-domain.md)).
+  closed like any other setting ([ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)).
 - A host that renders its own interface registers its locales and reads the request's preference the same way; a
   host that keeps the surface adds a language with one `InteractiveLocale` and one bundle catalog, and rewords a
   shipped one with `AddInteractiveLocale`. A locale registered without the surface's messages stops the host as it

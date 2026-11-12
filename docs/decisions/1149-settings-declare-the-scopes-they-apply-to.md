@@ -16,7 +16,7 @@
 ## Context
 
 Setting names are a closed vocabulary ([ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md)) and setting values
-are validated against their domain ([ADR-1140](1140-setting-values-are-validated-against-their-domain.md)). Four scopes
+are validated against their domain ([ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)). Four scopes
 carry a settings document — the server, each tenant, each client, and each resource server — and their documents
 cascade: the server's settings merge into every tenant's, and a tenant's into each of its clients' and each of its
 resource servers'. Each runtime service reads one scope's effective settings. Discovery and the tenant-wide services
@@ -134,7 +134,7 @@ anywhere else is rejected at every entry point, exactly as an unregistered name 
 ## References
 
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md) — the closed vocabulary of names (extended: and of scopes).
-- [ADR-1140](1140-setting-values-are-validated-against-their-domain.md) — value domains, checked at the same entry
+- [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) — value domains, checked at the same entry
   points.
 - [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md) — security profiles (amended: a resource
   server selects none).

@@ -135,7 +135,7 @@ The records are grouped by area; within an area they are in number order.
 | [1108](./1108-fapi-security-profile-merge-lattice-ceiling-injection.md) | FAPI security profile via merge-lattice ceiling injection | Accepted |
 | [1109](./1109-fapi-behavioral-rules-and-discovery-validation-details.md) | FAPI 2.0 behavioral rules and discovery/validation details | Accepted |
 | [1139](./1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md) | Setting names are a closed vocabulary changed outright, and settings the server cannot honor fail loudly | Accepted |
-| [1140](./1140-setting-values-are-validated-against-their-domain.md) | Setting values are validated against their domain, not only their type | Accepted |
+| [1140](./1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) | Setting values are validated against their domain, not only their type | Accepted |
 | [1148](./1148-security-profiles-accumulate-down-the-settings-cascade.md) | Security profiles accumulate down the settings cascade | Accepted |
 | [1149](./1149-settings-declare-the-scopes-they-apply-to.md) | Settings declare the scopes they apply to | Accepted |
 | [1202](./1202-fapi-1-0-advanced-is-a-second-registered-security-profile.md) | FAPI 1.0 Advanced is a second registered security profile | Accepted |

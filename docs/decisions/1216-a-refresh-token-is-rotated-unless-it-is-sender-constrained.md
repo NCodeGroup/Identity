@@ -53,7 +53,7 @@ client, and the `refresh_token_rotation_policy` setting replaces the `refresh_to
    default needs a setting that does not merge with a lattice operation
    ([ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md)).
 6. **The domain is closed.** The value selects a behavior that the server enforces, so an unknown value fails closed
-   ([ADR-1140](1140-setting-values-are-validated-against-their-domain.md),
+   ([ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md),
    [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)), like the sibling policies of the refresh token.
 7. **A migration renames the stored setting.** `RenameRefreshTokenRotationSetting` rewrites the settings documents of
    the `Servers`, `Tenants`, and `Clients` tables. `Up` turns a boolean `true` into the policy `always` and removes a
@@ -93,7 +93,7 @@ client, and the `refresh_token_rotation_policy` setting replaces the `refresh_to
 - [ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md) — the reuse detection of a rotated token.
 - [ADR-1148](1148-security-profiles-accumulate-down-the-settings-cascade.md) — a profile supplies defaults for the
   settings that do not merge with a lattice operation.
-- [ADR-1140](1140-setting-values-are-validated-against-their-domain.md) and
+- [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) and
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — a closed domain fails closed.
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md) and
   [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md) — the rollout of a

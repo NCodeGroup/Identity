@@ -18,7 +18,7 @@ A security profile ([ADR-1108](1108-fapi-security-profile-merge-lattice-ceiling-
 ceiling settings injected into the merge lattice, and request-time requirements for the rules no ceiling can express (a
 confidential client, a sender-constrained access token, an issuer-only assertion audience). A deployment adds a profile
 by registering an `ISecurityProfile`, and the profile setting's domain is the registered names
-([ADR-1140](1140-setting-values-are-validated-against-their-domain.md)). A baseline that a server or tenant mandates must
+([ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)). A baseline that a server or tenant mandates must
 hold for every scope below it, whichever profile it is. Three things kept that from holding.
 
 - **The selection was one name, merged by a rule that knew one profile.** A child replaced its parent's selection unless
@@ -169,7 +169,7 @@ that selects it.**
   (amended: the selection and its merge).
 - [ADR-1109](1109-fapi-behavioral-rules-and-discovery-validation-details.md) — the profile registry and requirement
   objects (amended: every selected profile's requirements run).
-- [ADR-1140](1140-setting-values-are-validated-against-their-domain.md) — the profile domain (amended: a list of
+- [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) — the profile domain (amended: a list of
   registered names).
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — the merge lattice; [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) —
   an absent list is unrestricted, an empty one permits nothing; [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md) —

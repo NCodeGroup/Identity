@@ -1,6 +1,6 @@
 # 1141. Response types are whole values, enforced exactly and consistent with grant types
 
-- **Status:** Accepted (amends [ADR-1140](1140-setting-values-are-validated-against-their-domain.md),
+- **Status:** Accepted (amends [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md),
   [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md), and
   [ADR-1063](1063-dynamic-client-registration.md); extended by
   [ADR-1142](1142-listed-response-types-are-the-only-front-channel-token-control.md): the listed response types are the
@@ -108,7 +108,7 @@ canonical form — and it is always considered together with the grant types it 
 
 ## References
 
-- [ADR-1140](1140-setting-values-are-validated-against-their-domain.md) — the response-type domain this replaces.
+- [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) — the response-type domain this replaces.
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — secure-by-default discovery; the baseline stays `code`.
 - [ADR-1063](1063-dynamic-client-registration.md) — dynamic client registration.
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — an unset ceiling is unrestricted.

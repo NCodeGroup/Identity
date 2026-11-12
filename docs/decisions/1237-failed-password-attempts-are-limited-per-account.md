@@ -67,7 +67,7 @@ of its first failure ends, with exactly the answer that a wrong password gets.**
    window starts at the first failure, and a refused password is counted and does not extend it. The refusal lasts
    until the window ends.
 4. **Two tenant settings set the limit.** Both apply to tenants and neither is discoverable
-   ([ADR-1140](1140-setting-values-are-validated-against-their-domain.md)).
+   ([ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)).
    - `password_failed_attempts_limit` is an `int` between 1 and 100 that defaults to 10, and merges with `Min`, so a
      narrower scope may only lower it. 100 is the most that NIST allows.
    - `password_failed_attempts_window` is a `TimeSpan` between one minute and one day that defaults to 15 minutes, and

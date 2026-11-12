@@ -11,7 +11,7 @@
 A client registers the one method that it authenticates with, `token_endpoint_auth_method`
 ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md)), and the server advertises the methods that
 it supports in `token_endpoint_auth_methods_supported`. The domain of both settings is the set of registered methods
-([ADR-1140](1140-setting-values-are-validated-against-their-domain.md)), and the advertised default is that set too.
+([ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)), and the advertised default is that set too.
 
 The setting descriptors learned the methods from the handlers. `DefaultClientSettingDescriptorDataSource` resolved every
 `IClientAuthenticationHandler` to read its `AuthenticationMethod`. The setting-descriptor catalog that it feeds is read
@@ -77,5 +77,5 @@ review (issue [#251](https://github.com/NCodeGroup/identity/issues/251)) found b
   use, never in a constructor. Options validation constructs no handler, so the cycle of
   [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service.md) cannot arise through the handlers.
 - The domain of the client-authentication settings follows the registered descriptors, not the registered handlers. This
-  amends [ADR-1140](1140-setting-values-are-validated-against-their-domain.md).
+  amends [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md).
 - This implements issue [#251](https://github.com/NCodeGroup/identity/issues/251).

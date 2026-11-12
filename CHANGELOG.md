@@ -1454,7 +1454,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   injectable services with safe defaults. Push mode issues the tokens on approval and delivers them to the client's
   `client_notification_endpoint`, and the token endpoint rejects a push-mode poll. `client_notification_endpoint`
   defaults to empty, so a ping or push client that registers none is rejected for the missing endpoint
-  ([ADR-1140](docs/decisions/1140-setting-values-are-validated-against-their-domain.md)). A client may send its
+  ([ADR-1140](docs/decisions/1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)). A client may send its
   parameters as a signed `request` JWT validated against its keys. Discovery advertises the endpoint, the grant,
   `backchannel_token_delivery_modes_supported` (default `poll`, `ping`, `push`; `BackchannelTokenDeliveryModes`),
   `backchannel_user_code_parameter_supported` and `backchannel_authentication_request_signing_alg_values_supported`;
@@ -5730,7 +5730,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   runtime uses them (`jwks_uri`, `sector_identifier_uri` and `client_notification_endpoint` are https,
   `client_notification_endpoint` defaults to empty, and redirect URIs are absolute without a fragment). A list setting
   that contains `null` is a type error. A refresh token always expires (RFC 9700 §4.14.2)
-  ([ADR-1140](docs/decisions/1140-setting-values-are-validated-against-their-domain.md)).
+  ([ADR-1140](docs/decisions/1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)).
 
 - **A security profile that the platform, a team or a tenant selects binds every scope below it, whichever profile it is.**
   `security_profiles` (`OpenIdSettingKeys.SecurityProfiles`, a `SettingKey<IReadOnlyCollection<string>>`) is a list that

@@ -416,7 +416,7 @@ than inlining the rationale.
   [ADR-1242](../../docs/decisions/1242-the-in-process-dispatcher-is-configured-under-the-openid-section.md)). See
   [ADR-1137](../../docs/decisions/1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md),
   [ADR-1139](../../docs/decisions/1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md), and
-  [ADR-1140](../../docs/decisions/1140-setting-values-are-validated-against-their-domain.md).
+  [ADR-1140](../../docs/decisions/1140-setting-values-are-validated-against-their-domain-not-only-their-type.md).
 - 👁 **Setting names are a closed vocabulary.** Every setting a platform, team, tenant, client, or resource server carries has a
   registered `SettingDescriptor`, contributed through `ICollectionDataSource<SettingDescriptor>` by the package that
   reads or writes it; never read or write a setting through an ad-hoc `new SettingKey<T>("…")` without a descriptor.
@@ -444,7 +444,7 @@ than inlining the rationale.
   advertised, and compared in **one canonical form** (parts in ordinal order, single-space separated), which the rule
   enumerates; wire input is canonicalized at the protocol boundary before it is compared, never by a lenient setting
   reader, and is never split back into its parts to be enforced piecewise.
-  See [ADR-1140](../../docs/decisions/1140-setting-values-are-validated-against-their-domain.md) and
+  See [ADR-1140](../../docs/decisions/1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) and
   [ADR-1141](../../docs/decisions/1141-response-types-are-whole-values.md).
 - 👁 **A security profile binds every scope below the one that selects it.** Outside the live providers, resolve a
   scope's effective settings only through `IEffectiveSettingsResolver`. Use `Resolve(parent, scope, document)`,

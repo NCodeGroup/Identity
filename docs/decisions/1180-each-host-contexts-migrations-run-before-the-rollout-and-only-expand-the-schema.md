@@ -47,7 +47,7 @@ and strip the byte-order mark from the files it writes.
 `InitialCreateTests` fails a `Sql`, `InsertData`, `UpdateData` or `DeleteData` operation. Renaming, retiring or
 narrowing a setting edits its descriptor, and a stored document that does not fit the descriptor fails closed
 ([ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md),
-[ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)).
+[ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)).
 
 ### A database ahead of the assembly stops the worker
 
@@ -151,5 +151,5 @@ rule for every migration author.
   [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md),
   [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md),
   [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md),
-  [ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)
+  [ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)
 - [#535](https://github.com/NCodeGroup/identity/issues/535)

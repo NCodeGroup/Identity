@@ -1060,7 +1060,7 @@ internal class TeamApiEndpointHandler(
     /// <param name="parentSettings">The effective settings of the team's parent team, or of the platform for a top-level team.</param>
     /// <param name="replacedSettings">The team's committed settings document.</param>
     /// <returns>The team's effective settings, or <see langword="null"/> when the document cannot be honored.</returns>
-    // See ADR-1241.
+    // See ADR-1245.
     private IReadOnlySettingCollection? ResolveReplacedTeamSettingsOrDefault(
         string teamId,
         IReadOnlySettingCollection parentSettings,
@@ -1095,7 +1095,7 @@ internal class TeamApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="SettingError"/> instances, keyed by the team setting that does not permit each value, or
     /// an empty list.</returns>
-    // See ADR-1206 and ADR-1241.
+    // See ADR-1206 and ADR-1245.
     internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateClientCoherenceAsync(
         string teamId,
         IReadOnlySettingCollection currentTeamSettings,

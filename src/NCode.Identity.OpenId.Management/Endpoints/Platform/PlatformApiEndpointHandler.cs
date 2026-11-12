@@ -532,7 +532,7 @@ internal class PlatformApiEndpointHandler(
     /// <param name="replacedSettings">The platform's committed settings document.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The platform's effective settings, or <see langword="null"/> when the document cannot be honored.</returns>
-    // See ADR-1241.
+    // See ADR-1245.
     private async ValueTask<IReadOnlySettingCollection?> ResolveReplacedPlatformSettingsOrDefaultAsync(
         JsonElement replacedSettings,
         CancellationToken cancellationToken
@@ -573,7 +573,7 @@ internal class PlatformApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="SettingError"/> instances, keyed by the platform setting that does not permit each
     /// value, or an empty list.</returns>
-    // See ADR-1206 and ADR-1241.
+    // See ADR-1206 and ADR-1245.
     internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateClientCoherenceAsync(
         IReadOnlySettingCollection currentPlatformSettings,
         IReadOnlySettingCollection newPlatformSettings,

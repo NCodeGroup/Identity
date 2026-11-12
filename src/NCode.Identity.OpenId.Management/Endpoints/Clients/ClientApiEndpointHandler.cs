@@ -854,7 +854,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="limit">The maximum number of clients to check on the page.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">A page of incoherent clients.</response>
-    // See ADR-1233.
+    // See ADR-1245.
     [EndpointName("api/clients/incoherent/list")]
     internal virtual async ValueTask<IResult> ListIncoherentClientsAsync(
         HttpContext httpContext,

@@ -1548,7 +1548,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="SettingError"/> instances, keyed by the tenant setting that does not permit each value, or
     /// an empty list.</returns>
-    // See ADR-1206 and ADR-1241.
+    // See ADR-1206 and ADR-1245.
     internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateClientCoherenceAsync(
         string teamId,
         string tenantId,

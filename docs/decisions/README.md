@@ -139,10 +139,8 @@ The records are grouped by area; within an area they are in number order.
 | [1204](./1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md) | A scope's effective settings are resolved by one service and previewed through the management API | Accepted |
 | [1206](./1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md) | A client's settings are checked by registered coherence rules wherever they are written or bounded | Accepted |
 | [1219](./1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) | Server settings converge on every replica through one reconciliation | Accepted |
-| [1233](./1233-the-management-api-lists-a-tenants-incoherent-clients.md) | The management API lists a tenant's incoherent clients | Accepted |
 | [1234](./1234-a-server-settings-reconciliation-reaches-only-the-tenants-its-change-affects.md) | A server settings reconciliation reaches only the tenants its change affects | Accepted |
-| [1241](./1241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md) | A settings write is not refused for a stored document it cannot read | Accepted |
-| [1245](./1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md) | A management request answers 409 for a stored settings document it cannot honor | Accepted |
+| [1245](./1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md) | Management requests list incoherent clients, name unreadable stored settings, and let a write repair them | Accepted |
 | [1289](./1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md) | A tenant declares its environment type, which selects its guardrails | Accepted |
 | [1412](./1412-settings-are-reconciled-per-team.md) | Settings are reconciled per team | Accepted |
 | [1416](./1416-a-replica-that-may-have-missed-a-team-announcement-evicts-only-the-teams-whose-row-changed.md) | A replica that may have missed a team announcement evicts only the teams whose row changed | Accepted |

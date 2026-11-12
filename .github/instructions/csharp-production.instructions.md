@@ -310,14 +310,14 @@ than inlining the rationale.
   ([ADR-1206](../../docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)). List a tenant's
   incoherent clients, in a report or a background pass, only through `IClientCoherenceReporter`, which checks one page
   under the tenant's scope and reports a document the rules cannot read as `IncoherentClient.DocumentError`
-  ([ADR-1233](../../docs/decisions/1233-the-management-api-lists-a-tenants-incoherent-clients.md)).
+  ([ADR-1245](../../docs/decisions/1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)).
   A value the client registers in a setting whose merge is a meet (`SettingDescriptor.HasMeetMerge`: `Min`, `And`,
   `Intersect`) must survive into its effective settings, so a ceiling that lowers it is a violation, never a silent
   clamp, while a join only raises a value to a parent's floor and is never reported
   ([ADR-1206](../../docs/decisions/1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)). A settings write that walks
   the stored clients logs and skips a document the settings vocabulary cannot honor and never counts it as a violation
   the change introduces
-  ([ADR-1241](../../docs/decisions/1241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md)).
+  ([ADR-1245](../../docs/decisions/1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)).
 - 👁 **Options validation never constructs a strategy that has dependencies.** `IOptions<OpenIdOptions>.Value` runs
   every `IValidateOptions<OpenIdOptions>`, which read the setting-descriptor catalog, so every setting data source, and
   every catalog it consults to name a domain (the client-authentication method descriptors, the redirect URI kinds, the
@@ -660,8 +660,7 @@ than inlining the rationale.
   `UnreadableSettingsEndpointFilter` answers it with a `409` problem (`settingsScope`, `ownerId`, `documentError`), so
   no handler catches it. Resolve only after authorization (a read resolves in the `mapperAsync` of `ProcessGetAsync`),
   and keep `Resolve` for a proposed document and for a write that replaces the document it cannot read
-  ([ADR-1241](../../docs/decisions/1241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md),
-  [ADR-1245](../../docs/decisions/1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)).
+  ([ADR-1245](../../docs/decisions/1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)).
 - 👁 **A management problem that asks the caller to wait answers through `RetryAfterProblem.Create`**, which sets
   `Retry-After` and `retryAfterSeconds`; extension members are named by `ManagementProblemMembers`
   ([ADR-1422](../../docs/decisions/1422-a-management-problem-that-asks-the-caller-to-wait-carries-the-wait-in-retry-after-seconds.md)).

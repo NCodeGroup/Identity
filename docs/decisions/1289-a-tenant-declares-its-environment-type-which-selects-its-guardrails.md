@@ -101,7 +101,7 @@ tenant that declares nothing is `production`.**
     caller is authorized. `isProduction` is the registered type's `IsProduction`, so a client tells production from a
     contributed type without knowing its name. The environment is best-effort: when the tenant's or the server's stored
     settings cannot be honored, or name an unregistered type, it is omitted rather than answering `409`
-    ([ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)), because the
+    ([ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)), because the
     operator needs the list to find the tenant to repair. An audit record's resource values carry only the tenant's own
     state and omit it. The `apps/mgmt` tenant list shows the environment, highlights every non-production one, and
     filters by the types the listed tenants have.

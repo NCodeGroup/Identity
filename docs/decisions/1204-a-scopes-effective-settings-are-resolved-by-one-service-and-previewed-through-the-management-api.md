@@ -51,7 +51,7 @@ Its behavior:
   and returns the configured settings when there is no row, so a seed, a preview or a check sees a write at once on any
   replica.
 - `ResolveStored` and the committed-document reads throw `UnreadableSettingsException`, naming the scope and owner
-  ([ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)). `Resolve`
+  ([ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)). `Resolve`
   serves proposed documents and the sites that skip an unreadable one.
 - Every caller goes through the resolver: the team and tenant factories, the client resolver, the resource-server
   credential resolver, the key seed, rollover and reconciliation, the conformance seed and seeded-client validators, the
@@ -119,6 +119,6 @@ a resource server, each addressed by route.
 - [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md),
   [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md),
   [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md),
-  [ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md),
+  [ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md),
   [ADR-1289](1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md) and
   [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md).

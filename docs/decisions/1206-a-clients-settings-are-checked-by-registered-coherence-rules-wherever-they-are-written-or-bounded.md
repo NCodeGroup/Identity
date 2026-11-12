@@ -101,7 +101,7 @@ lowers is a violation.**
      `GetSettingsPageAsync` projections under an explicit tenant scope.
    - A change that is not a write is reported by the reconciliation's `ClientCoherenceReportHandler`
      ([ADR-1412](1412-settings-are-reconciled-per-team.md)); an unreadable stored document is skipped and logged
-     ([ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)).
+     ([ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)).
 6. **Order and bound.** Domain validation
    ([ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md)) runs before the rules;
    registration and management writes check key material before the rules, while a seeder imports keys after them. A

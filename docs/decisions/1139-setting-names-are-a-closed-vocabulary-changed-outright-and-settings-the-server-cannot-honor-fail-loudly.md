@@ -52,7 +52,7 @@ stored or skipped.**
    failure answers `400` with a validation problem keyed by setting name, and nothing is stored.
 5. **Stored documents fail closed when read.** `ISettingSerializer.DeserializeSettings` throws for a document it cannot
    honor. A protocol request that loads such a document fails, and a management request answers `409`
-   ([ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)). A stored
+   ([ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)). A stored
    document that names an unregistered setting stays `409` until a settings write replaces it, and
    `build/dev-db-reset.ps1` resets a developer database that holds one.
 6. **A setting changes outright.** Until the first stable release a setting is renamed, removed, or narrowed in scope or
@@ -112,7 +112,7 @@ stored or skipped.**
   [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md),
   [ADR-1165](1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md),
   [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md),
-  [ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)
+  [ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)
 - RFC 7591 section 3.2.1; issue #535
 - `DefaultSettingConfigurationReader`, `PlatformSettingsOptionsValidator`, `ISettingSerializer`, `SettingDescriptor`,
   `ISettingCollection`, `IClientScopeService`, `PersistedTenant.MtlsEndpointAliasAuthority`, `build/dev-db-reset.ps1`

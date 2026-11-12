@@ -2259,7 +2259,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (event ID 3009); a settings write that overwrites the document repairs it. `IEffectiveSettingsResolver` provides
   `ResolveStored`, and it and `ResolvePlatformAsync(CancellationToken)` throw `UnreadableSettingsException`, a
   `JsonException` that names the document
-  ([ADR-1245](docs/decisions/1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md),
+  ([ADR-1245](docs/decisions/1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md),
   issue [#301](https://github.com/NCodeGroup/identity/issues/301)).
 
 - **The management API rejects a client algorithm its effective settings do not permit.** Client create and settings
@@ -2283,7 +2283,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   or the `documentError` of a settings document that cannot be honored; a page can list no client while
   `continuationToken` remains. `IClientCoherenceReporter` finds them for the API and for the reconciliation's report,
   and `IncoherentClient`, `IncoherentClientResource` and `ClientCoherenceViolationResource` describe them
-  ([ADR-1233](docs/decisions/1233-the-management-api-lists-a-tenants-incoherent-clients.md), issue
+  ([ADR-1245](docs/decisions/1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md), issue
   [#278](https://github.com/NCodeGroup/identity/issues/278)).
 
 - **A tenant is named by whoever creates it.** `POST /api/teams/{teamId}/tenants` requires `CreateTenantRequest.TenantId`: 1 to 63
@@ -3412,7 +3412,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   as a violation the change introduces; a write that overwrites such a document of its own checks no client and logs it
   (`PlatformSettingsUnreadable`, 3008, `TeamSettingsUnreadable` or `TenantSettingsUnreadable`), so the management API can repair it. The
   incoherent-client report lists such a client
-  ([ADR-1241](docs/decisions/1241-a-settings-write-is-not-refused-for-a-stored-document-it-cannot-read.md),
+  ([ADR-1245](docs/decisions/1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md),
   [#295](https://github.com/NCodeGroup/identity/issues/295)).
 
 - **One tenant-resolution abstraction serves the OpenID runtime and the management API, and one

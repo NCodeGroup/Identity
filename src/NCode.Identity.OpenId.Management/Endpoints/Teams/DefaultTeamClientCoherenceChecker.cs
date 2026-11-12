@@ -22,7 +22,7 @@ namespace NCode.Identity.OpenId.Management.Endpoints.Teams;
 /// path to the visited team are held. Tenants are read as an untracked, secret-free projection
 /// (<see cref="ITenantStore.GetSettingsPageAsync(string, PageRequest, CancellationToken)"/>).
 /// </summary>
-// See ADR-1206, ADR-1241, ADR-1426 and ADR-1455.
+// See ADR-1206, ADR-1245, ADR-1426 and ADR-1455.
 internal sealed class DefaultTeamClientCoherenceChecker(
     IEffectiveSettingsResolver effectiveSettingsResolver,
     ITenantClientCoherenceChecker tenantClientCoherenceChecker,

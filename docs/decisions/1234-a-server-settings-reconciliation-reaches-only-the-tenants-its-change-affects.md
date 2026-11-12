@@ -74,11 +74,11 @@ handler reaches only the tenants and clients that the difference affects.**
 - A configuration reload that is reverted before its pass records it is invisible to the record, as it is to the
   fingerprint. A tenant created while it was in effect gains a missing key when it is next materialized, within
   `TenantCacheLifetime`, and the management API lists an incoherent client
-  ([ADR-1233](1233-the-management-api-lists-a-tenants-incoherent-clients.md)).
+  ([ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)).
 - A tenant that a handler logs and skips during a pass, because it cannot be handled, is reached by a later pass only
   when that pass's change affects it too. A key it lacks is seeded when it is next materialized, within
   `TenantCacheLifetime`, and the management API lists its incoherent clients
-  ([ADR-1233](1233-the-management-api-lists-a-tenants-incoherent-clients.md)).
+  ([ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)).
 - An input of a handler's test that is not a setting, such as a security profile's definition or a key-provisioning
   specification, is not in the record: both sides of the comparison use it as it is, so a pass reaches a tenant only
   when the tenant's effective settings differ. A key that such a change requires is seeded when the tenant is next
@@ -102,7 +102,7 @@ handler reaches only the tenants and clients that the difference affects.**
   affect.
 - [ADR-1219](1219-server-settings-converge-on-every-replica-through-one-reconciliation.md) — the reconciliation that
   this decision narrows.
-- [ADR-1233](1233-the-management-api-lists-a-tenants-incoherent-clients.md) — the report of the clients a change makes
+- [ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md) — the report of the clients a change makes
   incoherent.
 - Code: `NCode.Identity.OpenId.Servers.DefaultServerSettingsReconciler`,
   `NCode.Identity.OpenId.Servers.ServerSettingsSnapshot`,

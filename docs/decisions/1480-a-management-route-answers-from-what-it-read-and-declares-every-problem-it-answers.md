@@ -23,7 +23,7 @@ route gives. The forces:
   is one ([RFC 9457](https://www.rfc-editor.org/rfc/rfc9457)), and a declared `404` problem describes a body the
   route does not send.
 - **The root group's filters answer for state any route may read.** A stored settings document a route cannot honor
-  answers `409` ([ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md)),
+  answers `409` ([ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)),
   and an unavailable root key answers `503`
   ([ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)); both arise from reads
   through shared services whose reach no route owns.
@@ -99,7 +99,7 @@ filters on every route.**
   and an imported key's `kid` are checked against the owner's rows.
 - [ADR-1214](1214-a-management-write-that-loses-a-race-is-answered-412.md): a lost race answers `412`.
 - [ADR-1215](1215-a-revocation-wins-a-concurrency-race.md): a revocation retries and declares no `412`.
-- [ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md): the route
+- [ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md): the route
   group's `409`.
 - [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): the route group's `503`.
 - [ADR-1422](1422-a-management-problem-that-asks-the-caller-to-wait-carries-the-wait-in-retry-after-seconds.md): the

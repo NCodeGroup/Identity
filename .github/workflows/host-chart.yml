@@ -7,7 +7,7 @@
 # that routes every path to the console, call the management API at its authority's origin, stay opt-in (ADR-1458,
 # ADR-1488), and hold its key rings in a key management service under its own identity (ADR-1485). A server remote key
 # provider is registered only when enabled, with or without its location (ADR-1490).
-# Publishing the chart belongs to the release workflow.
+# The Publish artifacts workflow publishes the chart (ADR-1503).
 name: Host chart
 
 on:

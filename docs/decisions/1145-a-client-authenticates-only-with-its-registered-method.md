@@ -1,7 +1,7 @@
 # 1145. A client authenticates only with its registered method
 
 - **Status:** Accepted (amends [ADR-1481](1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md),
-  [ADR-1063](1063-dynamic-client-registration.md), [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md),
+  [ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md), [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md),
   [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md), and
   [ADR-1144](1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md); extended by
   [ADR-1168](1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md): a client bound to a resource

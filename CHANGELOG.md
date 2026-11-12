@@ -1613,7 +1613,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `registration_access_token` and the RFC 7591 `initial_access_token` are hash-keyed persisted grants. The
   deployment-specific `IInitialAccessTokenValidator` seam decides what counts as a valid initial access token. The error
   codes `invalid_client_metadata` and `invalid_redirect_uri` are defined
-  ([ADR-1063](docs/decisions/1063-dynamic-client-registration.md)). `client_name`, `client_uri`, `logo_uri`, `tos_uri`,
+  ([ADR-1192](docs/decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)). `client_name`, `client_uri`, `logo_uri`, `tos_uri`,
   `policy_uri`, `contacts`, `jwks`, `software_id` and `software_version` are stored as registered client settings; the
   requested `scope` is not stored, because the OpenID Connect scopes are available to every client, and the response's
   `scope` reports the scopes the client may request, taken from `IClientScopeService`, since scope entitlement comes
@@ -1632,7 +1632,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   revealed once and never retrievable again, together with the grant id for revocation through the grant management
   endpoint, and records an `InitialAccessTokenCreatedAuditEvent`, so a deployment that wants protected registration
   needs no out-of-band grant seeding or custom `IInitialAccessTokenValidator`
-  ([ADR-1063](docs/decisions/1063-dynamic-client-registration.md)). A `resourceServerId` scopes the token to a resource
+  ([ADR-1192](docs/decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)). A `resourceServerId` scopes the token to a resource
   server, under the same checks as when the management API binds a client: the resource server exists in the tenant, is
   not a system resource server, and the caller may update it. A client registered with a scoped token is bound to that
   resource server, must be confidential, and cannot be made public by an RFC 7592 update. A bound client registers
@@ -1640,7 +1640,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   client is refused, and the client information response reports the binding as `resource_server_id`.
   `IInitialAccessTokenValidator.ValidateAsync` returns the token's `InitialAccessTokenGrant`, or `null` for a token it
   refuses
-  ([ADR-1192](docs/decisions/1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md)).
+  ([ADR-1192](docs/decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)).
 
 - **Dynamic client registration accepts the strong client-authentication methods.** A self-registered client can
   register `private_key_jwt`, `client_secret_jwt`, `tls_client_auth`, or `self_signed_tls_client_auth`: registration
@@ -1666,7 +1666,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `RegisterClientRequest` and `RegisterClientResponse` carry `BackchannelLogoutUri` and
   `BackchannelLogoutSessionRequired`, stored as the `backchannel_logout_uri` and `backchannel_logout_session_required`
   client settings, so a self-registered client receives logout tokens, and the URI must be an absolute https URI without
-  a fragment ([ADR-1063](docs/decisions/1063-dynamic-client-registration.md), issue
+  a fragment ([ADR-1192](docs/decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md), issue
   [#389](https://github.com/NCodeGroup/identity/issues/389)). They also carry `PostLogoutRedirectUris`,
   `FrontchannelLogoutUri` and `FrontchannelLogoutSessionRequired`, validated as RP-Initiated Logout 1.0 §3.1 and
   Front-Channel Logout 1.0 §2 require (issue [#399](https://github.com/NCodeGroup/identity/issues/399)). The
@@ -2545,7 +2545,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   action (RFC 7591; `createInitialAccessToken`) takes an optional description, lifetime and resource server, picked from
   the tenant's non-system resource servers and sent as `resourceServerId`, and shows the plaintext token exactly once in
   `RevealInitialAccessTokenDialog`, naming the resource server the registered client is bound to
-  ([ADR-1192](docs/decisions/1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md), issue
+  ([ADR-1192](docs/decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md), issue
   [#134](https://github.com/NCodeGroup/identity/issues/134)).
 
 - **An OpenID protocol client for server-side callers that needs no ASP.NET Core runtime.**
@@ -2943,7 +2943,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **`IPersistedGrantService.AddAsync` returns the server-generated grant id.** It returns `ValueTask<string>`, the
   opaque public `GrantId` of the persisted grant, so a caller such as the initial-access-token management endpoint can
-  reference it for revocation ([ADR-1063](docs/decisions/1063-dynamic-client-registration.md)).
+  reference it for revocation ([ADR-1192](docs/decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)).
 
 - **At-rest grant payloads are schema-versioned and upcastable.** Every grant payload
   (`PersistedGrant<TPayload>.Payload`: authorization codes, refresh tokens, device and CIBA requests, pushed
@@ -4993,9 +4993,9 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Dynamic Client Registration is protected by default.** The `registration_endpoint_allow_anonymous` setting defaults
   to `false`, so registration requires an initial access token, and it merges with the boolean meet, so a more specific
-  scope cannot loosen it ([ADR-1063](docs/decisions/1063-dynamic-client-registration.md)). The registration endpoint
+  scope cannot loosen it ([ADR-1192](docs/decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)). The registration endpoint
   validates every presented initial access token, even when anonymous registration is allowed
-  ([ADR-1192](docs/decisions/1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md)).
+  ([ADR-1192](docs/decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)).
 
 - **An initial access token authorizes one registration and expires within 30 days.** Every token, scoped or not, is
   spent by the registration it authorizes, so a leaked token registers at most one client, and only until it expires.
@@ -5008,8 +5008,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   unspent, and a failure storing the client after the spend leaves it spent. `PersistedGrant<TPayload>.ConsumedWhen`
   records when a grant was spent, `ValidateAsync` answers `null` for a grant whose `ConsumedWhen` is set, and the
   default spends the grant row, whose concurrency token makes the spend atomic across replicas
-  ([ADR-1192](docs/decisions/1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md),
-  [ADR-1063](docs/decisions/1063-dynamic-client-registration.md), issue
+  ([ADR-1192](docs/decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md), issue
   [#208](https://github.com/NCodeGroup/identity/issues/208)).
 
 - **Access tokens can be sender-constrained by DPoP (RFC 9449) or mutual TLS (RFC 8705)** (issue

@@ -8,7 +8,7 @@
 ## Context
 
 A client registers its public keys by value in the `jwks` member of a dynamic client registration request (RFC 7591,
-[ADR-1063](1063-dynamic-client-registration.md)). OpenID Connect Dynamic Client Registration 1.0 and RFC 7517 §4.5 make
+[ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)). OpenID Connect Dynamic Client Registration 1.0 and RFC 7517 §4.5 make
 the `kid` of a key optional, and a client selects among the keys of its set by `kid` when it has more than one.
 [ADR-1161](1161-a-clients-public-keys-have-one-source-and-are-imported-under-one-policy.md) decision 3 requires a `kid`
 on every key of a registered or published set, so a registration whose key has none is refused with

@@ -27,7 +27,7 @@ generation path (`ISecretGenerator.GenerateSecret`):
 
 `GenerateSecret` for a symmetric type stores **raw** random bytes and reveals `base64url(raw)`. That is correct for
 case 1 but **wrong for case 2**: `UTF8(base64url(raw)) ≠ raw`, so a generated `client_secret` could never authenticate.
-The bug was latent until **Dynamic Client Registration** ([ADR-1063](1063-dynamic-client-registration.md)) issued
+The bug was latent until **Dynamic Client Registration** ([ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)) issued
 client secrets server-side and the external OpenID conformance suite drove `client_secret_basic` against them — every
 token-endpoint authentication failed with `invalid_client`. The same latent defect existed on the management
 "create client secret" endpoint whenever an administrator generated a symmetric secret for a client. The existing

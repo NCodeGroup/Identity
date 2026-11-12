@@ -192,7 +192,6 @@ The records are grouped by area; within an area they are in number order.
 | [1030](./1030-userinfo-endpoint-and-subject-authentication-seam.md) | UserInfo is backed by a reusable subject-authentication seam; claims come from enrichers | Accepted |
 | [1039](./1039-requested-claims-acr-and-auth-time-follow-the-request-and-the-authentication-event.md) | Requested claims, acr and auth_time follow the request and the authentication event | Accepted |
 | [1059](./1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md) | The device authorization grant is a pending request in the grant store, approved out of band | Accepted |
-| [1063](./1063-dynamic-client-registration.md) | Dynamic Client Registration (RFC 7591/7592) over the persisted-grant store | Accepted |
 | [1074](./1074-session-management-and-logout.md) | End-user sessions, the `sid` claim, and RP-Initiated + Back-Channel Logout | Accepted |
 | [1081](./1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md) | Consent is a durable record of decided and granted scopes, enforced at the authorization endpoint | Accepted |
 | [1085](./1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md) | CIBA is a pending request in the grant store, delivered by poll, ping or push | Accepted |
@@ -212,7 +211,7 @@ The records are grouped by area; within an area they are in number order.
 | [1167](./1167-the-server-validates-the-tokens-it-issued-under-one-policy.md) | The server validates the tokens it issued under one policy | Accepted |
 | [1168](./1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md) | Introspection reports a token active only to the party that consumes it | Accepted |
 | [1187](./1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md) | A client-signed JWT is short-lived, its lifetime capped from its earliest asserted start | Accepted |
-| [1192](./1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md) | Dynamic registration binds a client to the resource server its initial access token names | Accepted |
+| [1192](./1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md) | Dynamic client registration rides the client and grant stores, authorized by single-use initial access tokens | Accepted |
 | [1201](./1201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md) | Authorization responses are delivered by registered response-mode handlers | Accepted |
 | [1203](./1203-redirect-uris-are-matched-exactly.md) | Redirect URIs are matched exactly | Accepted |
 | [1211](./1211-a-rotated-refresh-token-is-spent-with-its-successor.md) | A rotated refresh token is spent with its successor, and a lost spend is a reuse | Accepted |

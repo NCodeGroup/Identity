@@ -64,7 +64,7 @@ hermetic [`build/dod.ps1`](../../build/dod.ps1) inner loop — consistent with
 
 The Basic OP plan runs end-to-end under **Dynamic Client Registration**: the config carries no static `alias` or
 `client`/`client2`, so the suite registers a client per module
-([ADR-1063](../decisions/1063-dynamic-client-registration.md), with `registration_endpoint_allow_anonymous=true` in
+([ADR-1192](../decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md), with `registration_endpoint_allow_anonymous=true` in
 `appsettings.Conformance.json`). The `Verify Complete` callback match is `/test/*/callback*` (DCR has no `/a/<alias>/`
 segment), and the `Login` task is `optional`, so no-login `prompt=none` / `max_age` flows do not error. The login and
 consent pages serve a no-JavaScript progressive `<form>`, which the suite's default `BrowserControl` — a no-JavaScript

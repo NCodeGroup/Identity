@@ -36,7 +36,7 @@ for a pairwise client whose `redirect_uris` span multiple hosts, because the sec
 A server-side fetch of a client-supplied URL is a textbook server-side request forgery (SSRF) sink: left unguarded, a
 caller could point `sector_identifier_uri` at `http://169.254.169.254/…` (cloud metadata), `http://127.0.0.1/…` or an
 internal host and use the OP as a confused deputy. Dynamic Client Registration
-([ADR-1063](1063-dynamic-client-registration.md)) makes the fetch reachable by untrusted callers, so it must be
+([ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)) makes the fetch reachable by untrusted callers, so it must be
 hardened.
 
 ## Decision
@@ -140,7 +140,7 @@ verifies.**
 - Issues [#47](https://github.com/NCodeGroup/identity/issues/47) and
   [#58](https://github.com/NCodeGroup/identity/issues/58).
 - [ADR-1035](1035-federated-principals-and-identity-resolution.md) (the principal),
-  [ADR-1063](1063-dynamic-client-registration.md) (registration),
+  [ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md) (registration),
   [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)
   (setting merges),
   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) (the guarded client),

@@ -53,7 +53,7 @@ that consumes it.**
 3. **The binding is set once, through the management API.**
    - `CreateClientRequest.resourceServerId` binds the client, and the binding cannot change later. Dynamic client
      registration binds a client to the resource server its initial access token is scoped to
-     ([ADR-1192](1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md)).
+     ([ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)).
    - The resource server must exist in the client's tenant and must not be a system resource server (`400`).
    - The caller must be authorized to update that resource server (`401` / `403`), since a bound client reads every token
      issued to it.

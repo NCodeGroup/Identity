@@ -1032,7 +1032,7 @@ internal class DefaultSettingDescriptorDataSource(
             };
 
             // registration_endpoint_allow_anonymous: whether the dynamic client registration endpoint accepts
-            // anonymous (no initial access token) requests (default false). (ADR-1063)
+            // anonymous (no initial access token) requests (default false). (ADR-1192)
             // Floor (And): once a parent disallows anonymous registration, a child cannot re-enable it.
             yield return new SettingDescriptor<bool>
             {

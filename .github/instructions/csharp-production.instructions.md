@@ -593,7 +593,7 @@ than inlining the rationale.
 - 👁 **A credential with a stored grant is spent through `IPersistedGrantService.ConsumeOnceOrDefault`, after every
   check passes and before its effect.** A refused request leaves it usable. `IExpiringKeySet` is for single-use state
   with no durable row. See
-  [ADR-1192](../../docs/decisions/1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md).
+  [ADR-1192](../../docs/decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md).
 - 👁 **Every grant that issues tokens for a subject validates it before it spends its credential.** A token grant sends
   `ValidateSubjectAuthenticationCommand` through `TokenGrantSubjectValidation.ValidateAsync` from its
   `ValidateTokenGrantCommand<TGrant>` handler, an out-of-band approval sends it with no request, and a stored credential

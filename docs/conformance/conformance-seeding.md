@@ -59,7 +59,7 @@ client registrations, all registering the suite callback as a redirect URI:
   authenticates with ([ADR-1145](../decisions/1145-a-client-authenticates-only-with-its-registered-method.md)).
 
 The committed Basic OP plan runs under Dynamic Client Registration
-([ADR-1063](../decisions/1063-dynamic-client-registration.md)), so the suite registers its own clients; the **tenant
+([ADR-1192](../decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)), so the suite registers its own clients; the **tenant
 and test user** seeding is what that plan needs, and the static client seeds stay separable from it.
 
 The **deterministic test user** (`conformance-user`, with a per-machine password and the full standard

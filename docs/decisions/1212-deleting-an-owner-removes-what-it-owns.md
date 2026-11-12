@@ -42,7 +42,7 @@ enforces no foreign key, so no test of the hermetic host saw any of it (issue [#
 4. **Rows are removed through the change tracker.** Entity Framework orders the deletes. Foreign keys stay `Restrict`,
    and no migration is needed.
 5. **A deregistration relies on the store alone.** `DELETE` of a dynamically registered client
-   ([ADR-1063](1063-dynamic-client-registration.md)) removes the client through `IClientStore.RemoveAsync`, which
+   ([ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)) removes the client through `IClientStore.RemoveAsync`, which
    removes its secrets and its registration access token with it.
 6. **A resource server is removed with its scopes, its secrets and every role assignment at its node.** The stores find
    the assignments by the node's resource type, which is the persisted resource type (`OpenIdResourceTypes`), and by
@@ -92,7 +92,7 @@ enforces no foreign key, so no test of the hermetic host saw any of it (issue [#
 - [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md) — the identifier and the issuer of a
   deleted tenant are retired.
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) — the usage ledger outlives the tenant.
-- [ADR-1063](1063-dynamic-client-registration.md) — dynamic client registration and its deregistration.
+- [ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md) — dynamic client registration and its deregistration.
 - [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — tenant-bound data access is scoped at the
   persistence layer.
 - Code: `NCode.Identity.OpenId.Persistence.EntityFramework.Core.Stores.ClientStore`,

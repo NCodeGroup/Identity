@@ -39,7 +39,7 @@ that client.**
    payload with no `SubjectAuthentication` is `invalid_grant`.
 2. **A refused request leaves the credential unspent.** The device-code and CIBA grants validate before
    `ConsumeOnceOrDefault`, so a credential is spent only after every check has passed
-   ([ADR-1192](1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md)). `access_denied` is
+   ([ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)). `access_denied` is
    terminal for the polling client.
 3. **A credential is redeemed only by the client it was issued to.** A device code and an `auth_req_id` that another
    client presents are `invalid_grant` ("The provided device code was issued to a different client." and "The provided
@@ -103,7 +103,7 @@ that client.**
 - [ADR-1101](1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md) — token exchange.
 - [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — the replay of an authorization code, which is why that
   grant spends its code first.
-- [ADR-1192](1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md) — a credential is spent
+- [ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md) — a credential is spent
   after every check has passed.
 - [ADR-1224](1224-deleting-or-disabling-an-account-ends-its-sessions.md) — the account check that every grant shares.
 - [RFC 8628](https://datatracker.ietf.org/doc/html/rfc8628) §3.4–3.5 — the device access token request and response.

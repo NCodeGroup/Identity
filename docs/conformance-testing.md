@@ -90,7 +90,7 @@ Selected under "Test an OpenID Provider" in the suite:
    ([ADR-1010](decisions/1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)), so these profiles apply only to a host that
    enables them.
 5. **Dynamic OP** — Dynamic Client Registration (RFC 7591) is implemented
-   ([ADR-1063](decisions/1063-dynamic-client-registration.md)).
+   ([ADR-1192](decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)).
 6. **FAPI 1.0 Advanced** — wired as `run-conformance.ps1 -Fapi1Advanced`; its run and baseline are tracked in
    [#124](https://github.com/NCodeGroup/identity/issues/124). FAPI 2 is out of scope unless the family targets
    open-finance ecosystems.
@@ -233,7 +233,7 @@ must register the suite callback as a redirect URI.
   `require_pkce` and attests its clients with `pkce_nonce_exemption`, because the suite's requests carry a `nonce` but
   send PKCE in only one module.
 
-> Under Dynamic Client Registration ([ADR-1063](decisions/1063-dynamic-client-registration.md)), which the committed
+> Under Dynamic Client Registration ([ADR-1192](decisions/1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md)), which the committed
 > Basic OP plan uses, none of the above applies: the config carries no `alias`, and the suite registers clients itself
 > and runs modules in parallel.
 

@@ -93,7 +93,7 @@ holds.
 
 The one operator-minted grant, an RFC 7591 initial access token (`POST .../grants/initial-access-tokens`), belongs to
 dynamic client registration and is described in
-[ADR-1192](1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md).
+[ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md).
 
 ## Options considered
 
@@ -141,7 +141,7 @@ dynamic client registration and is described in
   opaque identifier and keyset page.
 - [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md): the tenant
   query filter.
-- [ADR-1192](1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md): the initial access
+- [ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md): the initial access
   token.
 - [ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md): a lost race on a grant.
 - [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md): authority as a role assignment.

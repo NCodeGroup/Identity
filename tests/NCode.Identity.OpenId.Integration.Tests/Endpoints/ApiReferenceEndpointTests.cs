@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using NCode.Identity.OpenId.Host;
@@ -79,6 +80,33 @@ public sealed class ApiReferenceEndpointTests
         using var response = await client.GetAsync("/scalar/v1");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetApiReferencePage_InDevelopment_SendsAStrictContentSecurityPolicyWithItsNonce()
+    {
+        using var factory = new HostApplicationFactory();
+        using var client = CreateClient(factory);
+
+        using var response = await client.GetAsync("/scalar/v1");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("DENY", Assert.Single(response.Headers.GetValues("X-Frame-Options")));
+
+        var csp = Assert.Single(response.Headers.GetValues("Content-Security-Policy"));
+        var match = Regex.Match(csp, "'nonce-([A-Za-z0-9_-]+)'");
+        Assert.True(match.Success);
+        var nonce = match.Groups[1].Value;
+
+        Assert.Equal(
+            $"default-src 'none'; script-src 'nonce-{nonce}' 'strict-dynamic'; style-src 'nonce-{nonce}'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+            csp
+        );
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.Contains($"nonce=\"{nonce}\"", body);
+        Assert.Contains($"<meta property=\"csp-nonce\" content=\"{nonce}\"", body);
     }
 
     #endregion

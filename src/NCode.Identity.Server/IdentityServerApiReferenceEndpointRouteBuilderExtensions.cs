@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Identity.Server.OpenApi;
@@ -54,41 +55,84 @@ public static class IdentityServerApiReferenceEndpointRouteBuilderExtensions
             var environment = services.GetRequiredService<IHostEnvironment>();
             var bootstrap = services.GetRequiredService<IOptions<BootstrapAdminOptions>>().Value;
 
-            endpoints.MapScalarApiReference(scalarOptions =>
-            {
-                scalarOptions.AddPreferredSecuritySchemes(
-                    SecuritySchemeDocumentTransformer.OAuth2SchemeName
-                );
+            endpoints.MapScalarApiReference(
+                (scalarOptions, httpContext) =>
+                {
+                    var nonce = ContentSecurityPolicySources.CreateNonce();
+                    httpContext.Response.SetHtmlPageSecurity(CreatePagePolicy(nonce));
 
-                // Wire the non-secret parts of the client-credentials login in every environment so an operator can
-                // authenticate the dashboard out of the box (HTTP Basic credentials, matching the bootstrap client's
-                // registered client_secret_basic, the token URL, and the audience-binding scope) -- this is the
-                // production bootstrap path too. Only the secret is pre-filled, and only during development, so it is
-                // never embedded in the served configuration.
-                scalarOptions.AddClientCredentialsFlow(
-                    SecuritySchemeDocumentTransformer.OAuth2SchemeName,
-                    flow =>
-                    {
-                        flow.WithTokenUrl(OpenIdConstants.EndpointPaths.Token)
-                            .WithSelectedScopes(
-                                SecuritySchemeDocumentTransformer.ManagementAudienceScope
-                            )
-                            .WithCredentialsLocation(CredentialsLocation.Header);
+                    // Scalar's bundled stylesheet reads its nonce from this element.
+                    scalarOptions
+                        .WithNonce(nonce)
+                        .AddHeadContent($"<meta property=\"csp-nonce\" content=\"{nonce}\" />")
+                        .DisableTelemetry()
+                        .DisableAgent()
+                        .DisableMcp()
+                        .DisableDefaultFonts();
 
-                        if (
-                            environment.IsDevelopment()
-                            && bootstrap.ClientId is { Length: > 0 } clientId
-                            && bootstrap.GetPresentableClientSecretOrDefault()
-                                is { Length: > 0 } clientSecret
-                        )
+                    scalarOptions.AddPreferredSecuritySchemes(
+                        SecuritySchemeDocumentTransformer.OAuth2SchemeName
+                    );
+
+                    // Wire the non-secret parts of the client-credentials login in every environment so an operator can
+                    // authenticate the dashboard out of the box (HTTP Basic credentials, matching the bootstrap client's
+                    // registered client_secret_basic, the token URL, and the audience-binding scope) -- this is the
+                    // production bootstrap path too. Only the secret is pre-filled, and only during development, so it is
+                    // never embedded in the served configuration.
+                    scalarOptions.AddClientCredentialsFlow(
+                        SecuritySchemeDocumentTransformer.OAuth2SchemeName,
+                        flow =>
                         {
-                            flow.WithClientId(clientId).WithClientSecret(clientSecret);
+                            flow.WithTokenUrl(OpenIdConstants.EndpointPaths.Token)
+                                .WithSelectedScopes(
+                                    SecuritySchemeDocumentTransformer.ManagementAudienceScope
+                                )
+                                .WithCredentialsLocation(CredentialsLocation.Header);
+
+                            if (
+                                environment.IsDevelopment()
+                                && bootstrap.ClientId is { Length: > 0 } clientId
+                                && bootstrap.GetPresentableClientSecretOrDefault()
+                                    is { Length: > 0 } clientSecret
+                            )
+                            {
+                                flow.WithClientId(clientId).WithClientSecret(clientSecret);
+                            }
                         }
-                    }
-                );
-            });
+                    );
+                }
+            );
 
             return endpoints;
         }
     }
+
+    private const string DataSource = "data:";
+
+    // See ADR-1256 and ADR-1481.
+    private static HtmlPageSecurityPolicy CreatePagePolicy(string nonce) =>
+        new()
+        {
+            Directives =
+            [
+                new ContentSecurityPolicyDirective(
+                    ContentSecurityPolicyDirectives.ScriptSrc,
+                    ContentSecurityPolicySources.Nonce(nonce),
+                    ContentSecurityPolicySources.StrictDynamic
+                ),
+                new ContentSecurityPolicyDirective(
+                    ContentSecurityPolicyDirectives.StyleSrc,
+                    ContentSecurityPolicySources.Nonce(nonce)
+                ),
+                new ContentSecurityPolicyDirective(
+                    ContentSecurityPolicyDirectives.ImgSrc,
+                    ContentSecurityPolicySources.Self,
+                    DataSource
+                ),
+                new ContentSecurityPolicyDirective(
+                    ContentSecurityPolicyDirectives.ConnectSrc,
+                    ContentSecurityPolicySources.Self
+                ),
+            ],
+        };
 }

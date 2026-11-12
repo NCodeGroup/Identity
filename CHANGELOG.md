@@ -1473,7 +1473,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#291](https://github.com/NCodeGroup/identity/issues/291)).
 
 - **OAuth 2.0 Token Exchange (RFC 8693)** (issue [#61](https://github.com/NCodeGroup/identity/issues/61),
-  [ADR-1101](docs/decisions/1101-oauth-token-exchange-rfc8693.md)). The token endpoint's
+  [ADR-1101](docs/decisions/1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md)). The token endpoint's
   `DefaultTokenExchangeGrantHandler` serves `urn:ietf:params:oauth:grant-type:token-exchange`
   (`OpenIdConstants.GrantTypes.TokenExchange`) through the `ITokenGrantHandler` extension-grant seam. A client presents
   a `subject_token` (and, for delegation, an `actor_token`) and receives an `access_token`, `refresh_token` or

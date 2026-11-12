@@ -207,7 +207,7 @@ The records are grouped by area; within an area they are in number order.
 | [1096](./1096-end-session-subject-from-server-state.md) | End-session resolves the stable subject from server-owned state, never by reversing a pairwise `sub` | Accepted |
 | [1097](./1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md) | Access tokens are sender-constrained by DPoP or mutual TLS through one proof-of-possession seam | Accepted |
 | [1098](./1098-session-lifecycle-termination-seam.md) | Session lifecycle as an observable termination seam | Accepted |
-| [1101](./1101-oauth-token-exchange-rfc8693.md) | OAuth 2.0 Token Exchange (RFC 8693) over the extension-grant seam, self-issued-token only | Accepted |
+| [1101](./1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md) | Token exchange issues delegation and impersonation tokens from tokens the tenant issued | Accepted |
 | [1112](./1112-authorization-code-replay-revokes-session.md) | Authorization-code replay revokes the end-user session; first-party resource endpoints enforce it | Accepted |
 | [1113](./1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md) | At-rest grant payloads are schema-versioned, upcastable, and preserve unknown members | Accepted |
 | [1114](./1114-non-redirectable-authorization-errors-are-content-negotiated.md) | Non-redirectable authorization errors are content-negotiated via a response-formatter seam | Accepted |

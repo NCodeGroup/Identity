@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amends [ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md),
   [ADR-1075](1075-runtime-consumption-of-resource-server-secrets.md), and
-  [ADR-1101](1101-oauth-token-exchange-rfc8693.md); closes the follow-ups of
+  [ADR-1101](1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md); closes the follow-ups of
   [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) and
   [ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md); realizes the
   introspection clause of [ADR-1112](1112-authorization-code-replay-revokes-session.md); amended by
@@ -65,7 +65,7 @@ tenant's policy for that kind of token. A system resource server never holds key
    enclosed ID token's checks are unchanged. The tenant's JSON Web Key Set already publishes the public keys a relying
    party encrypts to, as it does for request objects; a tenant without an encryption key accepts only a signed hint.
 4. **Token exchange picks the policy by subject-token type** (amends
-   [ADR-1101](1101-oauth-token-exchange-rfc8693.md)):
+   [ADR-1101](1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md)):
    - `access_token` uses the access-token policy;
    - `id_token` uses the ID-token policy;
    - `jwt` is accepted only when it validates as an access token or an ID token, so introspection responses

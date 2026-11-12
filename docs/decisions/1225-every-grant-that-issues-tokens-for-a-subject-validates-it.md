@@ -14,7 +14,7 @@
 `ValidateSubjectAuthenticationCommand` is sent: the authorization request and the authorization-code, refresh-token and
 password grants. Three grants that issue tokens for an end user did not send it: the device-code grant
 ([ADR-1059](1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md)), the CIBA grant ([ADR-1085](1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md)) and token exchange
-([ADR-1101](1101-oauth-token-exchange-rfc8693.md)). Four gaps followed:
+([ADR-1101](1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md)). Four gaps followed:
 
 - An end user whose account was disabled or deleted kept redeeming an approved device code or `auth_req_id` and kept
   exchanging tokens. An approved device code names its subject only in its payload, because the grant has no subject
@@ -100,7 +100,7 @@ that client.**
 
 - [ADR-1059](1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md) — the device authorization grant and its verification endpoint.
 - [ADR-1085](1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md) — the CIBA grant and its delivery modes.
-- [ADR-1101](1101-oauth-token-exchange-rfc8693.md) — token exchange.
+- [ADR-1101](1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md) — token exchange.
 - [ADR-1112](1112-authorization-code-replay-revokes-session.md) — the replay of an authorization code, which is why that
   grant spends its code first.
 - [ADR-1192](1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md) — a credential is spent

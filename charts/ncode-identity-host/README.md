@@ -23,6 +23,35 @@ The chart takes no secret values. It references Secrets you create in the releas
 - `migrations.database.existingSecret`, optional: a connection string with the right to change the schema, used only
   by the migration Job. It defaults to `database.existingSecret`.
 
+## Published artifacts
+
+Every merge to `main` publishes three artifacts to GHCR at one version, `0.0.1-alpha.<n>`, through the Publish artifacts
+workflow ([ADR-1503](../../docs/decisions/1503-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)):
+
+- `ghcr.io/ncodegroup/ncode-identity-host:<version>`, the host image.
+- `ghcr.io/ncodegroup/ncode-identity-management-console:<version>`, the management console image.
+- `oci://ghcr.io/ncodegroup/charts/ncode-identity-host`, this chart, at version `<version>`.
+
+The chart pins its image tags to its own `appVersion`, so following the chart follows the images. A Flux `HelmRelease`
+or `helm install` takes a semver range that includes prereleases, such as `>=0.0.1-alpha`, to follow them.
+
+Verify the chart signature, then the host image provenance:
+
+```bash
+cosign verify ghcr.io/ncodegroup/charts/ncode-identity-host:<version> --certificate-identity https://github.com/NCodeGroup/identity/.github/workflows/publish-artifacts.yml@refs/heads/main --certificate-oidc-issuer https://token.actions.githubusercontent.com
+```
+
+```bash
+gh attestation verify oci://ghcr.io/ncodegroup/ncode-identity-host:<version> --repo NCodeGroup/identity
+```
+
+Package access: a package the workflow creates is linked to this repository and is public with it. A package created by
+hand must be made public, and the repository needs write access under the package's "Manage Actions access". Both are
+set in GitHub, which no workflow can change.
+
+Until the first stable release, a database may need a reset when the schema changes
+([ADR-1394](../../docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
+
 ## Install
 
 ```bash

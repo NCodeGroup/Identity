@@ -33,17 +33,20 @@ any package may reference.**
    its namespace, so a pair is one namespace across two assemblies.
 3. **Implementations depend on abstractions.** An implementation references `*.Abstractions`, foundation packages and
    the composition builders `NCode.Identity.Registration` and `NCode.Identity.Registration.AspNetCore`, and
-   collaborates with other capabilities through abstractions resolved from DI. It registers with `TryAdd*` from its
+   collaborates with other capabilities through abstractions resolved from DI. An implementation project references no
+   other implementation project (decision 4 names the one exception). It registers with `TryAdd*` from its
    `DefaultRegistration`, and its default type is named per
    [project-template ADR-0105](project-template/0105-the-canonical-implementation-is-named-defaultfoo.md). The
    composition roots (`AddIdentityServer()` in `NCode.Identity.Server`, `NCode.Identity.Bff.Server` and
-   `NCode.Identity.ManagementConsole`) reference and wire the implementations. The DI shapes of a seam are
+   `NCode.Identity.ManagementConsole`) and the hosts under `hosts/` reference and wire the implementations. The DI
+   shapes of a seam are
    [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md)'s.
-4. **Layered references the code holds.** Beside that rule, the Entity Framework slices reference the EF framework
-   ([ADR-1052](1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md)),
-   `NCode.Identity.OpenId.Persistence.EntityFramework.Accounts` references `NCode.Identity.OpenId.Accounts`,
-   `NCode.Identity.OpenId.Authentication` references `NCode.Identity.OpenId.Core`, and `NCode.Identity.OpenId.Core`
-   references `NCode.Identity.Jwt`.
+4. **The one layered reference.** An Entity Framework slice references the Entity Framework framework it plugs into
+   ([ADR-1052](1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md)). Every other
+   collaboration between implementations is through abstractions resolved from DI:
+   `NCode.Identity.OpenId.Authentication` uses the OpenID core's services through `NCode.Identity.OpenId.Abstractions`,
+   and the Entity Framework accounts slice uses the `IPasswordHasher` that a host registers with
+   `AddDefaultPasswordHasher()` from `NCode.Identity.OpenId.Accounts`.
 5. **Foundation packages.** `NCode.Identity.Json`, `NCode.Identity.Time` and `NCode.Identity.AspNetCore(.Abstractions)`
    may be referenced by any package. A foundation package references only `NCode.Identity.Registration` and other
    foundation packages, and a new one needs a second package of the family that consumes it; a capability that only one

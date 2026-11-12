@@ -82,8 +82,8 @@ linger on the GC heap. The seam is asynchronous, so a `ReadOnlySpan<byte>` canno
 
 `IPasswordHasher` (namespace `NCode.Identity.OpenId.Accounts.Credentials`) is the hashing facade. Its internal default,
 `DefaultPasswordHasher` (`NCode.Identity.OpenId.Accounts`), is PBKDF2-HMAC-SHA256 over `Rfc2898DeriveBytes.Pbkdf2` with
-versioned parameters and rehash-on-verify. The Entity Framework store registers and uses it; the ASP.NET Core Identity
-adapter uses the user manager's hasher.
+versioned parameters and rehash-on-verify. The Entity Framework store uses the `IPasswordHasher` that the host registers
+with `AddDefaultPasswordHasher()`; the ASP.NET Core Identity adapter uses the user manager's hasher.
 
 ### Two reference stores
 

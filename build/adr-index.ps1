@@ -24,7 +24,11 @@
     - a tracked file that points a docs/decisions/0NNN path at docs/decisions/, because the family's records are
       numbered from 1000 and the project template's records live in docs/decisions/project-template/;
     - a tracked file that cites an ADR number (written ADR- and four digits from 1000) that names no record in
-      docs/decisions/, template-owned files excepted.
+      docs/decisions/, template-owned files excepted;
+    - a family record whose Status line is not exactly Accepted or Proposed;
+    - a family record whose Refines, Supersedes or Conflicts with line does not name only project template records;
+    - a family record whose header carries a metadata label other than Status, Date, Deciders, Refines, Supersedes and
+      Conflicts with.
 
     0000-template.md is the template, not a decision, so it is deliberately absent from the index, and the one
     docs/decisions/ path numbered below 1000 that a link may use.
@@ -148,6 +152,38 @@ $templateOwned = ':(exclude).claude/agents/*', ':(exclude).claude/commands/*', '
 foreach ($match in Find-TrackedText 'ADR-1[0-9]{3}' $templateOwned) {
     if ($match.Text.Substring(4) -notin $familyNumbers) {
         $problems.Add("$($match.Path)($($match.Line)) cites $($match.Text), which names no record in docs/decisions/.")
+    }
+}
+
+# A record's header holds only its own metadata and relates to project template records alone (ADR-1508), so any other
+# label, a Status with a suffix, or a relation to a family record is a shape the rest of the family cannot rely on.
+foreach ($file in $onDisk | Where-Object { [int]$_.Substring(0, 4) -ge 1000 }) {
+    $lines = @(Get-Content -LiteralPath (Join-Path $Directory $file))
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i].StartsWith('## ', [StringComparison]::Ordinal)) {
+            break
+        }
+        if ($lines[$i] -match '^- \*\*([^*:]+):\*\*\s*(.*)$') {
+            $label = $Matches[1]
+            $value = $Matches[2]
+            $where = "docs/decisions/$file($($i + 1))"
+            if ($label -ceq 'Status') {
+                if ($value -cnotin 'Accepted', 'Proposed') {
+                    $problems.Add("$where has Status '$value'; a Status is Accepted or Proposed with nothing after it.")
+                }
+            }
+            elseif ($label -cin 'Date', 'Deciders') {
+                continue
+            }
+            elseif ($label -cin 'Refines', 'Supersedes', 'Conflicts with') {
+                if ($value -match 'ADR-1[0-9]{3}|\]\((\./)?1[0-9]{3}-' -or $value -notmatch 'project-template') {
+                    $problems.Add("$where carries a $label line that does not name only project template records; a family record relates only to template records.")
+                }
+            }
+            else {
+                $problems.Add("$where carries a '$label' metadata line; a family record carries only Status, Date, Deciders, Refines, Supersedes and Conflicts with.")
+            }
+        }
     }
 }
 

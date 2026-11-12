@@ -116,6 +116,27 @@ try {
     Add-FixtureFile $fixture '.claude/commands/plan.md' "Cite ADR-1007.`n"
     Assert-Problems 'a template-owned file may cite a sample number' $fixture @()
 
+    $shapeHeader = "# 1002. b`n`n- **Status:** Accepted`n- **Date:** 2026-01-01`n- **Deciders:** NCode Group`n"
+    $templateRecord = "# 0012-t.md`n"
+
+    $fixture = New-Fixture 'shape-ok' @('1001-a.md', '1002-b.md') @('1001|1001-a.md', '1002|1002-b.md')
+    Add-FixtureFile $fixture 'docs/decisions/project-template/0012-t.md' $templateRecord
+    Add-FixtureFile $fixture 'docs/decisions/1002-b.md' "$shapeHeader- **Refines:** [project-template ADR-0012](project-template/0012-t.md)`n`n## Context`n"
+    Assert-Problems 'a header that relates to a template record is accepted' $fixture @()
+
+    $fixture = New-Fixture 'shape-family-relation' @('1001-a.md', '1002-b.md') @('1001|1001-a.md', '1002|1002-b.md')
+    Add-FixtureFile $fixture 'docs/decisions/1002-b.md' "$shapeHeader- **Refines:** [ADR-1001](1001-a.md)`n`n## Context`n"
+    Assert-Problems 'a relation to a family record is reported' $fixture @('carries a Refines line that does not name only project template records')
+
+    $fixture = New-Fixture 'shape-status' @('1001-a.md', '1002-b.md') @('1001|1001-a.md', '1002|1002-b.md')
+    Add-FixtureFile $fixture 'docs/decisions/1002-b.md' "# 1002. b`n`n- **Status:** Accepted, amended later`n- **Date:** 2026-01-01`n- **Deciders:** NCode Group`n`n## Context`n"
+    Assert-Problems 'a Status with a suffix is reported' $fixture @("has Status 'Accepted, amended later'")
+
+    $fixture = New-Fixture 'shape-label' @('1001-a.md', '1002-b.md') @('1001|1001-a.md', '1002|1002-b.md')
+    Add-FixtureFile $fixture 'docs/decisions/project-template/0012-t.md' $templateRecord
+    Add-FixtureFile $fixture 'docs/decisions/1002-b.md' "$shapeHeader- **Amends:** [project-template ADR-0012](project-template/0012-t.md)`n`n## Context`n"
+    Assert-Problems 'an unknown metadata label is reported' $fixture @("carries a 'Amends' metadata line")
+
     Assert-Problems 'the repository has no problems' (Join-Path $PSScriptRoot '..' '..') @()
 
     Write-Host "$testCount adr-index checks passed."

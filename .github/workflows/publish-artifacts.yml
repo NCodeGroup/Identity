@@ -188,6 +188,7 @@ jobs:
     # There is no registry login on purpose: every pull is anonymous, so a private package fails here.
     permissions:
       contents: read
+      attestations: read
     env:
       VERSION: ${{ needs.version.outputs.version }}
       HOST: ${{ needs.publish.outputs.host-digest }}
@@ -233,6 +234,21 @@ jobs:
           foreach ($ref in $refs) {
             cosign verify "ghcr.io/ncodegroup/$ref" --certificate-identity "https://github.com/NCodeGroup/identity/.github/workflows/publish-artifacts.yml@refs/heads/main" --certificate-oidc-issuer https://token.actions.githubusercontent.com > $null
             if ($LASTEXITCODE -ne 0) { throw "$ref has no valid signature." }
+          }
+
+      - name: Provenance attestations verify
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $refs = @(
+            "ncode-identity-host@$env:HOST",
+            "ncode-identity-management-console@$env:CONSOLE",
+            "charts/ncode-identity-host@$env:CHART"
+          )
+          foreach ($ref in $refs) {
+            gh attestation verify "oci://ghcr.io/ncodegroup/$ref" --repo NCodeGroup/identity --signer-workflow NCodeGroup/identity/.github/workflows/publish-artifacts.yml > $null
+            if ($LASTEXITCODE -ne 0) { throw "$ref has no valid provenance attestation." }
           }
 
       - name: The chart pulls anonymously

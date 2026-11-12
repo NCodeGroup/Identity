@@ -3,7 +3,7 @@
 - **Status:** Accepted (metadata storage and the registration `scope` amended by
   [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md): informational metadata are registered client settings, the
   requested `scope` is not stored, and the response reports the scopes the client may request; `response_types` and
-  `grant_types` amended by [ADR-1141](1141-response-types-are-whole-values.md): whole response types in canonical form,
+  `grant_types` amended by [ADR-1141](1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md): whole response types in canonical form,
   defaulted and checked consistently with the grant types and with what the tenant supports; `token_endpoint_auth_method`
   amended by [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md): the registered method is the
   only one the client authenticates with, and it must be within the tenant's `token_endpoint_auth_methods_supported`;

@@ -441,7 +441,7 @@ than inlining the rationale.
   enumerates; wire input is canonicalized at the protocol boundary before it is compared, never by a lenient setting
   reader, and is never split back into its parts to be enforced piecewise.
   See [ADR-1140](../../docs/decisions/1140-setting-values-are-validated-against-their-domain-not-only-their-type.md) and
-  [ADR-1141](../../docs/decisions/1141-response-types-are-whole-values.md).
+  [ADR-1141](../../docs/decisions/1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md).
 - 👁 **A security profile binds every scope below the one that selects it.** Outside the live providers, resolve a
   scope's effective settings only through `IEffectiveSettingsResolver`. Use `Resolve(parent, scope, document)`,
   the platform's committed one with `ResolvePlatformAsync`, and a team's effective settings with `ResolveTeamAsync`.

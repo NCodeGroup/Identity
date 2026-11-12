@@ -59,7 +59,7 @@ point with the same outcome.
      `refresh_token`) or an absolute URI (RFC 6749 §4.5), so an extension grant needs no catalog change.
 3. **Fixed vocabularies are enumerated.** Subject types, CIBA delivery modes, response modes, prompt and display values
    and claim types (of which only `normal` is implemented) are enumerated. Response types are whole canonical values
-   ([ADR-1141](1141-response-types-are-whole-values.md)). PKCE methods are the registered `ICodeChallengeMethod`
+   ([ADR-1141](1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md)). PKCE methods are the registered `ICodeChallengeMethod`
    transformations, without `plain`
    ([ADR-1144](1144-authorization-codes-are-bound-to-pkce-by-default.md)). `access_token_type` is `at+jwt` with or
    without its `application/` prefix. `refresh_token_expiration_policy` is `absolute` or `sliding`, so a refresh token

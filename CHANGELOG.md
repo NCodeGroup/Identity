@@ -1313,7 +1313,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (and omitted `response_types` to `code` only for a client that uses the authorization endpoint), refuses with
   `invalid_client_metadata` a response type whose grant type is not registered or a grant type or response type the
   tenant does not support, and reports an empty list as `"response_types": []`
-  ([ADR-1141](docs/decisions/1141-response-types-are-whole-values.md)).
+  ([ADR-1141](docs/decisions/1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md)).
 
 - **Response modes are an open vocabulary, resolved through one provider from handlers that declare their traits.** The
   authorization result executor delivers each response through the `IAuthorizationResponseModeHandler` registered for
@@ -4738,11 +4738,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   access token from the authorization endpoint, a tenant or client lists no response type that includes `token`; the
   default list is `code` alone. Discovery, dynamic client registration and the authorization endpoint agree on the one
   list, and a refusal is `unsupported_response_type` when the tenant imposes it and `unauthorized_client` when only the
-  client does ([ADR-1142](docs/decisions/1142-listed-response-types-are-the-only-front-channel-token-control.md)). A
+  client does ([ADR-1141](docs/decisions/1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md)). A
   response type that returns a token or an ID token defaults to the fragment response mode on every path: without a
   `response_mode`, the authorization endpoint returns such a response — tokens or an error — in the fragment, as OAuth
   2.0 Multiple Response Type Encoding Practices requires, so no token is placed in a URL query
-  ([ADR-1141](docs/decisions/1141-response-types-are-whole-values.md)).
+  ([ADR-1141](docs/decisions/1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md)).
 
 - **`response_modes_supported` is checked once, for the requested and the resolved mode.** When the setting is set, the
   authorization endpoint requires both the response mode as the request wrote it, so `jwt` itself must be listed, and

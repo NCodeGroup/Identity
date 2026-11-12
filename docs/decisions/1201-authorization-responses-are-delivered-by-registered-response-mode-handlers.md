@@ -38,7 +38,7 @@ permitted responses, and JARM is useful on its own because it lets a client veri
    handler that secures the response type's default response mode, which is `fragment.jwt` for a response type that
    returns a token or an ID token and `query.jwt` otherwise (JARM §2.3.4). A handler whose `DeliversInQuery` is set is
    refused for a token-returning response type, so `query.jwt` is refused as `query` is: a token never travels in a
-   query string, even inside a JWT ([ADR-1141](1141-response-types-are-whole-values.md)).
+   query string, even inside a JWT ([ADR-1141](1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md)).
 4. **The response JWT is short-lived and carries every response parameter.** It is issued by the tenant (`iss`),
    addressed to the client (`aud` = `client_id`), and expires after the client setting
    `authorization_response_lifetime`, counted from `iat`. The setting defaults to 5 minutes and is capped at 10 minutes

@@ -547,7 +547,7 @@ public class DefaultValidateAuthorizationRequestHandlerTests : BaseTests
     public void ValidateConfiguredConstraints_WhenTheResponseTypeReturnsAnAccessToken_DoesNotThrow()
     {
         // The settings stub reads false for every boolean, so a separate "allow token responses" switch would reject
-        // this request; response_types_supported alone decides it (ADR-1142).
+        // this request; response_types_supported alone decides it (ADR-1141).
         var (mockSettings, mockRequest) = CreateScaffold();
         IReadOnlyList<string> responseTypes =
         [

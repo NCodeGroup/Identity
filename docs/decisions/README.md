@@ -210,8 +210,7 @@ The records are grouped by area; within an area they are in number order.
 | [1113](./1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md) | At-rest grant payloads are schema-versioned, upcastable, and preserve unknown members | Accepted |
 | [1114](./1114-an-openid-response-is-written-by-a-content-negotiated-response-formatter-json-by-default.md) | An OpenID response is written by a content-negotiated response formatter, JSON by default | Accepted |
 | [1124](./1124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md) | JWT lifetime is capped from its earliest asserted start; client assertions default to five minutes | Accepted |
-| [1141](./1141-response-types-are-whole-values.md) | Response types are whole values, enforced exactly and consistent with grant types | Accepted |
-| [1142](./1142-listed-response-types-are-the-only-front-channel-token-control.md) | The listed response types are the only control over the tokens the authorization endpoint returns | Accepted |
+| [1141](./1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md) | A response type is a whole value, and the listed values alone control front-channel tokens | Accepted |
 | [1144](./1144-authorization-codes-are-bound-to-pkce-by-default.md) | Authorization codes are bound to PKCE by default | Accepted |
 | [1158](./1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md) | An access token is bound by its client and every resource server it targets | Accepted |
 | [1167](./1167-the-server-validates-the-tokens-it-issued-under-one-policy.md) | The server validates the tokens it issued under one policy | Accepted |

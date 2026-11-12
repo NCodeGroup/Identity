@@ -44,7 +44,7 @@ all require using only the request object's parameters.
 
    PAR is optional in FAPI 1.0 Advanced, which requires PKCE `S256` whenever PAR is used. Requiring both matches the
    Consumer Data Right and the conformance suite's `pushed` variant. Because the baseline lists only `code`
-   ([ADR-1141](1141-response-types-are-whole-values.md)), the effective default is `code` with JARM. A tenant serving a
+   ([ADR-1141](1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md)), the effective default is `code` with JARM. A tenant serving a
    hybrid-flow ecosystem lists `code id_token` itself, and the hybrid ID token carries `s_hash`.
 3. **Access tokens are bound through mutual TLS, not DPoP.** FAPI 1.0 names mutual TLS (RFC 8705) as its
    sender-constraining mechanism. The ceiling sets `access_token_sender_constraint_required` and
@@ -130,7 +130,7 @@ all require using only the request object's parameters.
   [ADR-1201](1201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md),
   [ADR-1203](1203-redirect-uris-are-matched-exactly.md),
   [ADR-1187](1187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md),
-  [ADR-1141](1141-response-types-are-whole-values.md),
+  [ADR-1141](1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md),
   [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md)
 - FAPI 1.0 Part 2: Advanced §5.2.2; RFC 9101 §6.3; RFC 9126 §2.1; RFC 8705; RFC 6749 §4.1.2.1
 - Issue [#124](https://github.com/NCodeGroup/identity/issues/124)

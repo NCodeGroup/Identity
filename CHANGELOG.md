@@ -804,7 +804,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **A JWT's lifetime claims are required per token.** `JwtEncodingParameters.EnsureTokenLifetime` controls whether an
   encoded JWT must carry a lifetime, so a JWT that is not a credential can omit `exp`
-  ([ADR-1168](docs/decisions/1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)). On
+  ([ADR-1168](docs/decisions/1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)). On
   validation, `TokenLifetimeRequirement` and `ValidateTokenLifeTimeOptions` carry `RequireNotBefore` and
   `RequireIssuedAt` beside `RequireExpirationTime`
   ([ADR-1187](docs/decisions/1187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md)).
@@ -1751,7 +1751,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   response is a discovery-style, extensible result (`IntrospectionResult` with `[JsonExtensionData]` claims) that
   further `ICommandHandler<IntrospectTokenCommand>` handlers may enrich. The endpoint is a thin
   `IOpenIdEndpointProvider` that authenticates the client, parses a typed `ITokenIntrospectionRequest` and delegates to
-  the `IntrospectTokenCommand` mediator handler ([ADR-1029](docs/decisions/1029-token-introspection-endpoint.md)).
+  the `IntrospectTokenCommand` mediator handler ([ADR-1168](docs/decisions/1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)).
 
 - **A resource server can introspect through a client that acts for it, and receive the answer as a signed JWT.** A
   client created with `CreateClientRequest.resourceServerId` acts for that resource server: it authenticates like any
@@ -1764,7 +1764,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `introspection_encrypted_response_alg` / `_enc`. Discovery advertises the
   `introspection_{signing_alg,encryption_alg,encryption_enc}_values_supported` lists and the client-authentication
   methods and algorithms of the introspection and revocation endpoints
-  ([ADR-1168](docs/decisions/1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
+  ([ADR-1168](docs/decisions/1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)).
 
 - **The server reads the encrypted access tokens it issues.** UserInfo, the management API, introspection and token
   exchange decrypt access tokens with the tenant's keys, and introspection also uses the calling resource server's own
@@ -2347,7 +2347,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `…/secrets` CRUD with the one-time reveal ([ADR-1050](docs/decisions/1050-secret-material-revealed-once-on-create.md))
   and `If-Match`. A `resource_server_secrets` scope family is seeded. A resource server's introspection clients are the
   clients bound to it
-  ([ADR-1168](docs/decisions/1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
+  ([ADR-1168](docs/decisions/1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)).
 
 - **Every key the management API reports carries its `kid`.** `SecretResource` and `CreatedSecretResource` have a
   required `KeyId`: the `kid` the key was imported with, or its secret identifier when it has none
@@ -2491,7 +2491,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   drills into a `ResourceServerDetailPage` with Scopes, Secrets, Settings and Clients tabs; resource servers embed their
   scopes inline, so a scope mutation refreshes both views, and the Clients tab lists and creates the clients bound to
   the resource server for introspection
-  ([ADR-1168](docs/decisions/1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
+  ([ADR-1168](docs/decisions/1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)).
   Resource-server edits send `concurrencyToken` as `If-Match` over a `replace`-only JSON Patch, a scope update is a
   whole-resource `PUT`, and system resource servers and their scopes expose no delete control and no Secrets tab (issue
   [#134](https://github.com/NCodeGroup/identity/issues/134),
@@ -5087,7 +5087,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   server: `OpenIdClient` and `PersistedClient` carry `ResourceServerId` (a foreign key in the client table),
   `IClientStore` exposes `GetPageByResourceServerAsync`, `IntrospectTokenCommand` carries the caller's
   `ResolvedResourceServer`, and `IOpenIdClientFactory.CreatePublicClientAsync` takes an `OpenIdClientDefinition`
-  ([ADR-1168](docs/decisions/1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
+  ([ADR-1168](docs/decisions/1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)).
 
 - **The UserInfo endpoint requires an access token.** It authenticates only a bearer access token (in the
   `Authorization` header or the form body) whose audience includes the OpenID resource server, issued to an enabled

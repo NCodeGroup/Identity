@@ -120,7 +120,7 @@ than inlining the rationale.
   [Security Defaults](csharp.instructions.md#security-defaults): `AcceptResourceServerClients()` adds
   `IOpenIdEndpointResourceServerClientMetadata`, which `DefaultOpenIdClientResolver` checks, and a request with no
   endpoint, such as background work, resolves no such client
-  ([ADR-1168](../../docs/decisions/1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
+  ([ADR-1168](../../docs/decisions/1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)).
 - 👁 **Keep CORS off a front-channel endpoint with `WithFrontChannel()`, never CORS metadata.** An endpoint the
   user agent navigates to (authorization, continue, end-session, the interactive surface) carries `NCode.Identity.AspNetCore`'s
   `IFrontChannelEndpointMetadata`, and the CORS middleware is branched around it (`UseDeveloperCors`); the same call

@@ -7,7 +7,7 @@
 ## Context
 
 A resource server introspects through a client bound to it, a *resource-server client*
-([ADR-1168](1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)). Such a client reads every
+([ADR-1168](1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)). Such a client reads every
 access token issued for its resource server, so binding one is a change to the resource server. The caller must be
 authorized to update the resource server, which must exist in the client's tenant and must not be a system resource
 server. Only the management API could set the binding, through `CreateClientRequest.resourceServerId`.
@@ -112,7 +112,7 @@ nothing.
 
 ## References
 
-- [ADR-1168](1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md) — resource-server clients and
+- [ADR-1168](1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md) — resource-server clients and
   the disclosure rule.
 - [RFC 7591](https://www.rfc-editor.org/rfc/rfc7591) — OAuth 2.0 Dynamic Client Registration.
 - [RFC 7592](https://www.rfc-editor.org/rfc/rfc7592) — OAuth 2.0 Dynamic Client Registration Management.

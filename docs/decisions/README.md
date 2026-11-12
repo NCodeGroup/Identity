@@ -189,7 +189,6 @@ The records are grouped by area; within an area they are in number order.
 | --- | --- | --- |
 | [1026](./1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md) | Resource servers own scopes, settings and keys, and decide a client's scopes and token audiences | Accepted |
 | [1028](./1028-the-revocation-endpoint-revokes-refresh-tokens-and-their-families-and-always-answers-200.md) | The revocation endpoint revokes refresh tokens and their families, and always answers 200 | Accepted |
-| [1029](./1029-token-introspection-endpoint.md) | Token introspection resolves JWT access tokens and refresh-token grants | Accepted |
 | [1030](./1030-userinfo-endpoint-and-subject-authentication-seam.md) | UserInfo is backed by a reusable subject-authentication seam; claims come from enrichers | Accepted |
 | [1039](./1039-requested-claims-acr-and-auth-time-follow-the-request-and-the-authentication-event.md) | Requested claims, acr and auth_time follow the request and the authentication event | Accepted |
 | [1059](./1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md) | The device authorization grant is a pending request in the grant store, approved out of band | Accepted |
@@ -212,7 +211,7 @@ The records are grouped by area; within an area they are in number order.
 | [1144](./1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md) | Authorization codes are bound to an S256 PKCE challenge unless an attested client uses the nonce | Accepted |
 | [1158](./1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md) | The tenant signs an access token, and its client and targeted resource servers bound it | Accepted |
 | [1167](./1167-the-server-validates-the-tokens-it-issued-under-one-policy.md) | The server validates the tokens it issued under one policy | Accepted |
-| [1168](./1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md) | Introspection discloses a token only to the party that consumes it | Accepted |
+| [1168](./1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md) | Introspection reports a token active only to the party that consumes it | Accepted |
 | [1187](./1187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md) | A signed request object is short-lived and addressed to the issuer | Accepted |
 | [1192](./1192-dynamic-registration-binds-a-client-to-the-resource-server-its-token-names.md) | Dynamic registration binds a client to the resource server its initial access token names | Accepted |
 | [1201](./1201-authorization-responses-are-delivered-by-registered-response-mode-handlers.md) | Authorization responses are delivered by registered response-mode handlers | Accepted |

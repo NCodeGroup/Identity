@@ -26,7 +26,7 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Introspection.Handlers;
 /// <c>aud</c> and <c>scope</c> are narrowed to that resource server. A refresh token (a persisted grant) is active
 /// only for the client it was issued to. Every other token is inactive. Additional handlers may enrich the response.
 /// </summary>
-// See ADR-1029 and ADR-1168 (RFC 7662 §4, RFC 9701 §5).
+// See ADR-1168 (RFC 7662 §4, RFC 9701 §5).
 internal class DefaultIntrospectTokenHandler(
     IIssuedTokenValidator issuedTokenValidator,
     ISubjectIdentifierService subjectIdentifierService,

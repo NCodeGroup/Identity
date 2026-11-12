@@ -1,7 +1,7 @@
 # 1155. JWTs exchanged with a client follow its registered metadata
 
 - **Status:** Accepted (extended by
-  [ADR-1168](1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md): a JWT introspection response
+  [ADR-1168](1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md): a JWT introspection response
   follows the client's registered introspection metadata; extended by [ADR-1181](1181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md): the
   credential selector is a public seam every issuer of a client-addressed JWT resolves; extended by
   [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md): the checks of decision 2 are a

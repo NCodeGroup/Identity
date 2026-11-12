@@ -42,7 +42,7 @@ revocable, so it reveals nothing about token state. A missing `token` parameter 
   [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md)), and short access-token lifetimes bound the rest.
 - **Discovery.** Discovery mirrors the token endpoint's client-authentication methods and signing algorithms into the
   `revocation_endpoint_*` members
-  ([ADR-1168](1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
+  ([ADR-1168](1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)).
 
 ## Options considered
 
@@ -79,5 +79,5 @@ revocable, so it reveals nothing about token state. A missing `token` parameter 
   [ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md): session revocation and the OP's own
   token validation.
 - [ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md): the retry of a lost concurrency race.
-- [ADR-1168](1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md): the discovery members that
+- [ADR-1168](1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md): the discovery members that
   mirror the token endpoint.

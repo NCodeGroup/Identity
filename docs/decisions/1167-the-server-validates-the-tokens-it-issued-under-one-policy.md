@@ -43,7 +43,7 @@ tenant's policy for that kind of token. A system resource server never holds key
    - **Keys:** validation and decryption keys are the tenant's keys within their validity windows
      ([ADR-1403](1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md)),
      plus any keys the caller adds. Introspection adds the calling resource server's keys
-     ([ADR-1168](1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)).
+     ([ADR-1168](1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)).
    - **Claims:** `typ` is `at+jwt`, `iss` is the tenant's issuer, the token is within its lifetime, and, when the
      caller names audiences, `aud` contains one of them.
    - **Session:** a token whose `sid` names an explicitly revoked session is rejected
@@ -107,7 +107,7 @@ tenant's policy for that kind of token. A system resource server never holds key
 - [RFC 8725](https://www.rfc-editor.org/rfc/rfc8725) §3.1, §3.11 (explicit typing); [RFC 9068](https://www.rfc-editor.org/rfc/rfc9068)
   §2.1 (`at+jwt`), §4; [RFC 8693](https://www.rfc-editor.org/rfc/rfc8693) §2.1, §3;
   [RFC 9701](https://www.rfc-editor.org/rfc/rfc9701) §8.1; OpenID Connect RP-Initiated Logout 1.0 §2.
-- [ADR-1168](1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md): the introspection caller that
+- [ADR-1168](1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md): the introspection caller that
   adds its resource server's keys.
 - Code: `NCode.Identity.OpenId.Authentication.Tokens.IIssuedTokenValidator`, `AccessTokenValidationOptions`,
   `DefaultIssuedTokenValidator`, `Tokens.Handlers.DefaultAuthenticateAccessTokenHandler`,

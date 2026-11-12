@@ -10,7 +10,7 @@ The server addresses four kinds of JWT to a client: the ID token, the logout tok
 introspection response. Each is protected exactly as the client registered: signed with the algorithm its registration
 names, and encrypted to one of its public keys when it registers an encryption algorithm
 ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md),
-[ADR-1168](1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md)). One selector,
+[ADR-1168](1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)). One selector,
 `IClientJwtCredentialSelector`, applies that policy for every kind.
 
 `ITokenService` is public so a deployment can replace it, and the ID token is one of its products. A replacement that
@@ -51,7 +51,7 @@ public seam a replacement resolves
 
 - [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md) (extended: the selector is public),
   [ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md) (the access-token
-  counterpart), [ADR-1168](1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md),
+  counterpart), [ADR-1168](1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md).
 - Code: `NCode.Identity.OpenId.Authentication.Clients.IClientJwtCredentialSelector`, `ClientJwtCredentials`,
   `ClientJwtProtectionSettings` (Authentication.Abstractions); `DefaultClientJwtCredentialSelector` (Authentication).

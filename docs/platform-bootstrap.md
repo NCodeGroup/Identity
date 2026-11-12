@@ -143,7 +143,7 @@ Manual because AWS accounts and the identity used to administer them must exist 
 2. **Member account:** Organizations → *Add an AWS account* → *Create an AWS account*: name `nidentity-platform`, email
    a unique alias of `<recovery-email>` (for example a `+aws-platform` sub-address), IAM role name left as
    `OrganizationAccountAccessRole`, tags `application` = `ncode-identity` and `owner_email` = `platform@<brand-domain>`
-   ([ADR-1135](decisions/1135-one-resource-tagging-strategy-across-every-vendor.md)). Leave it directly under *Root* — one
+   ([ADR-1135](decisions/1135-platform-resources-carry-one-stable-tag-set-and-provenance-comes-from-attestations-and-audit-logs.md)). Leave it directly under *Root* — one
    workload account needs no organizational units. It is billed to the management account — no new payment method.
    Record its account ID: it goes into `live/bootstrap/terraform.tfvars` as `aws_account_id`.
 3. **Root access management:** in IAM (management account) → *Root access management* → **Enable** both capabilities,

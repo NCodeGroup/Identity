@@ -117,8 +117,7 @@ The records are grouped by area; within an area they are in number order.
 | [1132](./1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md) | Platform infrastructure code is public on GitHub, and its state and backups live in AWS | Accepted |
 | [1133](./1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md) | The hosted platform runs only the published artifacts it offers self-hosters | Accepted |
 | [1134](./1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md) | The platform and the host follow written cloud-native operating principles | Accepted |
-| [1135](./1135-one-resource-tagging-strategy-across-every-vendor.md) | One resource tagging strategy across every vendor | Accepted |
-| [1136](./1136-provenance-is-attested-on-workloads-and-audited-for-infrastructure.md) | Provenance is attested on workloads and audited for infrastructure | Accepted |
+| [1135](./1135-platform-resources-carry-one-stable-tag-set-and-provenance-comes-from-attestations-and-audit-logs.md) | Platform resources carry one stable tag set, and provenance comes from attestations and audit logs | Accepted |
 | [1146](./1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md) | A development seeder registers only the clients its configuration declares | Accepted |
 | [1177](./1177-the-data-protection-key-ring-is-encrypted-at-rest-in-production.md) | The Data Protection key ring is encrypted at rest in Production | Superseded |
 | [1178](./1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md) | The host image is chiseled, non-root, multi-arch, and carries the login bundle | Accepted |

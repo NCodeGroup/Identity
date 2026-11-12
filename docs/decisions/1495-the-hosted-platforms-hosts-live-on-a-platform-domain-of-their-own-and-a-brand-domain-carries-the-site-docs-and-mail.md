@@ -1,6 +1,6 @@
 # 1495. The hosted platform's hosts live on a platform domain of their own, and a brand domain carries the site, docs and mail
 
-- **Status:** Accepted (amends [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md), [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md), [ADR-1135](1135-one-resource-tagging-strategy-across-every-vendor.md))
+- **Status:** Accepted (amends [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md), [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md), [ADR-1135](1135-platform-resources-carry-one-stable-tag-set-and-provenance-comes-from-attestations-and-audit-logs.md))
 - **Date:** 2026-11-10
 - **Deciders:** NCode Group
 
@@ -79,7 +79,7 @@ site, docs, status page and operator mail.**
     configuration.
 15. **The Kubernetes label prefix is `ncodeid.net/`** (`ncodeid.net/environment`, `ncodeid.net/role`), and the owner
     mailbox is `platform@ncodeid.com`
-    ([ADR-1135](1135-one-resource-tagging-strategy-across-every-vendor.md)).
+    ([ADR-1135](1135-platform-resources-carry-one-stable-tag-set-and-provenance-comes-from-attestations-and-audit-logs.md)).
 
 ## Options considered
 
@@ -107,7 +107,7 @@ site, docs, status page and operator mail.**
 - [ADR-1129](1129-the-tenant-issuer-is-the-single-authoritative-origin.md)
 - [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)
 - [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)
-- [ADR-1135](1135-one-resource-tagging-strategy-across-every-vendor.md)
+- [ADR-1135](1135-platform-resources-carry-one-stable-tag-set-and-provenance-comes-from-attestations-and-audit-logs.md)
 - [ADR-1258](1258-the-server-sends-strict-transport-security-outside-development.md)
 - [`docs/hosting-analysis.md`](../hosting-analysis.md), [`docs/platform-bootstrap.md`](../platform-bootstrap.md)
 - [ccNSO retirement of ccTLDs policy](https://icannwiki.org/CcNSO_Policy_Development_Process_-_Retirement)

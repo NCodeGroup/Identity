@@ -267,7 +267,7 @@ All identity hosts are **DNS-only** in Cloudflare (no proxy), so TLS reaches Tra
 - **Inbound mail only:** Cloudflare Email Routing (free, receive-only; `cloudflare_email_routing_settings` / `_dns` /
   `_address` / `_rule`) runs on `ncodeid.com` only and forwards per-purpose addresses — `security@` for `security.txt`,
   `platform@` as the owner of every cloud resource
-  ([ADR-1135](decisions/1135-one-resource-tagging-strategy-across-every-vendor.md)), and one per vendor account such as
+  ([ADR-1135](decisions/1135-platform-resources-carry-one-stable-tag-set-and-provenance-comes-from-attestations-and-audit-logs.md)), and one per vendor account such as
   `npm@`, `gitlab@`, `docker-ncodegroup@` — to the owner's personal mailbox; no catch-all. Every zone publishes DMARC
   `v=DMARC1; p=reject` because nothing sends mail yet — an identity domain is a prime phishing target. Every zone except
   `ncodeid.com` publishes SPF `v=spf1 -all` and a null MX (`0 .`); `ncodeid.com` publishes the Email Routing MX records

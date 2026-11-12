@@ -147,5 +147,26 @@ public sealed class ValkeyConnectionPartsTests
         Assert.DoesNotContain(Password, exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Resolve_MisspelledPart_ThrowsNamingTheKeyButNotTheValue()
+    {
+        var configuration = CreateConfiguration(
+            ("ValkeyConnection:Host", Host),
+            ("ValkeyConnection:Pasword", Password)
+        );
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            ValkeyConnectionParts.Resolve(configuration)
+        );
+
+        Assert.Contains("Pasword", exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(Password, exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            Password,
+            exception.InnerException?.Message ?? string.Empty,
+            StringComparison.Ordinal
+        );
+    }
+
     #endregion
 }

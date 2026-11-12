@@ -30,7 +30,9 @@ the `ConfigurationOptions` from the parts itself, so a password stays a password
    `Password`, `Ssl`) and the finished string `ConnectionStrings:valkey` are two forms of one connection. `AddValkey`
    resolves the connection from whichever form is configured and builds the `ConfigurationOptions` directly from the
    parts, so a password holding `,` or `=` stays a password. `Port` defaults to 6379, and `Username`, `Password` and
-   `Ssl` are optional. `AddValkey` refuses both forms at once, a section without `Host`, a `Port` outside 1-65535 and an
+   `Ssl` are optional. The section binds strictly, so a misspelled part stops the host
+   ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
+   `AddValkey` refuses both forms at once, a section without `Host`, a `Port` outside 1-65535 and an
    `Ssl` that is not a boolean, and its messages name configuration paths and never a configured value.
 2. **The chart passes the parts as environment variables.** `valkey.parts` and `managementConsole.valkey.parts` each
    name a Secret (`existingSecret`), the keys that hold the host, port, user name and password (`hostKey`, `portKey`,

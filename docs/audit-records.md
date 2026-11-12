@@ -282,7 +282,7 @@ resource-change event with the `administrator` actor instead.
 #### Master keys
 
 Every master key event is a `MasterKeyAuditEvent` with `event_category` `key` and the outcome `success`
-([ADR-1407](decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
+([ADR-1407](decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md)).
 It lists the `master_key` first and the owner second (`tenant` or `platform`, with the owner's id), carries no key
 material, wrapped key or key check, and is published once the change has committed. An administrator's rekey through the
 management API has `event_source` `management`, the `administrator` actor and the request; the background pass has

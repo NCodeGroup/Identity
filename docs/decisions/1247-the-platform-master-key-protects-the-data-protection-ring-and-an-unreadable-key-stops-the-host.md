@@ -63,7 +63,7 @@ decrypt; and `DataProtectionKeyRing:RevokedKeyIds` revokes keys by ID so that an
    `HostApplicationFactory` uses its own in-memory `DeveloperDataProtectionDbContext`, and a bare test host uses an
    in-memory `XmlRepository`.
 8. **Rotation and destruction follow ADR-1407.** The platform master key rotates and is destroyed under the rules of
-   [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md):
+   [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md):
    new ring keys and host data use the new version. An existing ring key is never re-encrypted
    (`DataProtectionKeyRingValueSource.RewrapAsync` rewraps nothing), so a retired version stays while a live ring key
    names it, and the warmup loads it. A host that protects its own data under the platform registers a protected-value
@@ -116,7 +116,7 @@ decrypt; and `DataProtectionKeyRing:RevokedKeyIds` revokes keys by ID so that an
 - [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — the key hierarchy
 - [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) — the platform and the
   team
-- [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)
+- [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md)
   — master key rotation and destruction
 - [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md) —
   development conveniences

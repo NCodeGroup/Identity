@@ -136,7 +136,7 @@ rewrapped under the new version in the background. The platform's next version p
 host data created afterwards, and an existing Data Protection key is never re-encrypted. A retired key is destroyed
 once its grace has passed and no stored secret, grant payload, live Data Protection key or reported platform value
 names it, so the platform's retired version stays while a live Data Protection key names it
-([ADR-1407](../../docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
+([ADR-1407](../../docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md)).
 
 The host also runs one offline command from its own image, for a one-off Job (the Helm chart's
 `secretProtection.rewrapJob` runs it): it rewraps every master key under the configured root key provider and recovery

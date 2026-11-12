@@ -257,7 +257,7 @@ The records are grouped by area; within an area they are in number order.
 | [1391](./1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md) | A client secret is a one-way verifier unless its method keys from its UTF-8 octets | Accepted |
 | [1403](./1403-a-stored-secret-has-an-active-window-inside-its-validity-window-honored-on-every-use.md) | A stored secret has an active window inside its validity window, honored on every use | Accepted |
 | [1404](./1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md) | A tenant's provisioned keys roll over ahead of retirement and expire after a grace | Accepted |
-| [1407](./1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md) | A master key rotates, its data keys are rewrapped in the background, and it is destroyed once nothing names it | Accepted |
+| [1407](./1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md) | A master key rotates, its data keys are rewrapped, and it is destroyed once unnamed | Accepted |
 | [1408](./1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md) | An offline host command rewraps every master key under the configured root and recovery keys | Accepted |
 | [1414](./1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md) | A tenant can wrap its master keys under a root key it controls | Accepted |
 | [1415](./1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md) | A key wrapper can wrap under a key the caller names | Accepted |

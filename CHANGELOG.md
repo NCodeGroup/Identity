@@ -4092,7 +4092,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `master_key.rotated` and `master_key.destroyed` are `key` audit events; and the management console shows the keys of a
   tenant and of the platform with a confirmed "Rekey" action that says how long to wait when it comes too soon
   ([#171](https://github.com/NCodeGroup/identity/issues/171),
-  [ADR-1407](docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md),
+  [ADR-1407](docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md),
   [ADR-1483](docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md)).
 
 - **A management problem that asks the caller to wait carries the wait.** A rekey or a root key change that comes too
@@ -5870,7 +5870,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   unwrap every master key exists only inside the offline rewrap command
   ([#171](https://github.com/NCodeGroup/identity/issues/171),
   [#172](https://github.com/NCodeGroup/identity/issues/172),
-  [ADR-1407](docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md),
+  [ADR-1407](docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md),
   [ADR-1408](docs/decisions/1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md)).
 - **A revoked tenant root key shreds the tenant's data and the server fails closed.** A master key under a root key the
   tenant brings has no operator recovery copy, so revoking, disabling or destroying that key makes every value written

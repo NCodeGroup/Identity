@@ -65,7 +65,7 @@ and tenant it serves with the store's and evicts only those whose token differs 
    ([ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md)).
 9. **Master keys of tenants the replica does not cache are left to the `master-key-changed` handler.** That handler
    evicts every owner's master keys when it may have missed a message
-   ([ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
+   ([ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md)).
 
 ## Options considered
 
@@ -102,7 +102,7 @@ and tenant it serves with the store's and evicts only those whose token differs 
 - [ADR-1080](1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md) — store
   query methods push filtering to the DBMS
 - [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md) — a team can nest beneath a parent team
-- [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)
+- [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md)
   — a master key rotates, and its data keys are rewrapped in the background
 - [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) — a tenant is provisioned
   through one pipeline

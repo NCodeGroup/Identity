@@ -220,7 +220,7 @@ of the platform and of each tenant retires and the next version takes over, a te
 a registered protected-value source reports, are rewrapped under the new version, and a retired key is destroyed once
 its grace has passed and nothing names it: the platform's retired version stays while a live Data Protection key
 names it, because an existing Data Protection key is never re-encrypted
-([ADR-1407](../../docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
+([ADR-1407](../../docs/decisions/1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md)).
 An administrator rekeys at once with `POST /api/tenants/{tenantId}/encryption-keys/rekey` or
 `POST /api/platform/encryption-keys/rekey`, and reads the keys with `GET .../encryption-keys`. Tune the
 lifecycle with environment variables in `extraEnv`: `SecretProtection__MasterKeys__RotationPeriod`,

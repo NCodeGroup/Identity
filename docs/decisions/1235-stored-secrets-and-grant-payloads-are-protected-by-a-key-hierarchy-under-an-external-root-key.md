@@ -89,7 +89,7 @@ root lives outside the database.
     A tenant change evicts its master keys on every replica through the tenant change broadcast, a replica that may
     have missed a broadcast evicts every owner's, and a load that an eviction overtakes is not cached. Evicting does not
     zero a key, because a protector handed out earlier may still be using it. Entries reload after `RefreshInterval`
-    ([ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
+    ([ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md)).
 
 ## Options considered
 

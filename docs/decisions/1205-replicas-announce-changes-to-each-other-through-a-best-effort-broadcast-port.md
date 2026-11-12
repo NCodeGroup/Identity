@@ -66,7 +66,7 @@ lifetime of a cached tenant is
    - The connection's access-control user needs `PUBLISH` and `SUBSCRIBE` as well as the commands of the other adapters.
 5. **A message carries an identifier, never data.** The channels in use are `tenant-changed` (the tenant identifier),
    `team-changed` (the team identifier), `platform-settings-changed` and `master-key-changed`
-   ([ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)).
+   ([ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md)).
 6. **A tenant change is announced on `tenant-changed`.**
    - `TenantChangedHandler` evicts the tenant from this replica's cache, seeds it when its settings changed, and
      announces in a `finally` block, so the announcement follows a seed that failed: the change is committed either way.
@@ -119,7 +119,7 @@ lifetime of a cached tenant is
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — channels are an open vocabulary
 - [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) — the shared-state ports
 - [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md) — the tenant-changed command
-- [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md) — the `master-key-changed` channel
+- [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md) — the `master-key-changed` channel
 - [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — the cached tenant's lifetime
 - [ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md) — reconciliation of missed announcements
 - `src/NCode.Identity.SharedState.Abstractions/`, `src/NCode.Identity.SharedState.Valkey/`

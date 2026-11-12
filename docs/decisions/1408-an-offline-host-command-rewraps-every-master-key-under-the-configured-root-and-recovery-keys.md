@@ -67,7 +67,7 @@ rewraps every master key and exits without starting the server.
 ## References
 
 - [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
-  [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)
+  [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md)
 - `src/NCode.Identity.Secrets.Persistence/Protection/DefaultMasterKeyRewrapper.cs`,
   `src/NCode.Identity.Server/SecretProtection/SecretProtectionCommandLine.cs`,
   `charts/ncode-identity-host/templates/secret-protection-job.yaml`

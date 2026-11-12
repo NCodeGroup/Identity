@@ -13,7 +13,7 @@
   root), decision 2 (such a master key has no recovery copy), decision 9 (revoking or destroying the owner's key shreds
   its data wherever a copy is) and decision 13 (an owner-rooted cache entry is unwrapped again every validation interval
   and refused while its key is unavailable);
-  [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)
+  [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md)
   (rotation creates the successor under the owner's root key, the status reports the root key, the reason
   `root_key_changed` exists, and the ring re-validates);
   [ADR-1408](1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md) (the
@@ -137,7 +137,7 @@ to take effect within a bounded period across replicas without a KMS call per re
 
 - [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-1260](1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md),
-  [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md),
+  [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-and-it-is-destroyed-once-unnamed.md),
   [ADR-1408](1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md),
   [ADR-1415](1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),

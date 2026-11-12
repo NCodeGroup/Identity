@@ -3,13 +3,13 @@
 - **Status:** Accepted
 - **Date:** 2026-11-03
 - **Deciders:** NCode Group
-- **Amends:** [ADR-1259](1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md)
+- **Amends:** [ADR-1259](1259-the-built-in-revocation-sources-check-ocsp-and-every-crl-form-rfc-5280-defines.md)
 
 ## Context
 
 The default `IClientCertificateRevocationChecker` asks the `IClientCertificateRevocationSource`s in turn, and the
 first `Good` or `Revoked` answer decides
-([ADR-1259](1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md)). Which sources a
+([ADR-1259](1259-the-built-in-revocation-sources-check-ocsp-and-every-crl-form-rfc-5280-defines.md)). Which sources a
 deployment can use, and in what order, depends on its PKI:
 
 - A deployment whose OCSP responders the server cannot reach, such as one behind an egress policy that admits only the
@@ -95,7 +95,7 @@ when the host starts; empty, the default, asks every registered source in the de
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md): intervals and
   retentions are configured and validated when the host starts.
 - [ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md) and
-  [ADR-1259](1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md).
+  [ADR-1259](1259-the-built-in-revocation-sources-check-ocsp-and-every-crl-form-rfc-5280-defines.md).
 - Code: `src/NCode.Identity.OpenId.Authentication.Abstractions/ClientCertificates/` for
   `ClientCertificateRevocationSourceDescriptor` and `IClientCertificateRevocationSourceCatalog`, and
   `src/NCode.Identity.OpenId.Authentication/ClientCertificates/` for `ClientCertificateRevocationOptions`,

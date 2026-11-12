@@ -238,7 +238,7 @@ The records are grouped by area; within an area they are in number order.
 | [1173](./1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md) | A mutual-TLS client is authenticated by its registered certificate, chained to configured trust anchors | Accepted |
 | [1176](./1176-dpop-proofs-are-created-and-validated-by-a-jose-service.md) | DPoP proofs are created and validated by a JOSE service | Accepted |
 | [1252](./1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md) | A revocation list retrieval is shared, a failed one is remembered, and soft-fail is opt-in | Accepted |
-| [1259](./1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md) | Revocation is checked by registered sources, OCSP before every CRL form | Accepted |
+| [1259](./1259-the-built-in-revocation-sources-check-ocsp-and-every-crl-form-rfc-5280-defines.md) | The built-in revocation sources check OCSP and every CRL form RFC 5280 defines | Accepted |
 | [1315](./1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md) | Outbound calls to caller-supplied URLs share one guarded, bounded client | Accepted |
 | [1350](./1350-a-shared-fetch-is-single-flight-through-one-helper.md) | A shared fetch is single-flight through one helper | Accepted |
 | [1365](./1365-the-bff-and-the-login-redirect-take-no-url-from-the-requests-host.md) | The BFF and the login redirect take no URL from the request's Host | Accepted |

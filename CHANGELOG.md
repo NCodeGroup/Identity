@@ -4968,7 +4968,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   revocation source and record the `Location`
   ([ADR-1173](docs/decisions/1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md),
   [ADR-1252](docs/decisions/1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md),
-  [ADR-1259](docs/decisions/1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md),
+  [ADR-1259](docs/decisions/1259-the-built-in-revocation-sources-check-ocsp-and-every-crl-form-rfc-5280-defines.md),
   [ADR-1400](docs/decisions/1400-the-revocation-sources-are-described-and-configuration-selects-and-orders-them.md),
   issues [#207](https://github.com/NCodeGroup/identity/issues/207), [#255](https://github.com/NCodeGroup/identity/issues/255),
   [#38](https://github.com/NCodeGroup/identity/issues/38)).

@@ -81,7 +81,7 @@ subject, and trusts no certificate when none are configured. The proxy only requ
 
    The server then checks revocation under `tls_client_auth_revocation_mode`, through the revocation sources of
    [ADR-1400](1400-the-revocation-sources-are-described-and-configuration-selects-and-orders-them.md) and
-   [ADR-1259](1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md).
+   [ADR-1259](1259-the-built-in-revocation-sources-check-ocsp-and-every-crl-form-rfc-5280-defines.md).
 7. **The subject distinguished name is matched by RFC 4517 `distinguishedNameMatch`.** The public class
    `DistinguishedName`, in the namespace `NCode.Identity.OpenId.ClientCertificates`, is the only parser and matcher of
    distinguished names. The `tls_client_auth_subject_dn` setting rule, the handler and the revocation issuer checks all
@@ -162,6 +162,6 @@ subject, and trusts no certificate when none are configured. The proxy only requ
   [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1172](1172-a-forwarded-client-certificate-is-decoded-by-the-decoder-registered-for-its-format.md),
-  [ADR-1259](1259-revocation-is-checked-by-registered-sources-ocsp-before-every-crl-form.md),
+  [ADR-1259](1259-the-built-in-revocation-sources-check-ocsp-and-every-crl-form-rfc-5280-defines.md),
   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md),
   [ADR-1400](1400-the-revocation-sources-are-described-and-configuration-selects-and-orders-them.md).

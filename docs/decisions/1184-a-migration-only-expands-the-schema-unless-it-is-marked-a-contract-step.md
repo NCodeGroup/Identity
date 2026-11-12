@@ -80,7 +80,7 @@ existed, and it carries the marker with that reason.
 
 - [ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md): migrations run before
   the rollout and keep the previous release working.
-- [ADR-1073](1073-postgres-dev-database-and-aspire-migration-worker.md): the Postgres dev database and the migration
+- [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md): the Postgres dev database and the migration
   worker.
 - `hosts/NCode.Identity.OpenId.Host.Database/ExpandOnlyRule.cs`,
   `hosts/NCode.Identity.OpenId.Host.Database/ContractMigrationAttribute.cs`, and

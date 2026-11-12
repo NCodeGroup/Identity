@@ -135,7 +135,7 @@ compiles it and no gate tests it
   `NCode.Identity.OpenId.Host.MigrationService` (the migration worker the host image carries),
   `NCode.Identity.ManagementConsole.Host` (the management console's BFF host) and `NCode.Identity.OpenId.LocalDev`
   (the .NET Aspire local-dev orchestrator)
-  ([ADR-1073](docs/decisions/1073-postgres-dev-database-and-aspire-migration-worker.md),
+  ([ADR-1073](docs/decisions/1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md),
   [ADR-1180](docs/decisions/1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md),
   [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),
   [ADR-1071](docs/decisions/1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md))

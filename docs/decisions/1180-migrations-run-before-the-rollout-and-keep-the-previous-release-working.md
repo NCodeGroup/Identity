@@ -13,10 +13,10 @@
 ## Context
 
 The host never migrates on boot outside Development
-([ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md)). Schema changes are a deliberate step,
+([ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)). Schema changes are a deliberate step,
 and replicas starting at once must not race to apply them. Locally, the Aspire AppHost runs the migration worker
 `NCode.Identity.OpenId.Host.MigrationService` before the host
-([ADR-1073](1073-postgres-dev-database-and-aspire-migration-worker.md)). A Kubernetes deployment through the host's
+([ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)). A Kubernetes deployment through the host's
 chart ([ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)) needs the
 same step. During a rolling update, the old and new versions run at the same time.
 

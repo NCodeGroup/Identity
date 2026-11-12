@@ -111,10 +111,8 @@ The records are grouped by area; within an area they are in number order.
 | --- | --- | --- |
 | [1002](./1002-ephemeral-development-keys.md) | Ephemeral development keys are an explicit opt-in, never a silent default | Superseded |
 | [1021](./1021-developer-signing-keys-seeded-through-persistence.md) | Developer signing keys are seeded through the persistence layer, not injected at the read path | Accepted |
-| [1041](./1041-host-owned-ef-migrations-deliberate-outside-development.md) | The reference host owns schema with EF Core migrations, applied deliberately outside Development | Accepted |
 | [1071](./1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md) | The Aspire AppHost runs the local stack in health-gated order after checking the frontend toolchain | Accepted |
-| [1072](./1072-self-healing-dev-database-and-model-drift-gate.md) | Self-healing local developer database + a Definition-of-Done model-drift gate | Superseded |
-| [1073](./1073-postgres-dev-database-and-aspire-migration-worker.md) | PostgreSQL developer database with an Aspire migration-worker, and data-protection keys stored in the database | Accepted |
+| [1073](./1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md) | One PostgreSQL database holds the host's schema and key ring, migrated by a worker and drift-checked | Accepted |
 | [1131](./1131-hosted-platform-environment-model-and-hostname-scheme.md) | The hosted platform's environment model and hostname scheme | Accepted |
 | [1132](./1132-platform-infrastructure-as-code-is-public-on-github.md) | Platform infrastructure as code is public on GitHub; state and backups live in AWS | Accepted |
 | [1133](./1133-we-ship-and-run-the-same-deployment-artifacts.md) | We ship and run the same deployment artifacts | Accepted |

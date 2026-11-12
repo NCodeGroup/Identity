@@ -72,7 +72,7 @@ grantedScopes)` grows the decided set monotonically (`decided ∪ requested`) an
 
 - **A column and a migration.** `PersistedConsent.RequestedScopes` / `ConsentEntity.RequestedScopesJson` and the
   `AddConsentRequestedScopes` migration are the cost of distinguishing "decided" from "granted". The dev database is
-  volume-reset ([ADR-1073](1073-postgres-dev-database-and-aspire-migration-worker.md)), so no data migration is needed.
+  volume-reset ([ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)), so no data migration is needed.
 - **Correct re-prompt semantics without a resume loop.** Because the decided set records denials, a client that keeps
   requesting a previously-declined scope does not re-prompt the subject, while a genuinely new scope does; and because
   `prompt=consent` is neutralized on the continuation, the consent screen is shown exactly once per decision.

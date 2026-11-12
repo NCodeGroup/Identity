@@ -70,7 +70,7 @@ best-effort seam stays unchanged for everything else._
   including the unique event id used for de-duplication.
 - [ADR-1500](./1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — persistence-layer placement
   and composition wiring.
-- [ADR-1041](./1041-host-owned-ef-migrations-deliberate-outside-development.md) — the host owns schema, so
+- [ADR-1073](./1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md) — the host owns schema, so
   the outbox table is a host-owned migration.
 - [ADR-1090](./1090-durable-outbound-delivery-dispatch-adapter.md) — the generic job-dispatch port this outbox is a
   durable adapter of.

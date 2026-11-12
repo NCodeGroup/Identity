@@ -188,7 +188,7 @@ registration on `IdentityServerBuilder`), and the host configures the renderer.
   self-bootstraps: the request resolves the tenant — seeding the client if absent — before client authentication
   runs, so that first call succeeds with no warm-up, whether the tenant is brand new or already provisioned. This holds
   in production as well as development; the production
-  prerequisites are the established ones — schema applied out of band ([ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md))
+  prerequisites are the established ones — schema applied out of band ([ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md))
   and a persistent Data Protection key ring so the protected secret round-trips ([ADR-1021](1021-developer-signing-keys-seeded-through-persistence.md)).
 - GlobalAdmin authority is carried by the token's `role` claim, not its `scope`. The management endpoints authorize on
   role and ownership, never on the token's scopes, so the bootstrap token's scope (`read:clients` in the example) is

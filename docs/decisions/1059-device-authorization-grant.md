@@ -90,7 +90,7 @@ Concretely:
   grant ([ADR-1085](1085-ciba-grant.md)) shares that shape — but `IPersistedGrantService` already exists precisely to
   "persist any type of grant and their payloads," and the device request _is_ a grant payload. A parallel store would
   duplicate the tenant-scoping, hash-keying, concurrency, and EF plumbing the grant store already provides, and force an
-  out-of-band migration ([ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md)) for a record the
+  out-of-band migration ([ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)) for a record the
   existing schema already fits. Reusing the grant store is the cohesive choice; the companion pointer row is a standard
   secondary-index technique, not a workaround.
 - **A single row with both keys (store the `user_code` hash as a second indexed column on the grant envelope).**
@@ -133,6 +133,6 @@ Concretely:
 - [ADR-1010](1010-supported-settings-unset-means-unrestricted.md), [ADR-1038](1038-setting-merge-lattice-duals.md) —
   the settings descriptor and merge conventions the new settings follow.
 - [ADR-1028](1028-token-revocation-refresh-tokens-only.md) — the `PersistedGrant` revoke/consume semantics reused here.
-- [ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md) — why avoiding a new migration matters.
+- [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md) — why avoiding a new migration matters.
 - [ADR-1085](1085-ciba-grant.md) — the CIBA grant that reuses this pending-authorization pattern.
 - <see href="https://datatracker.ietf.org/doc/html/rfc8628">RFC 8628</see> — the OAuth 2.0 Device Authorization Grant.

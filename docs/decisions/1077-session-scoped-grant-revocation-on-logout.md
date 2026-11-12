@@ -74,7 +74,7 @@ removed: session revocation is now the session-scoped grant revocation, which is
   one indexed pass.
 - **Harder / follow-ups:** every session-scoped issuance path must stamp the `sid` (a small, uniform addition funneled
   through the grant envelope). A new EF column + index means a host-owned migration
-  ([ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md)). A UI affordance for a user-initiated
+  ([ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)). A UI affordance for a user-initiated
   "sign out everywhere" (vs. the admin bulk-revoke) is a later presentation concern, not a model gap.
 - **You-chose-wrong smells:** a deployment that genuinely wants every logout to be a global sign-out (then the
   session-scoped default is friction, though the subject-wide revoke is one call away); a grant type that should be

@@ -125,7 +125,7 @@ Concretely:
 - **A dedicated store (or table/column) for registration access tokens.** Rejected. A per-client bearer token bound to
   a client, hash-keyed, optionally expiring, and revocable **is** a `PersistedGrant`; a parallel store would duplicate
   the tenant-scoping, hash-keying, and EF plumbing the grant store already provides and force an out-of-band migration
-  ([ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md)) for a record the existing schema fits.
+  ([ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)) for a record the existing schema fits.
 - **A separate blob for the registered metadata document, kept beside the runtime settings.** Rejected. It would
   duplicate the functional fields (which must also be runtime settings) and create two sources of truth. Storing the
   informational fields inside the one settings document the server already persists keeps a single home and a symmetric
@@ -180,7 +180,7 @@ Concretely:
 - [ADR-1050](1050-secret-material-revealed-once-on-create.md) — the one-time secret reveal reused for the
   `client_secret`.
 - [ADR-1059](1059-device-authorization-grant.md) — the persisted-grant-payload pattern reused for the DCR token types.
-- [ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md) — why avoiding a new migration matters.
+- [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md) — why avoiding a new migration matters.
 - <see href="https://datatracker.ietf.org/doc/html/rfc7591">RFC 7591</see> — OAuth 2.0 Dynamic Client Registration.
 - <see href="https://datatracker.ietf.org/doc/html/rfc7592">RFC 7592</see> — OAuth 2.0 Dynamic Client Registration
   Management.

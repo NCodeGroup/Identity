@@ -100,8 +100,8 @@ Concretely:
 
 - **A dedicated `PersistedSession` table + store + EF migration.** A first-class schema is the "textbook" model, but it
   duplicates the grant store's tenant scoping, concurrency tokens, hash-keying, expiry, and bulk-revocation, and forces
-  a new host-owned EF migration ([ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md)) that the
-  model-drift gate ([ADR-1072](1072-self-healing-dev-database-and-model-drift-gate.md)) would police — all for a row
+  a new host-owned EF migration ([ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)) that the
+  model-drift gate ([ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)) would police — all for a row
   shape the grant store already provides. Riding the grant store (as the device flow does) is the cohesive home for "a
   grant and its payload" and keeps the subsystem migration-free. Chosen.
 - **Stateless `sid` (no server-side session).** Deriving `sid` from the cookie alone avoids storage but makes

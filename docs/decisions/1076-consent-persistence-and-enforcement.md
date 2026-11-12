@@ -84,7 +84,7 @@ NormalizedSubjectId)` index for subject enumeration. `SaveAsync` **upserts** (wi
 
 - **A new table and migration.** `Consents` is added to the core model and a `AddConsents` migration ships in the
   host database project. This is the deliberate cost of treating consent as its own aggregate; the dev database is
-  volume-reset ([ADR-1073](1073-postgres-dev-database-and-aspire-migration-worker.md)), so no data migration is needed.
+  volume-reset ([ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)), so no data migration is needed.
 - **Consent survives logout by construction.** Because consent is not a grant, the end-session bulk-revoke never
   touches it — the correct semantics (logout ends the session, not standing authorizations) fall out for free, and the
   grant store's consume-once model is left unburdened by a durable, deterministic-keyed record it was never shaped for.

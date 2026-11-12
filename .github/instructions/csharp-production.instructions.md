@@ -893,7 +893,7 @@ than inlining the rationale.
   cannot apply over a schema another identifier created; `build/dev-db-reset.ps1` resets the local database.
   `dotnet ef migrations add` writes its files with a UTF-8 BOM; the repository's files are BOM-less
   (`charset = utf-8`), so strip the BOM from every generated file. See
-  [ADR-1073](../../docs/decisions/1073-postgres-dev-database-and-aspire-migration-worker.md) and
+  [ADR-1073](../../docs/decisions/1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md) and
   [ADR-1394](../../docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md).
 - ✅ **Every migration passes the expand-and-contract gate** — template
   [Entity Framework Core](csharp.instructions.md#entity-framework-core). `ExpandOnlyRule.Check` judges every host

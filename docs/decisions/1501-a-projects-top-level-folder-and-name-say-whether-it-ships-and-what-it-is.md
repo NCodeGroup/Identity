@@ -41,7 +41,7 @@ has a folder of its own, and the build fails a project whose folder and packing 
    the image builds' context.
 8. **Names distinguish role.** `NCode.Identity.Server` is the shipping library whose entry point is
    `AddIdentityServer()`. `…Host` is the deployable, and the `Host.` prefix groups the projects that travel with it: its
-   EF migrations (`.Database`, host-owned, per [ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md))
+   EF migrations (`.Database`, host-owned, per [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md))
    and its migration worker (`.MigrationService`).
 9. **The Aspire local-dev orchestrator is `NCode.Identity.OpenId.LocalDev`,** named for its purpose because it is never
    deployed. Aspire finds it through `<IsAspireHost>true</IsAspireHost>` and `Aspire.AppHost.Sdk`, not by name. "AppHost"
@@ -77,7 +77,7 @@ has a folder of its own, and the build fails a project whose folder and packing 
 ## References
 
 - Issue [#759](https://github.com/NCodeGroup/identity/issues/759).
-- [ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md),
+- [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md),
   [ADR-1064](1064-frontend-presentation-platform.md),
   [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md),
   [ADR-1082](1082-playground-and-conformance-surfaces.md),

@@ -44,7 +44,7 @@ runtime (Docker or Podman) for Postgres and Valkey.
 
 ### The resource graph
 
-- `postgres` with the `openiddb` database ([ADR-1073](1073-postgres-dev-database-and-aspire-migration-worker.md)),
+- `postgres` with the `openiddb` database ([ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)),
   `valkey` and the `migrations` worker.
 - `api`, the reference OP, on `https://localhost:5001` and `http://localhost:5000`.
 - `conformanceapi`, a second OP under the `ConformanceAspire` launch profile, on `https://localhost:5003` and
@@ -169,7 +169,7 @@ changes.
   [`frontend/.node-version`](../../frontend/.node-version)
 - [ADR-1064](1064-frontend-presentation-platform.md): the frontend presentation platform and runtime discovery.
 - [ADR-1152](1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md): the pinned Node and pnpm.
-- [ADR-1073](1073-postgres-dev-database-and-aspire-migration-worker.md): the Postgres database and the migration worker.
+- [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md): the Postgres database and the migration worker.
 - [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md): the console BFF
   host.
 - [ADR-1003](1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md):

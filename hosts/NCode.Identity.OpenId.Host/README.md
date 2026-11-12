@@ -6,7 +6,7 @@ A runnable ASP.NET Core reference host for the OpenID Connect + OAuth 2.0 librar
 ## Database provider
 
 The dev database is **PostgreSQL**, orchestrated by the Aspire AppHost
-([ADR-1073](../../docs/decisions/1073-postgres-dev-database-and-aspire-migration-worker.md)). Run the stack through the
+([ADR-1073](../../docs/decisions/1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)). Run the stack through the
 AppHost (not this project directly) so the database, migrations, and host come up in the right order:
 
 ```pwsh
@@ -203,7 +203,7 @@ dotnet run --project hosts/NCode.Identity.OpenId.Host --launch-profile Conforman
 ## Schema management (EF Core migrations)
 
 The schema is managed by **EF Core migrations**, not `EnsureCreated()`
-([ADR-1041](../../docs/decisions/1041-host-owned-ef-migrations-deliberate-outside-development.md)). The migrations live in the
+([ADR-1073](../../docs/decisions/1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)). The migrations live in the
 host-owned **`NCode.Identity.OpenId.Host.Database`** project under `Migrations/OpenId` and
 `Migrations/DeveloperDataProtection`; the published persistence library ships none.
 

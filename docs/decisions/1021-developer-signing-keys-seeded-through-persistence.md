@@ -45,7 +45,7 @@ Two explicit, development-only opt-ins:
   loads it; JWKS and the management API observe the identical key.
     - **Persistence.** Paired with a local database and an explicit, persistent Data Protection key ring, the seeded
       secret survives restarts — the runtime keeps a stable signing key, so tokens issued before a restart still
-      validate. ([ADR-1073](1073-postgres-dev-database-and-aspire-migration-worker.md) moved both the database to
+      validate. ([ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md) moved both the database to
       PostgreSQL and the key ring from `App_Data/dp-keys` into that same database via `PersistKeysToDbContext`, so a
       single database purge resets the data, the seeded key, and the ring together.)
     - **Self-healing.** If the persisted secret cannot be unprotected (for example, the key ring was purged), it is
@@ -91,4 +91,4 @@ ADR only changes **how** the developer key is realized — from intercepting the
 - Code: `NCode.Identity.Server.DeveloperSigningKeyOpenIdTenantFactory`,
   `NCode.Identity.Server.DeveloperKeysRegistration.AddDeveloperSigningKey`,
   `NCode.Identity.OpenId.Host.Program` (mode selection; the host owns the Postgres provider and the
-  database-backed Data Protection key ring, see [ADR-1073](1073-postgres-dev-database-and-aspire-migration-worker.md)).
+  database-backed Data Protection key ring, see [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)).

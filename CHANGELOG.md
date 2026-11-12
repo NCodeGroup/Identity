@@ -309,7 +309,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The host's local database is PostgreSQL run by the Aspire AppHost, migrated by a dedicated worker** (issue
   [#144](https://github.com/NCodeGroup/identity/issues/144),
-  [ADR-1073](docs/decisions/1073-postgres-dev-database-and-aspire-migration-worker.md)). A stable named data volume
+  [ADR-1073](docs/decisions/1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)). A stable named data volume
   persists data across restarts, and `build/dev-db-reset.ps1` (detecting Docker or Podman) purges it on demand. The
   `NCode.Identity.OpenId.Host.MigrationService` worker applies the EF Core migrations and exits, and the OP instances
   wait for its completion, so a migration failure shows as a failed dashboard resource that blocks them. The migrations

@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (refines
   [ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md) decision 5; amends
-  [ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md),
+  [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md),
   [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) decision 4,
   [ADR-1140](1140-setting-values-are-validated-against-their-domain.md),
   [ADR-1184](1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md),
@@ -41,8 +41,7 @@
 
 The reference host owns its schema as EF Core migrations in `NCode.Identity.OpenId.Host.Database`, one set for
 `OpenIdDbContext` and one for `DeveloperDataProtectionDbContext`
-([ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md),
-[ADR-1073](1073-postgres-dev-database-and-aspire-migration-worker.md)). A migration keeps the previous release working:
+([ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md)). A migration keeps the previous release working:
 it expands, a later release contracts, and a data change says which of the two it is
 ([ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md),
 [ADR-1184](1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md),
@@ -132,7 +131,7 @@ item 8 for the reference host's two contexts: a re-scaffolded migration ships wi
   the identifiers each context's migrations history records with the migrations the database assembly holds; when the
   history records one the assembly lacks, it applies nothing and fails fast with a message that names the context and
   says to reset the local database with `build/dev-db-reset.ps1`, the actionable failure
-  [ADR-1041](1041-host-owned-ef-migrations-deliberate-outside-development.md) asks for in place of a provider error.
+  [ADR-1073](1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md) asks for in place of a provider error.
   The check reads only the migrations history. `build/dev-db-reset.ps1` resets the local database, and the next
   AppHost run creates the schema and seeds the development data.
 - A setting vocabulary change is a descriptor change: the closed vocabulary and the fail-closed read of a stored

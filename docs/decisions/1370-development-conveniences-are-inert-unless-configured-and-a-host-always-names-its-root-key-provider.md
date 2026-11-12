@@ -61,6 +61,11 @@ and no development credential is committed.
 
 - `AddDeveloperCors(configuration)` registers nothing without a `Cors` section. The host's Development overlay lists
   `https://localhost:5174` and `https://localhost:5175`, and its Conformance overlay lists `https://localhost:5175`.
+- The `Cors` section binds strictly into `DeveloperCorsOptions` and is validated when the host starts.
+  `DeveloperCorsOptionsValidator` requires each `AllowedOrigins` entry to be an origin as a browser sends it in its
+  `Origin` header: an `http` or `https` scheme and a host with an optional port, without user information, path,
+  query, fragment or trailing slash. An entry that can never match a request stops the host with an error that names
+  its `Cors:AllowedOrigins:<index>` entry.
 - `DeveloperInteractiveSeedOptions.SpaClients` and `BffClients` start empty, and the seeder registers exactly what
   configuration declares. With nothing configured it registers none, which is the shape of the conformance seed's
   `Clients`. A host's identifiers are not a library default: the host's environment overlay declares the entries, and

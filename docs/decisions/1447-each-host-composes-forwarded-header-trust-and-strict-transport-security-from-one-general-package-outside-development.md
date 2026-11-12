@@ -43,6 +43,11 @@ the header is sent outside Development as `Strict-Transport-Security: max-age=31
    `StrictTransportSecurityOptionsValidator`. Both options types live in `NCode.Identity.AspNetCore.Options`, bind
    strictly and validate when the host starts
    ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
+   `TrustedForwardedHeadersOptionsValidator` refuses a `KnownProxies` entry that is not an IP address, or an IPv4
+   address not written as four decimal octets in canonical form, because the parser also accepts shorthand and octal
+   forms that denote another address. It refuses a `KnownNetworks` entry that is not CIDR notation whose address is
+   the network's first address, so the network trusted is the one written, and a `ForwardLimit` below 1, which
+   consults no forwarded entry.
 2. **Each host composes both.** The OP host and the management console host call `UseTrustedForwardedHeaders()` and
    then `UseStrictTransportSecurity()` first in their pipelines. `AddIdentityServer()` and `AddIdentityBff()` register
    neither, because whether a proxy terminates TLS is the deployment's decision. A BFF host references

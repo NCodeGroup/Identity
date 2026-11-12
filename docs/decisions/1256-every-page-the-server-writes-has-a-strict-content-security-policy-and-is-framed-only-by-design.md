@@ -110,6 +110,15 @@ and the `form_post` response only by its client's origin.**
    and pass its nonce to the renderer, and `InteractiveHtmlResult` writes the page through `SetHtmlPageSecurity`. The
    bundle runs only the scripts and styles that carry the page's nonce
    ([ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)).
+9. **No CORS policy applies to a front-channel endpoint.** An endpoint the user agent navigates to and a script never
+   calls carries `IFrontChannelEndpointMetadata`, which `WithFrontChannel()` adds and `Endpoint.IsFrontChannel` reads:
+   the authorization, continue and end-session endpoints and the interactive surface with its bundle assets (FAPI 2.0
+   Security Profile §5.3.2.1). The marker is not CORS metadata such as `DisableCorsAttribute`, which fails every request
+   when no CORS middleware ran, so a host without CORS middleware serves the endpoint unchanged. A host's CORS
+   middleware runs only for an endpoint without the marker, as `UseDeveloperCors()` branches it, and answers no
+   preflight that selects no endpoint. `WithFrontChannel()` also makes the endpoint accept its CORS preflight, which
+   routing would otherwise send to its own 405 endpoint without the marker, and refuse it with `405` and an `Allow`
+   header naming the endpoint's methods.
 
 ## Options considered
 
@@ -163,10 +172,13 @@ and the `form_post` response only by its client's origin.**
 
 ## References
 
-- RFC 9700 §4.16, clickjacking; Content Security Policy Level 3; Session Management 1.0; Front-Channel Logout 1.0.
+- RFC 9700 §4.16, clickjacking; Content Security Policy Level 3; Session Management 1.0; Front-Channel Logout 1.0;
+  FAPI 2.0 Security Profile §5.3.2.1.
 - MDN, the `form-action` directive; <https://github.com/w3c/webappsec-csp/issues/8>; Vite `html.cspNonce`.
 - [project-template ADR-0121](project-template/0121-html-pages-have-a-strict-content-security-policy.md)
 - Code: `src/NCode.Identity.AspNetCore/` (`HtmlPageSecurityPolicy.cs`, `HtmlPageSecurityResponseExtensions.cs`,
   `ContentSecurityPolicy*.cs`), `src/NCode.Identity.OpenId.Authentication.Interactive/` (`InteractivePageSecurity.cs`,
   `InteractiveHtmlResult.cs`, `InteractiveBundleShell.cs`), `frontend/packages/vite-config/src/preset.ts`,
-  `frontend/apps/auth/src/cspNonce.ts` and `tests/NCode.Identity.AspNetCore.Tests/`.
+  `frontend/apps/auth/src/cspNonce.ts`, `tests/NCode.Identity.AspNetCore.Tests/`,
+  `src/NCode.Identity.AspNetCore/FrontChannelEndpointConventionBuilderExtensions.cs` and
+  `src/NCode.Identity.Server/DevelopmentEnvironment/DeveloperCorsApplicationBuilderExtensions.cs`.

@@ -14,7 +14,7 @@ hardened image
 ([ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md))
 as a rolling deployment behind an ingress. It also has to enforce the one rule the host cannot enforce itself: more than
 one replica needs Valkey
-([ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)). The platform's values live in
+([ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)). The platform's values live in
 a public repository
 ([ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md)), so they
 must never hold a secret.
@@ -110,7 +110,7 @@ release the host or the console would refuse.**
 - [project-template ADR-0128](project-template/0128-liveness-never-checks-dependencies-readiness-does.md)
 - [ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md),
   [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md),
-  [ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md),
+  [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md),
   [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md),
   [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md),

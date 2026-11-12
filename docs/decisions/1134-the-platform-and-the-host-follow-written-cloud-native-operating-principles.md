@@ -30,7 +30,7 @@ a principle by number.
    documented bootstrap ones.
 4. **Stateless services.** Processes keep no state that matters beyond a request. Durable state lives in PostgreSQL,
    shared ephemeral state in the shared-state port (`NCode.Identity.SharedState`) backed by Valkey
-   ([ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)), and keys under the
+   ([ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)), and keys under the
    secret-protection hierarchy or a KMS. Any replica serves any request: no sticky sessions. Configuration comes from the
    environment, logs go to stdout, and processes start fast and shut down gracefully.
 5. **Redundant by default.** Every service runs at least two replicas spread across nodes, with PodDisruptionBudgets and
@@ -75,5 +75,5 @@ a principle by number.
 - [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md),
   [ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md),
   [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md),
-  [ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md),
+  [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md),
   [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md).

@@ -68,7 +68,7 @@ nothing.
      request and present the token again. A failure storing the client after the spend leaves the token spent: the
      registration fails closed, and the administrator mints another token.
    - The default spends the grant through `IPersistedGrantService.ConsumeOnceOrDefault`, not through `IExpiringKeySet`
-     ([ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)). `IExpiringKeySet` records
+     ([ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)). `IExpiringKeySet` records
      single-use state that has no durable row of its own, such as a proof's `jti`. The token has one in the grant
      store, where it is hash-keyed, expires, and is listed and revoked, and a second record in the key set would have
      to agree with it. The grant row's concurrency token makes the spend atomic across replicas without a shared-state

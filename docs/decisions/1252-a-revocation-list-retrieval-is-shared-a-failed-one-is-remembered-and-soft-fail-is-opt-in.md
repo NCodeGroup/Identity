@@ -56,7 +56,7 @@ configured time, and `online_soft_fail` is a revocation mode that a tenant or cl
    `IMemoryCache` for `FailureCacheDuration`. While the entry exists, the checker does not retrieve the list, logs
    `CertificateRevocationListRetrievalSuppressed` at the debug level, and treats the list as unavailable, so a
    certificate that only that list covers has an unknown status. Every cache is process-local and never uses the
-   shared-state port ([ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)): a list
+   shared-state port ([ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)): a list
    can be rebuilt from its source and can weigh 10 MiB, and one replica's network failure must not stop the others.
 4. **RSASSA-PSS lists verify.** The signature algorithm `1.2.840.113549.1.1.10` is accepted only with explicit
    parameters ([RFC 4055](https://www.rfc-editor.org/rfc/rfc4055)): a hash of SHA-256, SHA-384 or SHA-512 whose
@@ -98,7 +98,7 @@ configured time, and `online_soft_fail` is a revocation mode that a tenant or cl
 
 - [ADR-1173](1173-tls-client-auth-certificates-chain-to-configured-trust-anchors.md): `tls_client_auth` certificates
   chain to configured trust anchors.
-- [ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md): replicas share single-use
+- [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md): replicas share single-use
   state through an atomic expiring key set.
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md): configuration binds strictly and is
   validated at startup.

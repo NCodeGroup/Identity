@@ -140,7 +140,7 @@ of its first failure ends, with exactly the answer that a wrong password gets.**
 
 - [NIST SP 800-63B-4](https://pages.nist.gov/800-63-4/sp800-63b/authenticators/) §3.2.2 — rate limiting of failed
   attempts.
-- [ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md) — the shared state that the
+- [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) — the shared state that the
   replicas use.
 - [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) — the counter set and its
   increment.

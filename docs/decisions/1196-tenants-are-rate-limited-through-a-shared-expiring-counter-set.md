@@ -27,7 +27,7 @@ A limit has to hold across replicas. Any replica may serve the next request
 its limit on N replicas. ASP.NET Core's built-in limiters (`FixedWindowRateLimiter`, `SlidingWindowRateLimiter`,
 `TokenBucketRateLimiter`) keep their state in process. The family already shares single-use state between replicas
 through a port with an in-process default and an opt-in Valkey adapter
-([ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)), but that port records
+([ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)), but that port records
 presence, not counts.
 
 A limit also has to be judged per tenant: the server operator sets the platform's ceiling, and a tenant (or a plan tier
@@ -150,7 +150,7 @@ client, against per-minute limits that are settings bounded by the merge lattice
 
 - [RFC 6585 §4](https://www.rfc-editor.org/rfc/rfc6585#section-4) — `429 Too Many Requests`
 - [RFC 9110 §10.2.3](https://www.rfc-editor.org/rfc/rfc9110#section-10.2.3) — `Retry-After`
-- [ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md) — the shared key set
+- [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) — the shared key set
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — the setting merge lattice
 - `src/NCode.Identity.SharedState.Abstractions/IExpiringCounterSet.cs`,
   `src/NCode.Identity.SharedState/InProcess/DefaultInProcessExpiringCounterSet.cs`,

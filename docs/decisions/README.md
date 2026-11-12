@@ -158,7 +158,7 @@ The records are grouped by area; within an area they are in number order.
 | [1129](./1129-the-tenant-issuer-is-the-single-authoritative-origin.md) | The tenant's issuer is the single authoritative origin | Accepted |
 | [1138](./1138-protocol-endpoints-are-served-under-the-tenant-route.md) | The protocol endpoints are served under the tenant route, and an issuer is its tenant's base address | Accepted |
 | [1160](./1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md) | A tenant is named by its creator, validated by its strategy, and never reissued | Accepted |
-| [1164](./1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md) | Replicas share single-use state through an atomic expiring key set, backed by Valkey | Accepted |
+| [1164](./1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) | Replicas share expiring keys, values and indexes through ports with in-process and Valkey adapters | Accepted |
 | [1165](./1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md) | Every served tenant has an issuer, and its strategy supplies the default | Accepted |
 | [1166](./1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md) | A tenant is provisioned through one pipeline under every strategy | Accepted |
 | [1195](./1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md) | A tenant's mTLS endpoint alias is a routed tenant property | Accepted |
@@ -172,7 +172,6 @@ The records are grouped by area; within an area they are in number order.
 | [1232](./1232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md) | The in-process dispatcher runs jobs concurrently up to a limit | Accepted |
 | [1242](./1242-the-in-process-dispatcher-is-configured-under-the-openid-section.md) | The in-process dispatcher is configured under the OpenID section | Accepted |
 | [1246](./1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md) | Rate limits are registered descriptors judged in one round trip per stage | Accepted |
-| [1267](./1267-replicas-share-versioned-expiring-values-and-membership-indexes.md) | Replicas share versioned expiring values and membership indexes | Accepted |
 | [1351](./1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md) | A committed change is applied and announced on its own bounded token | Accepted |
 | [1411](./1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) | The platform is the deployment root and a team groups a customer's tenants | Accepted |
 | [1425](./1425-a-team-promotes-one-tenants-configuration-to-another-and-environment-bound-values-stay.md) | A team promotes one tenant's configuration to another, and environment-bound values stay | Accepted |

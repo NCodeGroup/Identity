@@ -324,7 +324,7 @@ No production load data exists yet, so these are **planning estimates**; confirm
   master key, whose root key lives outside the database —
   [ADR-1235](decisions/1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)); the DPoP nonce
   and the DPoP-proof and client-assertion replay records go to Valkey once there is >1 replica — set the `valkey`
-  connection string ([ADR-1164](decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)); the
+  connection string ([ADR-1164](decisions/1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)); the
   in-process job dispatcher does not coordinate across nodes (issue [#25](https://github.com/NCodeGroup/identity/issues/25)).
 
 **Measure before buying:** run the host (`NCode.Identity.OpenId.Host`) with `dotnet-counters` attached, drive the token
@@ -404,7 +404,7 @@ cluster). Neon and Aiven Free/Developer are fine for dev/staging, not for a prod
 
 **Self-hosting is the recommended default.** Valkey backs the shared-state port that records DPoP nonces and the
 single-use DPoP-proof and client-assertion `jti`s
-([ADR-1164](decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)); losing it on restart only
+([ADR-1164](decisions/1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)); losing it on restart only
 reopens a replay window bounded by the proof and assertion lifetimes. Enable AOF persistence if that window matters.
 Valkey also carries the replica broadcast port, so a tenant, team or platform settings change reaches every replica at once
 ([ADR-1205](decisions/1205-replicas-announce-changes-through-a-broadcast-port.md)); the access-control user needs `PUBLISH`

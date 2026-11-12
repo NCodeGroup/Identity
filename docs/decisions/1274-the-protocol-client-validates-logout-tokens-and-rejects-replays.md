@@ -48,7 +48,7 @@ data.**
    `iat` and `nbf` to `exp`. The specification prefers at most two minutes and the NCode OP issues two; 10 minutes
    tolerates other OPs while it bounds the replay window and the number of entries the replay store holds.
 5. **The replay check is in the validator.** The validator adds the `jti` to `IExpiringKeySet`
-   ([ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)), so a token replayed to
+   ([ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)), so a token replayed to
    any replica fails. The client package references only `NCode.Identity.SharedState.Abstractions`
    ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
    - **Key.** `logout_token_jti:` followed by the lowercase hexadecimal SHA-256 of the UTF-8 text
@@ -99,7 +99,7 @@ data.**
 
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — implementation packages depend only on
   abstractions
-- [ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md) — the atomic expiring key set
+- [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) — the atomic expiring key set
 - [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
 - [ADR-1273](1273-the-protocol-client-validates-id-tokens-under-an-asymmetric-algorithm-policy.md) — ID-token validation
   and the signature policy

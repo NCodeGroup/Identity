@@ -58,7 +58,7 @@ interval, and the grant prune keeps a session until it is terminated.**
    registered `TimeProvider` and runs one pass per tick. It never throws on stop, and a pass that fails is logged and
    run again at the next tick.
 3. **One replica runs each interval.** A pass takes a lease with `IExpiringKeySet.TryAddAsync`
-   ([ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)). The key is
+   ([ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)). The key is
    `ended-session-termination:{window}`, where the window is the UTC ticks of the pass's time divided by the ticks of
    the interval, and the key expires at the end of the window. A replica whose add returns `false` skips the pass. The
    claim of decision 1 makes a pass that two replicas run anyway harmless.
@@ -148,7 +148,7 @@ interval, and the grant prune keeps a session until it is terminated.**
 ## References
 
 - [ADR-1098](1098-session-lifecycle-termination-seam.md) — the termination seam that the pass dispatches.
-- [ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md) — the expiring key set that
+- [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) — the expiring key set that
   holds the lease of an interval.
 - [ADR-1215](1215-a-revocation-wins-a-concurrency-race.md) — `SetRevokedOnceAsync` and its retry.
 - [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period.md) — the grant prune that keeps a session until it

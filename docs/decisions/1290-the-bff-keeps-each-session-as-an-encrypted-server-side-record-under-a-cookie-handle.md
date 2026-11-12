@@ -21,7 +21,7 @@ confidential OAuth client of its browser frontend: the browser holds only an `Ht
 the server. Phase 2 (issue #394) builds the core of that library on the protocol client
 ([ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md)) and on the versioned
 expiring values and membership indexes of SharedState
-([ADR-1267](1267-replicas-share-versioned-expiring-values-and-membership-indexes.md)). The design left open how the
+([ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)). The design left open how the
 packages are named (§11.5), how a session record is keyed, encrypted and laid out, how the login is bound to the
 browser that started it, and what the session principal holds. This ADR records those choices. The refresh, the
 cookie acceptance rules and logout have their own ADRs
@@ -132,7 +132,7 @@ without the cookie.**
 - [Backend-for-frontend design](../backend-for-frontend.md) §5.2–§5.4, §5.7, §5.11, §11.5, D1, D2 and D4
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — abstractions-only dependencies
 - [ADR-1122](1122-jwt-claim-values-map-to-json-by-declared-type.md) — claim mapping
-- [ADR-1267](1267-replicas-share-versioned-expiring-values-and-membership-indexes.md) — versioned values and indexes
+- [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) — versioned values and indexes
 - [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
 - RFC 5869 (HKDF), RFC 6265bis (`__Host-` prefix, `SameSite`), RFC 9207 (`iss`), RFC 7636 (PKCE)
 - Issues #123 and #394

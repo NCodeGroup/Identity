@@ -36,7 +36,7 @@ A tenant cannot be shared between replicas to avoid this: a materialized tenant 
 not serializable. The need is narrower: a replica that changes shared state tells the others, so each drops what it
 cached. The replicas of a deployment already share a family of ports, with an in-process default and a Valkey adapter,
 for state that every replica must see
-([ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)).
+([ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)).
 
 ## Decision
 
@@ -110,7 +110,7 @@ for state that every replica must see
 ## Consequences
 
 - A deployment that runs several replicas needs Valkey for prompt tenant changes as well as for single-use state
-  ([ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)). Without it, the in-process
+  ([ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)). Without it, the in-process
   adapter announces within one replica, and the others converge through their polls.
 - When Valkey is reachable, a tenant change reaches every replica at once instead of after the polls and the entry's
   expiration. A server settings change that permits an algorithm re-seeds each affected tenant through a

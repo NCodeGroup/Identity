@@ -63,7 +63,7 @@ records it once the client has handled the token.**
 
 ## References
 
-- [ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md) - the expiring key set
+- [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) - the expiring key set
 - [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-rejects-replays.md) - point 5, amended here
 - [ADR-1280](1280-the-protocol-client-decrypts-id-and-logout-tokens-with-its-key-ring.md) - decrypting a logout token
 - OpenID Connect Back-Channel Logout 1.0 §2.6 step 8 and §2.8

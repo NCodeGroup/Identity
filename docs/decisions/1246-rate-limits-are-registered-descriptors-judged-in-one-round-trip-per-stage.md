@@ -166,7 +166,7 @@ billed.**
 
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — an unset limit is unlimited.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — vocabularies are open.
-- [ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md) — the shared expiring key set
+- [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) — the shared expiring key set
   and its tenant-scoped keys.
 - [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) — the counter set and the sliding
   estimate.

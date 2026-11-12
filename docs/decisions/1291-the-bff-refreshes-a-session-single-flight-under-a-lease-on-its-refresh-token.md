@@ -113,7 +113,7 @@ while the others wait for its result.**
 - [Backend-for-frontend design](../backend-for-frontend.md) §5.5, §11.2, D6 and D7
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies
 - [ADR-1216](1216-a-refresh-token-is-rotated-unless-it-is-sender-constrained.md) — refresh-token rotation
-- [ADR-1267](1267-replicas-share-versioned-expiring-values-and-membership-indexes.md) — versioned values
+- [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) — versioned values
 - [ADR-1286](1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md) — DPoP in the protocol client
 - [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md) — the session record
 - RFC 9700 §4.14.2 (refresh-token rotation), RFC 9449 §7 and §8 (DPoP resource proofs and nonces)

@@ -92,7 +92,7 @@ that changes its slice, and a lost race surfaces as a store-neutral `StoreConcur
 - **A conditional `ExecuteUpdateAsync` that spends the grant row.** Rejected: the EF InMemory provider does not support
   it, and it bypasses the interceptor-managed token.
 - **An `IExpiringKeySet` spend record.** Rejected: the grant already has a row, and a second record would have to agree
-  with it ([ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)).
+  with it ([ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)).
 - **The interceptor for the row tokens, `StoreConcurrencyException` for the race, and the grant row's token as the spend
   (chosen).**
 
@@ -115,7 +115,7 @@ that changes its slice, and a lost race surfaces as a store-neutral `StoreConcur
 
 - [project-template ADR-0109](project-template/0109-a-lost-concurrency-race-is-a-store-neutral-exception.md)
 - [ADR-1112](1112-authorization-code-replay-revokes-session.md),
-  [ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md),
+  [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md),
   [ADR-1211](1211-a-rotated-refresh-token-is-spent-with-its-successor.md),
   [ADR-1214](1214-a-management-write-that-loses-a-race-is-answered-412.md),
   [ADR-1215](1215-a-revocation-wins-a-concurrency-race.md)

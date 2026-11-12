@@ -3112,7 +3112,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   registers the Valkey adapters and adds a `valkey` health check tagged `ready`. The reference host calls it, and the
   Aspire AppHost runs a Valkey container and injects the connection string, so local development uses the same adapter
   as a multi-replica deployment
-  ([ADR-1164](docs/decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)).
+  ([ADR-1164](docs/decisions/1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)).
 
 - **A shared expiring counter set backs rate limiting.** `NCode.Identity.SharedState.Abstractions` provides
   `IExpiringCounterSet`: `IncrementAsync(key, expiresWhen)` atomically increments a counter that spans one fixed window
@@ -3127,7 +3127,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   versioned `ExpiringValue` with an atomic take and a compare-and-replace, and `IExpiringIndexSet` keeps expiring
   membership indexes. `AddInProcessExpiringValueSet` and `AddInProcessExpiringIndexSet` register the in-process
   adapters, and `AddValkey` registers both Valkey adapters
-  ([ADR-1267](docs/decisions/1267-replicas-share-versioned-expiring-values-and-membership-indexes.md), issue
+  ([ADR-1164](docs/decisions/1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md), issue
   [#123](https://github.com/NCodeGroup/identity/issues/123)).
 
 - **`HealthCheckTags.Readiness` tags every readiness health check.** `NCode.Identity.Registration` publishes the tag
@@ -4914,7 +4914,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **A DPoP proof or client assertion is accepted once, across every replica.** The replay stores record a DPoP proof or
   a `private_key_jwt` / `client_secret_jwt` assertion with one atomic add-if-absent, so two concurrent presentations of
   the same one cannot both pass, and with Valkey configured the record holds across every replica
-  ([ADR-1164](docs/decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)).
+  ([ADR-1164](docs/decisions/1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)).
 
 - **A client's public keys have one source and are imported under one policy.** A client's keys are the keys stored for
   it (registered by value at dynamic client registration or imported through the management API) or, when it has a
@@ -5692,7 +5692,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   store is unreachable, these checks fail closed. `IDPoPProofReplayCache.TryRecordAsync` and
   `IClientAssertionReplayCache.TryRecordAsync` take the request's `OpenIdContext` as their first parameter. The server
   registers no `IDistributedCache`, so a host that resolves one registers its own
-  ([ADR-1164](docs/decisions/1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)).
+  ([ADR-1164](docs/decisions/1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md)).
 
 - **Session creation and termination are audited and logged.** `IAuditEventRecorder.RecordSessionCreatedAsync` and
   `RecordSessionTerminatedAsync` record the `session.created` and `session.terminated` events (issue

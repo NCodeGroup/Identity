@@ -3,7 +3,6 @@
 - **Status:** Accepted
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
-- **Refines:** [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md)
 
 ## Context
 
@@ -85,7 +84,8 @@ keys, principals and environment-bound values stay with their environment.**
    `GlobalAdmin`. Then both tenants must exist and belong to `{teamId}`, else `404`, and then the limit rule applies.
    Then a promotion that changes an existing target client whose principal holds role assignments needs `Create` at
    each node those assignments are held at, the authority any change to that client needs
-   ([ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)); without it, preview and
+   ([ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md),
+   [ADR-1466](1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md)); without it, preview and
    promote answer `403` and nothing is written.
 9. **Contributors.** The public strategy collection `ITenantPromotionContributor` (`Order`, `PlanAsync`, `ApplyAsync`)
    over `TenantPromotionContext` is open by registration
@@ -152,3 +152,5 @@ keys, principals and environment-bound values stay with their environment.**
   itself is a principal that holds role assignments
 - [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md) — a management
   route authorizes the caller at the node it names before it reads
+- [ADR-1466](1466-a-machine-client-belongs-to-the-platform-or-a-team-and-acts-only-within-it.md) — a machine client
+  belongs to the platform or a team and acts only within it

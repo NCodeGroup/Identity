@@ -13,7 +13,8 @@ forwardedHeaders:
   knownNetworks:
     - 10.42.0.0/16
 database:
-  existingSecret: identity-database
+  parts:
+    existingSecret: identity-db-app
 valkey:
   parts:
     existingSecret: identity-valkey-app

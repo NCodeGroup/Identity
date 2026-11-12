@@ -77,9 +77,12 @@ points here.
 helm install identity charts/ncode-identity-host \
   --set 'allowedHosts={id.example.com}' \
   --set tenantResolution.staticSingle.issuer=https://id.example.com \
-  --set database.existingSecret=identity-database \
+  --set database.parts.existingSecret=pg-app \
   --set secretProtection.rootKeyProvider=local --set secretProtection.local.keySecret=identity-root-key --set secretProtection.recovery.publicKeyConfigMap=identity-recovery-key
 ```
+
+`pg-app` is a CloudNativePG cluster's Secret; a deployer without an operator names a connection-string Secret with
+`database.existingSecret` instead (see [Database and Valkey](#database-and-valkey)).
 
 `ci/high-availability-values.yaml` shows a rolling three-replica release with Valkey, an ingress, and a retired local
 root key.
@@ -668,7 +671,7 @@ Pass console settings such as `ManagementConsole__Branding__DisplayName` through
 helm install identity charts/ncode-identity-host \
   --set 'allowedHosts={id.example.com}' \
   --set tenantResolution.staticSingle.issuer=https://id.example.com \
-  --set database.existingSecret=identity-database \
+  --set database.parts.existingSecret=pg-app \
   --set secretProtection.rootKeyProvider=local --set secretProtection.local.keySecret=identity-root-key --set secretProtection.recovery.publicKeyConfigMap=identity-recovery-key \
   --set managementConsole.enabled=true --set managementConsole.host=manage.example.com \
   --set managementConsole.keyRings.client.pemSecret=identity-mgmt-client-key \

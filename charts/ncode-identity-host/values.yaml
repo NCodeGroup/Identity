@@ -360,7 +360,7 @@ priorityClassName: ""
 # API at /api on its authority's origin (ADR-1437).
 managementConsole:
   enabled: false
-  # More than one replica requires valkey.existingSecret below.
+  # More than one replica requires valkey.existingSecret or valkey.parts.existingSecret below.
   replicaCount: 1
   image:
     repository: ghcr.io/ncodegroup/ncode-identity-management-console

@@ -118,6 +118,17 @@ jobs:
           refuse --set backendTls.clientCertificate.commonName=
           refuse --set 'backendTls.clientCertificate.commonName=a b'
           refuse --set backendTls.clientCertificate.required=yes
+          # The chart cannot know the CA behind a serving Secret of the operator's, so the controller's Secret is required.
+          refuse_console() {
+            if helm template release "$CHART" --values "$CHART/ci/management-console-values.yaml" "$@" > /dev/null 2>&1; then
+              echo "::error::The chart rendered a release it must refuse: $*"
+              exit 1
+            fi
+          }
+          refuse_console --set backendTls.existingSecret=my-tls
+          refuse_console --set managementConsole.backendTls.existingSecret=my-console-tls
+          helm template release "$CHART" --values "$CHART/ci/management-console-values.yaml" \
+            --set backendTls.existingSecret=my-tls --set backendTls.ingressSecret=my-ingress > /dev/null
 
       - name: Migrate before the rollout unless disabled
         run: |
@@ -283,6 +294,45 @@ jobs:
           # ingress-nginx reads the client certificate from the same Secret as the CA.
           expect "$(helm template release "$CHART" --values "$console_values" --set backendTls.clientCertificate.required=true \
             --set backendTls.ingressController=ingress-nginx)" 'proxy-ssl-secret: default/release-ncode-identity-host-ingress'
+          # A Secret the operator names is the only Secret a controller verifies against, and the default is the chart's
+          # ingress Secret, never a serving Secret. Traefik lists the Secret as "- <name>" in each ServersTransport and
+          # ingress-nginx renders "proxy-ssl-secret: default/<name>" unquoted.
+          count() {
+            local actual
+            actual=$(grep -c -- "$2" <<< "$1" || true)
+            if [ "$actual" -ne "$3" ]; then
+              echo "::error::The release renders '$2' $actual times, not $3."
+              exit 1
+            fi
+          }
+          traefik=$(helm template release "$CHART" --values "$console_values")
+          nginx=$(helm template release "$CHART" --values "$console_values" --set backendTls.ingressController=ingress-nginx)
+          count "$traefik" '- release-ncode-identity-host-ingress' 2
+          reject "$traefik" '- release-ncode-identity-host-tls' '- release-ncode-identity-host-management-console-tls'
+          count "$nginx" 'proxy-ssl-secret: default/release-ncode-identity-host-ingress' 2
+          reject "$nginx" 'proxy-ssl-secret: default/release-ncode-identity-host-tls' \
+            'proxy-ssl-secret: default/release-ncode-identity-host-management-console-tls'
+          # Secrets of the operator's for the server and the console are the only ones either controller verifies against.
+          both_args=(--set backendTls.ingressSecret=server-ca --set managementConsole.backendTls.ingressSecret=console-ca)
+          traefik=$(helm template release "$CHART" --values "$console_values" "${both_args[@]}")
+          nginx=$(helm template release "$CHART" --values "$console_values" "${both_args[@]}" \
+            --set backendTls.ingressController=ingress-nginx)
+          for rendered in "$traefik" "$nginx"; do
+            expect "$rendered" 'server-ca' 'console-ca'
+            reject "$rendered" '- release-ncode-identity-host-tls' '- release-ncode-identity-host-management-console-tls' \
+              'proxy-ssl-secret: default/release-ncode-identity-host-tls' \
+              'proxy-ssl-secret: default/release-ncode-identity-host-management-console-tls' \
+              'release-ncode-identity-host-ingress'
+          done
+          # The console falls back to the server's Secret, never to its own serving Secret.
+          traefik=$(helm template release "$CHART" --values "$console_values" --set backendTls.ingressSecret=server-ca)
+          nginx=$(helm template release "$CHART" --values "$console_values" --set backendTls.ingressSecret=server-ca \
+            --set backendTls.ingressController=ingress-nginx)
+          for rendered in "$traefik" "$nginx"; do
+            count "$rendered" 'server-ca' 2
+            reject "$rendered" '- release-ncode-identity-host-management-console-tls' \
+              'proxy-ssl-secret: default/release-ncode-identity-host-management-console-tls'
+          done
 
       - name: Deploy the management console on its own host
         run: |

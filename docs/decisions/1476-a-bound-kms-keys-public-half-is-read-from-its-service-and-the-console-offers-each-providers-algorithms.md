@@ -11,7 +11,7 @@ management service (KMS) already holds
 ([ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md)).
 Every provider reads a key's public half with `IRemoteKeyProvider.GetPublicKeyAsync` and checks the key against a row
 of its mapping vocabulary, and `IRemoteKeyDescriptorCatalog` holds those rows without constructing a provider
-([ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md)).
+([ADR-1474](1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md)).
 The forces:
 
 - **The KMS holds the public half.** A bind that takes the public half from the operator makes the operator export
@@ -91,7 +91,7 @@ rows; and the console creates and binds a tenant's remote keys from them.**
 
 - [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md):
   the routes this decision amends.
-- [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md):
+- [ADR-1474](1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md):
   the descriptor catalog and `GetPublicKeyAsync`.
 - [#687](https://github.com/NCodeGroup/identity/issues/687),
   [#690](https://github.com/NCodeGroup/identity/issues/690),

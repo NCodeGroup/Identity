@@ -485,7 +485,7 @@ three.
 
 **Binding keys without creating any.** An enabled provider without its location binds keys a KMS already holds and
 creates none
-([ADR-1489](../../docs/decisions/1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md)):
+([ADR-1474](../../docs/decisions/1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md)):
 the management API binds a key by its identifier and the server reads, signs with and decrypts with it;
 `tenant_key_provider` cannot name the provider, the management API refuses to create a key in it, the sweep skips it,
 and the release needs no `secretProtection.remoteKeys.deployment`; the server never destroys a key it binds.
@@ -654,7 +654,7 @@ The chart renders each remote key as `Bff__KeyRings__<ring>__RemoteKeys__<kid>__
 registers the AWS KMS, Azure Key Vault and Google Cloud KMS providers without a key-creation location, and the console
 reads every key where the key's own identifier names, so the chart renders no
 `SecretProtection__RemoteKeyProviders__…` setting for it
-([ADR-1489](../../docs/decisions/1489-a-remote-key-provider-registers-without-a-key-creation-location-and-only-one-that-has-one-creates-and-sweeps-keys.md)).
+([ADR-1474](../../docs/decisions/1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md)).
 
 **Credentials.** The console has an identity of its own under `managementConsole.secretProtection`:
 `awsKms.webIdentity`, `azureKeyVault.workloadIdentity` and `googleCloudKms.workloadIdentityFederation`, with the same

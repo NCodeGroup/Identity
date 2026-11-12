@@ -310,7 +310,7 @@ jobs:
             'name: AWS_ROLE_ARN' \
             'name: aws-web-identity' 'name: Bff__KeyRings__mgmt-dpop__PemFiles__0'
           # A key ring without pemSecret mounts no Secret.
-          # The console registers every vendor without a key-creation location, so it renders no provider section (ADR-1489).
+          # The console registers every vendor without a key-creation location, so it renders no provider section (ADR-1474).
           reject "$aws" 'Bff__KeyRings__mgmt-client__PemFiles' 'name: client-key' 'RemoteKeyProviders'
           # The server's pods never carry the console's identity.
           reject "$(helm template release "$CHART" --values "$base" --show-only templates/deployment.yaml)" 'AWS_ROLE_ARN'

@@ -65,7 +65,7 @@ one adapter package named for the service, `NCode.Identity.Secrets.<Vendor>`.**
 7. **One package per service.** The adapters are `NCode.Identity.Secrets.AwsKms`, `NCode.Identity.Secrets.AzureKeyVault`
    and `NCode.Identity.Secrets.GoogleCloudKms` (project, assembly, root namespace and test project). Each holds both
    roles of its service: the key wrapper registers on the `SecretPersistenceLibrary` builder, and the remote key
-   provider ([ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md))
+   provider ([ADR-1474](1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md))
    registers on the `SecretsLibrary` builder. A role is a namespace of the contracts, not a package segment, and a
    package that adds another service names itself the same way.
 8. **An adapter is inert until selected.** A registered adapter is used only when the root, an owner's root provider or
@@ -152,7 +152,7 @@ one adapter package named for the service, `NCode.Identity.Secrets.<Vendor>`.**
 - [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — the
   key hierarchy and the root role.
 - [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md) and
-  [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md) —
+  [ADR-1474](1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md) —
   the remote key provider that shares each adapter package.
 - [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md) —
   the remote key providers that clients and BFFs select.

@@ -4645,7 +4645,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   issuer origin or its mutual-TLS alias authority, and a DPoP proof's `htu` is compared with the endpoint's URL under
   the origin the tenant publishes for it; neither is built from the request's `Host`, so a forged `Host` cannot widen
   what the server accepts ([#518](https://github.com/NCodeGroup/identity/issues/518),
-  [ADR-1387](docs/decisions/1387-the-client-assertion-audience-and-the-dpop-htu-are-compared-with-the-tenants-published-urls.md)).
+  [ADR-1365](docs/decisions/1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md)).
 
 - **An absolute URI means the same on every platform.** `NCode.Identity.OpenId.AbsoluteUri.TryParse` accepts only text
   that names its own scheme and contains no whitespace, so `/path` is never read as `file:///path` and whitespace is
@@ -5585,7 +5585,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `redirect_uri` and `post_logout_redirect_uri`; set it to the URL the BFF's callback is registered under. The
   interactive surface's login redirect is root-relative, so a forged `Host` header cannot choose where any of them point
   ([#493](https://github.com/NCodeGroup/identity/issues/493),
-  [ADR-1365](docs/decisions/1365-the-bff-and-the-login-redirect-take-no-url-from-the-requests-host.md)).
+  [ADR-1365](docs/decisions/1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md)).
 
 - **Every `/bff/*` response is uncacheable the same way the OP's are.** The BFF's endpoints send
   `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache` through the shared `SetNoStore()`

@@ -1,7 +1,7 @@
 # 1488. The management console reaches the management API at its authority's origin, and its host serves only the console
 
 - **Status:** Accepted (amends [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md), [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md), [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md))
-- **Refines:** [ADR-1387](1387-the-client-assertion-audience-and-the-dpop-htu-are-compared-with-the-tenants-published-urls.md)
+- **Refines:** [ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md)
 - **Date:** 2026-11-09
 - **Deciders:** NCode Group
 
@@ -11,7 +11,7 @@ The management console calls the management API with a DPoP-bound access token. 
 the URL it sends the request to, which is `ManagementConsole:ManagementApiUrl` plus the path.
 
 The OP compares a proof's `htu` only with its tenant's published URLs
-([ADR-1387](1387-the-client-assertion-audience-and-the-dpop-htu-are-compared-with-the-tenants-published-urls.md)).
+([ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md)).
 `TenantRequestUri` builds the URL it compares from the control-plane tenant's issuer scheme and host plus the request's
 path, and the management API's route prefix is `/api` at the server's root (`ManagementRootGroup.RoutePrefix`). So the
 only URL the OP accepts from the console is `<origin of the authority>/api/...`.
@@ -43,7 +43,7 @@ path to the console.**
   route only unbound bearer tokens can use invites the weaker token, and the console's session cookie reaches another
   process.
 - **A second published origin in the OP.** Rejected:
-  [ADR-1387](1387-the-client-assertion-audience-and-the-dpop-htu-are-compared-with-the-tenants-published-urls.md) rule 3
+  [ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md) rule 3
   compares `htu` only with the tenant's own published URLs.
 - **A `managementConsole.managementApiUrl` value.** Rejected: the only URL the OP accepts is derived, so an override can
   only make every DPoP-bound call fail.
@@ -59,7 +59,7 @@ path to the console.**
 ## References
 
 - [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)
-- [ADR-1387](1387-the-client-assertion-audience-and-the-dpop-htu-are-compared-with-the-tenants-published-urls.md)
+- [ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md)
 - [ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)
 - [ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)
 - `charts/ncode-identity-host`, `.github/workflows/host-chart.yml`

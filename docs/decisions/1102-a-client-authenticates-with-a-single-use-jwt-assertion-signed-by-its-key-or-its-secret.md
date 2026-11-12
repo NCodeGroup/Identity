@@ -46,7 +46,7 @@ assertion's signing-key family, verified against the client's keys, and accepted
   ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)).
 - **The audience is the tenant's issuer or the receiving endpoint's URL** under the tenant's published origins
   (`TenantRequestUri.GetPublishedUris`,
-  [ADR-1365](1365-the-bff-and-the-login-redirect-take-no-url-from-the-requests-host.md)). A security profile may
+  [ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md)). A security profile may
   restrict it to the issuer only through `IssuerOnlyAssertionAudienceRequirement` (FAPI 2.0 §5.3.2.1), which
   `ISecurityProfileCatalog` evaluates after validation.
 - **Validation bounds the assertion's lifetime.** It applies the client's effective `clock_skew`, requires `exp`, caps
@@ -95,6 +95,6 @@ assertion's signing-key family, verified against the client's keys, and accepted
   [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md),
   [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md),
   [ADR-1187](1187-a-client-signed-jwt-is-short-lived-its-lifetime-capped-from-its-earliest-asserted-start.md),
-  [ADR-1365](1365-the-bff-and-the-login-redirect-take-no-url-from-the-requests-host.md),
+  [ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md),
   [ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md),
   [ADR-1399](1399-failed-client-authentications-are-limited-per-remote-address-by-default.md).

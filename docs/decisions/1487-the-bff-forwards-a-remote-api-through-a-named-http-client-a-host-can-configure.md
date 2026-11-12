@@ -19,7 +19,7 @@ no redirect, sends or stores no cookie, uses no proxy and decompresses no respon
   decision 8).
 - **A DPoP proof names the URI it is sent to.** The provider compares the proof's `htu` with the tenant's published
   origin
-  ([ADR-1387](1387-the-client-assertion-audience-and-the-dpop-htu-are-compared-with-the-tenants-published-urls.md)),
+  ([ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md)),
   so a test cannot relay the call through a listener of its own: the proof would name the listener.
 
 ## Decision
@@ -57,7 +57,7 @@ no redirect, sends or stores no cookie, uses no proxy and decompresses no respon
 
 - [ADR-1381](1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md):
   the BFF forwards a remote API through YARP.
-- [ADR-1387](1387-the-client-assertion-audience-and-the-dpop-htu-are-compared-with-the-tenants-published-urls.md): the
+- [ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md): the
   DPoP `htu` is compared with the tenant's published URLs.
 - [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md): a
   management route's caller is the principal its management access token authenticates.

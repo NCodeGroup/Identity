@@ -5,7 +5,7 @@
   decisions 7, 8 and 13,
   [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md) decision 3,
   [ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md) decision 7,
-  [ADR-1365](1365-the-bff-and-the-login-redirect-take-no-url-from-the-requests-host.md) decision 2,
+  [ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md) decision 2,
   [ADR-1381](1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
   decisions 7 and 8,
   [ADR-1382](1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)
@@ -97,7 +97,7 @@ endpoint or a token takes it from that frontend.**
    built once per frontend). The BFF's client-credential tokens are cached per frontend, resource and scope. A
    back-channel logout token ends only the sessions of the frontend that received it. A session's trusted origins
    ([ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md)) and `PublicOrigin`
-   ([ADR-1365](1365-the-bff-and-the-login-redirect-take-no-url-from-the-requests-host.md)) are the frontend's own.
+   ([ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md)) are the frontend's own.
 9. **Distinct callbacks.** Each frontend's callback, `PublicOrigin + PathPrefix + "/callback"`, is unique across the
    deployment, so the OP can tell the clients apart.
 10. **Security headers.** `UseBffSecurityHeaders()` writes the selected frontend's headers
@@ -143,7 +143,7 @@ endpoint or a token takes it from that frontend.**
   [ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md),
   [ADR-1294](1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md),
   [ADR-1310](1310-the-interactive-surfaces-cookies-are-host-only-and-a-tenants-session-is-named-for-its-path.md),
-  [ADR-1365](1365-the-bff-and-the-login-redirect-take-no-url-from-the-requests-host.md),
+  [ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md),
   [ADR-1381](1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md),
   [ADR-1382](1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)
 - `src/NCode.Identity.Bff/Frontends/`, `src/NCode.Identity.Bff/Options/BffFrontendOptions.cs`,

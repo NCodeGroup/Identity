@@ -875,7 +875,7 @@ that limits XSS riding the session (RFC 10017 §6.1.4.1).
 **Topology.** The paved path is **one origin**: the SPA and the BFF behind one reverse proxy, so no call needs a
 preflight. The absolute URLs the BFF publishes, the `redirect_uri` and the `post_logout_redirect_uri`, come from
 `Bff:Frontends:{name}:PublicOrigin`, the URL the frontend is published at, never from the request's `Host` or a forwarded header
-([ADR-1365](decisions/1365-the-bff-and-the-login-redirect-take-no-url-from-the-requests-host.md)). Startup fails outside
+([ADR-1365](decisions/1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md)). Startup fails outside
 Development unless it is `https`. Because `__Host-` forbids `Domain`, a split across subdomains needs one BFF per host. Several frontends of one BFF
 deployment each have their own `PublicOrigin` and callback, and the `host` rule tells the hosts apart
 ([§5.10](#510-frontends)).

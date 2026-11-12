@@ -136,7 +136,7 @@ row the operator names and proving that the key signs or decrypts under the depl
   this decision manages.
 - [ADR-1474](1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md): the
   descriptor catalog and `GetPublicKeyAsync`.
-- [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md):
+- [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md):
   `IRemoteKeyResolver`, `IRemoteKeyProver` and `RemoteKeyRefusedException`.
 - [ADR-1424](1424-a-management-route-authorizes-at-the-node-it-names-before-it-reads-through-replaceable-validators.md):
   authorization before any read.

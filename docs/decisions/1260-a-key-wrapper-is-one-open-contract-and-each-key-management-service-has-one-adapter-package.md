@@ -154,7 +154,7 @@ one adapter package named for the service, `NCode.Identity.Secrets.<Vendor>`.**
 - [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md) and
   [ADR-1474](1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md) —
   the remote key provider that shares each adapter package.
-- [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md) —
+- [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md) —
   the remote key providers that clients and BFFs select.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies.
 - [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) —

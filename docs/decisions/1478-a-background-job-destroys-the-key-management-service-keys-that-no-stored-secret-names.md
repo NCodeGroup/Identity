@@ -106,7 +106,7 @@ listed key that no stored secret names and that is older than a grace period.**
 - A destroyed key stays recoverable for the service's window.
 - A key whose tags cannot be read is never swept, so a provider that strips tags leaves its keys in place.
 - A BFF's key-ring keys are never swept
-  ([ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).
+  ([ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)).
 
 ## References
 
@@ -114,4 +114,4 @@ listed key that no stored secret names and that is older than a grace period.**
 - [ADR-1474](1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md)
 - [ADR-1476](1476-the-management-api-creates-a-tenants-remote-key-and-binds-one-only-after-proving-it.md)
 - [ADR-1351](1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)
-- [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)
+- [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)

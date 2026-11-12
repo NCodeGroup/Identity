@@ -25,7 +25,7 @@ implement, and these forces shape it:
   Azure Key Vault and `KeyRing` for Google Cloud KMS. A provider uses it only to create and list keys; it reads, signs
   with, decrypts with and destroys a key where the key's own identifier names it. A BFF host only reads the keys its key
   rings name and proves them when it starts
-  ([ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)),
+  ([ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)),
   so it has no location to name. A server whose identity lacks `kms:CreateKey` and `ListKeys` binds keys an operator
   created and never creates one. Every consumer that creates, lists or sweeps a provider's keys (the
   `tenant_key_provider` domain, the tenant key policy's start check, the secret generator, the sweep service and job,
@@ -150,5 +150,5 @@ keep.**
 - [ADR-1260](1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md)
 - [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)
 - [ADR-1478](1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md)
-- [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)
+- [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)
 - `NCode.Identity.Secrets.AwsKms`, `NCode.Identity.Secrets.AzureKeyVault`, `NCode.Identity.Secrets.GoogleCloudKms`

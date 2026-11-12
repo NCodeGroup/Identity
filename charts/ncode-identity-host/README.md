@@ -615,7 +615,7 @@ Each console key ring, `managementConsole.keyRings.client` (`Bff:KeyRings:mgmt-c
 `managementConsole.keyRings.dpop` (`Bff:KeyRings:mgmt-dpop`), holds a PEM key from a Secret, keys that a key management
 service holds, or both. A key a key management service holds signs every request the console makes, so the private key
 never reaches the pod
-([ADR-1479](../../docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md),
+([ADR-1479](../../docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md),
 [ADR-1485](../../docs/decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md)).
 A ring has these values:
 
@@ -679,7 +679,7 @@ effect when the console restarts. The key is the operator's: the console never c
 out of the `ncid-` groups and out of the tag of `secretProtection.remoteKeys.deployment`, in a scope of its own, so the
 server's sweep never names it. Keep the DPoP key in a Secret unless the threat model needs it in a key management
 service and the request rate fits the service's quota
-([ADR-1479](../../docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).
+([ADR-1479](../../docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)).
 
 `ci/management-console-remote-keys-values.yaml` shows a release.
 

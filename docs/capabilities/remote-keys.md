@@ -368,7 +368,7 @@ rows as a tenant's keys.
   [The console's keys in a key management service](../../charts/ncode-identity-host/README.md#the-consoles-keys-in-a-key-management-service).
 
 > [!TIP]
-> [ADR-1479](../decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md),
+> [ADR-1479](../decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md),
 > [ADR-1485](../decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md),
 > [Backend for Frontend](../backend-for-frontend.md), `IRemoteKeyResolver`, `IRemoteKeyProver`,
 > `RemoteKeyRefusedException`.
@@ -436,7 +436,7 @@ the ECDH shared secret of one message passes through the replica, never the key.
   [ADR-1476](../decisions/1476-the-management-api-creates-a-tenants-remote-key-and-binds-one-only-after-proving-it.md),
   [ADR-1471](../decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md),
   [ADR-1478](../decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md),
-  [ADR-1479](../decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md),
+  [ADR-1479](../decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md),
   [ADR-1404](../decisions/1404-a-tenants-provisioned-keys-roll-over-ahead-of-retirement-and-expire-after-a-grace.md),
   [ADR-1169](../decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [ADR-1351](../decisions/1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)

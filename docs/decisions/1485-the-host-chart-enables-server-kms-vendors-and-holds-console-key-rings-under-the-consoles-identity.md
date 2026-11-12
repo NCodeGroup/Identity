@@ -25,7 +25,7 @@ The management console signs client assertions with the key ring `mgmt-client` a
 `mgmt-dpop`
 ([ADR-1437](1437-the-management-console-is-a-confidential-client-served-by-a-bff-host-of-its-own.md)). A key ring holds
 PEM files, keys that a KMS holds, or both, and the console reads and proves every key when it starts
-([ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).
+([ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)).
 A console whose keys exist only as PEM files keeps its private keys in the memory of every replica. The console host
 registers every vendor without a location and reads each key where the key's own identifier names it, so the console
 needs no provider section.
@@ -131,7 +131,7 @@ identity of its own in the server's shapes.**
 - [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)
 - [ADR-1474](1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md)
 - [ADR-1478](1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md)
-- [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)
+- [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)
 - `charts/ncode-identity-host`, `.github/workflows/host-chart.yml`
 - Issues [#712](https://github.com/NCodeGroup/identity/issues/712) and
   [#725](https://github.com/NCodeGroup/identity/issues/725)

@@ -265,7 +265,7 @@ The records are grouped by area; within an area they are in number order.
 | [1474](./1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md) | A remote key provider is described by data and reads, signs and decrypts by key identifier | Accepted |
 | [1476](./1476-the-management-api-creates-a-tenants-remote-key-and-binds-one-only-after-proving-it.md) | The management API creates a tenant's remote key and binds one only after proving it | Accepted |
 | [1478](./1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md) | A background job destroys the key management service keys that no stored secret names | Accepted |
-| [1479](./1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md) | A protocol client's and a BFF's keys can be held in a key management service, read and proved at start | Accepted |
+| [1479](./1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md) | A protocol client's and a BFF's keys can be held in a key management service | Accepted |
 
 ### JOSE, JWT, COSE and the protocol client
 

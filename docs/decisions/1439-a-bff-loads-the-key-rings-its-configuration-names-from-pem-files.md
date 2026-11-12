@@ -1,6 +1,6 @@
 # 1439. A BFF loads the key rings its configuration names from PEM files
 
-- **Status:** Accepted (amended by [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md): a key ring lists keys a key management service holds, and every key ring loads when the host starts)
+- **Status:** Accepted (amended by [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md): a key ring lists keys a key management service holds, and every key ring loads when the host starts)
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 
@@ -45,7 +45,7 @@ in code.**
    - `Bff:KeyRings:{name} holds more than one key with the id '{id}'.`
 
    The messages of a `RemoteKeys` entry are in
-   [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)
+   [ADR-1479](1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)
    rule 7. A key ring that fails to load stops the host when it starts.
 7. **Code registration is the seam.** A host that holds its keys elsewhere, in another source, registers its own
    keyed `ISecretKeyCollectionProvider` under the key ring's name and configures no `Bff:KeyRings` entry for it. The

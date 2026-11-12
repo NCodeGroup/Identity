@@ -2606,7 +2606,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `SecretProtection:RemoteKeyProviders` setting
   ([#651](https://github.com/NCodeGroup/identity/issues/651),
   [#721](https://github.com/NCodeGroup/identity/issues/721),
-  [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md),
+  [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md),
   [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md)).
 
 - **The OpenID protocol client pushes authorization requests.**
@@ -2855,7 +2855,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#651](https://github.com/NCodeGroup/identity/issues/651),
   [ADR-1439](docs/decisions/1439-a-bff-loads-the-key-rings-its-configuration-names-from-pem-files.md),
   [ADR-1446](docs/decisions/1446-a-set-of-frontends-that-names-an-unregistered-key-ring-is-refused.md),
-  [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).
+  [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)).
 
 - **The management console reads its session from its BFF.** The `RuntimeConfig` union and `loadBffRuntimeConfig`, the
   `session` slice and `fetchBffUser`, `SessionGate` (poll, expiry and visibility probes, `BroadcastChannel`), sign-out
@@ -5922,4 +5922,4 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-and-reads-signs-and-decrypts-by-key-identifier.md),
   [ADR-1471](docs/decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md),
   [ADR-1478](docs/decisions/1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md),
-  [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service-read-and-proved-at-start.md)).
+  [ADR-1479](docs/decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md)).

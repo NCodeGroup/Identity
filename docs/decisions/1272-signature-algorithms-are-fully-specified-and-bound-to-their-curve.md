@@ -14,7 +14,7 @@ algorithms, so that an `alg` value names the curve and the hash it uses. It depr
 and the OpenID conformance suite, `jose` and the repository's own conformance runner still send `alg: EdDSA`.
 
 RFC 7518 §3.4 binds `ES256`, `ES384` and `ES512` to P-256, P-384 and P-521. A check that compares only the key type
-and size cannot enforce this: the open curve catalog ([ADR-1068](1068-unified-extensible-elliptic-curve-catalog.md)) can hold a second
+and size cannot enforce this: the open curve catalog ([ADR-1068](1068-elliptic-curves-are-one-extensible-catalog-and-an-imported-point-is-checked-against-its-curve.md)) can hold a second
 256-bit curve, and a size-only check accepts it as `ES256`. `EccSecretKey.GetECCurve()` used the same shortcut and
 mapped every 256-bit key to P-256.
 
@@ -70,7 +70,7 @@ algorithm.
 
 ## References
 
-- [ADR-1068](1068-unified-extensible-elliptic-curve-catalog.md)
+- [ADR-1068](1068-elliptic-curves-are-one-extensible-catalog-and-an-imported-point-is-checked-against-its-curve.md)
 - [ADR-1117](1117-eddsa-clean-room-implementation-opt-in-package.md)
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)
 - RFC 9864 (fully-specified algorithms for JOSE and COSE)

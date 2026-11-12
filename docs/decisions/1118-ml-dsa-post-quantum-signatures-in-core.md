@@ -64,7 +64,7 @@ No").
 
 5. **The ML-DSA parameter-set catalog is closed.** FIPS 204 defines exactly three parameter sets, and each is a
    distinct `alg`, so the catalog (`MlDsaParameterSets`) is `internal` — deliberately unlike the open, consumer-
-   extensible ECC curve catalog ([ADR-1068](1068-unified-extensible-elliptic-curve-catalog.md)). A caller selects the
+   extensible ECC curve catalog ([ADR-1068](1068-elliptic-curves-are-one-extensible-catalog-and-an-imported-point-is-checked-against-its-curve.md)). A caller selects the
    set by its `alg` name (`ML-DSA-44` / `ML-DSA-65` / `ML-DSA-87`).
 
 ## Consequences

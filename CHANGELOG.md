@@ -1134,7 +1134,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   application adds a curve by registering one `EccCurveSpecification`, and `EccCurveSpecification.P256`, `P384` and
   `P521` define the NIST curves once, for the curve catalog, the `ES*` algorithms and `ECDH-ES`. `GenerateSecretRequest`
   carries the whole `SecretKeyGenerationParameters` as `GenerationParameters`
-  ([ADR-1068](docs/decisions/1068-unified-extensible-elliptic-curve-catalog.md),
+  ([ADR-1068](docs/decisions/1068-elliptic-curves-are-one-extensible-catalog-and-an-imported-point-is-checked-against-its-curve.md),
   [#337](https://github.com/NCodeGroup/identity/issues/337)).
 
 - **The secrets library registers logging.** `AddSecretsLibrary()` registers logging itself (`AddLogging()`), which its
@@ -5896,7 +5896,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   field length, below its prime and satisfy its curve equation before the platform imports the point, so an off-curve or
   invalid-curve point is rejected with the same error on every platform
   ([#575](https://github.com/NCodeGroup/identity/issues/575),
-  [ADR-1427](docs/decisions/1427-an-imported-elliptic-curve-point-is-checked-against-its-curve-before-the-platform-imports-it.md)).
+  [ADR-1068](docs/decisions/1068-elliptic-curves-are-one-extensible-catalog-and-an-imported-point-is-checked-against-its-curve.md)).
 
 - **Custody of a machine client needs the authority to grant every role it can hold.** Updating, deleting, configuring
   or changing the owners or secrets of a machine client needs creation authority at the platform or team that owns it,

@@ -59,7 +59,7 @@ The two hashes EdDSA needs — **SHA-512** (Ed25519) and **SHAKE256** (Ed448) �
 5. **The EdDSA curve set is closed, not an extensibility seam.** RFC 8032 defines exactly two curves (Ed25519, Ed448),
    and a third is a different algorithm, so the curve catalog (`OkpCurve` / `OkpCurves`) is `internal` — deliberately
    unlike the ECC curve catalog (`EccCurveSpecification` / `IEccCurveCatalog`), which is public because ECC's named-curve
-   set is genuinely open and consumer-extensible ([ADR-1068](1068-unified-extensible-elliptic-curve-catalog.md)). A
+   set is genuinely open and consumer-extensible ([ADR-1068](1068-elliptic-curves-are-one-extensible-catalog-and-an-imported-point-is-checked-against-its-curve.md)). A
    consumer selects the curve by passing the raw JWK `crv` string (`Ed25519` / `Ed448`), matching how ECC consumers pass
    a raw curve name. A single `EdDSA` algorithm code covers both curves; the concrete curve is selected from the signing
    key's `crv` at sign/verify time.

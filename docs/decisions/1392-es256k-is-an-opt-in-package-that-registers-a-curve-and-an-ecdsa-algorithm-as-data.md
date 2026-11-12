@@ -111,7 +111,7 @@ Three facts shape how it is added:
 - [RFC 8812](https://datatracker.ietf.org/doc/html/rfc8812), [RFC 7518 §3.4](https://datatracker.ietf.org/doc/html/rfc7518#section-3.4),
   SEC 2 §2.4.1
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
-  [ADR-1068](1068-unified-extensible-elliptic-curve-catalog.md),
+  [ADR-1068](1068-elliptic-curves-are-one-extensible-catalog-and-an-imported-point-is-checked-against-its-curve.md),
   [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
   [ADR-1117](1117-eddsa-clean-room-implementation-opt-in-package.md),
   [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md),

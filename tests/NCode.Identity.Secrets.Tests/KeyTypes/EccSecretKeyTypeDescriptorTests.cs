@@ -11,7 +11,7 @@ using NCode.Identity.Secrets.RemoteKeys;
 
 namespace NCode.Identity.Secrets.KeyTypes;
 
-// See ADR-1427.
+// See ADR-1068.
 public class EccSecretKeyTypeDescriptorTests : BaseTests
 {
     private EccSecretKeyTypeDescriptor Descriptor { get; }

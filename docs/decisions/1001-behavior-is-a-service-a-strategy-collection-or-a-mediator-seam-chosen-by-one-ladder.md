@@ -104,5 +104,5 @@ family the choice reduces to the ladder above:
 - `src/NCode.Identity.OpenId.Core/Exceptions/DefaultOpenIdExceptionHandler.cs`: exception handling routed through the
   mediator.
 - `ISecretKeyTypeDescriptor` ([ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md)) and
-  `EccCurveSpecification` / `IEccCurveCatalog` ([ADR-1068](1068-unified-extensible-elliptic-curve-catalog.md)): the
+  `EccCurveSpecification` / `IEccCurveCatalog` ([ADR-1068](1068-elliptic-curves-are-one-extensible-catalog-and-an-imported-point-is-checked-against-its-curve.md)): the
   strategy-collection extension points (shape 2) chosen over the mediator.

@@ -5,7 +5,11 @@ metadata:
   name: {{ include "identity-host.fullname" . }}
   labels:
     {{- include "identity-host.labels" . | nindent 4 }}
-  {{- with .Values.ingress.annotations }}
+  {{- $annotations := deepCopy .Values.ingress.annotations }}
+  {{- if eq .Values.backendTls.ingressController "ingress-nginx" }}
+  {{- $annotations = merge $annotations (include "identity-host.backendTls.ingressNginxAnnotations" (dict "root" . "service" (include "identity-host.fullname" .) "secretName" (include "identity-host.backendTls.secretName" .)) | fromYaml) }}
+  {{- end }}
+  {{- with $annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
@@ -29,7 +33,7 @@ spec:
               service:
                 name: {{ include "identity-host.fullname" $ }}
                 port:
-                  name: http
+                  name: https
           {{- end }}
     {{- end }}
 {{- end }}

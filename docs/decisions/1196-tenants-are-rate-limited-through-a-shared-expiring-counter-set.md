@@ -5,7 +5,7 @@
   adapter runs `DEL`; and by
   [ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md): a limit is a registered
   descriptor, and a stage's limits are counted in one round trip; and by
-  [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md): a tenant rate limit
+  [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md): a tenant rate limit
   is a limit set by the authority above the scope whose settings carry it)
 - **Date:** 2026-10-21
 - **Deciders:** NCode Group

@@ -219,7 +219,7 @@ internal abstract class BaseApiEndpointHandler : ManagementApiEndpointHandler
     /// <param name="readNodeAboveAsync">A function that reads the node above <paramref name="node"/>, or returns <c>null</c> when not found.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>An <see cref="IResult"/> representing the outcome of the request.</returns>
-    // See ADR-1448.
+    // See ADR-1418.
     internal virtual ValueTask<IResult> ProcessGetSettingLimitsAsync(
         HttpContext httpContext,
         ResourceNode node,

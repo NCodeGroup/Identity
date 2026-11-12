@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Management.Contracts;
 /// Represents the limits a settings document may carry and whether the caller may set them. A limit is set by the
 /// authority above the scope whose document carries it.
 /// </summary>
-// See ADR-1448.
+// See ADR-1418.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class SettingLimitsResource

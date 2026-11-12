@@ -43,7 +43,7 @@
   [ADR-1315](1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md); amended by
   [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md): a tenant administrator is a
   `TenantAdmin` assignment at the tenant's node; amended by
-  [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md): a limit is set by the
+  [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md): a limit is set by the
   authority above the scope whose document carries it; amended by
   [ADR-1420](1420-a-callers-teams-and-tenants-are-discovered-from-its-role-assignments.md): the console opens on the
   caller's home; amended by [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md): a team can nest beneath a

@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-11-06
 - **Deciders:** NCode Group
-- **Refines:** [ADR-1448](1448-a-settings-reader-learns-which-limits-it-may-change.md),
+- **Refines:** [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [ADR-1034](1034-persisted-role-assignments-and-ownership.md),
   [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
   [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)
@@ -43,7 +43,7 @@ A console that offers grant and revoke to every caller learns that the caller ma
 
 - **A sibling `…/owners/authority` resource.** It costs two requests. A role list is no audit snapshot and has no ETag
   to keep pure, the forces that put setting limits in a sibling
-  ([ADR-1448](1448-a-settings-reader-learns-which-limits-it-may-change.md)). A literal segment under `owners/` shadows
+  ([ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md)). A literal segment under `owners/` shadows
   a principal of that name. Rejected.
 - **Separate `canGrant` and `canRevoke`.** Granting and revoking a role at a node need the same authority and the same
   refusals, so the two are always equal. Rejected.
@@ -60,7 +60,7 @@ A console that offers grant and revoke to every caller learns that the caller ma
 
 ## References
 
-- [ADR-1448](1448-a-settings-reader-learns-which-limits-it-may-change.md) — a settings reader learns which limits the
+- [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md) — a settings reader learns which limits the
   settings carry and whether it may change them
 - [ADR-1034](1034-persisted-role-assignments-and-ownership.md) — persisted resource-scoped role assignments and
   ownership

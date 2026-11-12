@@ -6,7 +6,7 @@
   [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
   [ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md),
   [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
-  [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md) and
+  [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md) and
   [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md); amended by
   [ADR-1455](1455-a-teams-subtree-is-walked-depth-first-one-page-of-child-teams-per-level.md): a subtree is walked one
   page of child teams per level, and `ITeamStore` has no read of a whole subtree)
@@ -51,7 +51,7 @@ and missed-announcement revalidation reach every descendant.**
    committed settings, or the platform's for a top-level team. A materialized `OpenIdTeam` layers its document over
    its parent team's settings provider, or the platform's for a top-level team, and exposes `Parent` and `Path`.
 6. **A limit follows the chain**
-   ([ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md)). The node above a
+   ([ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md)). The node above a
    team's settings document is its parent team's node, or the platform for a top-level team, so a child team's limits
    are written by its parent's administrators. Every limit merges with a meet, so a parent's limit caps every team and
    tenant beneath it. `max_teams` is a limit. A child team's creation needs no separate limit check: `Create` at the
@@ -143,7 +143,7 @@ and missed-announcement revalidation reach every descendant.**
   replica that may have missed a team announcement evicts only the teams whose row changed
 - [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md) — a tenant administrator is a
   role assignment at the tenant's node
-- [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md) — a limit is set by
+- [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md) — a limit is set by
   the authority above the scope whose document carries it
 - [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md) — a management
   route authorizes the caller at the node it names before it reads

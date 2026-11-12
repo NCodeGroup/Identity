@@ -3586,7 +3586,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   counted in the shared `IExpiringCounterSet` and reported under the rate-limiting partitions `daily_requests` and
   `daily_token_requests`
   ([ADR-1198](docs/decisions/1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md),
-  [ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  [ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [#563](https://github.com/NCodeGroup/identity/issues/563)).
 
 - **Billed overage past a daily quota.** A plan tier can admit requests past its daily quota and bill them:
@@ -3598,7 +3598,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `token_requests_overage`, which the usage report and the admin UI's Usage tab show with the others, and is counted in
   `ncode.identity.rate_limiting.requests` with the result `overage`
   ([ADR-1200](docs/decisions/1200-a-tier-admits-a-bounded-overage-past-its-quota-and-bills-it-from-the-ledger.md),
-  [ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  [ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [#563](https://github.com/NCodeGroup/identity/issues/563)).
 
 - **Per-tenant usage ledger.** Every tenant's daily usage is recorded durably for billing and customer reports in the
@@ -3962,7 +3962,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   team's `max_tenants` bounds the tenants of the team and of every team beneath it, its `max_teams` bounds the teams
   beneath it at every level, and a creation that would exceed the limit of any team above it answers `409`
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
-  [ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  [ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [#563](https://github.com/NCodeGroup/identity/issues/563)).
 
@@ -4001,7 +4001,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   needs `Update` authority at the node above it: the platform for a top-level team, the parent team for a child team,
   the team for a tenant and the tenant for a client or resource server, or answers `403` naming the limits, and
   `ISettingSerializer.GetChangedLimits` names them
-  ([ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  ([ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [#563](https://github.com/NCodeGroup/identity/issues/563)).
 
@@ -4010,7 +4010,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   settings may carry (`ISettingSerializer.GetLimits`) and `canChange`, whether the caller holds `Update` at the node
   above. The management console shows a caller without that authority the limits read-only beside the settings it
   edits, and its save never changes them
-  ([ADR-1448](docs/decisions/1448-a-settings-reader-learns-which-limits-it-may-change.md),
+  ([ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [#581](https://github.com/NCodeGroup/identity/issues/581)).
 
 - **A caller learns whether it may grant and revoke a role where it reads who holds it.** `GET …/owners` on a team, a
@@ -4216,7 +4216,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   authority above that scope, so a team's administrators cannot lift the plan tier the platform sets, nor a child
   team's the limits its parent team sets, nor a tenant's the limits its team sets. A client's registration update keeps
   the limits its settings carry
-  ([ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  ([ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
   [#563](https://github.com/NCodeGroup/identity/issues/563)).
 
@@ -5864,7 +5864,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   A refused request is answered `429 Too Many Requests` with `temporarily_unavailable`, `Retry-After`, and
   `Cache-Control: no-store`, and is neither handled nor audited
   ([ADR-1196](docs/decisions/1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
-  [ADR-1418](docs/decisions/1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  [ADR-1418](docs/decisions/1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [#84](https://github.com/NCodeGroup/identity/issues/84),
   [#563](https://github.com/NCodeGroup/identity/issues/563)).
 

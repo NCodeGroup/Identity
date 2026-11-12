@@ -1180,7 +1180,7 @@ internal class ResourceServerApiEndpointHandler(
     /// </summary>
     /// <response code="200">The resource server's setting limits.</response>
     /// <response code="404">The resource server does not exist.</response>
-    // See ADR-1448.
+    // See ADR-1418.
     [EndpointName("api/resource-servers/settings/limits/get")]
     internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
         HttpContext httpContext,

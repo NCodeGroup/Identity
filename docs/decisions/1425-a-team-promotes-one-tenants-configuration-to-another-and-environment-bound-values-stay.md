@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
-- **Refines:** [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md)
+- **Refines:** [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md)
 
 ## Context
 
@@ -19,7 +19,7 @@ revealed once, at creation
 mutual-TLS subject names the application of one environment, and a profile of another environment can refuse it.
 
 A limit in a document is set by the authority above the scope whose document carries it
-([ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md)), and a promoted
+([ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md)), and a promoted
 document is a settings write to the target. A client a host registers is changed by no management caller
 ([ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md)), and `IHostManagedClientPolicy`
 names it.
@@ -55,7 +55,7 @@ keys, principals and environment-bound values stay with their environment.**
    descriptors, and nothing lists the names in code
    ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)).
 5. **The limit rule.** A limit is not environment-bound: it travels, under
-   [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md). A promoted document
+   [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md). A promoted document
    that updates an existing target document and changes a limit, as
    `ISettingSerializer.GetChangedLimits(target document, promoted document)` names, needs `Operations.Update` at the
    node above: the target's team node for the tenant's document, the target tenant node for a client's or a resource
@@ -146,7 +146,7 @@ keys, principals and environment-bound values stay with their environment.**
   deployment root and a team groups a customer's tenants
 - [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md) — a tenant administrator is a
   role assignment at the tenant's node
-- [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md) — a limit is set by
+- [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md) — a limit is set by
   the authority above the scope whose document carries it
 - [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md) — a client acting for
   itself is a principal that holds role assignments

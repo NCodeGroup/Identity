@@ -49,7 +49,7 @@ names, before it reads.**
    authorize in the handler through `GetAuthorizationFailureAsync`, as the tenant handler does.
 7. **A check that needs the row stays after the read.** The If-Match precondition, uniqueness, a client's custody
    ([ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)), a settings write's limit
-   ([ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md)), `IsSystem` and
+   ([ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md)), `IsSystem` and
    dependents judge the row, so they run in `Validate*Async` or in the handler after the read.
 
 ## Options considered
@@ -75,7 +75,7 @@ names, before it reads.**
   validators
 - [ADR-1034](1034-persisted-role-assignments-and-ownership.md) — persisted resource-scoped role assignments and
   ownership
-- [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md) — a limit is set by
+- [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md) — a limit is set by
   the authority above the scope whose document carries it
 - [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md) — a client acting for
   itself is a principal that holds role assignments

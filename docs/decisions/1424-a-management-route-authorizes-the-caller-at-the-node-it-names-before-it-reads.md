@@ -52,7 +52,7 @@ or the resource is gone. A tool that reads `404` for a resource it may not see r
    before any read. Their `Validate*Async` methods judge the row and never authorize the route's node again. A check
    that depends on the row stays in `Validate*Async`, after the read: disabling or restoring a team is platform
    authority judged against the stored `IsDisabled`, and a settings write's limit check needs the stored document
-   ([ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md)).
+   ([ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md)).
 
 ## Options considered
 
@@ -79,7 +79,7 @@ or the resource is gone. A tool that reads `404` for a resource it may not see r
   deployment root and a team groups a customer's tenants
 - [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md) — a tenant administrator is a
   role assignment at the tenant's node
-- [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md) — a limit is set by
+- [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md) — a limit is set by
   the authority above the scope whose document carries it
 - [Project-template ADR-0129](project-template/0129-browser-facing-requests-are-safe-by-construction.md) —
   browser-facing requests are safe by construction

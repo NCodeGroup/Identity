@@ -1428,7 +1428,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The tenant's setting limits.</response>
     /// <response code="404">The tenant does not exist.</response>
-    // See ADR-1448.
+    // See ADR-1418.
     [EndpointName("api/tenants/settings/limits/get")]
     internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
         HttpContext httpContext,

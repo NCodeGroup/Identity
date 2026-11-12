@@ -607,7 +607,7 @@ export type EffectiveSettingsResource = {
   readonly settings: Readonly<Record<string, unknown>>;
 };
 
-/** Mirror of `SettingLimitsResource`: the limits an owner's settings may carry and whether the caller may change them (ADR-1448). */
+/** Mirror of `SettingLimitsResource`: the limits an owner's settings may carry and whether the caller may change them (ADR-1418). */
 export type SettingLimitsResource = {
   readonly names: readonly string[];
   readonly canChange: boolean;

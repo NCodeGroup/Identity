@@ -189,7 +189,7 @@ internal class PlatformApiEndpointHandler(
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The platform's setting limits.</response>
-    // See ADR-1448.
+    // See ADR-1418.
     [EndpointName("api/platform/settings/limits/get")]
     internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
         HttpContext httpContext,

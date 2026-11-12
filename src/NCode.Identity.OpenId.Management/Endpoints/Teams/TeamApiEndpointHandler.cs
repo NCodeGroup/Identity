@@ -819,7 +819,7 @@ internal class TeamApiEndpointHandler(
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The team's setting limits.</response>
     /// <response code="404">The team does not exist.</response>
-    // See ADR-1448.
+    // See ADR-1418.
     [EndpointName("api/teams/settings/limits/get")]
     internal virtual async ValueTask<IResult> GetSettingLimitsAsync(
         HttpContext httpContext,

@@ -39,8 +39,7 @@ itself, and that holds roles only at its owning node or beneath it.**
    ([ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md),
    [ADR-1451](1451-every-management-route-authorizes-at-its-node-before-it-reads.md)). The node above a machine client
    is its owning node, so the limits of its settings are set there
-   ([ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
-   [ADR-1448](1448-a-settings-reader-learns-which-limits-it-may-change.md)). Its creator is assigned no `Owner` role.
+   ([ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md)). Its creator is assigned no `Owner` role.
 5. **Only a machine client's principal holds roles, and only within its owning node.** A role is granted to a client's
    principal only at its owning node or beneath it
    ([ADR-1467](1467-custody-of-a-machine-client-needs-creation-authority-at-the-node-that-owns-it.md)).
@@ -70,10 +69,10 @@ itself, and that holds roles only at its owning node or beneath it.**
 
 - [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md),
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
-  [ADR-1418](1418-a-limit-is-set-by-the-authority-above-the-scope-whose-document-carries-it.md),
+  [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md),
   [ADR-1421](1421-the-management-console-addresses-a-client-and-a-resource-server-through-their-tenant.md),
   [ADR-1424](1424-a-management-route-authorizes-the-caller-at-the-node-it-names-before-it-reads.md),
-  [ADR-1448](1448-a-settings-reader-learns-which-limits-it-may-change.md),
+  [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [ADR-1451](1451-every-management-route-authorizes-at-its-node-before-it-reads.md)
 - Issue [#588](https://github.com/NCodeGroup/identity/issues/588)

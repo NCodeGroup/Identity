@@ -93,7 +93,7 @@ signs.**
 - [ADR-1282](1282-the-jose-library-implements-neither-none-nor-rsa1-5-and-a-failed-jwe-decryption-reveals-no-cause.md): the random content key on a failed unwrap.
 - [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md),
   [ADR-1176](1176-dpop-proofs-are-created-and-validated-by-a-jose-service.md),
-  [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),
+  [ADR-1392](1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md),
   [ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md),
   [ADR-1410](1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md): the
   decisions whose members are asynchronous.

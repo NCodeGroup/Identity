@@ -277,7 +277,6 @@ The records are grouped by area; within an area they are in number order.
 | [1123](./1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md) | A NumericDate and a whole number a remote party sends are read strictly through shared readers | Accepted |
 | [1126](./1126-the-ecdh-es-concat-kdf-digest-is-sha-256-and-a-test-oracle-must-conform-to-the-rfc.md) | The ECDH-ES Concat KDF digest is SHA-256, and a test oracle must conform to the RFC | Accepted |
 | [1154](./1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md) | JWTs are validated only as signed tokens, by requirements and handlers under the caller's stated policy | Accepted |
-| [1272](./1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md) | Signature algorithms are fully specified and bound to their curve | Accepted |
 | [1273](./1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md) | The protocol client validates ID tokens and their token hashes under OpenID Connect Core | Accepted |
 | [1274](./1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md) | The protocol client validates logout tokens and records each only after the client handles it | Accepted |
 | [1275](./1275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md) | The protocol client pushes authorization requests whenever the provider offers PAR | Accepted |
@@ -292,7 +291,7 @@ The records are grouped by area; within an area they are in number order.
 | [1336](./1336-the-protocol-client-bounds-every-call-with-a-polly-core-pipeline-and-retries-only-safe-requests.md) | The protocol client bounds every call with a Polly.Core pipeline and retries only safe requests | Accepted |
 | [1389](./1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md) | One algorithm name serves every key type and curve it declares, and ECDH-ES agreements are registered | Accepted |
 | [1390](./1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md) | The opt-in EdDSA package implements Ed25519, Ed448, X25519 and X448 clean-room over OKP keys | Accepted |
-| [1392](./1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md) | ES256K is an opt-in package that registers a curve and an ECDSA algorithm as data | Accepted |
+| [1392](./1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md) | ECDSA and EdDSA algorithms are fully specified and bound to their curve, and ES256K is opt-in | Accepted |
 | [1398](./1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md) | A key size selects a curve only when no other curve shares it, and only a symmetric key is checked by its type and size | Accepted |
 | [1405](./1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md) | Selective Disclosure JWTs are an opt-in package that issues, presents and verifies over the JWT validator | Accepted |
 | [1406](./1406-the-sd-jwt-vc-profile-is-data-the-issuer-and-the-verifier-apply.md) | The SD-JWT VC profile is data the issuer and the verifier apply | Accepted |

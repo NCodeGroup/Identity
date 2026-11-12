@@ -563,7 +563,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   advertises its signature algorithms in the asymmetric token-signing metadata automatically, and the FAPI 2.0 signing
   ceiling is PS256, ES256, EdDSA and Ed25519
   ([ADR-1390](docs/decisions/1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md),
-  [ADR-1272](docs/decisions/1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),
+  [ADR-1392](docs/decisions/1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md),
   [#336](https://github.com/NCodeGroup/identity/issues/336),
   [ADR-1390](docs/decisions/1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md)).
 
@@ -597,7 +597,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   RFC 8812) in the elliptic-curve catalog, so `ecc` keys on it are generated, imported and published as JSON Web Keys,
   and the `ES256K` JWS algorithm (ECDSA over secp256k1 with SHA-256), bound to the curve. It registers nothing where the
   platform's cryptography lacks the curve, as on macOS ([#337](https://github.com/NCodeGroup/identity/issues/337),
-  [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+  [ADR-1392](docs/decisions/1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md)).
 
 - **CBOR Object Signing and Encryption (COSE, RFC 9052 / 9053) is available as the opt-in `NCode.Identity.Cose` package.**
   `AddCoseLibrary()`, an extension of `IServiceBuilder<JoseLibrary>`, registers `ICoseSerializer`, which signs
@@ -640,7 +640,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   specification, an empty, whitespace or duplicate code, or a curve the elliptic-curve catalog does not hold by both
   `crv` and OID. `TryAddEnumerableInstance` in `NCode.Identity.Registration` registers such an instance once without dropping
   the other instances of its type ([#337](https://github.com/NCodeGroup/identity/issues/337),
-  [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+  [ADR-1392](docs/decisions/1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md)).
 
 - **A keyed algorithm declares the key types it accepts, and decides which keys fit it.** `KeyedAlgorithm.KeyTypes`
   lists `AlgorithmKeyType` values, in the algorithm's order of preference: the `SecretKey` CLR type (`KeyClrType`), the
@@ -652,7 +652,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   and every ECDH agreement, and `SignatureAlgorithm.GetTokenHashFunction` supplies the hash of the ID-token `at_hash`,
   `c_hash` and `s_hash` claims. `AuthenticatedEncryptionAlgorithm` derives from `Algorithm`, because its key is a
   content encryption key ([#327](https://github.com/NCodeGroup/identity/issues/327),
-  [ADR-1272](docs/decisions/1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),
+  [ADR-1392](docs/decisions/1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md),
   [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md)).
 
 - **Keys are resolved, checked and generated on their algorithm's curve.** `TryGetKeyedAlgorithm` on
@@ -670,7 +670,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   type, which is checked by its stored public half ([#327](https://github.com/NCodeGroup/identity/issues/327),
   [#337](https://github.com/NCodeGroup/identity/issues/337), [#534](https://github.com/NCodeGroup/identity/issues/534),
   [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md),
-  [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md),
+  [ADR-1392](docs/decisions/1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md),
   [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
 
 - **A key type refuses a curve requested with another size, and a size two of its curves share.** The `ecc`, `okp`
@@ -2354,7 +2354,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `SecretCreateValidation` that carries the resolved `SecretKeyGenerationParameters`, and the endpoints generate the key
   with what was validated, on the curve its algorithm accepts
   ([#337](https://github.com/NCodeGroup/identity/issues/337),
-  [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+  [ADR-1392](docs/decisions/1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md)).
 
 - **The management API and its console show how a secret is stored.** `SecretResource.IsVerifier` is `true` for a
   secret stored as a one-way verifier, which authenticates a method that compares the secret and never one that keys
@@ -4440,8 +4440,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   P-256, P-384 and P-521, and RFC 8812 binds `ES256K` to secp256k1, so a 256-bit key on another curve does not sign as
   ES256, a P-256 key never signs as `ES256K`, and a secp256k1 key never signs as `ES256`. `EccSecretKey.GetECCurve()`
   reads the actual curve from the key material, not from the key size
-  ([ADR-1272](docs/decisions/1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),
-  [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+  ([ADR-1392](docs/decisions/1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md)).
 
 - **A key is refused when it is declared for an algorithm that rejects its curve.** `ValidateKeyAlgorithm` checks the
   declared key's type, size and curve with the check the cryptographic runtime makes before it uses the key, so a
@@ -4817,7 +4816,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **FAPI 2.0 signs with `Ed25519`, never the polymorphic `EdDSA`, DPoP proofs included.** The `fapi2` security profile's
   signing ceiling is `PS256`, `ES256` and `Ed25519` (RFC 9864), so a FAPI 2.0 party cannot sign with an Ed448 key
   through `EdDSA`, and `dpop_signing_alg_values_supported` is under the same ceiling
-  ([ADR-1272](docs/decisions/1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md), issue
+  ([ADR-1392](docs/decisions/1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md), issue
   [#333](https://github.com/NCodeGroup/identity/issues/333)).
 
 - **A pushed `request_uri` is consumed once and bound to the client that pushed it, and client secrets are never

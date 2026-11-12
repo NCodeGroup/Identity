@@ -44,7 +44,7 @@ EdDSA and the X25519 and X448 key agreements are implemented clean-room in the o
 4. **One signature algorithm class serves three codes.** The internal `EdDsaSignatureAlgorithm(string code,
    EdwardsOkpCurve? curve)` serves `EdDSA`, `Ed25519` and `Ed448`; a null curve is the polymorphic `EdDSA`. The
    algorithm codes and token hashes are those of
-   [ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md).
+   [ADR-1392](1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md).
 5. **Signing algorithms are advertised as asymmetric without EdDSA wiring.** The algorithm settings select
    `AcceptsOnly<AsymmetricSecretKey>()` algorithms, so discovery needs nothing specific to EdDSA.
 6. **`OkpSecretKey` is a public abstract `AsymmetricSecretKey`.** It is built from the `crv`, the size, the raw public
@@ -109,7 +109,7 @@ EdDSA and the X25519 and X448 key agreements are implemented clean-room in the o
 - [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
   [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
   [ADR-1386](1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md),
-  [ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md),
+  [ADR-1392](1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md),
   [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [project-template ADR-0105](project-template/0105-the-canonical-implementation-is-named-defaultfoo.md)
 - Issue [#336](https://github.com/NCodeGroup/identity/issues/336), part of [#66](https://github.com/NCodeGroup/identity/issues/66)

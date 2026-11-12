@@ -81,7 +81,7 @@ before the platform imports it.
 - [ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md),
   [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
-  [ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md),
+  [ADR-1392](1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md),
   [ADR-1398](1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)
 - `src/NCode.Identity.Secrets/KeyTypes/EccSecretKeyTypeDescriptor.cs`,
   `src/NCode.Identity.Secrets.Abstractions/KeyTypes/EccCurveDomain.cs`

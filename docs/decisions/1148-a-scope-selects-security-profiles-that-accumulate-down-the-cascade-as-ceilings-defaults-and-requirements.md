@@ -84,7 +84,7 @@ and a failure names "a selected security profile" rather than one profile.
 Ceilings:
 
 - Every signing list, including DPoP's, is `PS256`, `ES256` and `Ed25519`. `Ed25519` takes effect with the EdDSA
-  package, and there is no polymorphic `EdDSA` ([ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+  package, and there is no polymorphic `EdDSA` ([ADR-1392](1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md)).
 - `token_endpoint_auth_methods_supported` is `private_key_jwt`, `tls_client_auth` and `self_signed_tls_client_auth`.
 - `response_types_supported` is `code`, and the PKCE methods are `S256`.
 - `require_pkce`, `require_pushed_authorization_requests`, `access_token_sender_constraint_required`

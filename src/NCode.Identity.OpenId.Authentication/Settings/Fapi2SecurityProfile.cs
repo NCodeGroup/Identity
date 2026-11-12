@@ -14,7 +14,7 @@ internal sealed class Fapi2SecurityProfile : ISecurityProfile
     // FAPI 2.0 §5.4 permits PS256, ES256 and "EdDSA (using the Ed25519 variant)" for every JWT the parties create or
     // process. Ed25519 is the fully-specified identifier for exactly that variant (RFC 9864); the polymorphic EdDSA is
     // excluded, because it also accepts an Ed448 key. Intersected with the registered algorithms, Ed25519 applies only
-    // when the EdDSA package is registered (ADR-1272).
+    // when the EdDSA package is registered (ADR-1392).
     private static string[] SigningAlgorithms { get; } =
     [
         AlgorithmCodes.DigitalSignature.RsaSsaPssSha256,

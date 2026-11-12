@@ -51,7 +51,7 @@ management API read that one source.**
    - A key may name its `SecretType` among the key types its algorithm accepts and its `Curve` among that type's curves;
      otherwise it takes the first of them ([ADR-1389](1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md)). A
      key is generated on the curve its algorithm is bound to
-     ([ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
+     ([ADR-1392](1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md)).
 3. **One rule set for validation and seeding.** `ITenantKeyPolicy`, implemented by `DefaultTenantKeyPolicy`, is the rule
    set of both `TenantKeyProvisioningOptionsValidator`
    ([ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md))

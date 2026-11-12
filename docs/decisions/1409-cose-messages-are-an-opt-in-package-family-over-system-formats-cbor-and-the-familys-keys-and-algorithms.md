@@ -19,7 +19,7 @@ implementation package references only abstractions
 the library it consumes ([ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md)), vocabularies are open
 unless provably closed ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)), and signature algorithms are
 fully specified and bound to their curve
-([ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md)).
+([ADR-1392](1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md)).
 
 The platform ships `System.Formats.Cbor`, a CBOR reader and writer. It also ships `System.Security.Cryptography.Cose`,
 which only signs and binds to platform key objects.
@@ -182,7 +182,7 @@ of the JOSE stack and the keys of the family.
   [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1119](1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md),
-  [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),
+  [ADR-1392](1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md),
   [ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md),
   [ADR-1410](1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md)
 - Issue [#76](https://github.com/NCodeGroup/identity/issues/76)

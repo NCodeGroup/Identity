@@ -24,20 +24,27 @@ consumer follows the chart's version alone.
    `version`, `publish` and `verify`. It publishes `ghcr.io/ncodegroup/ncode-identity-host:V`,
    `ghcr.io/ncodegroup/ncode-identity-management-console:V` and
    `oci://ghcr.io/ncodegroup/charts/ncode-identity-host:V`. The images are linux/amd64 and linux/arm64 and carry the
-   source, revision, version, licenses and title labels.
+   source, revision, version, licenses and title labels. A release tag `v*.*.*` on `main` or a release line publishes
+   the same three artifacts at the tag's version.
 2. **The version is `<version.json prerelease>.<first-parent commit count>`**, such as `0.0.1-alpha.57`, printed by
    `build/artifact-version.ps1`. The image tags, the chart `version` and the chart `appVersion` are equal
    (`helm package --version V --app-version V`). A semver range that includes prereleases, such as `>=0.0.1-alpha`,
-   selects the newest.
+   selects the newest. A release tag publishes at its own version, which `build/artifact-version.ps1 -Tag` checks
+   against the `major.minor` line of `version.json`; a stable version also tags both images `latest`, and a prerelease
+   never does.
 3. **Each artifact is signed and attested.** `cosign sign` signs each of the three digests keylessly, under the identity
-   `https://github.com/NCodeGroup/identity/.github/workflows/publish-artifacts.yml@refs/heads/main`.
-   `actions/attest-build-provenance` attests each digest. The images carry a BuildKit SBOM.
+   `https://github.com/NCodeGroup/identity/.github/workflows/publish-artifacts.yml@refs/heads/main`, or
+   `@refs/tags/<tag>` for a release tag. `actions/attest-build-provenance` attests each digest. The images carry a BuildKit SBOM.
 4. **The `verify` job pulls every artifact anonymously.** It holds `contents: read` only and logs in to no registry, so a
    private or unreachable package fails the run.
 5. **The publishing job runs only first-party code on `main`**, reviewed through the merge queue. It is not split from
    the build the way [ADR-1143](1143-ci-presents-test-results-and-coverage-in-github.md) splits the privileged upload
    from third-party build code.
 6. **No approval gate guards the publish.** There is no environment approval.
+7. **The images report the version they were published at.** Each Dockerfile takes the optional build argument
+   `VERSION` and writes it over the version in `version.json` inside the build stage, because the git engine is
+   disabled there and `version.json` is the only input; the assemblies' informational version then carries it. A build
+   without the argument keeps the version in `version.json`.
 
 ## Options considered
 

@@ -84,7 +84,7 @@ Three facts shape how it is added:
   abstractions package, which holds no logic.
 - **Putting `ES256K` in the core JOSE library.** Rejected: secp256k1 has a narrow audience, no OpenID or FAPI profile
   asks for it, and the core library would carry a platform-dependent algorithm. It stays opt-in, as
-  [ADR-1117](1117-eddsa-clean-room-implementation-opt-in-package.md) keeps EdDSA.
+  [ADR-1390](1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md) keeps EdDSA.
 - **Gating when the algorithms are listed instead of at registration.** Rejected: the curve would still reach the
   curve catalog, so a JWK on secp256k1 would be accepted and then fail where it is used.
 - **Refusing to provision a curve-bound algorithm.** Rejected: the curve is known from the algorithm, so provisioning
@@ -113,7 +113,7 @@ Three facts shape how it is added:
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1068](1068-elliptic-curves-are-one-extensible-catalog-and-an-imported-point-is-checked-against-its-curve.md),
   [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
-  [ADR-1117](1117-eddsa-clean-room-implementation-opt-in-package.md),
+  [ADR-1390](1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md),
   [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [ADR-1268](1268-an-asymmetric-secrets-public-key-is-stored-beside-it-and-read-without-its-private-key.md),
   [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),

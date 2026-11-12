@@ -71,7 +71,7 @@ algorithm.
 ## References
 
 - [ADR-1068](1068-elliptic-curves-are-one-extensible-catalog-and-an-imported-point-is-checked-against-its-curve.md)
-- [ADR-1117](1117-eddsa-clean-room-implementation-opt-in-package.md)
+- [ADR-1390](1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md)
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)
 - RFC 9864 (fully-specified algorithms for JOSE and COSE)
 - RFC 8037 (CFRG elliptic curves in JOSE)

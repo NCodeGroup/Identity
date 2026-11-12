@@ -271,7 +271,6 @@ The records are grouped by area; within an area they are in number order.
 
 | ADR | Title | Status |
 | --- | --- | --- |
-| [1117](./1117-eddsa-clean-room-implementation-opt-in-package.md) | EdDSA (Ed25519 / Ed448) is a clean-room implementation in an opt-in package | Accepted |
 | [1118](./1118-ml-dsa-post-quantum-signatures-ship-in-the-core-libraries-over-the-bcl-mldsa-type.md) | ML-DSA post-quantum signatures ship in the core libraries over the BCL MLDsa type | Accepted |
 | [1119](./1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md) | A DI-free JWK package models keys, sets and thumbprints, and key types register their rules | Accepted |
 | [1122](./1122-jwt-claim-values-map-to-and-from-json-by-their-declared-type-alone.md) | JWT claim values map to and from JSON by their declared type alone | Accepted |
@@ -292,7 +291,7 @@ The records are grouped by area; within an area they are in number order.
 | [1301](./1301-the-protocol-client-reads-userinfo-as-json-or-a-registered-jwt-under-the-familys-claim-mapping.md) | The protocol client reads UserInfo as JSON or a registered JWT under the family's claim mapping | Accepted |
 | [1336](./1336-the-protocol-client-bounds-every-call-with-a-polly-core-pipeline-and-retries-only-safe-requests.md) | The protocol client bounds every call with a Polly.Core pipeline and retries only safe requests | Accepted |
 | [1389](./1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md) | One algorithm name serves every key type and curve it declares, and ECDH-ES agreements are registered | Accepted |
-| [1390](./1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md) | X25519 and X448 agree keys beside the OKP signing keys, and a curve's use separates them | Accepted |
+| [1390](./1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md) | The opt-in EdDSA package implements Ed25519, Ed448, X25519 and X448 clean-room over OKP keys | Accepted |
 | [1392](./1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md) | ES256K is an opt-in package that registers a curve and an ECDSA algorithm as data | Accepted |
 | [1398](./1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md) | A key size selects a curve only when no other curve shares it, and only a symmetric key is checked by its type and size | Accepted |
 | [1405](./1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md) | Selective Disclosure JWTs are an opt-in package that issues, presents and verifies over the JWT validator | Accepted |

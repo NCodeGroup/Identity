@@ -72,7 +72,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   `StubOkpSecretKey` in `EdDsaSignatureAlgorithmTests`). An `OKP` key's use is tested the same way: an X25519 key
   has an Ed25519 key's size, so it proves that the curve's use, not the size check, refuses it for `EdDSA` and an
   Ed25519 key for `ECDH-ES`
-  ([ADR-1390](../../docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
+  ([ADR-1390](../../docs/decisions/1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md)).
 - 👁 **A test of a curve the platform may lack skips through a fact attribute, and Linux proves the gate.** .NET serves
   secp256k1 only where the platform's cryptography does (not on macOS), so a test that needs the curve is a
   `[Secp256k1Fact]`, which sets `Skip` from the package's own probe, rather than one that returns early and reports a

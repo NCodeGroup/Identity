@@ -562,10 +562,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   `AddSecretsLibrary().AddJoseLibrary().AddEdDsa()`, an extension of `IServiceBuilder<JoseLibrary>`; discovery then
   advertises its signature algorithms in the asymmetric token-signing metadata automatically, and the FAPI 2.0 signing
   ceiling is PS256, ES256, EdDSA and Ed25519
-  ([ADR-1117](docs/decisions/1117-eddsa-clean-room-implementation-opt-in-package.md),
+  ([ADR-1390](docs/decisions/1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md),
   [ADR-1272](docs/decisions/1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),
   [#336](https://github.com/NCodeGroup/identity/issues/336),
-  [ADR-1390](docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
+  [ADR-1390](docs/decisions/1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md)).
 
 - **Selective Disclosure for JWTs (SD-JWT, RFC 9901) is available as the opt-in `NCode.Identity.Jose.SdJwt` package.**
   `AddSdJwt()`, an extension of `IServiceBuilder<JwtLibrary>`, registers `ISdJwtIssuer`, `ISdJwtHolder` and
@@ -4457,7 +4457,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#534](https://github.com/NCodeGroup/identity/issues/534),
   [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md),
   [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md),
-  [ADR-1390](docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
+  [ADR-1390](docs/decisions/1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md)).
 
 - **ECDH-ES publishes only the public half of its ephemeral key and refuses a degenerate agreement.** The `ECDH-ES`
   and `ECDH-ES+A*KW` key management algorithms write an `epk` header that carries only the required members of the key
@@ -4466,7 +4466,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   confidential. An X25519 or X448 agreement whose shared secret is all zeros, from an `epk` or a recipient key of small
   order, is refused on both sides (RFC 7748 §6) ([#327](https://github.com/NCodeGroup/identity/issues/327),
   [#336](https://github.com/NCodeGroup/identity/issues/336),
-  [ADR-1390](docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
+  [ADR-1390](docs/decisions/1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md)).
 
 - **A failed JWE key unwrap is indistinguishable from a failed authentication tag.** A failed key unwrap substitutes a
   random content key, so a tampered or wrong-length encrypted key fails exactly like a tampered tag, with one
@@ -5745,7 +5745,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   authorization-code and PAR `request_uri` lifetimes. A tenant can mandate the profile and a client cannot loosen it.
   `AlgorithmCodes.DigitalSignature.EdDsa` names the EdDSA algorithm, implemented in the opt-in
   `NCode.Identity.Jose.EdDsa` package
-  ([ADR-1117](docs/decisions/1117-eddsa-clean-room-implementation-opt-in-package.md)).
+  ([ADR-1390](docs/decisions/1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md)).
 
 - **FAPI 1.0 Advanced security profile (`fapi1-advanced`).** A tenant or client that selects it through
   `security_profiles` gets these ceilings: `code` with a JWT-secured (JARM) response mode, or `code id_token` once the

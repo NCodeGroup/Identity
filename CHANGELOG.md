@@ -147,13 +147,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   `NCode.Identity.OpenId.Host` boots from a single top-level `Program.cs` using `WebApplication.CreateBuilder(...)`, and
   the integration tests boot it through `WebApplicationFactory<HostApiMarker>`. `MapIdentityServerApiReference()` in
   `NCode.Identity.Server` maps the OpenAPI document that `Microsoft.AspNetCore.OpenApi` generates (`/openapi/v1.json`)
-  and a `Scalar.AspNetCore` API reference page (`/scalar/v1`) only where the `ApiReference` configuration section
-  enables them: `ApiReference:DocumentEnabled` and `ApiReference:PageEnabled` are `false` by default, the reference
-  host's `appsettings.Development.json` sets both, and the page requires the document. The page prefers the OAuth 2.0
-  client-credentials scheme and, in development, pre-fills the bootstrap administrator's credentials. `Microsoft.OpenApi`
-  is on the 2.x line that stack targets, and the OpenID endpoint operation builders (`DefaultAuthorizationEndpointHandler`,
-  `DefaultTokenEndpointProvider`) use the 2.x `OpenApiMediaType` model
-  ([#779](https://github.com/NCodeGroup/identity/issues/779),
+  and a `Scalar.AspNetCore` API reference page (`/scalar/v1`) where the `ApiReference` configuration section enables
+  them (see Security). The page prefers the OAuth 2.0 client-credentials scheme and, in development, pre-fills the
+  bootstrap administrator's credentials. `Microsoft.OpenApi` is on the 2.x line that stack targets, and the OpenID
+  endpoint operation builders (`DefaultAuthorizationEndpointHandler`, `DefaultTokenEndpointProvider`) use the 2.x
+  `OpenApiMediaType` model ([#779](https://github.com/NCodeGroup/identity/issues/779),
+  [#815](https://github.com/NCodeGroup/identity/issues/815),
   [ADR-1481](docs/decisions/1481-the-composition-layer-serves-the-api-reference-only-where-a-host-enables-it-and-each-management-problem-says-when-it-occurs.md)).
 
 - **The reference hosts separate liveness from readiness through one helper.** `MapHealthProbes()`
@@ -4170,11 +4169,15 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#573](https://github.com/NCodeGroup/identity/issues/573),
   [ADR-1428](docs/decisions/1428-a-package-translates-the-exceptions-it-owns-into-protocol-errors-through-registered-translators.md)).
 
-- **Every merge to `main` and every release tag publishes the host image, the management console image and the chart.**
-  The three artifacts share one version on GHCR, are signed and carry build provenance, and a verification job pulls
-  them anonymously; a stable version also tags both images `latest`, and the images' assemblies report the version
-  they were published at ([#773](https://github.com/NCodeGroup/identity/issues/773),
-  [ADR-1505](docs/decisions/1505-every-merge-to-main-publishes-the-host-image-the-console-image-and-the-chart-at-one-prerelease-version.md)).
+- **Every merge to `main` and every release tag publishes the host image, the management console image, the chart and
+  the host's OpenAPI document.** The four artifacts share one version on GHCR, are signed and carry build provenance,
+  and a verification job pulls them anonymously; a stable version also tags both images `latest`, and the images'
+  assemblies and the document's `info.version` report the version they were published at. `build/openapi.ps1`
+  generates the document (`v1.json`) at build time, the full Definition of Done runs it and CI uploads it as the
+  `openapi` artifact, so a client generator reads the management API description without a deployment serving it
+  ([#773](https://github.com/NCodeGroup/identity/issues/773),
+  [#809](https://github.com/NCodeGroup/identity/issues/809),
+  [ADR-1505](docs/decisions/1505-every-merge-to-main-publishes-the-host-image-the-console-image-the-chart-and-the-openapi-document-at-one-prerelease-version.md)).
 
 ### Security
 
@@ -4384,6 +4387,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1447](docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md),
   issues [#304](https://github.com/NCodeGroup/identity/issues/304),
   [#611](https://github.com/NCodeGroup/identity/issues/611)).
+
+- **The reference host and the management console host send no `Server` header.** `AddServerHeaderSuppression`
+  (`NCode.Identity.AspNetCore`) turns off Kestrel's `Server` header in every environment, so no response names the
+  server software ([#808](https://github.com/NCodeGroup/identity/issues/808),
+  [ADR-1509](docs/decisions/1509-the-hosts-send-no-server-header.md)).
 
 - **The reference host runs `UseAntiforgery` after `UseAuthentication` and `UseAuthorization`.** The interactive
   surface's single cookie scheme is the default authenticate scheme, so the login POST validates its claims-bound
@@ -5398,13 +5406,21 @@ Until the first stable release, the [Unreleased] section describes the product a
   issue [#303](https://github.com/NCodeGroup/identity/issues/303)).
 
 - **A host serves its OpenAPI document and API reference page only where the operator enables them, and the page runs
-  under a strict Content-Security-Policy.** With the defaults a host answers `404` for `/openapi/v1.json` and
-  `/scalar/v1` in every environment, so an anonymous caller gets no map of the management API; the host chart's
-  `apiReference.documentEnabled` and `apiReference.pageEnabled` values enable them, and the host and the chart refuse
-  the page without the document. Enabled, both are anonymous and the management API still requires a management access
-  token. The page runs only the scripts and styles that carry the response's nonce, connects only to its own origin,
-  cannot be framed, and loads nothing from a third party: Scalar's telemetry, AI agent, MCP integration and CDN fonts
-  are off ([#779](https://github.com/NCodeGroup/identity/issues/779),
+  under a strict Content-Security-Policy.** `ApiReference:DocumentEnabled` and `ApiReference:PageEnabled` are `false` by
+  default, so a host answers `404` for `/openapi/v1.json` and `/scalar/v1` in every environment and an anonymous caller
+  gets no map of the management API; the reference host's `appsettings.Development.json` enables both, and the host
+  chart's `apiReference.documentEnabled` and `apiReference.pageEnabled` values pass them to the host. The host and the
+  chart refuse the page without the document, and the host's refusal names both values. The switches are host
+  settings: the document and the page describe the server at host-level routes, so no tenant setting enables them.
+  Enabled, both are anonymous and the management API still requires a management access token. The page runs only the
+  scripts and styles that carry the response's nonce, connects only to its own origin, cannot be framed, and loads
+  nothing from a third party: Scalar's telemetry, AI agent, MCP integration and CDN fonts are off
+  ([#779](https://github.com/NCodeGroup/identity/issues/779),
+  [#811](https://github.com/NCodeGroup/identity/issues/811),
+  [#812](https://github.com/NCodeGroup/identity/issues/812),
+  [#813](https://github.com/NCodeGroup/identity/issues/813),
+  [#814](https://github.com/NCodeGroup/identity/issues/814),
+  [#815](https://github.com/NCodeGroup/identity/issues/815),
   [ADR-1481](docs/decisions/1481-the-composition-layer-serves-the-api-reference-only-where-a-host-enables-it-and-each-management-problem-says-when-it-occurs.md),
   [ADR-1256](docs/decisions/1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)).
 

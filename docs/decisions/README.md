@@ -119,6 +119,7 @@ The records are grouped by area; within an area they are in number order.
 | [1500](./1500-every-package-names-one-capability-under-the-ncode-identity-prefix.md) | Every package names one capability under the NCode.Identity prefix | Accepted |
 | [1501](./1501-a-projects-top-level-folder-says-whether-it-ships.md) | A project's top-level folder says whether it ships | Accepted |
 | [1502](./1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md) | Code a self-hoster could use is public, and the product's repositories and artifacts follow one naming scheme | Accepted |
+| [1503](./1503-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md) | A decision record is rewritten when its decision changes and relates only to template records | Accepted |
 
 ### Deployment and local development
 

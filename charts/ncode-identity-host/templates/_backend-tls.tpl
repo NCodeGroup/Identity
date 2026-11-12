@@ -14,18 +14,38 @@ The name of the Secret that holds the management console pods' serving certifica
 {{- end }}
 
 {{/*
-The name of the Secret from which an ingress controller reads the CA that verifies the pods' certificate. Takes a dict
-with root and service (the Service's name). For the management console it is
-managementConsole.backendTls.ingressCaSecret, else backendTls.ingressCaSecret, else the console's serving Secret; for
-the server it is backendTls.ingressCaSecret, else the serving Secret. A CA-only Secret keeps the pods' private key from
-the controller.
+The name of the Secret that the chart's ingress Certificate writes: the ingress controller's own client certificate and
+the CA that signed the pods' certificates.
+*/}}
+{{- define "identity-host.backendTls.ingressSecretName" -}}
+{{- printf "%s-ingress" (include "identity-host.fullname" .) }}
+{{- end }}
+
+{{/*
+The name of the Secret from which an ingress controller reads the CA that verifies the pods' certificate and its own
+client certificate. Takes a dict with root and service (the Service's name). For the management console it is
+managementConsole.backendTls.ingressSecret, else backendTls.ingressSecret, else the chart's ingress Secret; for the
+server it is backendTls.ingressSecret, else the chart's ingress Secret. The pods' serving Secret is never a fallback,
+so the controller never reads the pods' private key.
 */}}
 {{- define "identity-host.backendTls.verificationSecretName" -}}
 {{- $root := .root }}
 {{- if eq .service (include "identity-host.managementConsole.fullname" $root) }}
-{{- $root.Values.managementConsole.backendTls.ingressCaSecret | default $root.Values.backendTls.ingressCaSecret | default (include "identity-host.managementConsole.backendTls.secretName" $root) }}
+{{- $root.Values.managementConsole.backendTls.ingressSecret | default $root.Values.backendTls.ingressSecret | default (include "identity-host.backendTls.ingressSecretName" $root) }}
 {{- else }}
-{{- $root.Values.backendTls.ingressCaSecret | default (include "identity-host.backendTls.secretName" $root) }}
+{{- $root.Values.backendTls.ingressSecret | default (include "identity-host.backendTls.ingressSecretName" $root) }}
+{{- end }}
+{{- end }}
+
+{{/*
+Prints true when the chart issues the ingress Secret: the ingress controller is not none and an enabled Ingress has no
+ingressSecret of the operator's. Prints nothing otherwise.
+*/}}
+{{- define "identity-host.backendTls.ingressCertificateNeeded" -}}
+{{- if ne .Values.backendTls.ingressController "none" }}
+{{- if or (and .Values.ingress.enabled (not .Values.backendTls.ingressSecret)) (and .Values.managementConsole.enabled .Values.managementConsole.ingress.enabled (not .Values.managementConsole.backendTls.ingressSecret) (not .Values.backendTls.ingressSecret)) }}
+{{- print "true" }}
+{{- end }}
 {{- end }}
 {{- end }}
 
@@ -98,6 +118,35 @@ spec:
 {{- end }}
 
 {{/*
+The Certificate that issues the ingress controller's client certificate. Takes a dict with root and labels (the
+rendered label block).
+*/}}
+{{- define "identity-host.backendTls.ingressCertificate" -}}
+{{- $certManager := .root.Values.backendTls.certManager }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ include "identity-host.backendTls.ingressSecretName" .root }}
+  labels:
+    {{- .labels | nindent 4 }}
+spec:
+  secretName: {{ include "identity-host.backendTls.ingressSecretName" .root }}
+  commonName: {{ .root.Values.backendTls.clientCertificate.commonName }}
+  duration: {{ $certManager.duration }}
+  renewBefore: {{ $certManager.renewBefore }}
+  privateKey:
+    algorithm: {{ $certManager.privateKey.algorithm }}
+    size: {{ $certManager.privateKey.size }}
+    encoding: PKCS8
+    rotationPolicy: Always
+  usages:
+    - digital signature
+    - client auth
+  issuerRef:
+    {{- include "identity-host.backendTls.issuerRef" .root | trim | nindent 4 }}
+{{- end }}
+
+{{/*
 The environment of a pod that serves HTTPS: the one HTTPS endpoint and the certificate files the mounted Secret holds.
 */}}
 {{- define "identity-host.backendTls.env" -}}
@@ -144,5 +193,13 @@ Refuses a certificate the chart's Certificate could not describe to cert-manager
 {{- end }}
 {{- if and (eq $certManager.privateKey.algorithm "RSA") (lt (int $certManager.privateKey.size) 2048) }}
 {{- fail "backendTls.certManager.privateKey.size must be at least 2048 for an RSA key." }}
+{{- end }}
+{{- if and (ne .Values.backendTls.ingressController "none") (not $certManager.issuerRef.name) }}
+{{- if and .Values.ingress.enabled .Values.backendTls.existingSecret (not .Values.backendTls.ingressSecret) }}
+{{- fail "backendTls.ingressSecret is required when backendTls.existingSecret is set without backendTls.certManager.issuerRef: the chart does not know the CA that signed your certificate." }}
+{{- end }}
+{{- if and .Values.managementConsole.enabled .Values.managementConsole.ingress.enabled .Values.managementConsole.backendTls.existingSecret (not .Values.managementConsole.backendTls.ingressSecret) (not .Values.backendTls.ingressSecret) }}
+{{- fail "managementConsole.backendTls.ingressSecret or backendTls.ingressSecret is required when managementConsole.backendTls.existingSecret is set without backendTls.certManager.issuerRef: the chart does not know the CA that signed your certificate." }}
+{{- end }}
 {{- end }}
 {{- end }}

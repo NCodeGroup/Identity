@@ -248,13 +248,13 @@ jobs:
           expect "$(helm template release "$CHART" --values "$ha")" 'kind: ServersTransport'
           nginx=$(helm template release "$CHART" --values "$ha" --set backendTls.ingressController=ingress-nginx)
           expect "$nginx" 'backend-protocol: HTTPS' 'proxy-ssl-verify: "on"' \
-            'proxy-ssl-secret: default/release-ncode-identity-host-tls'
+            'proxy-ssl-secret: default/release-ncode-identity-host-ingress'
           reject "$nginx" 'ServersTransport'
           reject "$(helm template release "$CHART" --values "$ha" --set backendTls.ingressController=none)" \
             'ServersTransport' 'nginx.ingress.kubernetes.io'
           # The console's Certificate needs the private CA even when the server's Secret is the operator's.
           console_only=$(helm template release "$CHART" --values "$CHART/ci/management-console-values.yaml" \
-            --set backendTls.existingSecret=my-tls)
+            --set backendTls.existingSecret=my-tls --set backendTls.ingressSecret=my-ingress)
           expect "$console_only" 'selfSigned: {}' 'kind: Issuer' 'name: release-ncode-identity-host-management-console-tls'
           # Secrets of the operator's for every component leave no Certificate that needs the private CA.
           reject "$(helm template release "$CHART" --values "$CHART/ci/backend-tls-existing-secret-values.yaml")" 'selfSigned'

@@ -188,11 +188,17 @@ backendTls:
   # Service's DNS names: <service>, <service>.<namespace>, <service>.<namespace>.svc and
   # <service>.<namespace>.svc.cluster.local. Empty makes the chart create a cert-manager Certificate.
   existingSecret: ""
-  # The name of a Secret in the release namespace that holds only ca.crt, the CA that signs the pods' certificate. The
-  # ingress controller reads it to verify the pods (ingress-nginx proxy-ssl-secret, Traefik rootCAsSecrets), so it
-  # never receives the pods' private key. Empty names the serving Secret, which holds tls.key too, because cert-manager
-  # issues no CA-only Secret. Create one with: kubectl create secret generic <name> --from-file=ca.crt=<ca.pem>
-  ingressCaSecret: ""
+  # The name of a Secret in the release namespace that the ingress controller reads: ca.crt verifies the pods'
+  # certificate and, when clientCertificate.required is true, tls.crt and tls.key are the controller's client
+  # certificate (ingress-nginx proxy-ssl-secret, Traefik rootCAsSecrets and certificatesSecrets). Empty makes the chart
+  # issue <release>-ingress from the issuer of certManager.
+  ingressSecret: ""
+  clientCertificate:
+    # Whether the pods refuse a request whose connection carries no certificate from the ingress controller, except
+    # the liveness and readiness probes. The controller's certificate must have the subject CN=<commonName>.
+    required: false
+    # The common name of the ingress controller's certificate; the pods accept only the subject CN=<commonName>.
+    commonName: ncode-identity-ingress
   certManager:
     # The issuer of the pods' certificate. An empty name makes the chart create a private CA: a self-signed Issuer, a CA
     # Certificate and a CA Issuer, which signs the pods' certificate. Name an Issuer or ClusterIssuer of your own, such
@@ -357,9 +363,10 @@ managementConsole:
   # cert-manager Certificate from the issuer of backendTls.certManager.
   backendTls:
     existingSecret: ""
-    # A Secret in the release namespace that holds only ca.crt, for the ingress controller to verify the console's pods.
-    # Empty uses backendTls.ingressCaSecret, and then the console's serving Secret.
-    ingressCaSecret: ""
+    # A Secret in the release namespace that the ingress controller reads to verify the console's pods and, when
+    # backendTls.clientCertificate.required is true, to authenticate to them (see backendTls.ingressSecret).
+    # Empty uses backendTls.ingressSecret, and then <release>-ingress.
+    ingressSecret: ""
   service:
     type: ClusterIP
     port: 443

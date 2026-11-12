@@ -17,7 +17,6 @@ secretProtection:
   remoteKeys:
     deployment: ci-single-replica
 backendTls:
-  ingressController: none
   certManager:
     issuerRef:
       name: corp-ca
@@ -26,6 +25,7 @@ backendTls:
       - id.internal.example.com
 ingress:
   enabled: true
+  controller: other
   className: haproxy
   hosts:
     - host: id.example.com

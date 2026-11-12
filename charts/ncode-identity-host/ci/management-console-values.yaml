@@ -14,14 +14,13 @@ secretProtection:
     publicKeyConfigMap: identity-recovery-key
 ingress:
   enabled: true
+  controller: traefik
   className: traefik
   hosts:
     - host: id.example.com
       paths:
         - path: /
           pathType: Prefix
-backendTls:
-  ingressController: traefik
 managementConsole:
   enabled: true
   host: manage.example.com

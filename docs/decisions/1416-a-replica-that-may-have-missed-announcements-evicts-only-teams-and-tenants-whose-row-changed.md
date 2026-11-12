@@ -9,11 +9,11 @@
 
 A replica serves teams and tenants from `IOpenIdTeamCache` and `IOpenIdTenantCache`. The `team-changed` and
 `tenant-changed` channels announce a change to every replica
-([ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md),
+([ADR-1205](1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md),
 [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)).
 A replica whose subscription was interrupted may have missed a message, which the broadcast port tells its handler
 through `IReplicaBroadcastHandler.HandleMissedMessagesAsync`
-([ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md)). This record decides what the `team-changed`
+([ADR-1205](1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md)). This record decides what the `team-changed`
 and `tenant-changed` handlers do with that call.
 
 Clearing every cached team, tenant and master key whenever a channel may have missed a message re-materializes
@@ -75,7 +75,7 @@ and tenant it serves with the store's and evicts only those whose token differs 
   records and compare two stores, where the tenant row already commits to every change. Rejected.
 - **A change journal read since the disconnect.** It needs a change-time column on the row, the instant the
   subscription dropped and a margin for clock skew between replicas. Rejected.
-- **Polling a version column.** [ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md) rejects
+- **Polling a version column.** [ADR-1205](1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md) rejects
   continuous polling. Rejected.
 - **Compare row tokens.** A restored connection evicts only what changed and needs no new column or clock. Chosen.
 
@@ -93,7 +93,7 @@ and tenant it serves with the store's and evicts only those whose token differs 
 
 ## References
 
-- [ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md) — replicas announce changes through a
+- [ADR-1205](1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md) — replicas announce changes through a
   broadcast port
 - [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)
   — settings converge through one reconciliation

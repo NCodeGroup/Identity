@@ -335,7 +335,7 @@ than inlining the rationale.
   materialized object is invalidated on every replica through `IReplicaBroadcaster`, with a registered
   `IReplicaBroadcastHandler` per channel. Apply the change locally first, publish after, and log rather than throw a
   failed publish once the write has committed
-  ([ADR-1205](../../docs/decisions/1205-replicas-announce-changes-through-a-broadcast-port.md)). A handler also implements
+  ([ADR-1205](../../docs/decisions/1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md)). A handler also implements
   `HandleMissedMessagesAsync`, which the Valkey subscriber calls once it subscribes and whenever its connection is
   restored: drop or read again everything a lost message on the channel could have made stale. When each cached entry
   records the store revision it was materialized from and every change the channel announces commits that revision, the

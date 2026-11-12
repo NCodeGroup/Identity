@@ -133,7 +133,7 @@ key for. The server generates keys only to fill those gaps; it never removes, re
       a request. A seed failure fails the write's response, as it would fail the tenant's next materialization.
     - After the seed, whether or not it succeeded, the handler announces the change on the `tenant-changed` channel of
       the replica broadcast port, so every replica evicts the tenant
-      ([ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md)). A failed announcement is logged and
+      ([ADR-1205](1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md)). A failed announcement is logged and
       never fails the committed write. A replica that missed it keeps its cached tenant and picks the change up through
       its polls: the tenant's settings every 5 minutes and its secrets, including the key this replica provisioned,
       every 15.

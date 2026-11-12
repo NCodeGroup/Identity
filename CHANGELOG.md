@@ -3142,7 +3142,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   publisher cancelled. `AddInProcessReplicaBroadcaster()` is the default, and `AddIdentityServer` registers it. The
   Valkey adapter publishes with `PUBLISH` and `SUBSCRIBE` on the key prefix plus the channel, so its access-control user
   needs both commands. The `tenant-changed` channel evicts a changed tenant on every replica
-  ([ADR-1205](docs/decisions/1205-replicas-announce-changes-through-a-broadcast-port.md), issue
+  ([ADR-1205](docs/decisions/1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md), issue
   [#240](https://github.com/NCodeGroup/identity/issues/240)).
 
 - **A replica that may have missed a broadcast drops what the message would have invalidated.** The Valkey subscriber
@@ -3157,7 +3157,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   materialized over (`OpenIdTeam.ConcurrencyToken`, `IOpenIdTeamCache.GetRevisionsAsync`,
   `IOpenIdTenantCache.GetTeamRevisionsAsync`) with the store's (`ITeamStore.GetConcurrencyTokensAsync`) and clearing
   both caches when it cannot read them, and the platform handler reads the platform's settings again
-  ([ADR-1205](docs/decisions/1205-replicas-announce-changes-through-a-broadcast-port.md),
+  ([ADR-1205](docs/decisions/1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md),
   [ADR-1412](docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
   [ADR-1416](docs/decisions/1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md),
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
@@ -3443,7 +3443,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   tenant whenever the platform's settings change, so a platform-wide setting such as `environment_type` reaches tenants at
   once. `Ephemeral` developer mode keeps one key per tenant for the life of the process, so the eviction does not
   invalidate issued tokens ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-persisted-keys.md),
-  [ADR-1205](docs/decisions/1205-replicas-announce-changes-through-a-broadcast-port.md), issues
+  [ADR-1205](docs/decisions/1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md), issues
   [#240](https://github.com/NCodeGroup/identity/issues/240) and
   [#409](https://github.com/NCodeGroup/identity/issues/409)).
 

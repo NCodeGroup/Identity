@@ -32,7 +32,7 @@ the cache lifetime and the per-team reconciliation pass that refine
    `PlatformSettingsChangeBroadcastHandler` refreshes on a message and on missed messages. Both run on their own
    bounded token ([ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md)), and a
    failure is logged and never fails the write. The broadcast contract is
-   [ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md)'s.
+   [ADR-1205](1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md)'s.
 2. **The message is a hint.** The platform's persisted settings poll on an interval and refresh on demand through
    `OpenIdPlatform.RefreshSettingsAsync`, one refresh at a time. The dependency-free `IMaterializedPlatformRegistry`
    exposes the public `IMaterializedPlatformAccessor.GetPlatformAsync`, which waits for materialization.
@@ -117,7 +117,7 @@ what it was last reconciled against, under a lease.
   through reconciliation
 - [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) — the platform and the
   team
-- [ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md) — replicas announce changes through a broadcast
+- [ADR-1205](1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md) — replicas announce changes through a broadcast
   port
 - [ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md) — a committed change is
   applied and announced on its own bounded token

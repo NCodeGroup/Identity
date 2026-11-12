@@ -85,7 +85,7 @@ and caches it. `CreateControlPlaneTenantAsync` serves the control-plane tenant t
 
 A cached tenant lives at most `OpenIdTenantOptions.TenantCacheLifetime` (15 minutes, absolute). A committed change
 evicts it on every replica through the `tenant-changed` announcement
-([ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md),
+([ADR-1205](1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md),
 [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)).
 
 ### The explicit path acts on the tenant as stored

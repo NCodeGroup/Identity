@@ -84,7 +84,7 @@ Changing a tenant's issuer changes the host the tenant answers on, as one operat
 which give the hostnames of
 [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md).
 A custom domain is an explicit issuer. The frontend bootstrap `issuer` is the serving tenant's
-([ADR-1182](1182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md)).
+([ADR-1182](1182-the-frontend-bootstraps-issuer-is-the-serving-tenants-and-its-api-base-is-root-relative.md)).
 
 ## Options considered
 
@@ -130,7 +130,7 @@ A custom domain is an explicit issuer. The frontend bootstrap `issuer` is the se
   address is validated by the strategy that serves it.
 - [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) — the root tenant and the
   provisioning pipeline.
-- [ADR-1182](1182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md) — the frontend bootstrap
+- [ADR-1182](1182-the-frontend-bootstraps-issuer-is-the-serving-tenants-and-its-api-base-is-root-relative.md) — the frontend bootstrap
   issuer.
 - [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)
   — the hosted platform's domains.

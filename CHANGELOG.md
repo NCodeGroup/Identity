@@ -5339,8 +5339,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   root-relative path base, never anything taken from the `Host` header. The response is `Cache-Control: no-store`, and `Frontend:Issuer` and `Frontend:ApiBaseUrl` are
   overrides (issues [#113](https://github.com/NCodeGroup/identity/issues/113),
   [#442](https://github.com/NCodeGroup/identity/issues/442),
-  [ADR-1182](docs/decisions/1182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md),
-  [ADR-1312](docs/decisions/1312-the-frontend-bootstrap-api-base-is-root-relative-unless-configured.md)).
+  [ADR-1182](docs/decisions/1182-the-frontend-bootstraps-issuer-is-the-serving-tenants-and-its-api-base-is-root-relative.md)).
 
 - **A self-service session revoke is guarded to the authenticated subject**, so a crafted `sid` cannot terminate another
   subject's session (issue [#63](https://github.com/NCodeGroup/identity/issues/63)).

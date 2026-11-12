@@ -307,7 +307,7 @@ The records are grouped by area; within an area they are in number order.
 | [1055](./1055-subject-metadata-lives-on-the-principal-and-projects-into-tokens-as-nested-claims-at-issuance.md) | Subject metadata lives on the principal and projects into tokens as nested claims at issuance | Accepted |
 | [1057](./1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md) | Local-account management is an opt-in capability that provisions the principal eagerly and authorizes per tenant | Accepted |
 | [1062](./1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md) | The OP serves an opt-in interactive sign-in and consent surface with a pluggable credential verifier | Accepted |
-| [1182](./1182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md) | The frontend bootstrap issuer is the serving tenant's, not the request's | Accepted |
+| [1182](./1182-the-frontend-bootstraps-issuer-is-the-serving-tenants-and-its-api-base-is-root-relative.md) | The frontend bootstrap's issuer is the serving tenant's and its API base is root-relative | Accepted |
 | [1193](./1193-the-interactive-surface-is-served-under-the-tenant-route.md) | The interactive surface is served under the tenant route, and its session is scoped to the tenant's path | Accepted |
 | [1194](./1194-a-tenant-brands-its-interactive-surface-through-settings.md) | A tenant brands its interactive surface through settings | Accepted |
 | [1224](./1224-deleting-or-disabling-an-account-ends-its-sessions.md) | Deleting or disabling an account ends its sessions, and every token request checks the account | Accepted |
@@ -325,7 +325,6 @@ The records are grouped by area; within an area they are in number order.
 | [1283](./1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md) | Audit records are CloudTrail-shaped JSON with an indexable envelope | Accepted |
 | [1303](./1303-audit-records-are-kept-in-an-indexed-store-that-each-replica-writes-in-batches.md) | Audit records are kept in an indexed store that each replica writes in batches | Accepted |
 | [1310](./1310-the-interactive-surfaces-cookies-are-host-only-and-a-tenants-session-is-named-for-its-path.md) | The interactive surface's cookies are host-only, and a tenant's session is named for its path | Accepted |
-| [1312](./1312-the-frontend-bootstrap-api-base-is-root-relative-unless-configured.md) | The frontend bootstrap API base is root-relative unless configured | Accepted |
 | [1402](./1402-the-interactive-surface-renders-in-the-locale-the-request-prefers-among-the-registered-ui-locales.md) | The interactive surface renders in the locale the request prefers among the registered UI locales | Accepted |
 | [1457](./1457-a-single-page-bundle-is-read-and-served-through-one-general-helper.md) | A single-page bundle is read and served through one general helper | Accepted |
 | [1494](./1494-a-tenant-sets-its-sign-in-tabs-icon-as-a-branding-setting-the-hosts-link-in-place-of-the-familys.md) | A tenant sets its sign-in tab's icon as a branding setting the hosts link in place of the family's | Accepted |

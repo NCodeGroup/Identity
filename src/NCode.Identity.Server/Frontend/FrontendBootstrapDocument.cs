@@ -43,7 +43,7 @@ internal sealed record FrontendBootstrapDocument
     /// surface's coordinates (client id, scopes, feature flags, branding) are published instead of the host default; an
     /// unknown or absent surface receives the default.
     /// </summary>
-    // See ADR-1312.
+    // See ADR-1182.
     public static FrontendBootstrapDocument Create(
         FrontendBootstrapOptions options,
         string issuer,

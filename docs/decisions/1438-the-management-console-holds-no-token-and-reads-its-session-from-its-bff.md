@@ -1,7 +1,7 @@
 # 1438. The management console holds no token and reads its session from its BFF
 
 - **Status:** Accepted (amends
-  [ADR-1312](1312-the-frontend-bootstrap-api-base-is-root-relative-unless-configured.md))
+  [ADR-1182](1182-the-frontend-bootstraps-issuer-is-the-serving-tenants-and-its-api-base-is-root-relative.md))
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
 
@@ -57,7 +57,7 @@ console to its sign-in screen, and the user's click starts the login.**
     Emotion takes the nonce from `<meta property="csp-nonce">` through `readCspNonce`, which `@ncode/ui` provides.
 11. **Standalone dev servers.** A standalone Vite dev server proxies only the bootstrap document, and no `/api/` proxy
     to the OP exists for the bundle. This amends
-    [ADR-1312](1312-the-frontend-bootstrap-api-base-is-root-relative-unless-configured.md), whose standalone dev servers
+    [ADR-1182](1182-the-frontend-bootstraps-issuer-is-the-serving-tenants-and-its-api-base-is-root-relative.md), whose standalone dev servers
     proxy `/api/` to the OP host next to `/config/bootstrap.json`: a BFF-served surface calls `/management`, which only
     its BFF host forwards.
 

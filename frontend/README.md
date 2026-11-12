@@ -266,7 +266,7 @@ single `IIdentityServerBuilder.AddFrontendBootstrap(configuration)` seam — the
 `MapEndpointGroups()` call then publishes it (API base, issuer, client id, scopes, feature flags, branding). An unset
 issuer is the issuer of the tenant that serves the surface — never the request's origin — and an unset API base is the
 serving request's own origin, so a single-origin host needs no configuration
-([ADR-1182](../docs/decisions/1182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md)).
+([ADR-1182](../docs/decisions/1182-the-frontend-bootstraps-issuer-is-the-serving-tenants-and-its-api-base-is-root-relative.md)).
 
 - **Backend-served bundles** (e.g. `apps/auth`, served by the OpenID Provider host) fetch the document
   straight from their serving host.

@@ -19,7 +19,7 @@
   [ADR-1408](1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md) (the
   rewrap engine wraps each row under its owner's root, skips a row under an owner root key, never adds a recovery copy to
   it, unwraps it through its own key with a recovery private key, and also serves the online conformance);
-  [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md), decision 8 (the chart mounts a
+  [ADR-1260](1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md), decision 8 (the chart mounts a
   provider's credentials when it is the root or an owner root key provider)
 
 ## Context
@@ -136,8 +136,7 @@ to take effect within a bounded period across replicas without a KMS call per re
 ## References
 
 - [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
-  [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md),
-  [ADR-1279](1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md),
+  [ADR-1260](1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md),
   [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md),
   [ADR-1408](1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md),
   [ADR-1415](1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md),

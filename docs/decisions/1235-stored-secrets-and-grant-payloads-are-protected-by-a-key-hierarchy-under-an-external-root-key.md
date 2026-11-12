@@ -30,7 +30,7 @@ root lives outside the database.
 
 1. **Root key.** One per deployment, held by the key wrapper that `SecretProtection:RootKeyProvider` names: `ephemeral`,
    `local`, `aws-kms`, `azure-key-vault`, `google-cloud-kms` or any wrapper a package registers
-   ([ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md)). No provider is a default, and a
+   ([ADR-1260](1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md)). No provider is a default, and a
    host always names one
    ([ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
    The root key only wraps master keys, binding the owner and key id as associated data (the KMS encryption context)
@@ -140,7 +140,7 @@ root lives outside the database.
   tenant keys.
 - [ADR-1134](1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md) — no long-lived
   credentials; recoverable, off-vendor backups.
-- [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) — the root key providers.
+- [ADR-1260](1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md) — the root key providers.
 - [ADR-1395](1395-grant-payloads-have-one-versioned-serializer-and-a-stored-record-missing-written-members-fails-closed.md)
   — the versioned payload document.
 - [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) —

@@ -56,7 +56,7 @@ key it created and could not keep.**
    response that names a key, a key version or an algorithm other than the one requested. A `CryptographicException` is
    thrown for a key the provider refuses: its usage, spec, algorithms or key type, a missing or malformed public key, or
    a malformed created identifier. This is the rule the key wrappers follow
-   ([ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) rule 4).
+   ([ADR-1260](1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md) rule 4).
 5. **Signing writes into the caller's buffer.**
    `IRemoteKeyProvider.SignAsync(RemoteSignatureRequest, Memory<byte> signature, CancellationToken)` returns a
    `ValueTask<int>` and writes the service's bytes into `signature`. `RemoteKeySigning` hashes the signing input into a
@@ -96,6 +96,6 @@ key it created and could not keep.**
 ## References
 
 - [ADR-1471](1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md)
-- [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md)
+- [ADR-1260](1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md)
 - [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)
 - Issues [#653](https://github.com/NCodeGroup/identity/issues/653), [#655](https://github.com/NCodeGroup/identity/issues/655), [#656](https://github.com/NCodeGroup/identity/issues/656), [#657](https://github.com/NCodeGroup/identity/issues/657), [#659](https://github.com/NCodeGroup/identity/issues/659), [#663](https://github.com/NCodeGroup/identity/issues/663), [#664](https://github.com/NCodeGroup/identity/issues/664)

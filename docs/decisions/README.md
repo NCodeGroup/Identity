@@ -254,9 +254,8 @@ The records are grouped by area; within an area they are in number order.
 | [1169](./1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md) | Every tenant is provisioned with a persisted key for each configured algorithm it uses | Accepted |
 | [1183](./1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md) | A client secret is rotated by replacing it in one change | Superseded |
 | [1235](./1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) | Stored secrets and grant payloads are protected by a key hierarchy under an external root key | Accepted |
-| [1260](./1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md) | Azure Key Vault and Google Cloud KMS are root key providers | Accepted |
+| [1260](./1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md) | A key wrapper is one open contract, and each key management service has one adapter package | Accepted |
 | [1268](./1268-a-generated-private-key-stores-its-public-key-beside-it.md) | A generated private key stores its public key beside it | Accepted |
-| [1279](./1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md) | Key wrapping is a secrets abstraction shared by the root and recovery wrappers | Accepted |
 | [1320](./1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md) | A rotated client secret overlaps its replacement until it expires or is deleted | Accepted |
 | [1391](./1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md) | A client secret that is only compared is stored as a one-way verifier | Accepted |
 | [1403](./1403-a-stored-secret-has-an-active-window-inside-its-validity-window-and-every-use-of-a-key-honors-them.md) | A stored secret has an active window inside its validity window, and every use of a key honors them | Accepted |
@@ -268,7 +267,6 @@ The records are grouped by area; within an area they are in number order.
 | [1429](./1429-a-tenant-root-key-can-be-reached-through-an-identity-the-tenant-grants.md) | A tenant root key can be reached through an identity the tenant grants | Accepted |
 | [1471](./1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md) | A tenant's signing keys can be held in a key management service that signs every token | Accepted |
 | [1472](./1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md) | Signing is asynchronous from the signature algorithm to every caller | Accepted |
-| [1473](./1473-a-key-management-service-adapter-package-is-named-for-its-service.md) | A key management service's adapter package is named for its service | Accepted |
 | [1474](./1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md) | A remote key provider is described by data, creates a key once and signs into the caller's buffer | Accepted |
 | [1475](./1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md) | The management API creates a tenant's key in a key management service and binds one that proves it signs | Accepted |
 | [1476](./1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md) | A bound KMS key's public half is read from its service, and the console offers each provider's algorithms | Accepted |

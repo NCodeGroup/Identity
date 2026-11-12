@@ -3,9 +3,9 @@
 - **Status:** Accepted (amended by [ADR-1429](1429-a-tenant-root-key-can-be-reached-through-an-identity-the-tenant-grants.md))
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
-- **Amends:** [ADR-1279](1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md),
+- **Amends:** [ADR-1260](1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md),
   decision 1's contract (a wrapper may also implement `IReferencedKeyWrapper`; decision 5's root role stays selection by
-  name); [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md), the Azure Key Vault and Google
+  name); [ADR-1260](1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md), the Azure Key Vault and Google
   Cloud KMS adapters (they wrap under a named key as well as the configured one)
 
 ## Context
@@ -49,7 +49,7 @@ configuration.
 - **A wrapper instance per reference, created by a factory.** It duplicates the client caches and validators the adapters
   hold.
 - **A marker interface without members.** The capability is the members, as
-  [ADR-1279](1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md) concludes for a
+  [ADR-1260](1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md) concludes for a
   marker.
 
 ## Consequences
@@ -60,8 +60,7 @@ configuration.
 
 ## References
 
-- [ADR-1279](1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md),
-  [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md),
+- [ADR-1260](1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md),
   [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)
 - `src/NCode.Identity.Secrets.Abstractions/KeyWrapping/IReferencedKeyWrapper.cs`,
   `src/NCode.Identity.Secrets.AwsKms/AwsKmsKeyWrapper.cs`,

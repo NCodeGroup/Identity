@@ -852,7 +852,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `CryptographicException` for empty or malformed text; the AES-GCM, AWS KMS, Azure Key Vault and Google Cloud KMS
   wrappers decode through it, so every wrapper reports empty ciphertext as "The wrapped key is empty."
   `NCode.Identity.Secrets.Abstractions` references `NCode.Base64Url`
-  ([ADR-1279](docs/decisions/1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md),
+  ([ADR-1260](docs/decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md),
   [#373](https://github.com/NCodeGroup/identity/issues/373)).
 
 - **`NCode.Identity.Secrets.AwsKms` wraps the root key with AWS KMS.** `AddAwsKmsKeyWrapper` (`aws-kms`,
@@ -860,7 +860,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   encryption context and takes credentials from the AWS SDK's default chain, never from configuration. The reference
   host and the Helm chart wire it in; the chart federates the pod's service-account token with AWS
   (`secretProtection.awsKms`) only when `aws-kms` is selected, and refuses a malformed key ARN
-  ([ADR-1279](docs/decisions/1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md)).
+  ([ADR-1260](docs/decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md)).
 
 - **`NCode.Identity.Secrets.GoogleCloudKms` and `NCode.Identity.Secrets.AzureKeyVault` wrap the
   root key with Google Cloud KMS and Azure Key Vault.** The Google Cloud KMS wrapper (`google-cloud-kms`,
@@ -872,8 +872,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `DefaultAzureCredential`), never from configuration. The reference host and the Helm chart wire them in; the chart's
   `secretProtection.googleCloudKms` / `secretProtection.azureKeyVault` values mount workload identity credentials only
   for the selected provider and refuse a malformed key name, key identifier or workload identity pool provider
-  ([ADR-1260](docs/decisions/1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md),
-  [ADR-1279](docs/decisions/1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md),
+  ([ADR-1260](docs/decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md),
   [#173](https://github.com/NCodeGroup/identity/issues/173)).
 
 - **Every tenant is provisioned with persisted keys, so a production deployment can sign from its first request.** The
@@ -1003,7 +1002,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#721](https://github.com/NCodeGroup/identity/issues/721),
   [#725](https://github.com/NCodeGroup/identity/issues/725),
   [ADR-1471](docs/decisions/1471-a-tenants-signing-keys-can-be-held-in-a-key-management-service-that-signs-every-token.md),
-  [ADR-1473](docs/decisions/1473-a-key-management-service-adapter-package-is-named-for-its-service.md),
+  [ADR-1260](docs/decisions/1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md),
   [ADR-1474](docs/decisions/1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md),
   [ADR-1475](docs/decisions/1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md),
   [ADR-1476](docs/decisions/1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md),

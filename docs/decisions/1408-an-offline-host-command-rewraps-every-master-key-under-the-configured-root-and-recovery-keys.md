@@ -6,7 +6,7 @@
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md), decision 2's
   offline recovery copy (the recovery private key unwraps master keys only inside the offline command);
-  [ADR-1279](1279-key-wrapping-is-a-secrets-abstraction-shared-by-the-root-and-recovery-wrappers.md), decision 6's
+  [ADR-1260](1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md), decision 6's
   recovery wrapper (it still only wraps; an unwrapper exists only inside the command, is built from a key file the Job
   mounts, and is never registered as an `IKeyWrapper`)
 

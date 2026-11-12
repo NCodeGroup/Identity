@@ -10,7 +10,7 @@ namespace NCode.Identity.Secrets.KeyWrapping;
 /// Contains a key that was wrapped by a key wrapper, together with the name of the wrapper and the identifier of the
 /// key encryption key that are needed to unwrap it later.
 /// </summary>
-// See ADR-1279.
+// See ADR-1260.
 [PublicAPI]
 [ExcludeFromCodeCoverage]
 public sealed class WrappedKey

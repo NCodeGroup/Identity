@@ -98,7 +98,7 @@ directory.
 
 - [ADR-1414](1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md),
   [ADR-1415](1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md),
-  [ADR-1260](1260-azure-key-vault-and-google-cloud-kms-are-root-key-providers.md)
+  [ADR-1260](1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md)
 - `src/NCode.Identity.Secrets.Abstractions/KeyWrapping/KeyAccess.cs`,
   `src/NCode.Identity.Secrets.Abstractions/KeyWrapping/ReferencedKey.cs`,
   `src/NCode.Identity.Secrets.Abstractions/KeyWrapping/IReferencedKeyWrapper.cs`,

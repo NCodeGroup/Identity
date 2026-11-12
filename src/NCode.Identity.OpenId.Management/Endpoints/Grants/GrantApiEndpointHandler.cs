@@ -78,7 +78,7 @@ internal class GrantApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status400BadRequest)
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden);
-        // The response reveals a secret once, so no cache may keep it (ADR-1345).
+        // The response reveals a secret once, so no cache may keep it (ADR-1050).
         grants
             .MapPost("/initial-access-tokens", CreateInitialAccessTokenAsync)
             .Produces<CreatedInitialAccessTokenResource>(StatusCodes.Status201Created)

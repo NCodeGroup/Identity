@@ -10,8 +10,8 @@
 ## Context
 
 A secret's key material is immutable once generated, so rotating a secret means creating a new one and deleting the
-old one ([ADR-1011](1011-secret-management-api.md)). The material of a created client secret is revealed once, in the
-create response ([ADR-1050](1050-secret-material-revealed-once-on-create.md)). Rotating a client secret therefore took
+old one ([ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)). The material of a created client secret is revealed once, in the
+create response ([ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)). Rotating a client secret therefore took
 two calls, and an operator who lost the second call between them left the client with two live secrets, the old one
 still accepted. Auth0 rotates a client secret in one call.
 
@@ -62,5 +62,5 @@ rotation that kept the old secret "until it expires" would keep it forever.
 
 - [`ClientApiEndpointHandler.RotateSecretAsync`](../../src/NCode.Identity.OpenId.Management/Endpoints/Clients/ClientApiEndpointHandler.cs)
 - [`RotateSecretRequest`](../../src/NCode.Identity.OpenId.Management.Abstractions/Contracts/Secrets/RotateSecretRequest.cs)
-- [ADR-1011](1011-secret-management-api.md), [ADR-1050](1050-secret-material-revealed-once-on-create.md),
+- [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md),
   [ADR-1110](1110-shared-secret-vs-cryptographic-key-storage.md)

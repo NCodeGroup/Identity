@@ -236,7 +236,7 @@ internal class ResourceServerApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
-        // The response reveals a secret once, so no cache may keep it (ADR-1345).
+        // The response reveals a secret once, so no cache may keep it (ADR-1050).
         resourceServers
             .MapPost("/{resourceServerId}/secrets", CreateSecretAsync)
             .Produces<CreatedSecretResource>(StatusCodes.Status201Created)

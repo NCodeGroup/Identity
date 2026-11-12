@@ -1156,7 +1156,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `CreateRsaSpki` / `CreateEccSpki`. The management endpoints, the secret importer and client-key import reject a format
   the secret type does not list, with a `400` message listing the type's formats; `format` compares ordinally, so `JWK`
   is rejected. Import is public-only by construction (a private or symmetric key is rejected), so the reveal-once model
-  ([ADR-1050](docs/decisions/1050-secret-material-revealed-once-on-create.md)) is the sole path a symmetric value leaves
+  ([ADR-1050](docs/decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)) is the sole path a symmetric value leaves
   the server. Dynamic client registration consumes an inline `jwks` set at registration
   ([ADR-1104](docs/decisions/1104-import-public-asymmetric-secret-material.md),
   [ADR-1150](docs/decisions/1150-vocabularies-are-open-unless-provably-closed.md),
@@ -2343,7 +2343,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1026](docs/decisions/1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md)). A resource server (an API, in Auth0
   terms) owns a wrapped settings object and a secret collection, each with its own concurrency token:
   `GET`/`PATCH api/tenants/{tenantId}/resource-servers/{resourceServerId}/settings`, its effective settings, and full
-  `…/secrets` CRUD with the one-time reveal ([ADR-1050](docs/decisions/1050-secret-material-revealed-once-on-create.md))
+  `…/secrets` CRUD with the one-time reveal ([ADR-1050](docs/decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md))
   and `If-Match`. A `resource_server_secrets` scope family is seeded. A resource server's introspection clients are the
   clients bound to it
   ([ADR-1168](docs/decisions/1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)).
@@ -2515,7 +2515,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The management console manages secrets with a one-time reveal.** An owner's Secrets tab creates, lists and deletes
   secrets; generated key material is shown exactly once in a `RevealSecretDialog` with a copy affordance and is never
-  re-fetched ([ADR-1050](docs/decisions/1050-secret-material-revealed-once-on-create.md)), and an asymmetric secret has
+  re-fetched ([ADR-1050](docs/decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)), and an asymmetric secret has
   no material to reveal. The create-secret form, driven by the capabilities document's `algorithms` section, offers the
   secret types the server advertises, such as `okp`, and only algorithms compatible with the chosen secret type, derives
   the read-only use, and bounds the key size by every size the chosen type's entry allows (min, max, step). It offers
@@ -4679,7 +4679,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   and `POST /oauth2/bc-authorize` answer with `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache`, so
   no client or intermediary cache keeps the one-time `request_uri`, `device_code` and `user_code`, or `auth_req_id` (RFC
   9126 §2.2, RFC 8628 §3.2, CIBA Core §7.3) ([#488](https://github.com/NCodeGroup/identity/issues/488),
-  [ADR-1345](docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)).
+  [ADR-1050](docs/decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)).
 
 - **No CORS on the front-channel endpoints.** The authorization, continue, and end-session endpoints and the interactive
   login/consent surface carry `IFrontChannelEndpointMetadata` (`WithFrontChannel()`), and `UseDeveloperCors` applies the
@@ -5478,7 +5478,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   gateway cache keeps the one-time secret. An endpoint opts in with the `.WithNoStore()` endpoint convention, and
   `HttpResponse.SetNoStore()` is public in the `NCode.Identity.AspNetCore` package
   ([#473](https://github.com/NCodeGroup/identity/issues/473),
-  [ADR-1345](docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)).
+  [ADR-1050](docs/decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)).
 
 - **A caller who may not read a secret never loads its owner's master keys.**
   `ManagementApiEndpointHandler.ProcessGetAsync` has an overload whose asynchronous mapper runs only after authorization
@@ -5589,7 +5589,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **Every `/bff/*` response is uncacheable the same way the OP's are.** The BFF's endpoints send
   `Cache-Control: no-store, no-cache, max-age=0` and `Pragma: no-cache` through the shared `SetNoStore()`
   ([#512](https://github.com/NCodeGroup/identity/issues/512),
-  [ADR-1345](docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)).
+  [ADR-1050](docs/decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)).
 
 - **The BFF's remote-API forwarder stays inside its destination and keeps browser credentials at the edge.** The
   forwarder answers `400` for a path that could leave the destination's base path and `405`

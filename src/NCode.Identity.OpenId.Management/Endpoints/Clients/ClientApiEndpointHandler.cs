@@ -271,7 +271,7 @@ internal class ClientApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
-        // The response may reveal a secret the change issues, so no cache may keep it (ADR-1345).
+        // The response may reveal a secret the change issues, so no cache may keep it (ADR-1050).
         clients
             .MapPatch("/{clientId}/settings", UpdateSettingsAsync)
             .Produces<CreatedSecretResource>(StatusCodes.Status200OK)
@@ -297,7 +297,7 @@ internal class ClientApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status401Unauthorized)
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status404NotFound);
-        // The response reveals a secret once, so no cache may keep it (ADR-1345).
+        // The response reveals a secret once, so no cache may keep it (ADR-1050).
         clients
             .MapPost("/{clientId}/secrets", CreateSecretAsync)
             .Produces<CreatedSecretResource>(StatusCodes.Status201Created)
@@ -349,7 +349,7 @@ internal class ClientApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status404NotFound)
             .ProducesProblem(StatusCodes.Status409Conflict)
             .ProducesProblem(StatusCodes.Status412PreconditionFailed);
-        // The response reveals a secret once, so no cache may keep it (ADR-1345).
+        // The response reveals a secret once, so no cache may keep it (ADR-1050).
         clients
             .MapPost("/{clientId}/secrets/{secretId}/rotate", RotateSecretAsync)
             .Produces<CreatedSecretResource>(StatusCodes.Status201Created)

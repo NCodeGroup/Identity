@@ -120,7 +120,7 @@ without a registered `ILocalAccountProvisioner` they respond `501 Not Implemente
   principal-level, which makes eager principal creation the clean target for `set-metadata`.
 - [ADR-1035](1035-federated-principals-and-identity-resolution.md) — the `FederatedPrincipal` / `FederatedIdentity`
   model the self-issued connection participates in.
-- [ADR-1011](1011-secret-management-api.md) — the management-API shape (validators, auditing, ownership) this family
+- [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md) — the management-API shape (validators, auditing, ownership) this family
   mirrors.
 - [project-template ADR-0001](project-template/0001-conventions-and-lessons-live-in-the-repository.md) — why this reasoning lives in an ADR rather than
   chat or agent memory.

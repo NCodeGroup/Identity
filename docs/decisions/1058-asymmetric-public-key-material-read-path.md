@@ -9,9 +9,9 @@
 
 ## Context
 
-[ADR-1011](1011-secret-management-api.md) makes every secret **retrieval** path metadata-only:
+[ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md) makes every secret **retrieval** path metadata-only:
 `SecretResource` exposes `Use`, `Algorithm`, `CreatedWhen`, `ExpiresWhen`, `SecretType`, and
-`KeySizeBits`, but never the `EncodedValue`. [ADR-1050](1050-secret-material-revealed-once-on-create.md)
+`KeySizeBits`, but never the `EncodedValue`. [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)
 refines this with a single, create-only reveal of **symmetric** client-secret material, and explicitly
 reserves "asymmetric **public**-material exposure" as a deliberate, additive future option (public
 material only; private keys stay unreachable). This ADR adopts that option.
@@ -54,7 +54,7 @@ Concretely:
   `GET .../clients/{clientId}/secrets/{secretId}/public-key` each return a `PublicKeyResource`. The
   public key is its own addressable resource, parallel to how JWKS is its own endpoint; it is **not**
   folded into `SecretResource`, so the single-secret `GET` and the secrets **list** stay metadata-only
-  (ADR-1011 is unchanged on those paths).
+  (ADR-1050 is unchanged on those paths).
 
 - **Both representations are returned, each for its audience.** `PublicKeyResource` carries `SecretId`,
   `SecretType`, a `Jwk` (the RFC 7517 JSON Web Key, public members only, as a `JsonElement` — the same
@@ -108,7 +108,7 @@ Concretely:
   PEM for copy-paste — without ever exposing the private half, which remains unreachable by construction.
 - `PublicKeyResource` is new public surface in `NCode.Identity.OpenId.Management.Abstractions`
   (`NCode.Identity.OpenId.Management.Contracts.Secrets`). It carries no private material, and no read
-  path on any owner returns private material — ADR-1011's private-material invariant and ADR-1050's
+  path on any owner returns private material — ADR-1050's private-material invariant and ADR-1050's
   one-time symmetric reveal are both unchanged.
 - The management public-key JWK and the JWKS endpoint share the `IJsonWebKeyConverter` pipeline, so the
   two cannot disagree; publishing a new asymmetric key type (a new converter) lights up both surfaces.
@@ -121,9 +121,9 @@ Concretely:
 
 ## References
 
-- [ADR-1011](1011-secret-management-api.md) — server-side generation and the metadata-only retrieval
+- [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md) — server-side generation and the metadata-only retrieval
   invariant this decision extends (public material only).
-- [ADR-1050](1050-secret-material-revealed-once-on-create.md) — the one-time symmetric reveal that
+- [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md) — the one-time symmetric reveal that
   reserved asymmetric public-material exposure as the additive option adopted here.
 - [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) — the server/tenant/client ownership planes the
   read scope follows.

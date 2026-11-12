@@ -826,7 +826,7 @@ than inlining the rationale.
   which routes reveal a secret and no handler path can forget it. `HttpResponse.SetNoStore()` writes the same headers
   where a response rather than a route carries the secret, as the authorization response writer does. Reference the
   `NCode.Identity.AspNetCore` foundation package. See
-  [ADR-1345](../../docs/decisions/1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md),
+  [ADR-1050](../../docs/decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md),
   [ADR-1500](../../docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) and
   [ADR-1388](../../docs/decisions/1388-the-html-page-security-model-and-the-front-channel-marker-are-general-aspnet-core-helpers.md).
 - 👁 **Name an `IServiceCollection` `serviceCollection`** (parameter, local, or extension receiver) and the builder
@@ -1130,7 +1130,7 @@ says for a pre-release project.
   OAuth2 `client_credentials`) must be wired in **every** environment so the production cold-start/bootstrap path works;
   only the secret pre-fill is environment-gated. See
   [ADR-1481](../../docs/decisions/1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md) and
-  [ADR-1011](../../docs/decisions/1011-secret-management-api.md).
+  [ADR-1050](../../docs/decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md).
 - 👁 **A renderer builds a `x-www-form-urlencoded` body from the schema, not from examples.** Optional schema
   properties render unchecked and are omitted from the request, and a named `example` is not applied to form fields. To
   make a field pre-checked and pre-filled, a document transformer marks it `required` and sets its schema `Default`;
@@ -1145,7 +1145,7 @@ says for a pre-release project.
   `ReadOnlyMemory<byte>` through the (async) call chain rather than re-encoding a `string` in a leaf method. A secret
   that enters from configuration (already an unavoidable managed `string`) is supplied **pre-encoded** (Base64Url) and
   decoded straight into the secure buffer, so a raw process-memory snapshot does not expose the plaintext directly. See
-  [ADR-1011](../../docs/decisions/1011-secret-management-api.md).
+  [ADR-1050](../../docs/decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md).
 - ✅ **Encode and decode text only through a strict encoding.** Use `SecureEncoding.UTF8` / `SecureEncoding.ASCII`
   (`NCode.Buffers`), which throw on invalid input, never `Encoding.UTF8`, `Encoding.ASCII` or `Encoding.Default`, which
   substitute `?` or U+FFFD silently. An overload that takes no encoding (`File.ReadAllText(path)`,

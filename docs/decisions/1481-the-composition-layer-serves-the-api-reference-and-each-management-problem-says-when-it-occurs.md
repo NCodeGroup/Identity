@@ -19,7 +19,7 @@ management API, authenticate against it and read, for every route, when each pro
   An operator has to run that login from the UI in production as well as development.
 - **A pre-filled secret is a served secret.** A renderer pre-fills credentials from configuration for a one-click
   login, which bakes them into the OpenAPI and Scalar configuration where anyone who reaches the reference page reads
-  them. That violates the rule of [ADR-1011](1011-secret-management-api.md) that no secret material is on the public
+  them. That violates the rule of [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md) that no secret material is on the public
   surface.
 - **A renderer builds a form from schema properties.** Scalar renders a `application/x-www-form-urlencoded` body from
   the schema: optional properties render unchecked and are omitted from the request, and a named `example` is not
@@ -93,7 +93,7 @@ occurs.
   across two places and leaves every host to wire the login correctly: credentials location, token URL, scope. One
   turnkey extension is simpler and harder to get wrong. Rejected.
 - **Pre-filling the secret in every environment.** It embeds a secret in the served OpenAPI and Scalar configuration
-  ([ADR-1011](1011-secret-management-api.md)). The login works in production anyway, because the operator types the
+  ([ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)). The login works in production anyway, because the operator types the
   secret once, so the convenience does not justify the exposure. Rejected.
 - **Gating the whole login on Development.** It breaks the production bootstrap path, which is the purpose of the
   bootstrap administrator. Only the pre-fill is environment-gated. Rejected.
@@ -121,7 +121,7 @@ occurs.
 
 ## References
 
-- [ADR-1011](1011-secret-management-api.md): no secret material on the surface.
+- [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md): no secret material on the surface.
 - [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md):
   management authentication and the bootstrap administrator.
 - [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md): the bootstrap client registers

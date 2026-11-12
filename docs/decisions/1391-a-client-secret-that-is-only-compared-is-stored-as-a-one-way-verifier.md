@@ -175,7 +175,7 @@ that uses the secret as a key keeps it reversible, and every other method holds 
    each secret, so an operator sees which secrets cannot sign an assertion.
 
 8. **Shown once.** A generated secret is revealed only in the response that issues it
-   ([ADR-1050](1050-secret-material-revealed-once-on-create.md)); a verifier gives no read path anything to return.
+   ([ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)); a verifier gives no read path anything to return.
 
 ## Options considered
 

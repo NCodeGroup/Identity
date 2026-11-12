@@ -63,7 +63,7 @@ narrowed by any RFC 8707 `resource` the client names.** Auth0 vocabulary is used
 A resource server is a settings owner and a secret owner like a client, through `PersistedResourceServerSettings` and
 `PersistedResourceServerSecrets`. `ResourceServerApiEndpointHandler` serves `…/settings`, `…/settings/limits`,
 `…/effective-settings` and the secrets endpoints, with the one-time reveal of
-[ADR-1050](1050-secret-material-revealed-once-on-create.md) and optimistic concurrency, and audits each change. The
+[ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md) and optimistic concurrency, and audits each change. The
 endpoints sit under the scope families `resource_servers` and `resource_server_secrets`, and authorization flows through
 the ownership and admin handlers against the `resource_server` node
 ([ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md)).
@@ -175,7 +175,7 @@ database
   settings regime and the `resource_server` setting scope.
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md): the
   Auth0-parity-plus philosophy.
-- [ADR-1050](1050-secret-material-revealed-once-on-create.md),
+- [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md),
   [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md),
   [ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md),
   [ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md) and

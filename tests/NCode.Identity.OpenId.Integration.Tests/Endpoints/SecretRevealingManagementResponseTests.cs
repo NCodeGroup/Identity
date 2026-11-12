@@ -9,7 +9,7 @@ using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
 
-// Every management response that reveals a secret is marked so that no cache stores it (ADR-1345).
+// Every management response that reveals a secret is marked so that no cache stores it (ADR-1050).
 public class SecretRevealingManagementResponseTests
 {
     private const string TenantApiPath = $"/api/tenants/{HostApplicationFactory.TenantId}";

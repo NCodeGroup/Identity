@@ -14,7 +14,7 @@
 ## Context
 
 Secrets were **server-generation-only**: `ISecretGenerator` mints fresh key material server-side, data-protects the
-private key, and never accepts caller-supplied material ([ADR-1011](1011-secret-management-api.md)). That fits the
+private key, and never accepts caller-supplied material ([ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)). That fits the
 tenant's own signing keys, but it cannot onboard a **relying party's public key** — the shape `private_key_jwt`
 (OpenID Connect Core §9), JWT-Secured Authorization Requests (JAR), and `self_signed_tls_client_auth`
 ([RFC 8705](https://www.rfc-editor.org/rfc/rfc8705) §2.2) all need: the client generates its own key pair and
@@ -67,7 +67,7 @@ axis so public keys round-trip cohesively.**
 3. **Import accepts public material only.** A JWK carrying a private component (`d`), a PEM private key, or a
    certificate with a private key is **rejected**. Importing private key material is a distinct threat model
    (reversible storage, escrow) and remains out of scope. Symmetric import is likewise out of scope — symmetric client
-   secrets are server-generated and revealed once ([ADR-1050](1050-secret-material-revealed-once-on-create.md)).
+   secrets are server-generated and revealed once ([ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)).
 
 4. **JWK → key parsing lives in the Secrets slice** (no dependency on the OpenID JWK result types, which sit in a
    higher layer): a small reader turns the JWK `kty` / `n` / `e` / `crv` / `x` / `y` members into `RSAParameters` /
@@ -127,7 +127,7 @@ axis so public keys round-trip cohesively.**
 - New public surface: `ISecretImporter` + `ImportSecretRequest` (persistence); `SecretEncoding` on `PersistedSecret`;
   `ImportSecretRequest` + `POST .../secrets/import` management contracts; a JWK reader in the Secrets slice.
 - The importer is **public-only by construction**, so no private or symmetric material is ever accepted on an import
-  path — the reveal-once model ([ADR-1050](1050-secret-material-revealed-once-on-create.md)) remains the sole way a
+  path — the reveal-once model ([ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)) remains the sole way a
   symmetric secret value leaves the server, and private asymmetric keys are still never caller-supplied.
 - Runtime `jwks_uri` resolution stays out of scope (deferred to [#54](https://github.com/NCodeGroup/identity/issues/54) Phase 0), so import is a deterministic,
   SSRF-free operation over caller-supplied bytes.

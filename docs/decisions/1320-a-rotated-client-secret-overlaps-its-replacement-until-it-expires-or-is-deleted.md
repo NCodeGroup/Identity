@@ -10,7 +10,7 @@
 ## Context
 
 A secret's key material is immutable once generated, so rotating a secret means creating a new one and deleting the
-old one ([ADR-1011](1011-secret-management-api.md)). Template ADR-0146 rule 7 rotates a secret by create, switch,
+old one ([ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)). Template ADR-0146 rule 7 rotates a secret by create, switch,
 delete: the holder switches to the replacement while the old secret still works, then the old secret is deleted.
 
 A rotation that removes the rotated secret in the same change breaks every caller that holds it until it is
@@ -55,7 +55,7 @@ secret. Both authenticate until the rotated secret expires or is deleted. This s
   records the replacement's `Created` and, only when the expiry changed, the rotated secret's `Updated`, without
   material. An `If-Match` header, when sent, must carry the rotated secret's concurrency token. The response is
   `201 Created` with the replacement's `CreatedSecretResource`, the only place its material appears
-  ([ADR-1050](1050-secret-material-revealed-once-on-create.md)).
+  ([ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)).
 - **Only a shared secret is rotated.** A key is the client's to hold; rotating one answers `400`, and the client
   imports the new key and deletes the old one.
 
@@ -88,7 +88,7 @@ that conflict.
 - [`RotateSecretRequest`](../../src/NCode.Identity.OpenId.Management.Abstractions/Contracts/Secrets/RotateSecretRequest.cs)
 - [`DefaultOpenIdClientResolver`](../../src/NCode.Identity.OpenId.Authentication/Clients/DefaultOpenIdClientResolver.cs)
 - [`SharedSecretPolicy`](../../src/NCode.Identity.Secrets.Persistence.Abstractions/SharedSecretPolicy.cs)
-- [ADR-1011](1011-secret-management-api.md), [ADR-1110](1110-shared-secret-vs-cryptographic-key-storage.md),
+- [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md), [ADR-1110](1110-shared-secret-vs-cryptographic-key-storage.md),
   [ADR-1183](1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md),
   [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)
 - Issues [#163](https://github.com/NCodeGroup/identity/issues/163) and [#166](https://github.com/NCodeGroup/identity/issues/166)

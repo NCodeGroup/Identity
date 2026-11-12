@@ -578,7 +578,7 @@ We'd rather say what this doesn't do yet:
 - [ADR-1414](../decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md): a tenant can wrap its master keys under a root key it controls
 - [ADR-1415](../decisions/1415-a-key-wrapper-can-wrap-under-a-key-the-caller-names.md): a key wrapper can wrap under a key the caller names
 - [ADR-1266](../decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md): spans, pooled writers and secure lifetimes
-- [ADR-1050](../decisions/1050-secret-material-revealed-once-on-create.md): secret material is revealed once, on create
+- [ADR-1050](../decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md): secret material is revealed once, on create
 - [ADR-1391](../decisions/1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md): a client secret that is only compared is stored as a one-way verifier
 
 **Code**

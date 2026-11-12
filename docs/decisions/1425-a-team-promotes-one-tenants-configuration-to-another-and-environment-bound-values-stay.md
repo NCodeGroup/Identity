@@ -14,7 +14,7 @@ operator re-enters it in each tenant by hand.
 
 Some of it belongs to one environment. A credential serves the environment that issued it, and secret material is
 revealed once, at creation
-([ADR-1050](1050-secret-material-revealed-once-on-create.md)). A redirect URI, a logout URI, a key set address or a
+([ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)). A redirect URI, a logout URI, a key set address or a
 mutual-TLS subject names the application of one environment, and a profile of another environment can refuse it.
 
 A limit in a document is set by the authority above the scope whose document carries it
@@ -130,7 +130,7 @@ keys, principals and environment-bound values stay with their environment.**
 
 ## References
 
-- [ADR-1050](1050-secret-material-revealed-once-on-create.md) — secret material is revealed once on create
+- [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md) — secret material is revealed once on create
 - [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) — the hosted platform's environment model
   and hostname scheme
 - [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md) — settings declare the scopes they apply to

@@ -11,7 +11,7 @@ namespace NCode.Identity.AspNetCore;
 /// Provides the extension method that marks every response of an endpoint as non-cacheable, for an endpoint whose
 /// response can carry secret material.
 /// </summary>
-// See ADR-1345.
+// See ADR-1050.
 [PublicAPI]
 public static class NoStoreEndpointConventionBuilderExtensions
 {

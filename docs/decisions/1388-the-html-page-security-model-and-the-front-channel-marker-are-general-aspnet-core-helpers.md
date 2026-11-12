@@ -40,7 +40,7 @@ framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a s
   package, so the reason ADR-1256 gives for one shared model still holds.
 - **`SetHtmlPageSecurity` writes `Cache-Control` and `Pragma` through `SetNoStore()`.** ADR-1256 decision 3's headers
   and values are unchanged; one writer owns the uncacheable headers
-  ([ADR-1345](1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)), so a page and a
+  ([ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)), so a page and a
   secret-revealing response cannot drift apart.
 - **The front-channel marker is general endpoint metadata in `NCode.Identity.AspNetCore`.** `IOpenIdEndpointFrontChannelMetadata`
   and `OpenIdEndpointFrontChannelMetadata` are `IFrontChannelEndpointMetadata` and `FrontChannelEndpointMetadata`;
@@ -91,7 +91,7 @@ framework. `ContentSecurityPolicySources.Sha256()` hashes the UTF-8 bytes of a s
 - [ADR-1254](1254-the-interactive-bundles-hashed-files-are-served-immutable-without-resolving-the-tenant.md)
 - [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)
 - [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)
-- [ADR-1345](1345-a-response-that-reveals-a-secret-is-marked-uncacheable-by-its-endpoint.md)
+- [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)
 - [ADR-1382](1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)
 - Issue [#513](https://github.com/NCodeGroup/identity/issues/513)

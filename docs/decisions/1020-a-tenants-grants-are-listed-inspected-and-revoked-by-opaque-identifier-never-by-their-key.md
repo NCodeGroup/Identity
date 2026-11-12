@@ -51,7 +51,7 @@ using.
 
 `GrantResource` carries metadata only: `GrantId`, `GrantType`, `TenantId`, `ClientId`, `SubjectId`, `SessionId`,
 `CreatedWhen`, `ExpiresWhen`, `RevokedWhen` and `ConsumedWhen`. It never carries `HashedKey` or `PayloadJson`, in the
-way [ADR-1011](1011-secret-management-api.md) keeps secret material off its surface.
+way [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md) keeps secret material off its surface.
 
 ### Listing and filters
 
@@ -134,7 +134,7 @@ dynamic client registration and is described in
 
 ## References
 
-- [ADR-1011](1011-secret-management-api.md): the metadata-only projection precedent.
+- [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md): the metadata-only projection precedent.
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md):
   the interceptor that bumps row tokens.
 - [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md): the

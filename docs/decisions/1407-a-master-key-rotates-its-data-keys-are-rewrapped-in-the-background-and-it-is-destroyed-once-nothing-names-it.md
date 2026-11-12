@@ -16,7 +16,7 @@
   key cache (cached keys reload after a refresh interval and a destroyed key leaves memory);
   [ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md), decision 1's warmup (it loads
   the retired server keys that a live ring key names);
-  [ADR-1011](1011-secret-management-api.md): key material is immutable, and a rotation rewrites the stored envelope
+  [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md): key material is immutable, and a rotation rewrites the stored envelope
   of the same material; [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md):
   the master key intervals and retentions are configured under `SecretProtection:MasterKeys` and validated when the host
   starts

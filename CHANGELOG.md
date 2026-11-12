@@ -219,8 +219,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1084](docs/decisions/1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md)). It binds the `Frontend` configuration section
   into `FrontendBootstrapOptions` and registers the endpoint as an `IEndpointProvider`, so the host's single
   `MapEndpointGroups()` call maps it. The document carries the API base, issuer, client id, scopes, feature flags and
-  branding, and falls back to the serving request's origin for the API base and issuer, so a single-origin host serves
-  every tier from one bundle with no configuration. `@ncode/config`'s `loadRuntimeConfig` sends the bundle's
+  branding, and, with nothing configured, publishes the serving tenant's stored issuer (the root tenant's when the
+  request names none) and the host's root-relative path base as the API base, so a single-origin host serves every
+  tier from one bundle with no configuration. `@ncode/config`'s `loadRuntimeConfig` sends the bundle's
   `SurfaceKind` as `?surface=`, and `FrontendBootstrapOptions.Surfaces` maps each surface to a `FrontendSurfaceOptions`
   override: client id and scopes override the default, so a read-only surface publishes none; feature flags merge;
   branding falls back. The bootstrap types (`FrontendBootstrapOptions`, `FrontendSurfaceOptions`,

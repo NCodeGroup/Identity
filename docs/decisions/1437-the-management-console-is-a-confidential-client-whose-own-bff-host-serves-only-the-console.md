@@ -23,7 +23,7 @@ The forces:
   ([ADR-1064](1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md)), and a
   path prefix is no security boundary
   ([ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)).
-- The management API authenticates sender-constrained bearer tokens of the control-plane tenant
+- The management API authenticates access tokens of the control-plane tenant
   ([ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md));
   a console that reaches it keeps that one authentication model.
 - A BFF is a client of the OP. The OP's own service collection carries `AddIdentityServer`, and a BFF host's carries
@@ -48,7 +48,7 @@ management API at `/api` on the origin of its authority.**
 
 1. **A separate host, for these reasons.**
    - The console's script never shares an origin with the OP's login, consent and account pages.
-   - The management API keeps one authentication model: sender-constrained bearer tokens of the control-plane tenant,
+   - The management API keeps one authentication model: access tokens of the control-plane tenant,
      which the BFF obtains and attaches on the browser's behalf.
    - Neither process holds the other's keys: the OP holds no key of the console, and the console holds no key, database
      or signing credential of the OP.

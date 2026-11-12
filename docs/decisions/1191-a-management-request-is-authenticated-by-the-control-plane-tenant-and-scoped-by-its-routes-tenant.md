@@ -78,8 +78,8 @@ are independent: the first is the security domain that issued the caller's token
   configuration, and under `StaticSingle` a tenant other than the served one cannot issue a token, so a second setting
   is redundant or wrong. A strategy that needs another answer overrides both control-plane members.
 - **Serve the API beneath the root tenant's route or host.** Rejected: it ties the API's reachability to the strategy
-  and to one tenant's address, while the API answers on any host or path (under `DynamicByPath` it is beneath no
-  tenant route), so a deployment chooses its address.
+  and to one tenant's address, while one `/api` group authenticates by the control-plane tenant on whichever host or
+  path reaches it (under `DynamicByPath` it is beneath no tenant route).
 - **Require the caller to use the issuing tenant's address.** Rejected: the routes already carry the tenant they act
   on, so the address would encode the tenant twice, and a collection route has no tenant to address.
 - **Authenticate by the control-plane tenant and scope by the route (chosen).** Deterministic across every strategy,

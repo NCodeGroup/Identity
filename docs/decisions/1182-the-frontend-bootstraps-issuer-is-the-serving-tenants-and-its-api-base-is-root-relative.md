@@ -65,8 +65,8 @@ with per-surface overrides from `Frontend:Surfaces`.
 ## Options considered
 
 - **Resolve the serving tenant fully, as protocol requests do** (`ITenantResolver.ResolveAsync`). Rejected: under the
-  dynamic strategies that resolves the protocol tenant the host or path names, so a surface at a host that a tenant's name
-  resolves would get that tenant, not the control plane it signs in against.
+  dynamic strategies that resolves the protocol tenant the host or path names, so a surface at a tenant's issuer host
+  (or under a tenant's route) would get that tenant, not the control plane it signs in against.
 - **Switch on the strategy code** to pick the root or the static tenant. Rejected: a closed switch over an open
   vocabulary; the request-names-a-tenant test covers every strategy.
 - **Keep the request origin as a last resort for the issuer.** Rejected: it is the unvalidated second source this

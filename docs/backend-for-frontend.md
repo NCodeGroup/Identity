@@ -1292,7 +1292,7 @@ client `mgmt-console` of the control-plane tenant
   database or signing credential. The console is a client of the OP exactly as a third party's BFF is.
 - The console is served at the root of its origin. Its BFF frontend `mgmt` is the fallback frontend, so it has no
   selection rule, and its session cookie is `__Host-Http-bff.mgmt`.
-- The management API keeps one authentication model: sender-constrained bearer tokens of the control-plane tenant. The
+- The management API keeps one authentication model: access tokens of the control-plane tenant. The
   console host forwards `/management/api/*` to the OP's management API with the user's token.
 - The console's origin serves only the console. The console host reaches the management API at `/api` on its
   authority's origin, the URL the OP compares a DPoP proof's `htu` with, and machine callers call it there too

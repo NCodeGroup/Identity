@@ -242,7 +242,8 @@ Why this shape:
   is created when the first request reaches `auth.ncodeid.net`, with the bootstrap administrator named into it
   (`BootstrapAdmin:TenantId = root`,
   [ADR-1166](decisions/1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md)). `/api` is served on
-  `auth.ncodeid.net`, the root tenant's host, because the management API authenticates the root tenant's tokens
+  `auth.ncodeid.net`, the control-plane tenant's origin, because the OP accepts the console's DPoP-bound call only at
+  that origin plus `/api` ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)); the API authenticates the control-plane tenant's tokens on any host
   ([ADR-1191](decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)).
 
 **Environments.** Customer environments are just tenants on production (`acme-dev.auth.ncodeid.net`), so they need no
@@ -681,7 +682,8 @@ speed-test endpoint from the Denver network the users are on.
   Postgres / Valkey / key vault), read-only root filesystems, the Kubernetes API reachable only from the pipeline, no
   SSH.
 - **Management surfaces:** the console host `manage.` sits behind an IP allow-list in addition to OAuth, and the
-  management API at `/api` on `auth.` accepts only the control-plane tenant's sender-constrained tokens
+  management API at `/api` on `auth.` authenticates only access tokens the control-plane tenant issued
+  ([ADR-1191](decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)), and the console calls it with a DPoP-bound token
   ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)).
 - **Accounts:** passkeys / hardware 2FA on every vendor account (Porkbun, Cloudflare, Akamai, OCI, AWS, GitHub, GitLab,
   npm, Spaceship, Azure, Grafana), least-privilege API tokens, recovery codes stored offline, and a second trusted admin.

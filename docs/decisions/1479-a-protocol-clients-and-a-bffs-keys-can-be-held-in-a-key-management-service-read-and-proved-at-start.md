@@ -17,7 +17,7 @@ client-assertion, DPoP and decryption keys therefore live in the memory of every
 A key management service (KMS) already holds a tenant's signing and encryption keys, and the key's row kind gives each
 its use
 ([ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md),
-[ADR-1472](1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md),
+[ADR-1472](1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md),
 [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md),
 [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)).
 The secret generator reads a bound key's public half and the management API proves that the key signs or decrypts
@@ -166,7 +166,7 @@ every key ring when the host starts.**
 - [ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)
 - [ADR-1446](1446-a-set-of-frontends-that-names-an-unregistered-key-ring-is-refused.md)
 - [ADR-1471](1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)
-- [ADR-1472](1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md)
+- [ADR-1472](1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md)
 - [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md)
 - [ADR-1475](1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md)
 - [ADR-1476](1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md)

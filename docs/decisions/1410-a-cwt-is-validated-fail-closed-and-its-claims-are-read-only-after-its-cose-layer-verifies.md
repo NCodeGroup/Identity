@@ -1,6 +1,6 @@
 # 1410. A CWT is validated fail-closed, and its claims are read only after its COSE layer verifies
 
-- **Status:** Accepted (amended by [ADR-1472](1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md):
+- **Status:** Accepted (amended by [ADR-1472](1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md):
   `ICwtIssuer.IssueAsync` signs asynchronously)
 - **Date:** 2026-11-04
 - **Deciders:** NCode Group

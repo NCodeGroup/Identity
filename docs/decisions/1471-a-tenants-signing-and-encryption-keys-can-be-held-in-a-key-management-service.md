@@ -18,7 +18,7 @@ keys.
   algorithm and key-size rows.
 - **Custody is one choice for every key.** A split by use adds vocabulary for a choice no threat model needs.
 - **A remote call has no place in synchronous code.** Signing and content-key unwrapping reach the service through the
-  asynchronous seam of [ADR-1472](1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md).
+  asynchronous seam of [ADR-1472](1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md).
 - **A stored secret must not be trusted blindly.** A reference to a remote key is data a tenant's document carries, so
   the signature, the decryption and the load all verify what the service returns.
 
@@ -43,7 +43,7 @@ and one tenant setting chooses the custody of every provisioned key.**
    or algorithm, a missing row or a use other than the row's throws `InvalidOperationException` naming the secret, and
    the tenant does not load.
 5. **Verification.** Every remote signature is verified locally
-   ([ADR-1472](1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md)), a JWE's tag
+   ([ADR-1472](1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md)), a JWE's tag
    authenticates every remote decryption, and the JWKS never calls the service.
 6. **Creation.** `ISecretGenerator.GenerateRemoteSecretAsync` resolves the lifecycle, descriptor, provider (which must
    create keys) and row before any call, creates the key, checks its public half, and hands a key it cannot keep to
@@ -105,7 +105,7 @@ and one tenant setting chooses the custody of every provisioned key.**
 
 ## References
 
-- [ADR-1472](1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md): the asynchronous seam.
+- [ADR-1472](1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md): the asynchronous seam.
 - [ADR-1474](1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md):
   the provider contract and its rows.
 - [ADR-1478](1478-a-background-job-destroys-the-key-management-service-keys-that-no-stored-secret-names.md): the

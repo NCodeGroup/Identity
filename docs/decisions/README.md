@@ -261,7 +261,7 @@ The records are grouped by area; within an area they are in number order.
 | [1408](./1408-an-offline-host-command-rewraps-every-master-key-under-the-configured-root-and-recovery-keys.md) | An offline host command rewraps every master key under the configured root and recovery keys | Accepted |
 | [1414](./1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md) | A tenant can wrap its master keys under a root key it controls | Accepted |
 | [1471](./1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md) | A tenant's signing and encryption keys can be held in a key management service | Accepted |
-| [1472](./1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md) | Signing is asynchronous from the signature algorithm to every caller | Accepted |
+| [1472](./1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md) | Signing and content-key unwrapping are asynchronous from the JOSE algorithm to every caller | Accepted |
 | [1474](./1474-a-remote-key-provider-is-described-by-data-creates-a-key-once-and-signs-into-the-callers-buffer.md) | A remote key provider is described by data, creates a key once and signs into the caller's buffer | Accepted |
 | [1475](./1475-the-management-api-creates-a-tenants-key-in-a-key-management-service-and-binds-one-that-proves-it-signs.md) | The management API creates a tenant's key in a key management service and binds one that proves it signs | Accepted |
 | [1476](./1476-a-bound-kms-keys-public-half-is-read-from-its-service-and-the-console-offers-each-providers-algorithms.md) | A bound KMS key's public half is read from its service, and the console offers each provider's algorithms | Accepted |

@@ -23,7 +23,7 @@ JOSE owns the proof. `IDPoPProofService` in `NCode.Identity.Jose.Abstractions` o
 validates proofs through one service.
 
 - `CreateProofAsync(DPoPProofCreationOptions)` signs a proof with an asymmetric `JoseSigningCredentials`, through the
-  asynchronous signing of [ADR-1472](1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md).
+  asynchronous signing of [ADR-1472](1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md).
   The header is `typ: dpop+jwt`, `alg`, and the key's exported public `jwk`, with no `kid`. The claims are `htm`,
   `htu` (query and fragment removed), a random 128-bit `jti`, `iat` from `TimeProvider`, and `ath` and `nonce` when
   given.
@@ -79,4 +79,4 @@ and `.NonceHeaderName` in `NCode.Identity.OpenId.Protocol.Abstractions`.
   `IDPoPProofReplayCache` in the OpenID authentication stack.
 - [ADR-1097](1097-access-tokens-are-sender-constrained-by-dpop-or-mutual-tls-through-one-proof-of-possession-seam.md):
   binding, `cnf`, nonce and replay.
-- [ADR-1472](1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md): asynchronous signing.
+- [ADR-1472](1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md): asynchronous signing.

@@ -507,7 +507,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `SignatureAlgorithm.SignAsync`, which signs with a local key synchronously behind its `ValueTask` and verifies a
   remote key's signature before a token carries it
   ([#75](https://github.com/NCodeGroup/identity/issues/75),
-  [ADR-1472](docs/decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md),
+  [ADR-1472](docs/decisions/1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md),
   [ADR-1471](docs/decisions/1471-a-tenants-signing-and-encryption-keys-can-be-held-in-a-key-management-service.md)).
 
 - **`IJoseSerializer` works on a parsed `JoseToken`, defined in a contracts-only abstractions package.** `Parse(string)`
@@ -532,7 +532,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   consumes the service and keeps the server-nonce challenge and the replay cache. The DPoP vocabulary is
   `JoseTokenTypes.DPoPJwt` and `JoseClaimNames.Payload.Htm`, `.Htu`, and `.Ath`
   ([ADR-1176](docs/decisions/1176-dpop-proofs-are-created-and-validated-by-a-jose-service.md),
-  [ADR-1472](docs/decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md)).
+  [ADR-1472](docs/decisions/1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md)).
 
 - **Post-quantum ML-DSA signing (FIPS 204 / RFC 9964) is in the core libraries.** The JWA `alg` values `ML-DSA-44`,
   `ML-DSA-65` and `ML-DSA-87` are registered by default beside RSA and ECC, with no opt-in package, on the in-box .NET
@@ -618,7 +618,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   what it reads
   ([#76](https://github.com/NCodeGroup/identity/issues/76),
   [ADR-1409](docs/decisions/1409-cose-messages-are-an-opt-in-package-family-over-system-formats-cbor-and-the-familys-keys-and-algorithms.md),
-  [ADR-1472](docs/decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md)).
+  [ADR-1472](docs/decisions/1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md)).
 
 - **CBOR Web Tokens (CWT, RFC 8392) are available as the opt-in `NCode.Identity.Cwt` package.** `AddCwtLibrary()`, an
   extension of `IServiceBuilder<CoseLibrary>`, registers `ICwtIssuer` (`IssueAsync`) and `ICwtValidator`. The issuer writes the
@@ -631,7 +631,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `CwtValidationFailureCodes` or `CoseFailureCodes` code
   ([#76](https://github.com/NCodeGroup/identity/issues/76),
   [ADR-1410](docs/decisions/1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md),
-  [ADR-1472](docs/decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md)).
+  [ADR-1472](docs/decisions/1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md)).
 
 - **A package contributes an ECDSA algorithm as data.** An `EccSignatureAlgorithmSpecification` service (in
   `NCode.Identity.Jose.Abstractions`) names an `alg` code, its one curve and its hash, and the JOSE library serves an
@@ -786,7 +786,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   package; `NCode.Identity.OpenId.Authentication` references `NCode.Identity.Jwt.Abstractions` only
   ([#28](https://github.com/NCodeGroup/identity/issues/28),
   [ADR-1120](docs/decisions/1120-jwt-validation-requirements-and-handlers.md),
-  [ADR-1472](docs/decisions/1472-signing-is-asynchronous-from-the-signature-algorithm-to-every-caller.md)).
+  [ADR-1472](docs/decisions/1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md)).
 
 - **A JWT validation failure carries a machine-readable code.** `JwtValidationFailureCodes` is the open vocabulary of
   the JWT validator's codes (`invalid_signature`, `invalid_issuer`, `invalid_audience`, `expired`, `not_yet_valid`,

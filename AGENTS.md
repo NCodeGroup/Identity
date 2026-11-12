@@ -52,8 +52,7 @@ compiles it and no gate tests it
   packages `NCode.Identity.Jose.EdDsa` (EdDSA, X25519 / X448) and `NCode.Identity.Jose.Secp256k1` (ES256K), and the
   opt-in `NCode.Identity.Jose.SdJwt`, Selective Disclosure for JWTs (RFC 9901) over the JWT library with the SD-JWT
   VC profile as data
-  ([ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md),
-  [ADR-1406](docs/decisions/1406-the-sd-jwt-vc-profile-is-data-the-issuer-and-the-verifier-apply.md))
+  ([ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md))
 - **COSE / CWT** — the opt-in `NCode.Identity.Cose(.Abstractions)`, CBOR Object Signing and Encryption (RFC 9052 / 9053)
   over `System.Formats.Cbor` and the family's JOSE algorithms and secret keys, and the opt-in
   `NCode.Identity.Cwt(.Abstractions)`, CBOR Web Tokens (RFC 8392) over it

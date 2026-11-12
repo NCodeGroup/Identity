@@ -589,8 +589,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   through to the verified claims; an application defines another `SdJwtProfile` as data, whose required claims
   are protected whether or not it lists them
   ([#73](https://github.com/NCodeGroup/identity/issues/73),
-  [ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md),
-  [ADR-1406](docs/decisions/1406-the-sd-jwt-vc-profile-is-data-the-issuer-and-the-verifier-apply.md)).
+  [ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md)).
 
 - **ES256K over secp256k1 is available as the opt-in `NCode.Identity.Jose.Secp256k1` package.** `AddSecp256k1()`, an
   extension of `IServiceBuilder<JoseLibrary>` as `AddEdDsa()` is, registers the secp256k1 curve (`crv` `secp256k1`,
@@ -4242,7 +4241,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   refuses an over-long presentation before any disclosure is decoded and `MaxNestingDepth` bounds the depth the
   resolved claims may reach; the issuer refuses claims beyond either limit, and both are validated when the host
   starts ([#73](https://github.com/NCodeGroup/identity/issues/73),
-  [ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md)).
+  [ADR-1405](docs/decisions/1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md)).
 
 - **A COSE message (`NCode.Identity.Cose`) and a CWT (`NCode.Identity.Cwt`) are processed fail-closed under bounded
   work.** The algorithm of a message must be in the protected header bucket and in the caller's permitted list, which is

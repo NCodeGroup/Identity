@@ -22,7 +22,7 @@ namespace NCode.Identity.Jose.SdJwt.Profiles;
 /// <param name="protectedClaims">The names of the top-level claims that are never selectively disclosable, in whole or
 /// in part, beside the required claims: an issuer refuses to make one or any part of one disclosable, and a verifier
 /// refuses a disclosure that discloses one and any digest beneath one.</param>
-// See ADR-1406.
+// See ADR-1405.
 [PublicAPI]
 public sealed class SdJwtProfile(
     string name,

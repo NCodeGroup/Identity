@@ -16,7 +16,7 @@ The JWT validator validates a token as a signed token under explicit key and alg
 allow-list checked first
 ([ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md)); the SD-JWT verifier
 requires its algorithm list at a trust boundary
-([ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md)); and `NumericDate` values
+([ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md)); and `NumericDate` values
 are read strictly and range-guarded ([ADR-1123](1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md)). A CWT
 carries the same claims in CBOR, and its `NumericDate` may be an integer or a floating-point number.
 
@@ -74,7 +74,7 @@ carries the same claims in CBOR, and its `NumericDate` may be an integer or a fl
 ## Options considered
 
 - **Reusing the JWT validator's `null` means unrestricted lists.** Rejected: a CWT verifier is at a trust boundary, as
-  [ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md) decides for SD-JWT.
+  [ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md) decides for SD-JWT.
 - **A requirement-and-handler pipeline as the JWT validator has.** Rejected: the JWT handlers run over a JSON payload
   and a `ClaimsIdentity`; the CWT result exposes typed claims and every claim for the caller's own rules.
 - **Accepting an encryption-only CWT.** Rejected: encryption alone does not authenticate the issuer.
@@ -95,7 +95,7 @@ carries the same claims in CBOR, and its `NumericDate` may be an integer or a fl
   [RFC 9596](https://datatracker.ietf.org/doc/html/rfc9596), [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519)
 - [ADR-1123](1123-a-numericdate-and-a-whole-number-a-remote-party-sends-are-read-strictly-through-shared-readers.md),
   [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md),
-  [ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md),
+  [ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md),
   [ADR-1409](1409-cose-messages-are-an-opt-in-package-family-over-system-formats-cbor-and-the-familys-keys-and-algorithms.md)
 - Issue [#76](https://github.com/NCodeGroup/identity/issues/76)
 - `NCode.Identity.Cwt.Abstractions`: `ICwtValidator`, `CwtValidationParameters`, `ICwtIssuer`;

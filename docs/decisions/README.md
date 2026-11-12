@@ -293,8 +293,7 @@ The records are grouped by area; within an area they are in number order.
 | [1390](./1390-the-opt-in-eddsa-package-implements-ed25519-ed448-x25519-and-x448-clean-room-over-okp-keys.md) | The opt-in EdDSA package implements Ed25519, Ed448, X25519 and X448 clean-room over OKP keys | Accepted |
 | [1392](./1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md) | ECDSA and EdDSA algorithms are fully specified and bound to their curve, and ES256K is opt-in | Accepted |
 | [1398](./1398-a-key-is-generated-on-one-named-curve-and-only-symmetric-keys-are-checked-by-size.md) | A key is generated on one named curve, and only symmetric keys are checked by size | Accepted |
-| [1405](./1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md) | Selective Disclosure JWTs are an opt-in package that issues, presents and verifies over the JWT validator | Accepted |
-| [1406](./1406-the-sd-jwt-vc-profile-is-data-the-issuer-and-the-verifier-apply.md) | The SD-JWT VC profile is data the issuer and the verifier apply | Accepted |
+| [1405](./1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md) | Selective Disclosure JWTs are an opt-in package that issues, presents and verifies over the JWT validator | Accepted |
 | [1409](./1409-cose-messages-are-an-opt-in-package-family-over-system-formats-cbor-and-the-familys-keys-and-algorithms.md) | COSE messages are an opt-in package family over System.Formats.Cbor and the family's keys and algorithms | Accepted |
 | [1410](./1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md) | A CWT is validated fail-closed, and its claims are read only after its COSE layer verifies | Accepted |
 

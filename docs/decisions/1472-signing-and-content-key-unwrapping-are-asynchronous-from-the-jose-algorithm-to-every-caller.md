@@ -94,7 +94,7 @@ signs.**
 - [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md),
   [ADR-1176](1176-dpop-proofs-are-created-and-validated-by-a-jose-service.md),
   [ADR-1392](1392-ecdsa-and-eddsa-algorithms-are-fully-specified-and-bound-to-their-curve-and-es256k-is-opt-in.md),
-  [ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-over-the-jwt-validator.md),
+  [ADR-1405](1405-selective-disclosure-jwts-are-an-opt-in-package-that-issues-presents-and-verifies-over-the-jwt-validator.md),
   [ADR-1410](1410-a-cwt-is-validated-fail-closed-and-its-claims-are-read-only-after-its-cose-layer-verifies.md): the
   decisions whose members are asynchronous.
 - RFC 7516 section 11.5.

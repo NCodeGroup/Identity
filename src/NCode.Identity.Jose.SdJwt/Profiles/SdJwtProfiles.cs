@@ -18,7 +18,7 @@ public static class SdJwtProfiles
     /// a disclosure. The <c>status</c> claim, such as a Token Status List reference, passes through to the verified
     /// claims as the issuer wrote it.
     /// </summary>
-    // See ADR-1406.
+    // See ADR-1405.
     public static SdJwtProfile SdJwtVc { get; } =
         new(
             "SD-JWT VC",

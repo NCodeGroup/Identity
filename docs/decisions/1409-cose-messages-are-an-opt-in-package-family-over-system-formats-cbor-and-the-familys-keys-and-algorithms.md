@@ -16,7 +16,7 @@ The family already has a JOSE algorithm set and a `SecretKey` model with registe
 [ADR-1271](1271-a-key-type-registers-its-json-web-key-rules.md)). An
 implementation package references only abstractions
 ([ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md)), an opt-in capability extends the marker of
-the library it consumes ([ADR-1069](1069-registration-library-compile-time-marker-nesting.md)), vocabularies are open
+the library it consumes ([ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md)), vocabularies are open
 unless provably closed ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)), and signature algorithms are
 fully specified and bound to their curve
 ([ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md)).
@@ -179,7 +179,7 @@ of the JOSE stack and the keys of the family.
   [RFC 9360](https://datatracker.ietf.org/doc/html/rfc9360), [RFC 9596](https://datatracker.ietf.org/doc/html/rfc9596)
 - [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md),
   [ADR-1067](1067-secret-type-capability-catalog-and-capabilities-discovery.md),
-  [ADR-1069](1069-registration-library-compile-time-marker-nesting.md),
+  [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
   [ADR-1271](1271-a-key-type-registers-its-json-web-key-rules.md),
   [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),

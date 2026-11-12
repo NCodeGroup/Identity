@@ -65,7 +65,7 @@ Three facts shape how it is added:
    and publishes keys on the curve, and the `ES256K` specification. It depends only on the JOSE and Secrets
    abstractions, and it extends the JOSE library's builder, `IServiceBuilder<JoseLibrary>`, whose curve catalog and
    algorithms it adds to, as `AddEdDsa()` does, so a host cannot call it without the JOSE library
-   ([ADR-1069](1069-registration-library-compile-time-marker-nesting.md)). Each is registered as an instance, once,
+   ([ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md)). Each is registered as an instance, once,
    with `TryAddEnumerableInstance` from `NCode.Identity.Registration`, which adds an instance unless the same instance is
    registered, because `TryAddEnumerable` keeps one registration per implementation type and would drop the
    application's other curves and specifications.
@@ -112,7 +112,7 @@ Three facts shape how it is added:
   SEC 2 §2.4.1
 - [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md),
   [ADR-1068](1068-unified-extensible-elliptic-curve-catalog.md),
-  [ADR-1069](1069-registration-library-compile-time-marker-nesting.md),
+  [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
   [ADR-1117](1117-eddsa-clean-room-implementation-opt-in-package.md),
   [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md),
   [ADR-1268](1268-a-generated-private-key-stores-its-public-key-beside-it.md),

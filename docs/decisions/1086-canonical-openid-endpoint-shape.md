@@ -12,7 +12,7 @@ error. The repository already has the building blocks for doing this cohesively 
 (`OpenIdMessage<T>` with `KnownParameter`s and a static `Load`), the mediator (`ICommand` / `ICommandHandler`,
 `ICommand<TResponse>` / `ICommandResponseHandler`, [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md)),
 self-registering endpoint families ([ADR-1009](1009-endpoint-families-own-their-route-group.md),
-[ADR-1069](1069-registration-library-compile-time-marker-nesting.md)), and an exception filter that renders any
+[ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md)), and an exception filter that renders any
 `IOpenIdError` thrown as `OpenIdException`.
 
 The **token** endpoint (`DefaultTokenEndpointProvider`) and the **end-session** endpoint
@@ -98,7 +98,7 @@ been migrated to this shape (`DeviceAuthorizationRequest : OpenIdMessage<…>` +
   litmus this shape applies (mediator for pipeline seams, services for transports).
 - [ADR-1009](1009-endpoint-families-own-their-route-group.md) — endpoint families own their route group and discovery
   advertisement.
-- [ADR-1069](1069-registration-library-compile-time-marker-nesting.md) — the `DefaultRegistration` +
+- [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md) — the `DefaultRegistration` +
   `extension(IServiceBuilder<TMarker>)` registration shape, including `AddMessageFactory<T>()`.
 - [ADR-1085](1085-ciba-grant.md) — the CIBA endpoint built to this shape, and the subject-resolution capability-seam
   example.

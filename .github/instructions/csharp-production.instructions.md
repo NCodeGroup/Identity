@@ -501,7 +501,7 @@ than inlining the rationale.
   [ADR-1158](../../docs/decisions/1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md).
 - 👁 **A package registers its own services from `DefaultRegistration.cs`** (the class is **always** `DefaultRegistration`)
   using `extension(IServiceBuilder<TMarker>)` + `TryAdd*` so a consumer can override a default, per
-  [ADR-1069](../../docs/decisions/1069-registration-library-compile-time-marker-nesting.md). **The receiver marker is the
+  [ADR-1069](../../docs/decisions/1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md). **The receiver marker is the
   compile-time prerequisite:** a package root's `AddXLibrary()` extends its prerequisite library's builder
   (`extension(IServiceBuilder<OpenIdCoreLibrary>) { AddOpenIdManagementLibrary() }`), and an **opt-in bolt-on capability**
   extends the marker of the library it augments (`AddLocalAccountManagement()` on `IServiceBuilder<OpenIdManagementLibrary>`,

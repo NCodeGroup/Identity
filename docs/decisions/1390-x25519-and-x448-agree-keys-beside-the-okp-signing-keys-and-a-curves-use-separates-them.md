@@ -51,7 +51,7 @@ order makes the shared secret all zeros, which a party who chose that key knows 
    algorithms and the agreement, because they share the key type and a host that adds `OKP` keys expects every
    registered use of them. It extends the JOSE library's builder, `IServiceBuilder<JoseLibrary>`, whose algorithms,
    key types and agreements it adds to, so a host cannot call it without the JOSE library
-   ([ADR-1069](1069-registration-library-compile-time-marker-nesting.md)). The package is opt-in: a host that calls
+   ([ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md)). The package is opt-in: a host that calls
    `AddEdDsa()` gets the `OKP` key type, the EdDSA algorithms and the X25519 and X448 agreement.
 
 ## Options considered
@@ -85,7 +85,7 @@ order makes the shared secret all zeros, which a party who chose that key knows 
 
 - [RFC 7748](https://datatracker.ietf.org/doc/html/rfc7748), [RFC 8037](https://datatracker.ietf.org/doc/html/rfc8037),
   [RFC 8410](https://datatracker.ietf.org/doc/html/rfc8410), [RFC 7518 §4.6](https://datatracker.ietf.org/doc/html/rfc7518#section-4.6)
-- [ADR-1069](1069-registration-library-compile-time-marker-nesting.md),
+- [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
   [ADR-1117](1117-eddsa-clean-room-implementation-opt-in-package.md),
   [ADR-1386](1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md),
   [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md)

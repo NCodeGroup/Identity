@@ -46,7 +46,7 @@ opt-in, exactly like the resource-owner password grant
   `AddLocalAccountInteractiveAuthentication()`. It owns the local-account coupling (the secure-buffer
   credential verification and the self-issued `ClaimsPrincipal` construction). A host fronting a
   different backend registers its own `IInteractiveCredentialVerifier` instead.
-- **Registration follows the marker pattern** ([ADR-1069](1069-registration-library-compile-time-marker-nesting.md)):
+- **Registration follows the marker pattern** ([ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md)):
   `AddInteractiveAuthentication()` and `AddLocalAccountInteractiveAuthentication()` extend
   `IServiceBuilder<OpenIdAuthenticationLibrary>`, so the surface cannot be added without the OpenId
   Authentication library present.
@@ -83,5 +83,5 @@ The three UI extensibility seams are now explicit and symmetric: the **bundle** 
 
 - [ADR-1065](1065-interactive-login-consent-op-hosted-auth-surface.md) — the interactive surface decision this extracts.
 - [ADR-1060](1060-local-account-one-store-seam-and-dependency-inverted-authentication.md) — the dependency-inverted local-account authentication pattern the verifier seam follows.
-- [ADR-1069](1069-registration-library-compile-time-marker-nesting.md) — the registration marker pattern the capability's opt-ins use.
+- [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md) — the registration marker pattern the capability's opt-ins use.
 - [ADR-1016](1016-implementation-packages-depend-only-on-abstractions.md) — why the seam lives in `.Abstractions`.

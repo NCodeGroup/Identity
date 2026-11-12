@@ -80,7 +80,7 @@ The records are grouped by area; within an area they are in number order.
 | [1025](./1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) | The family is greenfield and pre-release, tracks its public API, and models Auth0-parity-plus | Accepted |
 | [1052](./1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md) | Entity Framework persistence is a reusable framework that domain slices plug into | Accepted |
 | [1056](./1056-abstractions-split-into-framework-free-tiered-packages.md) | `NCode.Identity.Abstractions` is split into framework-free, correctly-tiered packages | Accepted |
-| [1069](./1069-registration-library-compile-time-marker-nesting.md) | DI registration nests per package and folder through compile-time marker builders | Accepted |
+| [1069](./1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md) | DI registration proves every prerequisite at compile time through marker builders | Accepted |
 | [1080](./1080-store-query-methods-push-filtering-to-dbms.md) | Store query methods push entity filtering into the DBMS | Accepted |
 | [1099](./1099-forward-compatible-evolving-parameters.md) | Forward-compatible evolving parameters: filter/criteria DTOs | Accepted |
 | [1116](./1116-memory-allocations-and-buffer-operations.md) | Memory allocations and buffer operations use spans, pooled writers, and secure lifetimes | Accepted |

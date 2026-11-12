@@ -140,4 +140,4 @@ store-factory fallback, so the adapter need not reference the concrete `DbContex
   dependency-inverted with no _library_ prerequisite, but it builds on the persistence framework seam, so it receives
   `IServiceBuilder<StoreManagerLibrary>` and returns the `LocalAccountLibrary` builder as proof that a store exists; a
   custom `ILocalAccountStore` must mint/return it too (see
-  [ADR-1069](1069-registration-library-compile-time-marker-nesting.md)).
+  [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md)).

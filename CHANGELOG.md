@@ -27,7 +27,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IsRegistered<TMarker>()` answers whether a marker is registered. Chain roots and generic utility helpers are bare
   `IServiceCollection` extensions, and cross-library helpers invoked from several library builders
   (`AddMessageFactory<TMessage>`, `AddEndpointProvider<T>`, `AddEndpointGroup<T>`) take the non-generic
-  `IServiceBuilder` receiver ([ADR-1069](docs/decisions/1069-registration-library-compile-time-marker-nesting.md),
+  `IServiceBuilder` receiver ([ADR-1069](docs/decisions/1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
   [ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md),
   [ADR-1061](docs/decisions/1061-local-account-management-is-an-opt-in-capability.md)).
 
@@ -46,7 +46,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `OpenIdManagementLibrary` in `NCode.Identity.OpenId.Management.Abstractions`, `LocalAccountLibrary` in
   `NCode.Identity.OpenId.Accounts.Abstractions` and `StoreManagerLibrary` in `NCode.Identity.Persistence.Abstractions`. The
   `NCode.Identity.OpenId.Persistence.EntityFramework.Core` registration class is `DefaultRegistration`
-  ([ADR-1069](docs/decisions/1069-registration-library-compile-time-marker-nesting.md)).
+  ([ADR-1069](docs/decisions/1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md)).
 
 - **A local-account capability cannot be written without a store.** Every local-account store registration
   (`AddLocalAccountEntityFramework()`, `AddAspNetIdentityLocalAccountStore<TUser>()` or a custom store) receives
@@ -56,7 +56,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IServiceBuilder<OpenIdAuthenticationLibrary>`, and `AddLocalAccountManagement(IServiceBuilder<LocalAccountLibrary>)`
   extends `IServiceBuilder<OpenIdManagementLibrary>`, each returning its receiver for chaining, for example
   `AddIdentityServer().OpenIdAuthenticationLibraryBuilder.AddLocalAccountAuthentication(localAccountStore)`
-  ([ADR-1069](docs/decisions/1069-registration-library-compile-time-marker-nesting.md),
+  ([ADR-1069](docs/decisions/1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
   [ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md)).
 
 - **Strict configuration binding is public.** `NCode.Identity.Registration.StrictConfigurationBindingExtensions.BindStrictly`
@@ -3066,7 +3066,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#276](https://github.com/NCodeGroup/identity/issues/276)).
 
 - **The event bus is a marker-bearing library
-  ([ADR-1069](docs/decisions/1069-registration-library-compile-time-marker-nesting.md)).** `AddEventServices()` mints
+  ([ADR-1069](docs/decisions/1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md)).** `AddEventServices()` mints
   the `EventsLibrary` marker (`NCode.Identity.Events.Abstractions`) and returns `IServiceBuilder<EventsLibrary>`; its
   opt-ins `AddEventHandler<TEvent, THandler>()` and `AddBackgroundEventDelivery()` (in `EventLibraryRegistration`)
   receive that builder, so an event opt-in cannot be added without the event services.

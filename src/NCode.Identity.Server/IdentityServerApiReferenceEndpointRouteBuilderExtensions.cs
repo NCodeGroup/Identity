@@ -15,10 +15,10 @@ using Scalar.AspNetCore;
 namespace NCode.Identity.Server;
 
 /// <summary>
-/// Provides turnkey endpoint mapping for the OpenID server's API reference: the OpenAPI document and a Scalar UI wired
-/// to the OpenID Provider's own security schemes. It is safe in every environment — the client-credentials login is
-/// only pre-filled with the bootstrap administrator credentials during development, and never carries a secret
-/// otherwise.
+/// Provides endpoint mapping for the OpenID server's API reference: the OpenAPI document and a Scalar page wired
+/// to the OpenID Provider's own security schemes. It maps only what <see cref="IdentityServerApiReferenceOptions"/>
+/// enables. The client-credentials login is configured only on the page, and the bootstrap administrator's secret is
+/// pre-filled only during development.
 /// </summary>
 [PublicAPI]
 public static class IdentityServerApiReferenceEndpointRouteBuilderExtensions
@@ -26,31 +26,31 @@ public static class IdentityServerApiReferenceEndpointRouteBuilderExtensions
     extension(IEndpointRouteBuilder endpoints)
     {
         /// <summary>
-        /// Maps the OpenAPI document and a Scalar API reference for the OpenID server. The OAuth 2.0 client-credentials
-        /// scheme is preferred so an operator can authenticate the whole dashboard; during development, when a
-        /// bootstrap administrator is configured, its credentials are pre-filled for a one-click login. The OpenAPI
-        /// document and the UI are independently toggleable via <paramref name="configureOptions"/>.
+        /// Maps the OpenAPI document when <see cref="IdentityServerApiReferenceOptions.DocumentEnabled"/> is set and a
+        /// Scalar API reference page when <see cref="IdentityServerApiReferenceOptions.PageEnabled"/> is set, as the
+        /// options bound from the <c>ApiReference</c> section say. The OAuth 2.0 client-credentials scheme is
+        /// preferred on the page so an operator can authenticate the whole dashboard; during development, when a
+        /// bootstrap administrator is configured, its credentials are pre-filled for a one-click login. The login is
+        /// configured only when the page is mapped.
         /// </summary>
-        /// <param name="configureOptions">An optional callback to configure which endpoints are mapped.</param>
         /// <returns>The same <see cref="IEndpointRouteBuilder"/> instance for method chaining.</returns>
-        public IEndpointRouteBuilder MapIdentityServerApiReference(
-            Action<IdentityServerApiReferenceOptions>? configureOptions = null
-        )
+        public IEndpointRouteBuilder MapIdentityServerApiReference()
         {
-            var options = new IdentityServerApiReferenceOptions();
-            configureOptions?.Invoke(options);
+            var services = endpoints.ServiceProvider;
+            var options = services
+                .GetRequiredService<IOptions<IdentityServerApiReferenceOptions>>()
+                .Value;
 
-            if (options.MapOpenApiDocument)
+            if (options.DocumentEnabled)
             {
                 endpoints.MapOpenApi();
             }
 
-            if (!options.MapApiReferenceUi)
+            if (!options.PageEnabled)
             {
                 return endpoints;
             }
 
-            var services = endpoints.ServiceProvider;
             var environment = services.GetRequiredService<IHostEnvironment>();
             var bootstrap = services.GetRequiredService<IOptions<BootstrapAdminOptions>>().Value;
 

@@ -24,7 +24,7 @@
   [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md),
   [ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md),
   [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md),
-  [ADR-1159](1159-a-tenant-is-named-by-its-creator.md),
+  [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md),
   [ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md),
   [ADR-1174](1174-the-management-consoles-url-is-its-navigation-state.md),
   [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md),
@@ -67,7 +67,7 @@ summed per customer.
 The family already has the pieces a grouping needs: a cascade of settings scopes, each setting declaring the scopes it
 applies to ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)), security profiles that accumulate down the
 cascade ([ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)), tenants named by their creator
-([ADR-1159](1159-a-tenant-is-named-by-its-creator.md)), and a role model whose assignments are owned by a scope
+([ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)), and a role model whose assignments are owned by a scope
 ([ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md)). The open questions are what the deployment root
 is, what groups tenants, and how authority, settings, lifecycle and the console address them.
 
@@ -84,7 +84,7 @@ the platform and its tenants in the settings cascade and in authority.**
    `/api/platform/encryption-keys` ([ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)),
    with no list, create, delete or secret endpoints.
 2. **A team is a persisted grouping of tenants.** Its creator names it, in the tenant-identifier form
-   ([ADR-1159](1159-a-tenant-is-named-by-its-creator.md)); it has a display name, an `isDisabled` flag and a settings
+   ([ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)); it has a display name, an `isDisabled` flag and a settings
    document. Every tenant belongs to exactly one team and never moves. The platform's own team
    (`TenantResolution:Root:TeamId`, default `platform`) holds the root tenant and every tenant a tenant-resolution
    strategy creates.
@@ -109,7 +109,7 @@ the platform and its tenants in the settings cascade and in authority.**
    routes that act through a tenant's OpenID runtime (sessions, principals, local accounts), as a disabled tenant does,
    while their stored configuration (settings, clients, resource servers, grants, secrets, owners) stays manageable. A
    team with tenants cannot be deleted. A deleted team's identifier is retired
-   ([ADR-1189](1189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md)). The platform's own team can be neither
+   ([ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)). The platform's own team can be neither
    disabled nor deleted.
 6. **Audit and usage carry the team.** Usage rows and tenant audit events carry the team. Team and platform audit
    events are recorded in the control-plane tenant with the resource types `team` and `platform`.
@@ -153,7 +153,7 @@ the platform and its tenants in the settings cascade and in authority.**
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — pre-release posture
 - [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) — hosted platform environment model
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — vocabularies are open unless provably closed
-- [ADR-1159](1159-a-tenant-is-named-by-its-creator.md) — a tenant is named by its creator
-- [ADR-1189](1189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md) — retired identifiers are never reissued
+- [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md) — a tenant is named by its creator
+- [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md) — retired identifiers are never reissued
 - [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — key hierarchy under an
   external root key

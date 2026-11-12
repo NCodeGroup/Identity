@@ -159,7 +159,7 @@ internal class DefaultTenantResolver(
         var store = storeManager.GetStore<ITenantStore>();
 
         // A tenant identifier names its tenant in every route and management call, so one that belonged to a deleted
-        // tenant is never reissued (ADR-1189).
+        // tenant is never reissued (ADR-1160).
         if (await store.IsTenantIdRetiredAsync(tenantId, cancellationToken))
         {
             failures.Add(
@@ -203,7 +203,7 @@ internal class DefaultTenantResolver(
             )
             {
                 // Relying parties that trusted a retired issuer would accept another tenant's tokens under it, so only
-                // the tenant that gave it up can take it back (ADR-1189).
+                // the tenant that gave it up can take it back (ADR-1160).
                 failures.Add(
                     new TenantValidationFailure
                     {

@@ -1,6 +1,6 @@
 # 1138. The protocol endpoints are served under the tenant route, and an issuer is its tenant's base address
 
-- **Status:** Accepted (extended by [ADR-1160](1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md):
+- **Status:** Accepted (extended by [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md):
   a tenant written through the management API is held to the same tenant route; decision 3's request-derived base
   address is removed by [ADR-1165](1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md):
   every served tenant has an issuer, which is its base address)
@@ -73,7 +73,7 @@ base address exactly.**
   served under the same route, and its session cookie is scoped to the tenant's path
   ([ADR-1193](1193-the-interactive-surface-is-served-under-the-tenant-route.md)). A tenant written through the
   management API is held to the same rule: its issuer must end with its tenant route
-  ([ADR-1160](1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md)).
+  ([ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)).
 - Management endpoints keep their fixed `/api` prefix; they carry their own `{tenantId}` segment and do not resolve a
   protocol tenant ([ADR-1042](1042-management-api-route-driven-tenant-scope.md)).
 

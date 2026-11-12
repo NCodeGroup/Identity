@@ -859,7 +859,7 @@ internal class TenantStore(
 
         DbContext.Tenants.Remove(tenantEntity);
 
-        // A deleted tenant's identifier and issuer are never reissued (ADR-1189).
+        // A deleted tenant's identifier and issuer are never reissued (ADR-1160).
         await DbContext.RetiredTenants.AddAsync(
             new RetiredTenantEntity
             {

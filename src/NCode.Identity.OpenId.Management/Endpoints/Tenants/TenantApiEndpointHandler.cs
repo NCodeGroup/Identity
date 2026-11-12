@@ -765,7 +765,7 @@ internal class TenantApiEndpointHandler(
             return ManagementProblems.ResourceNotFound();
         }
 
-        // A tenant is named by its creator (ADR-1159); the validator checks the name with the rest of its address.
+        // A tenant is named by its creator (ADR-1160); the validator checks the name with the rest of its address.
         var tenantId = request.TenantId;
 
         // A tenant written without an issuer gets the one its strategy derives for it, judged like an explicit one

@@ -2293,7 +2293,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   is the editable label. The configured root tenant ID and `StaticSingle:TenantId` must have the same form or the host
   does not start. Creating a tenant commits the tenant row first, then the creator's ownership role assignment, and the
   response carries the tenant's concurrency token after seeding
-  ([ADR-1159](docs/decisions/1159-a-tenant-is-named-by-its-creator.md)).
+  ([ADR-1160](docs/decisions/1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)).
 
 - **A tenant's address is a routed tenant property the management API previews before it is written.** `TenantResource`,
   `CreateTenantRequest` and the tenant update carry the tenant's `issuer` and its mTLS endpoint alias authority
@@ -3521,7 +3521,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **A tenant the deployment requires cannot be deleted.** `DELETE /api/tenants/{tenantId}` answers `409 Conflict` for
   the root tenant or the static single-tenant strategy's tenant, because a deleted tenant identifier is never reissued.
   `ITenantStrategy` and `ITenantResolver` expose `IsRequiredTenant`, so a custom strategy names the tenants it requires
-  ([ADR-1189](docs/decisions/1189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md)).
+  ([ADR-1160](docs/decisions/1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)).
 
 - **Tenants declare their environment.** The tenant settings `environment_type`, `environment_name` and
   `deletion_protection` say which environment a tenant is: the type is one of the registered `development`, `testing`,
@@ -5830,7 +5830,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `TenantValidationFailure`s. A configured `StaticSingle:Issuer` must use `https` (`http` only for a loopback host) and
   carry no user information, and a `DynamicByPath:TenantPath` route may carry only the tenant parameter, with no
   constraint, default value, optional marker or catch-all, so a tenant's route follows from its identifier alone
-  ([ADR-1160](docs/decisions/1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md)).
+  ([ADR-1160](docs/decisions/1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)).
 
 - **A retired tenant identifier or issuer is never reissued.** Deleting a tenant retires its identifier and its issuer,
   and changing a tenant's issuer retires the one it gives up, so no other tenant can take an identity that relying
@@ -5839,7 +5839,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   tenant gave up, as a conflict: the management API answers `409 Conflict` on create and update, and the address preview
   lists it. Only the tenant that gave up an issuer can take it back. `ITenantStore` exposes `IsTenantIdRetiredAsync` and
   `GetRetiredIssuerHolderOrDefaultAsync`
-  ([ADR-1189](docs/decisions/1189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md)).
+  ([ADR-1160](docs/decisions/1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)).
 
 - **Deleting a tenant erases the data of its end users.** Its local accounts and their claims, federated principals and
   identities, sessions and other grants are removed with it. Deleting a tenant that still has clients or resource

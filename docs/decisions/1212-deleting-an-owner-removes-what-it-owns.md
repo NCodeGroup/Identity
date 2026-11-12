@@ -32,7 +32,7 @@ enforces no foreign key, so no test of the hermetic host saw any of it (issue [#
    removed in the same unit of work, the data of its end users included: local accounts and their claims, federated
    principals and identities, sessions, and other grants. The usage ledger is kept
    ([ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)), and the identifier and the issuer of the
-   tenant are retired ([ADR-1189](1189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md)).
+   tenant are retired ([ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)).
 3. **The tenant store erases every tenant-owned entity.** The Entity Framework `TenantStore` removes every row of every
    model entity that implements `ISupportTenantEntity` whose `NormalizedTenantId` is the tenant's, and the
    `SecretEntity` rows that those rows reference through `ISupportSecretEntity`. The set of entities is read from the
@@ -89,7 +89,7 @@ enforces no foreign key, so no test of the hermetic host saw any of it (issue [#
 
 - [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md) — a tenant's keys and system records are removed
   with it, and a client or a resource server that an operator created blocks the delete.
-- [ADR-1189](1189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md) — the identifier and the issuer of a
+- [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md) — the identifier and the issuer of a
   deleted tenant are retired.
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — the usage ledger outlives the tenant.
 - [ADR-1063](1063-dynamic-client-registration.md) — dynamic client registration and its deregistration.

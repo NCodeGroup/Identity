@@ -157,12 +157,10 @@ The records are grouped by area; within an area they are in number order.
 | [1090](./1090-durable-outbound-delivery-dispatch-adapter.md) | Durable outbound delivery via a generic job-dispatch adapter (BYO orchestration) | Accepted |
 | [1129](./1129-the-tenant-issuer-is-the-single-authoritative-origin.md) | The tenant's issuer is the single authoritative origin | Accepted |
 | [1138](./1138-protocol-endpoints-are-served-under-the-tenant-route.md) | The protocol endpoints are served under the tenant route, and an issuer is its tenant's base address | Accepted |
-| [1159](./1159-a-tenant-is-named-by-its-creator.md) | A tenant is named by its creator | Accepted |
-| [1160](./1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md) | A tenant's address is validated by the strategy that serves it, wherever it is written | Accepted |
+| [1160](./1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md) | A tenant is named by its creator, validated by its strategy, and never reissued | Accepted |
 | [1164](./1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md) | Replicas share single-use state through an atomic expiring key set, backed by Valkey | Accepted |
 | [1165](./1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md) | Every served tenant has an issuer, and its strategy supplies the default | Accepted |
 | [1166](./1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md) | A tenant is provisioned through one pipeline under every strategy | Accepted |
-| [1189](./1189-a-retired-tenant-identifier-or-issuer-is-never-reissued.md) | A retired tenant identifier or issuer is never reissued | Accepted |
 | [1195](./1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md) | A tenant's mTLS endpoint alias is a routed tenant property | Accepted |
 | [1196](./1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) | Tenants are rate limited through a shared expiring counter set | Accepted |
 | [1198](./1198-plan-tier-quotas-are-daily-utc-counts-enforced-at-the-quota.md) | Plan-tier quotas are daily UTC counts enforced at the quota | Accepted |

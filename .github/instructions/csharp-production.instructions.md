@@ -1323,7 +1323,7 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
   [Nullability and Invariants](csharp.instructions.md#nullability-and-invariants) and
   [Configuration and Options](csharp.instructions.md#configuration-and-options); the tenant-selection seam judges a
   tenant's address for configuration and the management API alike
-  ([ADR-1160](../../docs/decisions/1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md)).
+  ([ADR-1160](../../docs/decisions/1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)).
 - 👁 **Each strategy validates its own options** — template
   [Configuration and Options](csharp.instructions.md#configuration-and-options).
 - 👁 **A default for runtime-written data is derived through the seam that judges it, then judged and stored like an

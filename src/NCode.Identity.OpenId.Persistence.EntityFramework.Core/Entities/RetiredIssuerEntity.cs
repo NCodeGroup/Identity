@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities;
 /// deleted. Relying parties that trusted the issuer would trust any tenant that took it, so only the tenant that held it
 /// can take it back.
 /// </summary>
-// See ADR-1189.
+// See ADR-1160.
 [Index(nameof(NormalizedIssuer), IsUnique = true)]
 public sealed class RetiredIssuerEntity
 {

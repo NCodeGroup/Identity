@@ -26,7 +26,7 @@ address at once — and the source of three problems:
 - **A multi-tenant deployment could not avoid it.** A tenant created without an issuer — the natural shape when an
   operator names a tenant and expects it at the platform's canonical address
   ([ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md),
-  [ADR-1159](1159-a-tenant-is-named-by-its-creator.md)) — had no address but the request's, and the host strategy could
+  [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)) — had no address but the request's, and the host strategy could
   not serve it at all.
 
 ## Decision
@@ -49,7 +49,7 @@ with it, or the one its strategy derives for it — and that issuer is stored wi
    ([ADR-1195](1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md), decision 5).
 3. **Every write path derives, then judges.** Management create and update, and the provisioner that creates a
    configuration-defined tenant, apply `issuer ??= default` and then `ValidateTenantAsync`, which judges a derived issuer
-   exactly like an explicit one ([ADR-1160](1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md)). An
+   exactly like an explicit one ([ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)). An
    update that clears the issuer restores the derived one.
 4. **The derived issuer is stored.** It is the tenant's identity from the moment it is written, so changing a template
    never moves an existing tenant.
@@ -104,7 +104,7 @@ with it, or the one its strategy derives for it — and that issuer is stored wi
   origin; this decision removes the request-derived fallback it kept.
 - [ADR-1138](1138-protocol-endpoints-are-served-under-the-tenant-route.md) — its request-derived base address (decision
   3) is removed.
-- [ADR-1160](1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md) — the seam that judges an address now
+- [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md) — the seam that judges an address now
   also derives its default.
 - [ADR-1166](1166-a-tenant-is-provisioned-through-one-pipeline-under-every-strategy.md) — the root tenant created at its
   address.

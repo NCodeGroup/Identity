@@ -95,7 +95,7 @@ request host.
 - [ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md) — sender-constrained access tokens.
 - [ADR-1129](1129-the-tenant-issuer-is-the-single-authoritative-origin.md) — the tenant's issuer is the single
   authoritative origin.
-- [ADR-1160](1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md) — a tenant's address is validated by
+- [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md) — a tenant's address is validated by
   the strategy that serves it.
 - [ADR-1165](1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md) — every served tenant has
   an issuer, and its strategy supplies the default.

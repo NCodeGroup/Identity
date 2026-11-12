@@ -1,6 +1,6 @@
 # 1129. The tenant's issuer is the single authoritative origin
 
-- **Status:** Accepted (extended by [ADR-1160](1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md):
+- **Status:** Accepted (extended by [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md):
   the issuer's form and host uniqueness under the host strategy are validated wherever a tenant is written; the
   request-derived fallback for a tenant without an issuer is removed by
   [ADR-1165](1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md): every served tenant has an

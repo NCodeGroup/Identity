@@ -1,6 +1,6 @@
 # 1014. Resource identifiers are server-generated and opaque
 
-- **Status:** Accepted (amended by [ADR-1159](1159-a-tenant-is-named-by-its-creator.md): a tenant's identifier is a
+- **Status:** Accepted (amended by [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md): a tenant's identifier is a
   name its creator chooses; amended by
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform has no
   identifier, and a team's identifier, like a tenant's, is a name its creator chooses)

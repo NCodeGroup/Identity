@@ -123,7 +123,7 @@ period that a timer runs on is held to the range that every .NET timer accepts.*
   general rules this record applies.
 - [ADR-1138](1138-protocol-endpoints-are-served-under-the-tenant-route.md) — the tenant route the validator checks.
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md) — setting names and the remaining configuration inputs.
-- [ADR-1160](1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md) — each tenant strategy validates its
+- [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md) — each tenant strategy validates its
   own options.
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — the usage ledger and the options that
   configure it.

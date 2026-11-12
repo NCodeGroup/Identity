@@ -109,7 +109,7 @@ chooses: in-process for a single replica, Valkey for several.**
 - **Refuse the in-process adapter in Production.** Rejected: a single-replica production deployment is legitimate, and
   the server cannot count replicas (decision 6).
 - **Hash the tenant into the digest.** Rejected: the tenant in clear lets an operator find or remove one tenant's
-  records; tenant identifiers are host labels ([ADR-1159](1159-a-tenant-is-named-by-its-creator.md)), and the digest at
+  records; tenant identifiers are host labels ([ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)), and the digest at
   the end keeps the key unambiguous whatever the tenant contains.
 
 ## Consequences

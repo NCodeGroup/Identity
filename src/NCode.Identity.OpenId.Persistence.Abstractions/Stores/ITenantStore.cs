@@ -324,7 +324,7 @@ public interface ITenantStore : IStore<PersistedTenant>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c>
     /// if the tenant was removed; otherwise <c>false</c> when no matching tenant existed.</returns>
     /// <exception cref="InvalidOperationException">Thrown when the tenant still has clients or resource servers.</exception>
-    // See ADR-1189 and ADR-1212.
+    // See ADR-1160 and ADR-1212.
     ValueTask<bool> RemoveAsync(string tenantId, CancellationToken cancellationToken);
 
     /// <summary>
@@ -346,7 +346,7 @@ public interface ITenantStore : IStore<PersistedTenant>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing <c>true</c> when a
     /// deleted tenant had the identifier; otherwise <c>false</c>.</returns>
-    // See ADR-1189.
+    // See ADR-1160.
     ValueTask<bool> IsTenantIdRetiredAsync(string tenantId, CancellationToken cancellationToken);
 
     /// <summary>
@@ -357,7 +357,7 @@ public interface ITenantStore : IStore<PersistedTenant>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the identifier of
     /// the tenant that held the issuer, or <c>null</c> when no tenant has given it up.</returns>
-    // See ADR-1189.
+    // See ADR-1160.
     ValueTask<string?> GetRetiredIssuerHolderOrDefaultAsync(
         string issuer,
         CancellationToken cancellationToken

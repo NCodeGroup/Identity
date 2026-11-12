@@ -195,7 +195,7 @@ so a bare ADR number names one record. Ten family records override template reco
   project-template ADR-0145's choice of `Microsoft.Extensions.Http.Resilience` for every shipping package, so the
   guarded outbound client and the OpenID protocol client bound their calls through `Polly.Core` alone, and the build
   fails a shipping package that would replace its consumers' logging generator.
-- [ADR-1160](docs/decisions/1160-a-tenants-address-is-validated-by-the-strategy-that-serves-it.md) supersedes
+- [ADR-1160](docs/decisions/1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md) supersedes
   project-template ADR-0123 for tenants, whose identifier its creator chooses and which is never reissued, because a
   tenant's identifier is part of its address, so its issuer is known before it exists.
 - [ADR-1501](docs/decisions/1501-a-projects-top-level-folder-and-name-say-whether-it-ships-and-what-it-is.md)

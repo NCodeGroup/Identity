@@ -121,7 +121,7 @@ tenant, client or subject.
 
 They belong to traces and logs, where cardinality costs nothing per series: the request's span carries the tenant and
 client, and a metric's exemplar links a slow bucket to that span. Per-tenant **usage**, what a tenant consumed for plans
-and billing, is a stored count ([ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)), not a metric
+and billing, is a stored count ([ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md)), not a metric
 series.
 
 ### 7. A package that traces has one activity source named like its meter
@@ -171,7 +171,7 @@ is a deliberate change that updates the catalog.
 - **A counter per domain outcome at its call site.** Rejected: it duplicates the event seam and lets the counts drift.
 - **A tenant attribute, opt-in or allow-listed.** Rejected: an operator who enables it on a multi-tenant platform
   creates a series per tenant per endpoint per status, which exhausts any bounded backend. Per-tenant views come from
-  traces, logs and the usage ledger of [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md).
+  traces, logs and the usage ledger of [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md).
 - **Publishing rate-limit refusals as events.** Rejected: a flood of refused requests would become a flood through the
   event pipeline and its sinks, the load the limiter exists to shed.
 - **A span for every BFF endpoint.** Rejected: ASP.NET Core's request span already covers `/bff/login`,

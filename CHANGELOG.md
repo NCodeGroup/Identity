@@ -2987,7 +2987,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   batch that a replica retries is added once. An empty `usage` and a `batchNumber` below one throw
   `ArgumentOutOfRangeException`. A store implementer skips such a batch and records the number with the counts. The
   Entity Framework store keeps the checkpoint in `TenantUsageCheckpointEntity`, in the `TenantUsageCheckpoints` table
-  ([ADR-1209](docs/decisions/1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md), issue
+  ([ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md), issue
   [#216](https://github.com/NCodeGroup/identity/issues/216)).
 
 - **The usage ledger is pruned in bounded batches on every provider.** `ITenantUsageStore.RemoveBeforeAsync(day, limit,
@@ -2995,7 +2995,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   checkpoints of the replicas whose latest usage day is before it, and returns the count of usage entries it staged;
   they are removed when the unit of work is saved. The removal goes through the change tracker, which every Entity
   Framework provider supports, EF InMemory included, and the prune service removes batches of 256 entries, each its own
-  unit of work, while a batch is full ([ADR-1213](docs/decisions/1213-the-usage-ledger-is-pruned-in-bounded-batches.md),
+  unit of work, while a batch is full ([ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md),
   issue [#264](https://github.com/NCodeGroup/identity/issues/264)).
 
 - **Audit records are kept in an indexed store.** Every audit event's record is queued in memory and written in batches
@@ -3219,7 +3219,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   when the connection drops after the commit, never overcounts a tenant's billed usage. Every host stop waits for the
   one final flush, so a host stopped twice at once never disposes its services under it; usage the flush cannot add is
   logged as discarded (event 2051), and the stop does not throw
-  ([ADR-1209](docs/decisions/1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md), issues
+  ([ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md), issues
   [#216](https://github.com/NCodeGroup/identity/issues/216) and
   [#245](https://github.com/NCodeGroup/identity/issues/245)).
 
@@ -3609,8 +3609,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   every `TenantUsageOptions.PruneInterval` (`OpenId:TenantUsage:PruneInterval`, one hour). `GET
   /api/tenants/{tenantId}/usage?from=&to=` reads a tenant's usage for up to 366 days, the last 30 by default; the admin
   UI shows it on the tenant page's **Usage** tab, a column per meter with a total row, over a chosen UTC date range
-  ([ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md),
-  [ADR-1213](docs/decisions/1213-the-usage-ledger-is-pruned-in-bounded-batches.md),
+  ([ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md),
   [#443](https://github.com/NCodeGroup/identity/issues/443)).
 
 - **An endpoint declares whether it is the tenant's metered usage, and only served requests are billed.** A metered
@@ -3618,7 +3617,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IOpenIdEndpointMeteredMetadata` is metered, and a package that adds a public metadata endpoint opts it out with
   `WithOpenIdMetered(false)`. The request filter records a request once its endpoint has run and skips one that any
   limit (per-client rate limit, token quota) refused with `429`, so a refused request never counts as usage or overage
-  ([ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)).
+  ([ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md)).
 
 - **One public form reader serves the OpenID endpoints and the BFF.**
   `NCode.Identity.AspNetCore.FormRequestExtensions.TryReadFormAsync` reads a request's form, or returns `null` when it has none
@@ -4059,7 +4058,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   day and meter, each entry naming its team and tenant
   ([ADR-1411](docs/decisions/1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
   [ADR-1426](docs/decisions/1426-a-team-can-nest-beneath-a-parent-team.md),
-  [ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)).
+  [ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md)).
 
 - **Team and platform changes are audited in the control-plane tenant.** `TeamChangedAuditEvent` (`team`) and
   `PlatformChangedAuditEvent` (`platform`) are recorded under the control-plane tenant, and a tenant's audit event names
@@ -5870,7 +5869,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   are not metered: they count only against the per-minute rate limits and are not recorded as `requests` usage, so no
   anonymous caller can exhaust a tenant's quota, run up billable overage, or have the tenant's clients refused until
   midnight UTC ([ADR-1198](docs/decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md),
-  [ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md),
+  [ADR-1199](docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md),
   [ADR-1198](docs/decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md)).
 
 - **Agent attribution stays out of commits by rule and setting, and no check enforces it.** The instructions tell every

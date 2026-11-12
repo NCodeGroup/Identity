@@ -1,7 +1,7 @@
 # 1426. A team can nest beneath a parent team
 
 - **Status:** Accepted (amends
-  [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md),
+  [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md),
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
   [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
   [ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md),
@@ -79,7 +79,7 @@ and missed-announcement revalidation reach every descendant.**
    creation is refused when any team on the parent's lineage is full. Top-level team creation is platform authority and
    is not bounded by `max_teams`. The checks run before the insert, and two racing creations may overshoot by one.
 10. **Usage rolls up.** Every usage row stores the tenant's team path
-    ([ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)), so a deleted tenant's or deleted team's
+    ([ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md)), so a deleted tenant's or deleted team's
     usage still rolls up to every team above it. `ITenantUsageStore.ListByTeamAsync` is a prefix match on the path, and
     `TeamUsageEntry` carries the team identifier, the path's last segment.
 11. **Reconciliation reaches every descendant.** A triggered team is reconciled with every team beneath it, each under
@@ -134,7 +134,7 @@ and missed-announcement revalidation reach every descendant.**
 
 ## References
 
-- [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — tenant usage is a daily ledger that
+- [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) — tenant usage is a daily ledger that
   replicas add to
 - [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) — the platform is the
   deployment root and a team groups a customer's tenants

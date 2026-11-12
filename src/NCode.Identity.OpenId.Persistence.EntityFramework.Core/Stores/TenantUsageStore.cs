@@ -197,7 +197,7 @@ internal sealed class TenantUsageStore(
         };
 
     /// <inheritdoc />
-    // See ADR-1213.
+    // See ADR-1199.
     public async ValueTask<int> RemoveBeforeAsync(
         DateOnly day,
         int limit,

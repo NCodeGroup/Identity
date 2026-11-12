@@ -30,7 +30,7 @@ batches; the store keeps a record for 90 days by default.**
    envelope value longer than its column is not indexed: an optional field is `null` and a required one keeps its
    leading characters, while the JSON keeps it whole. Records are not tenant-scoped data: they are kept after their
    tenant is deleted, until their retention ends, as the usage ledger is
-   ([ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)).
+   ([ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md)).
 2. **Queued inline, written in the background.** `AuditRecordHandler` maps each audit event and adds it to a bounded
    in-memory queue (`QueueCapacity`, 10,000 by default), so the audited operation never waits on the database. A record
    that arrives when the queue is full is dropped and counted, and the count is logged once per flush: the log, which
@@ -79,8 +79,8 @@ batches; the store keeps a record for 90 days by default.**
 ## References
 
 - [ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md) — the audit record
-- [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — the usage ledger the writer mirrors
-- [ADR-1213](1213-the-usage-ledger-is-pruned-in-bounded-batches.md) — the usage-ledger prune service that the audit store's prune service mirrors
+- [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) — the usage ledger the writer mirrors
+- [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) — the usage-ledger prune service that the audit store's prune service mirrors
 - Issue [#468](https://github.com/NCodeGroup/identity/issues/468) — the prune interval and its own hosted service
 - Issues [#383](https://github.com/NCodeGroup/identity/issues/383) and
   [#384](https://github.com/NCodeGroup/identity/issues/384)

@@ -31,7 +31,7 @@ enforces no foreign key, so no test of the hermetic host saw any of it (issue [#
    ([ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md) decision 11). Everything else the tenant owns is
    removed in the same unit of work, the data of its end users included: local accounts and their claims, federated
    principals and identities, sessions, and other grants. The usage ledger is kept
-   ([ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)), and the identifier and the issuer of the
+   ([ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md)), and the identifier and the issuer of the
    tenant are retired ([ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)).
 3. **The tenant store erases every tenant-owned entity.** The Entity Framework `TenantStore` removes every row of every
    model entity that implements `ISupportTenantEntity` whose `NormalizedTenantId` is the tenant's, and the
@@ -91,7 +91,7 @@ enforces no foreign key, so no test of the hermetic host saw any of it (issue [#
   with it, and a client or a resource server that an operator created blocks the delete.
 - [ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md) — the identifier and the issuer of a
   deleted tenant are retired.
-- [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — the usage ledger outlives the tenant.
+- [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) — the usage ledger outlives the tenant.
 - [ADR-1063](1063-dynamic-client-registration.md) — dynamic client registration and its deregistration.
 - [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — tenant-bound data access is scoped at the
   persistence layer.

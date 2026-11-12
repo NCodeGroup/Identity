@@ -60,7 +60,7 @@ tab.**
 - [ADR-1174](1174-the-management-consoles-url-is-its-navigation-state.md): the management console's URL is its
   navigation state.
 - [ADR-1064](1064-frontend-presentation-platform.md): a single cohesive frontend presentation platform.
-- [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md): tenant usage is a daily ledger that replicas
+- [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md): tenant usage is a daily ledger that replicas
   add to.
 - Code: `frontend/apps/mgmt/src/routes.ts`, `frontend/apps/mgmt/src/App.tsx` and
   `frontend/apps/mgmt/src/containers/TenantDetailPage.tsx`.

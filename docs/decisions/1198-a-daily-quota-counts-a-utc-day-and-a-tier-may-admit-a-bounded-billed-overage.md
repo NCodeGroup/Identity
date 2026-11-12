@@ -17,7 +17,7 @@ A quota must hold across replicas, as a limit does, and the family already has t
 `IExpiringCounterSet` with its in-process default and Valkey adapter. Four questions arise: the window (a calendar day
 in UTC, or a rolling 24 hours), what happens at the quota (refuse, or admit and bill an overage), how far an admitting
 tier may go, and how the overage reaches the customer. A tier that admits an overage needs a durable usage record to
-bill from, which the usage ledger of [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) is.
+bill from, which the usage ledger of [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) is.
 
 ## Decision
 
@@ -117,7 +117,7 @@ midnight UTC. A tier opts in to an overage by setting an allowance per quota, an
 
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) — unset means unrestricted
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — metering is endpoint metadata
-- [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — the usage ledger
+- [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) — the usage ledger
 - [ADR-1246](1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md) — rate limits and the counter set
 - [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md) — who writes a limit
 - [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) — customer environments as tenants

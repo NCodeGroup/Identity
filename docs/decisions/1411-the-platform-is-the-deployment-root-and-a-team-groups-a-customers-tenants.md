@@ -29,7 +29,7 @@
   [ADR-1174](1174-the-management-consoles-url-is-its-navigation-state.md),
   [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md),
   [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md),
-  [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md),
+  [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md),
   [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md),
   [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules-wherever-they-are-written-or-bounded.md),
   [ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md),

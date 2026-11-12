@@ -15,7 +15,7 @@ namespace NCode.Identity.OpenId.Authentication.Usage;
 /// <see cref="TenantUsageOptions.PruneInterval"/>, in batches of <see cref="BatchSize"/> entries, each its own unit of
 /// work, repeating while a batch is full. A prune that fails is logged and run again at the next interval.
 /// </summary>
-// See ADR-1213.
+// See ADR-1199.
 internal sealed class TenantUsagePruneService(
     IStoreManagerFactory storeManagerFactory,
     IOptions<TenantUsageOptions> options,
@@ -96,7 +96,7 @@ internal sealed class TenantUsagePruneService(
         }
         catch (StoreConcurrencyException)
         {
-            // Another replica removed rows of this batch first, which is progress, so read the next batch. See ADR-1213.
+            // Another replica removed rows of this batch first, which is progress, so read the next batch. See ADR-1199.
             return BatchSize;
         }
 

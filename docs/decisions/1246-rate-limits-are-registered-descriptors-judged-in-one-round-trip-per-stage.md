@@ -10,7 +10,7 @@
 
 [ADR-1196](1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),
 [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md),
-[ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) and
+[ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) and
 [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) define five limits: a
 per-minute limit for a remote address, for a tenant and for an authenticated client, and a daily quota for requests and
 for token requests, each quota with a bounded overage and a usage meter. The limiter holds them in code. Each has its
@@ -62,7 +62,7 @@ billed.**
    marks a request that it refuses, and adds the usage meters of a stage that admits the request, to an internal
    `RateLimitRequestState` in `HttpContext.Items`. `RateLimitEndpointFilter` records the meters through
    `ITenantUsageRecorder` once the endpoint has run, unless a stage refused the request, so a request that a later stage
-   refuses is never billed ([ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md)). A request records
+   refuses is never billed ([ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md)). A request records
    each usage meter at most once, however many descriptors or stages add it. A meter is a descriptor's `UsageMeter` or
    `OverageUsageMeter`; no code records one beside a limit. `RateLimitErrors` stays internal and only builds the `429`.
 3. **The built-in limits are registered descriptors.** `DefaultRateLimitDescriptorDataSource` registers the five with
@@ -173,7 +173,7 @@ billed.**
 - [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) — the rate-limiting and
   shared-state metrics.
 - [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) — daily quotas.
-- [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — the usage ledger.
+- [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) — the usage ledger.
 - [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) — the bounded
   overage.
 - [ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md) — registered descriptors and

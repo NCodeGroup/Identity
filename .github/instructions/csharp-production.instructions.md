@@ -557,7 +557,7 @@ than inlining the rationale.
 - 👁 **A hosted service whose `StopAsync` does work runs it once and never throws** — template
   [Distributed State and Background Work](csharp.instructions.md#distributed-state-and-background-work)
   (`TenantUsageFlushService.StopAsync`,
-  [ADR-1209](../../docs/decisions/1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md)).
+  [ADR-1199](../../docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md)).
 - 👁 **A hosted service that reads the store waits for the platform to be materialized.** It starts from
   `IMaterializedPlatformAccessor.GetPlatformAsync`, public so a package other than the core waits the same way, which
   completes once the replica materializes its platform: `TeamSettingsReconciliationService` materializes it when the
@@ -799,7 +799,7 @@ than inlining the rationale.
   [ADR-1243](../../docs/decisions/1243-every-aspnet-core-identity-path-hashes-and-verifies-the-nfc-form-of-a-password.md)).
 - 👁 **A write that a background loop retries is idempotent** — template
   [Concurrency and Shared State](csharp.instructions.md#concurrency-and-shared-state): the usage ledger's per-replica
-  batch checkpoint ([ADR-1209](../../docs/decisions/1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md)).
+  batch checkpoint ([ADR-1199](../../docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md)).
 - 👁 **Deleting an owner removes what it owns, in the same unit of work, through the change tracker.** A client's
   removal takes its secrets, client grants, consents and grants; a client's or a resource server's removal also takes
   the role assignments at its node, ownership included; a tenant's takes every `ISupportTenantEntity` row of
@@ -808,7 +808,7 @@ than inlining the rationale.
 - 👁 **An Entity Framework store issues no `ExecuteUpdate`/`ExecuteDelete`.** EF InMemory, the hermetic host's provider,
   does not support them, and they bypass the concurrency-token interceptor; a bulk removal stages a bounded batch and
   its caller saves each batch as one unit of work (`ITenantUsageStore.RemoveBeforeAsync`,
-  [ADR-1213](../../docs/decisions/1213-the-usage-ledger-is-pruned-in-bounded-batches.md);
+  [ADR-1199](../../docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md);
   `IGrantStore.RemoveEndedBeforeAsync`,
   [ADR-1218](../../docs/decisions/1218-ended-grants-are-removed-after-a-retention-period.md)).
 - 👁 **Public metadata is unmetered, and a limit an endpoint enforces refuses through `RateLimitErrors.Refuse`.** An
@@ -819,7 +819,7 @@ than inlining the rationale.
   `OverageUsageMeter`, never an `ITenantUsageRecorder.Record` call beside a limit; answer a refusal with
   `RateLimitErrors.Refuse`. See
   [ADR-1198](../../docs/decisions/1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md),
-  [ADR-1199](../../docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) and
+  [ADR-1199](../../docs/decisions/1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) and
   [ADR-1246](../../docs/decisions/1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md).
 - 👁 **A response that reveals a secret is marked `.WithNoStore()`.** Map every endpoint whose response can carry
   secret material (a generated secret or key, an initial access token, a `client_secret` or

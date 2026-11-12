@@ -160,10 +160,8 @@ The records are grouped by area; within an area they are in number order.
 | [1166](./1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) | A tenant is created and seeded through one provisioning pipeline under every strategy | Accepted |
 | [1196](./1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md) | Tenants are rate limited through a shared expiring counter set | Accepted |
 | [1198](./1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) | A daily quota counts a UTC day and a tier may admit a bounded billed overage | Accepted |
-| [1199](./1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) | Tenant usage is a daily ledger that replicas add to | Accepted |
+| [1199](./1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) | Tenant usage is a daily ledger that replicas add to once and prune in batches | Accepted |
 | [1205](./1205-replicas-announce-changes-through-a-broadcast-port.md) | Replicas announce changes through a broadcast port | Accepted |
-| [1209](./1209-a-replica-adds-each-usage-batch-to-the-ledger-once.md) | A replica adds each usage batch to the ledger once | Accepted |
-| [1213](./1213-the-usage-ledger-is-pruned-in-bounded-batches.md) | The usage ledger is pruned in bounded batches that every provider supports | Accepted |
 | [1232](./1232-the-in-process-dispatcher-runs-jobs-concurrently-up-to-a-limit.md) | The in-process dispatcher runs jobs concurrently up to a limit | Accepted |
 | [1242](./1242-the-in-process-dispatcher-is-configured-under-the-openid-section.md) | The in-process dispatcher is configured under the OpenID section | Accepted |
 | [1246](./1246-rate-limits-are-registered-descriptors-judged-in-one-round-trip-per-stage.md) | Rate limits are registered descriptors judged in one round trip per stage | Accepted |

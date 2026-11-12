@@ -45,7 +45,7 @@ supports.**
    when `ExpiresWhen < endedBefore` or `RevokedWhen < endedBefore`. A `limit` below one throws
    `ArgumentOutOfRangeException`. The Entity Framework store reads the rows and removes them through the change
    tracker, as `ITenantUsageStore.RemoveBeforeAsync` does
-   ([ADR-1213](1213-the-usage-ledger-is-pruned-in-bounded-batches.md)).
+   ([ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md)).
 3. **`GrantPruneService` prunes on a timer.** It is a hosted service that ticks every
    `GrantRetentionOptions.PruneInterval` on a `PeriodicTimer` and removes the grants that ended before the current time
    minus `GrantRetentionOptions.Retention`, in units of work of 256 grants, repeating while a batch is full. It passes
@@ -73,7 +73,7 @@ supports.**
   whole lifetime of the refresh token.
 - **Set-based deletes.** Rejected: the Entity Framework InMemory provider does not support them, and the change tracker
   gives every provider one code path
-  ([ADR-1213](1213-the-usage-ledger-is-pruned-in-bounded-batches.md)).
+  ([ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md)).
 - **One replica elected as the leader that prunes.** Rejected: the election needs shared state, and concurrent prunes
   waste at most one batch.
 
@@ -96,10 +96,10 @@ supports.**
 - [ADR-1087](1087-refresh-token-reuse-detection-and-family-revocation.md) — a rotated token that is presented again is
   a reuse.
 - [ADR-1112](1112-authorization-code-replay-revokes-session.md) — a replayed authorization code revokes the session.
-- [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to.md) — the usage ledger and its retention, and the
+- [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) — the usage ledger and its retention, and the
   options type that `GrantRetentionOptions` follows.
 - [ADR-1212](1212-deleting-an-owner-removes-what-it-owns.md) — deleting an owner removes its grants in one unit of work.
-- [ADR-1213](1213-the-usage-ledger-is-pruned-in-bounded-batches.md) — the bounded batches that remove rows through the
+- [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) — the bounded batches that remove rows through the
   change tracker.
 - Code: `NCode.Identity.OpenId.Authentication.Persistence.GrantPruneService`,
   `NCode.Identity.OpenId.Authentication.Persistence.GrantRetentionOptions`,

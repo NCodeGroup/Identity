@@ -3,7 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-11-03
 - **Deciders:** NCode Group
-- **Amends:** [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md), decision 5's resolution of a
+- **Amends:** [ADR-1389](1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md), decision 5's resolution of a
   key to generate and its check of a held key by type and size, and decision 6's choice of a tenant key's type;
   [ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md), decision 5's
   choice of P-256 as the curve the `ecc` key type selects by size
@@ -128,7 +128,7 @@ public half ([ADR-1268](1268-an-asymmetric-secrets-public-key-is-stored-beside-i
 - Issue [#534](https://github.com/NCodeGroup/identity/issues/534)
 - [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
   [ADR-1268](1268-an-asymmetric-secrets-public-key-is-stored-beside-it-and-read-without-its-private-key.md),
-  [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md),
+  [ADR-1389](1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md),
   [ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)
 - `AlgorithmKeyType.GetCurves` and `AlgorithmCollectionExtensions.TryResolveKeyGeneration` and `ValidateKeySize` in
   `NCode.Identity.Jose.Abstractions`; `IEccCurveCatalog.GetByCurveSizeBits` in `NCode.Identity.Secrets.Abstractions`;

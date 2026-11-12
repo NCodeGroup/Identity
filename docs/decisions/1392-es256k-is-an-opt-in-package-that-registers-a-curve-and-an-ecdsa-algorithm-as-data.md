@@ -117,7 +117,7 @@ Three facts shape how it is added:
   [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [ADR-1268](1268-an-asymmetric-secrets-public-key-is-stored-beside-it-and-read-without-its-private-key.md),
   [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),
-  [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md)
+  [ADR-1389](1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md)
 - Issue [#337](https://github.com/NCodeGroup/identity/issues/337), part of [#66](https://github.com/NCodeGroup/identity/issues/66)
 - `EccSignatureAlgorithmSpecification` and `AlgorithmKeyType` in `NCode.Identity.Jose.Abstractions`,
   `DefaultAlgorithmDataSource` and `EccSignatureAlgorithm` in `NCode.Identity.Jose`, `DefaultTenantKeyPolicy` in

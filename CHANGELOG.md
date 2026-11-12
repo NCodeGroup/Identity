@@ -653,7 +653,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `c_hash` and `s_hash` claims. `AuthenticatedEncryptionAlgorithm` derives from `Algorithm`, because its key is a
   content encryption key ([#327](https://github.com/NCodeGroup/identity/issues/327),
   [ADR-1272](docs/decisions/1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),
-  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md)).
 
 - **Keys are resolved, checked and generated on their algorithm's curve.** `TryGetKeyedAlgorithm` on
   `IAlgorithmCollection` returns a registered signature or key-management algorithm with the use it implies.
@@ -669,7 +669,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   key, whose material is not at hand, by a `KeySizeDeclaration` of its type and size, and refuses an asymmetric key
   type, which is checked by its stored public half ([#327](https://github.com/NCodeGroup/identity/issues/327),
   [#337](https://github.com/NCodeGroup/identity/issues/337), [#534](https://github.com/NCodeGroup/identity/issues/534),
-  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md),
+  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md),
   [ADR-1392](docs/decisions/1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md),
   [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
 
@@ -702,7 +702,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   written and read through the key type's `ISecretKeyTypeDescriptor` and JSON Web Key rules. `ECDH-ES+A*KW` generates a
   random content encryption key and wraps it under the key agreed with the `epk` (RFC 7518 §4.6)
   ([#327](https://github.com/NCodeGroup/identity/issues/327),
-  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md)).
 
 - **ECDH-ES key agreement uses SHA-256 as the Concat KDF digest on every curve, as [RFC 7518
   §4.6.2](https://datatracker.ietf.org/doc/html/rfc7518#section-4.6.2) requires.** The digest belongs to the JWE
@@ -899,7 +899,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   the master key or root key to restore, rather than being regenerated
   ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [#327](https://github.com/NCodeGroup/identity/issues/327), [#534](https://github.com/NCodeGroup/identity/issues/534),
-  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md),
+  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md),
   [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md)).
 
 - **Every stored secret has an active window inside its validity window, and every use of a key honors them.** A
@@ -2230,7 +2230,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   and every compatible secret type (from `ISecretKeyTypeCatalog`) with its key sizes and curves (`keyTypes: [{
   secretType, keyBitSizes, curves: [{ curveName, curveSizeBits }] }]`)
   ([#327](https://github.com/NCodeGroup/identity/issues/327),
-  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md)).
 
 - **Authenticated effective-settings preview endpoints.** `GET api/platform/effective-settings`,
   `GET api/teams/{teamId}/effective-settings`, `GET api/tenants/{tenantId}/effective-settings`,
@@ -2524,7 +2524,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   capabilities document reports as not asymmetric) carry a rotate action that, after confirmation, adds a replacement
   expiring a year out, reveals it once, and keeps the current secret for up to seven days
   ([ADR-1320](docs/decisions/1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md),
-  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md),
+  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md),
   issues [#155](https://github.com/NCodeGroup/identity/issues/155),
   [#327](https://github.com/NCodeGroup/identity/issues/327), [#445](https://github.com/NCodeGroup/identity/issues/445)).
 
@@ -4455,7 +4455,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   authentication tag ([#327](https://github.com/NCodeGroup/identity/issues/327),
   [#336](https://github.com/NCodeGroup/identity/issues/336), [#337](https://github.com/NCodeGroup/identity/issues/337),
   [#534](https://github.com/NCodeGroup/identity/issues/534),
-  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-it-declares.md),
+  [ADR-1389](docs/decisions/1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md),
   [ADR-1398](docs/decisions/1398-a-key-size-selects-a-curve-only-when-no-other-curve-shares-it.md),
   [ADR-1390](docs/decisions/1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md)).
 

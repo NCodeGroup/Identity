@@ -66,7 +66,7 @@ every failure of a JWE decryption that depends on the encrypted key, the ciphert
 The rule applies to the compact serialization and to every recipient of the JSON serialization (RFC 7516 §11.5).
 
 1. **The key is checked first.** Before unwrapping, the recipient's key must be one of the algorithm's key types, of a
-   legal size, and pass `IsKeyCompatible` ([ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md)). A
+   legal size, and pass `IsKeyCompatible` ([ADR-1389](1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md)). A
    misfit is an `ArgumentException`, a configuration error that depends only on the caller's key, never on the token.
 2. **A failed unwrap substitutes a random CEK.** The content key is unwrapped with
    `KeyManagementAlgorithm.UnwrapKeyAsync` ([ADR-1472](1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md)).
@@ -117,7 +117,7 @@ The rule applies to the compact serialization and to every recipient of the JSON
 - [ADR-1154](1154-jwts-are-validated-only-as-signed-tokens-by-requirements-and-handlers-under-the-callers-stated-policy.md)
 - [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata-within-its-effective-ceilings.md)
 - [ADR-1280](1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md)
-- [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md)
+- [ADR-1389](1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md)
 - [ADR-1472](1472-signing-and-content-key-unwrapping-are-asynchronous-from-the-jose-algorithm-to-every-caller.md)
 - RFC 3218 (preventing the million message attack on CMS)
 - RFC 7516 §11.5 (timing attacks and Bleichenbacher)

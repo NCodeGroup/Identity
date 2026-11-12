@@ -49,7 +49,7 @@ management API read that one source.**
    - An unset size is the smallest the algorithm accepts.
    - A configured list is the whole set; it does not add to the defaults.
    - A key may name its `SecretType` among the key types its algorithm accepts and its `Curve` among that type's curves;
-     otherwise it takes the first of them ([ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md)). A
+     otherwise it takes the first of them ([ADR-1389](1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md)). A
      key is generated on the curve its algorithm is bound to
      ([ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)).
 3. **One rule set for validation and seeding.** `ITenantKeyPolicy`, implemented by `DefaultTenantKeyPolicy`, is the rule

@@ -40,7 +40,7 @@ reads it.**
    - `secretTypes`, from `SecretTypeCapabilitiesProvider`.
    - `algorithms`, from `AlgorithmCapabilitiesProvider`; each algorithm lists its compatible secret types with the
      key sizes and curves legal for each
-     ([ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md)).
+     ([ADR-1389](1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md)).
    - `eccCurves`, from `EccCurveCapabilitiesProvider`.
    - `remoteKeyProviders`, from `RemoteKeyProviderCapabilitiesProvider`.
 3. **Key types are registered descriptors.** The `secretTypes` section reads the key-type catalog of
@@ -88,7 +88,7 @@ The catalog is a strategy collection and the document is a mediator fan-out
   `RemoteKeyProviderCapabilitiesProvider`
 - `ManagementProblems.AuthenticationRequired()`, `IManagementCallerFeature`, `ManagementRouteProblemDeclarationTests`
 - [ADR-1104](1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md): the key-type catalog.
-- [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md): the algorithms section.
+- [ADR-1389](1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md): the algorithms section.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md): strategy
   collection and mediator.
 - [#707](https://github.com/NCodeGroup/identity/issues/707)

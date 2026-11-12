@@ -11,7 +11,7 @@
 [RFC 8037 §3.2](https://datatracker.ietf.org/doc/html/rfc8037#section-3.2) registers `ECDH-ES` over the `OKP` curves
 X25519 and X448, the Diffie-Hellman functions of [RFC 7748](https://datatracker.ietf.org/doc/html/rfc7748), beside the
 Ed25519 and Ed448 signing curves of §3.1. Both uses share the `OKP` key type: a JSON Web Key with `kty`, `crv`, `x`
-and, for a private key, `d`. Under [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md) the
+and, for a private key, `d`. Under [ADR-1389](1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md) the
 `ECDH-ES` algorithms serve every key type that has a registered `IEcdhKeyAgreement`, so serving the Montgomery curves
 takes an agreement, its arithmetic and the keys ([#336](https://github.com/NCodeGroup/identity/issues/336)). Like the Edwards
 curves, the Montgomery curves have no primitive in the BCL on .NET 10.
@@ -34,7 +34,7 @@ order makes the shared secret all zeros, which a party who chose that key knows 
    kind, an Edwards curve that signs and verifies or a Montgomery curve that agrees, indexed by `crv` and OID, so a
    curve's use is the operations it has and a curve is added by adding one object. The `EdDSA`, `Ed25519` and `Ed448`
    algorithms list only signing curves and the agreement only key-agreement curves
-   ([ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md) decision 2), and each resolves a key's curve
+   ([ADR-1389](1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md) decision 2), and each resolves a key's curve
    as the kind it needs when it uses the key. An X25519 key therefore never signs and an Ed25519 key never agrees,
    although their sizes match. A key's size is `8 ×` its public key's length, so an X448 key is 448 bits and an Ed448
    key 456.
@@ -88,6 +88,6 @@ order makes the shared secret all zeros, which a party who chose that key knows 
 - [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
   [ADR-1117](1117-eddsa-clean-room-implementation-opt-in-package.md),
   [ADR-1386](1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md),
-  [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md)
+  [ADR-1389](1389-one-algorithm-name-serves-every-key-type-and-curve-it-declares-and-ecdh-es-agreements-are-registered.md)
 - Issue [#336](https://github.com/NCodeGroup/identity/issues/336), part of [#66](https://github.com/NCodeGroup/identity/issues/66)
 - `X25519`, `X448`, `OkpCurves`, `OkpEcdhKeyAgreement` and `DefaultRegistration` in `NCode.Identity.Jose.EdDsa`

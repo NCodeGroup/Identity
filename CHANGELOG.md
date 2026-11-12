@@ -392,9 +392,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   `ephemeral` or a local provider without its Secret in Production, a Production release with no recovery decision),
   for more than one replica without Valkey, and for unknown values. Without Valkey the chart uses the `Recreate`
   deployment strategy, which waits for the old pod to terminate before starting the next, so it never runs two replicas
-  at once. The `Host chart` CI workflow lints the chart, renders each example release, and checks that each unsafe release is refused; the workflow also
-  installs the chart in a kind cluster behind Traefik and proves the pods are Ready over HTTPS, that the controller
-  verifies their certificate and that a controller holding the wrong CA is refused
+  at once. The `Host chart` CI workflow lints the chart, renders each example release, and checks that each unsafe
+  release is refused; the workflow also installs the chart in a kind cluster behind Traefik and proves the pods are
+  Ready over HTTPS, that the controller verifies their certificate and that a controller holding the wrong CA is refused
   ([ADR-1458](docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md),
   [ADR-1506](docs/decisions/1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md),
   [ADR-1507](docs/decisions/1507-the-host-chart-routes-to-its-https-only-pods-through-gateway-api-a-traefik-ingress-or-the-operators-own-ingress.md)

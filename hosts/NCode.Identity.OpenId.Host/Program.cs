@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Accounts.Authentication;
+using NCode.Identity.OpenId.Accounts.Credentials;
 using NCode.Identity.OpenId.Accounts.Management;
 using NCode.Identity.OpenId.Authentication.Interactive;
 using NCode.Identity.OpenId.Host;
@@ -132,6 +133,9 @@ var entityFrameworkPersistence =
 // ILocalAccountStore instead (for example, the ASP.NET Core Identity adapter). The store slice requires the persistence
 // framework's builder as its receiver, and returns the compile-time proof the account capabilities require (ADR-1069).
 var localAccountStore = entityFrameworkPersistence.AddLocalAccountEntityFramework();
+
+// The local-account store hashes and verifies passwords with the IPasswordHasher the host registers.
+serviceCollection.AddDefaultPasswordHasher();
 
 // Enable the OpenId Authentication capabilities on the authentication-library builder (ADR-1069 compile-time marker
 // prerequisite): the resource-owner password grant, the interactive login/consent surface (a cookie scheme plus the

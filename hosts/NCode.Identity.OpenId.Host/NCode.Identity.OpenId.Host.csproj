@@ -10,6 +10,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\src\NCode.Identity.Server\NCode.Identity.Server.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Accounts\NCode.Identity.OpenId.Accounts.csproj" />
         <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Accounts.Authentication\NCode.Identity.OpenId.Accounts.Authentication.csproj" />
         <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Accounts.Management\NCode.Identity.OpenId.Accounts.Management.csproj" />
         <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Authentication.Interactive\NCode.Identity.OpenId.Authentication.Interactive.csproj" />

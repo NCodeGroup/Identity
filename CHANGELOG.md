@@ -1412,7 +1412,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Extension grants ([RFC 6749 §4.5](https://datatracker.ietf.org/doc/html/rfc6749#section-4.5)) are added by
   registering an `ITokenGrantHandler`** whose `GrantTypes` include the grant's absolute-URI identifier; the token
-  endpoint needs no change ([ADR-1145](docs/decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)).
+  endpoint needs no change ([ADR-1101](docs/decisions/1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md)).
 
 - **OAuth 2.0 Device Authorization Grant (RFC 8628).** Input-constrained clients (smart TVs, CLIs, IoT devices) obtain
   tokens by having the end user authorize on a second device. The `device_authorization_endpoint`
@@ -1865,7 +1865,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The OP establishes a server-side end-user session at interactive sign-in and emits its `sid`** (issue
   [#39](https://github.com/NCodeGroup/identity/issues/39), the `sid` portion of
   [#49](https://github.com/NCodeGroup/identity/issues/49),
-  [ADR-1380](docs/decisions/1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md)). The session is a `PersistedGrant` of type `session`
+  [ADR-1220](docs/decisions/1220-an-end-user-session-is-a-grant-keyed-by-its-sid-bounded-by-idle-and-absolute-lifetimes.md)). The session is a `PersistedGrant` of type `session`
   keyed by an opaque `sid`, with no table of its own; the `sid` is minted onto the login cookie and emitted in ID
   tokens. A session spans every client, so its lifecycle controls are tenant settings (issue
   [#63](https://github.com/NCodeGroup/identity/issues/63)): `session_absolute_lifetime`; `session_idle_timeout`, a
@@ -2419,9 +2419,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   `Operations`, `TenantScopeResource`, the `ManagementEndpointGroups.Tenant` group-name constant for attaching a keyed
   `IEndpointProvider` to the tenant group, and the generic audit seam
   `RecordResourceChangeAsync(HttpContext, ResourceChangeAuditEvent)`. See
-  [ADR-1057](docs/decisions/1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md),
-  [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) and
-  [ADR-1057](docs/decisions/1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md).
+  [ADR-1057](docs/decisions/1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md) and
+  [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md).
 
 - **The management API looks up audit records.** `GET api/tenants/{tenantId}/audit-records` lists the tenant's records
   from the audit store, newest first by event time with ties broken by id, filtered by `startTime`/`endTime`,
@@ -4666,7 +4665,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   preflight to the endpoint itself, which refuses it with `405` and no CORS headers; `UseDeveloperCors` answers no
   preflight that selects no endpoint, such as one for a method a front-channel path does not map. A host that adds its
   own CORS middleware skips both
-  ([ADR-1148](docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md)).
+  ([ADR-1256](docs/decisions/1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md)).
 
 - **Authorization responses carry only wire parameters.** The authorization response executor applies
   `ShouldSerialize(…, SerializationFormat.OpenId)`, the contract the JSON serializer uses, so internal `$`-prefixed

@@ -606,7 +606,7 @@ internal class DefaultPersistedGrantService(
             catch (StoreConcurrencyException) when (attempt < MaxSaveAttempts)
             {
                 // A grant of the lineage changed after it was read, such as a rotation that committed in between.
-                // A revocation must win, so it reads the lineage again. See ADR-1216.
+                // A revocation must win, so it reads the lineage again. See ADR-1217.
             }
         }
     }

@@ -86,7 +86,7 @@ asset. When the application holds OAuth tokens, that code can:
 
 The browser platform has moved too. Safari blocks third-party cookies, Firefox partitions them, and Chrome is
 deprecating them. Silent renewal with `prompt=none` in an iframe therefore fails for a growing share of users. This is
-the same reason [ADR-1380](decisions/1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md) prefers back-channel logout over the iframe
+the same reason [ADR-1088](decisions/1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md) prefers back-channel logout over the iframe
 mechanisms.
 
 ### 1.2 Where NCode stands today
@@ -177,7 +177,7 @@ access token to the browser**. It is not offered, because the token still reache
 - **The token-mediating backend** (RFC 10017 §6.2), and **implicit, hybrid, or password flows**.
 - **Adapters for one identity provider.** Anything a standard OP needs is metadata-driven.
 - **Front-channel logout and session-management iframes**, for the same reasons as
-  [ADR-1380](decisions/1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md).
+  [ADR-1088](decisions/1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md).
 
 ### 3.3 Constraints
 

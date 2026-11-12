@@ -41,7 +41,7 @@ public static class DefaultRegistration
             serviceCollection.AddOpenApi();
 
             // Attach the endpoint to the existing tenant-plane group by registering it keyed under the group's name
-            // (ADR-1191); the management route tree resolves keyed providers per group when it maps routes.
+            // (ADR-1086); the management route tree resolves keyed providers per group when it maps routes.
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.KeyedSingleton<IEndpointProvider, LocalAccountApiEndpointHandler>(
                     ManagementEndpointGroups.Tenant

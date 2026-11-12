@@ -40,7 +40,7 @@ public static class DeveloperCorsApplicationBuilderExtensions
             var policy = corsOptions.GetPolicy(DeveloperCorsRegistration.PolicyName);
 
             // The middleware is branched rather than the endpoints marked with DisableCors: CORS metadata on an endpoint
-            // fails every request a host without CORS middleware serves (ADR-1148).
+            // fails every request a host without CORS middleware serves (ADR-1256).
             return policy is null
                 ? app
                 : app.UseWhen(

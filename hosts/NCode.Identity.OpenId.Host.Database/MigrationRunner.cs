@@ -82,7 +82,7 @@ public static class MigrationRunner
     /// <param name="migrations">The migration identifiers this assembly holds for the context.</param>
     /// <exception cref="InvalidOperationException"><paramref name="appliedMigrations"/> holds an identifier that
     /// <paramref name="migrations"/> does not.</exception>
-    // See ADR-1073 and ADR-1180.
+    // See ADR-1180.
     internal static void ThrowIfUnknownMigrationsApplied(
         string contextName,
         IEnumerable<string> appliedMigrations,

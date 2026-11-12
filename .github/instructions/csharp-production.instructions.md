@@ -127,7 +127,7 @@ than inlining the rationale.
   routes a CORS preflight to the endpoint, which refuses it, since routing's own 405 endpoint has no marker, and a
   preflight that selects no endpoint (an unmapped method) gets no policy either. Do not use `DisableCors()` /
   `DisableCorsAttribute` or any other `ICorsMetadata`: the endpoint middleware throws for an endpoint carrying CORS
-  metadata when no CORS middleware ran, so it fails every request a production host without CORS serves. See [ADR-1148](../../docs/decisions/1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md).
+  metadata when no CORS middleware ran, so it fails every request a production host without CORS serves. See [ADR-1256](../../docs/decisions/1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md).
 - 👁 **Extensibility is the default: a vocabulary is open unless it is provably closed.** The family exists to be
   extended — by consumers and by sibling packages — without editing it, so every set of named values (kinds, types,
   modes, scopes, formats, methods, reasons, statuses, plans) is **open** by default and modeled as:
@@ -1144,7 +1144,7 @@ says for a pre-release project.
   `ReadOnlyMemory<byte>` through the (async) call chain rather than re-encoding a `string` in a leaf method. A secret
   that enters from configuration (already an unavoidable managed `string`) is supplied **pre-encoded** (Base64Url) and
   decoded straight into the secure buffer, so a raw process-memory snapshot does not expose the plaintext directly. See
-  [ADR-1050](../../docs/decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md).
+  [ADR-1266](../../docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md).
 - ✅ **Encode and decode text only through a strict encoding.** Use `SecureEncoding.UTF8` / `SecureEncoding.ASCII`
   (`NCode.Buffers`), which throw on invalid input, never `Encoding.UTF8`, `Encoding.ASCII` or `Encoding.Default`, which
   substitute `?` or U+FFFD silently. An overload that takes no encoding (`File.ReadAllText(path)`,

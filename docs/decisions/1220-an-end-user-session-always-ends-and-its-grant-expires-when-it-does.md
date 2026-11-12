@@ -7,7 +7,7 @@
   [ADR-1395](1395-a-stored-record-that-lacks-what-the-serving-code-writes-is-malformed-and-fails-closed.md):
   `SessionGrant.IdleTimeout` and `SessionGrant.AbsoluteExpiresWhen` are required, and a session ends at its own
   absolute end with no fallback to its grant's expiry;
-  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
   migration rewrites stored data)
 - **Date:** 2026-10-23
@@ -104,7 +104,7 @@ request that finds an ended session terminates it.**
   tenant configures otherwise.
 - A session that ends while no request uses it is terminated in the background, and so is a session that the previous
   release stores without an expiry during the rollout, because the previous release keeps serving while a migration is
-  applied ([ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md),
+  applied ([ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md),
   [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md)).
 - No touch of a session and no addition of a client to it loses a concurrent write
   ([ADR-1222](1222-a-grants-payload-is-changed-by-a-read-modify-write.md)).
@@ -125,7 +125,7 @@ request that finds an ended session terminates it.**
 - [ADR-1098](1098-session-lifecycle-termination-seam.md) — the termination seam that an ended session dispatches.
 - [ADR-1140](1140-setting-values-are-validated-against-their-domain.md) — setting values are validated against their
   domain.
-- [ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md) — a migration keeps the
+- [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md) — a migration keeps the
   previous release working.
 - [ADR-1218](1218-ended-grants-are-removed-after-a-retention-period.md) — ended grants are removed after a retention
   period.

@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amends [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)
   and [ADR-1113](1113-at-rest-grant-payloads-are-schema-versioned-and-upcastable.md); amended by
-  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
   migration rewrites stored data)
 - **Date:** 2026-10-26

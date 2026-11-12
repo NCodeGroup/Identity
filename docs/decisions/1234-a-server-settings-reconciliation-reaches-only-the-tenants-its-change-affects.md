@@ -1,7 +1,7 @@
 # 1234. A server settings reconciliation reaches only the tenants its change affects
 
 - **Status:** Accepted (amended by
-  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, which
   creates the schema this record names; amended by [ADR-1412](1412-settings-are-reconciled-per-team.md): a
   reconciliation reaches only the tenants of the teams its change affects)

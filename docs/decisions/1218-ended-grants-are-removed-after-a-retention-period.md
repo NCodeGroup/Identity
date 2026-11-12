@@ -6,7 +6,7 @@
   configured and validated when the host starts;
   [ADR-1223](1223-a-session-that-ends-unused-is-terminated-once-in-the-background.md): a session ends when it is
   terminated; amended by
-  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, which
   creates the schema this record names)
 - **Date:** 2026-10-23

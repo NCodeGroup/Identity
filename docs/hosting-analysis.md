@@ -648,7 +648,7 @@ speed-test endpoint from the Denver network the users are on.
   for more than one replica
   ([ADR-1179](decisions/1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md)). Before
   each rollout it migrates the database in a Job from the same image, and every migration keeps the previous release
-  working ([ADR-1180](decisions/1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Still
+  working ([ADR-1180](decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)). Still
   needed: publishing the image and chart ([#87](https://github.com/NCodeGroup/identity/issues/87)).
 - **Per-tenant rate limits and quotas** — issues [#84](https://github.com/NCodeGroup/identity/issues/84) and [#118](https://github.com/NCodeGroup/identity/issues/118), done
   ([ADR-1196](decisions/1196-tenants-are-rate-limited-through-a-shared-expiring-counter-set.md),

@@ -4,7 +4,7 @@
   [ADR-1251](1251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md); amends
   [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md),
   [ADR-1195](1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md) and the retired-setting consequence of
-  [ADR-1250](1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md))
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md))
 - **Date:** 2026-11-03
 - **Deciders:** NCode Group
 
@@ -19,13 +19,13 @@ are refused, the stored document by failing closed
 
 A released product changes its setting vocabulary across a rolling deploy: the previous release serves while the next
 one rolls out and after a rollback, and it fails closed on a name it does not know
-([ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Retiring or renaming a
+([ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)). Retiring or renaming a
 released setting therefore needs a way to keep the name loadable for one release, a copy of its value, and a later
 contract step, and a rename needs a name reserved a release ahead. Each part is shaped by what the first release ships.
 
 Nothing is released ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)). No release serves beside another,
 and no stored document exists outside a developer's database, whose migration creates the schema and writes no data
-([ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)). A
+([ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)). A
 retired-setting state in the descriptor, and a validator that threads the stored document through every management
 settings update to accept it, would carry a design with no instance in every `ISettingSerializer` implementation.
 
@@ -49,7 +49,7 @@ settings update to accept it, would carry a design with no instance in every `IS
 5. **The first stable release designs retirement.** At that release
    ([#535](https://github.com/NCodeGroup/identity/issues/535)) the family decides how a released setting retires or is
    renamed across a rolling deploy, under the expand-and-contract rule of
-   [ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md), with the design of
+   [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md), with the design of
    [ADR-1251](1251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md) as prior art.
 
 ## Options considered
@@ -77,7 +77,7 @@ settings update to accept it, would carry a design with no instance in every `IS
 
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the pre-release posture.
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) — setting names are a closed vocabulary.
-- [ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md) — migrations keep the
+- [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md) — migrations keep the
   previous release working.
 - [ADR-1195](1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md) — a tenant's mTLS endpoint alias is a
   routed tenant property.
@@ -85,7 +85,7 @@ settings update to accept it, would carry a design with no instance in every `IS
   request answers `409` for a stored settings document it cannot honor.
 - [ADR-1251](1251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md) — the superseded
   retired-setting design.
-- [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md) — one
+- [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md) — one
   initial migration per host database context.
 - `src/NCode.Identity.Settings.Abstractions/ISettingSerializer.cs`,
   `src/NCode.Identity.Settings/DefaultSettingSerializer.cs` and

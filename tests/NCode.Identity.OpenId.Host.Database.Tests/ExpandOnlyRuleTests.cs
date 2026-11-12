@@ -780,7 +780,7 @@ public sealed class ExpandOnlyRuleTests
 
         Assert.True(
             violations.Count == 0,
-            $"{migrationName}: {string.Join(" ", violations)} See ADR-1184 and ADR-1250."
+            $"{migrationName}: {string.Join(" ", violations)} See ADR-1180."
         );
     }
 

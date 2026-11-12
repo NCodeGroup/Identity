@@ -3,7 +3,7 @@
 - **Status:** Accepted (amended by [ADR-1149](1149-settings-declare-the-scopes-they-apply-to.md): a resource server
   selects no security profile, and `security_profiles` is rejected on a resource-server document; a profile's default
   applies only to a setting that applies within the expanding scope; amended by
-  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
   migration rewrites stored data; amended by
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): security profiles also

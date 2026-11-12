@@ -97,7 +97,7 @@ the migrations.
 
 The previous version keeps serving while the Job runs and until the rollout ends, so every migration must keep it
 working: add first, and drop or rename only in a later release
-([ADR-1180](../../docs/decisions/1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). A `helm rollback` runs no migration.
+([ADR-1180](../../docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)). A `helm rollback` runs no migration.
 
 To apply migrations another way, such as with a generated idempotent script, set `migrations.enabled=false`.
 

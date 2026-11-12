@@ -9,7 +9,7 @@
   [ADR-1313](1313-development-conveniences-are-inert-unless-configured-and-run-through-the-production-path.md):
   `DeveloperKeys` has no mode and no ephemeral fallback, only the `PruneUnreadableKeys` opt-in, and
   `AddProductionSafety` refuses a `DeveloperKeys` or `Cors` section in Production; amended by
-  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
   migration rewrites stored data; amended by
   [ADR-1396](1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md), which

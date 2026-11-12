@@ -20,7 +20,7 @@ ring protects the signing keys stored in that database. Several forces shape whe
 - [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md) fixes the
   generic rules (a design-time factory, no migration at startup outside development, a drift check). This record
   places them in the family's projects. The rollout and expand-and-contract rules are
-  [ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)'s.
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)'s.
 
 The standing posture is one cohesive story, not provider sprawl patched over time.
 
@@ -42,7 +42,7 @@ key ring. A worker applies the migrations, the host never does, and the build fa
   `NCode.Identity.OpenId.Host.MigrationService` applies both contexts' migrations through `MigrationRunner` and exits.
   The AppHost holds `api` with `WaitForCompletion(migrations)`, so a failed migration is a failed dashboard resource, and
   the chart's Job runs the same worker
-  ([ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Seeding stays in the
+  ([ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)). Seeding stays in the
   host as idempotent seed handlers.
 - **A persistent local database.** Locally the AppHost runs Postgres with the stable named volume
   `ncode-identity-openiddb-data`, so data survives restarts. `build/dev-db-reset.ps1`, which detects Docker or Podman,
@@ -88,7 +88,7 @@ key ring. A worker applies the migrations, the host never does, and the build fa
 
 - [project-template ADR-0143](project-template/0143-migrations-run-before-the-rollout-and-only-expand.md), items 1, 2
   and 7, which this record implements.
-- [ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md): the rollout, the
+- [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md): the rollout, the
   expand-and-contract rule and the initial migration.
 - [ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md):
   the AppHost that runs the database and the worker.

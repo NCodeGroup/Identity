@@ -1,7 +1,7 @@
 # 1081. Granular per-scope consent and the self-service authorized-applications surface
 
 - **Status:** Accepted (refines [ADR-1076](1076-consent-persistence-and-enforcement.md); amended by
-  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, which
   creates the schema this record names)
 - **Date:** 2026-10-12

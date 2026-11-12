@@ -8,7 +8,7 @@
   decoders that read the whole presented chain, and behind a proxy the header is the only certificate source;
   certificate binding split in place: advertised support and a client's requirement are separate settings; DPoP binding
   requirement named `require_dpop_bound_access_tokens` and registered as the RFC 9449 §5.2 client metadata; amended by
-  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
   migration rewrites stored data; amended by
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform's

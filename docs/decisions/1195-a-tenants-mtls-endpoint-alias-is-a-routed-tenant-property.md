@@ -3,7 +3,7 @@
 - **Status:** Accepted (amended by
   [ADR-1251](1251-a-retired-setting-stays-registered-until-a-later-release-removes-it.md): the setting is retired and
   its value copied; amended by
-  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
   migration rewrites stored data; amended by
   [ADR-1396](1396-until-the-first-stable-release-a-setting-is-renamed-removed-or-narrowed-outright.md), which

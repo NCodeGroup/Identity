@@ -79,6 +79,6 @@ The platform's values live in a public repository
 - An operator creates three Secrets before the first install: the database, the key-protection certificate, and Valkey
   for more than one replica. The chart's `README.md` lists them.
 - The chart migrates the database in a pre-deploy Job
-  ([ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). It does not yet publish
+  ([ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)). It does not yet publish
   itself: [#87](https://github.com/NCodeGroup/identity/issues/87) tracks publishing it with the image as a signed OCI artifact.
 - An ingress other than the chart's generic `Ingress`, such as a Traefik `IngressRoute`, is the operator's to add.

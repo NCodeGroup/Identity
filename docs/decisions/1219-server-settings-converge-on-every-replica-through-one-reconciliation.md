@@ -7,7 +7,7 @@
   reconciliation records the settings it reconciled against and reaches only the tenants a change affects; and by
   [ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md): the refresh and the
   announcement run on their own bounded token; amended by
-  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, which
   creates the schema this record names; decisions 4 and 5 superseded by [ADR-1412](1412-settings-are-reconciled-per-team.md):
   the handlers page one team's tenants; decision 2 amended by

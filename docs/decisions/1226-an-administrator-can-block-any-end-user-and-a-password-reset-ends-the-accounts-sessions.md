@@ -5,7 +5,7 @@
   sign-in refuses a blocked principal, and the authorization request answers it with `access_denied`;
   [ADR-1230](1230-an-end-user-changes-their-password-and-keeps-only-the-current-session.md): a self-service password
   change keeps the current session; amended by
-  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, which
   creates the schema this record names; amended by
   [ADR-1468](1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md): a termination

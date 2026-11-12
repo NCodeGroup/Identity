@@ -315,7 +315,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   wait for its completion, so a migration failure shows as a failed dashboard resource that blocks them. The migrations
   and Npgsql wiring live in the host-owned `NCode.Identity.OpenId.Host.Database` project the hosts and the worker share,
   where each of its two contexts has one `InitialCreate` migration that creates its whole model
-  ([ADR-1394](docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
+  ([ADR-1180](docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)).
   When a context's migrations history records a migration the project does not hold, the worker applies nothing and
   fails with a message that names the context and says to reset the local database with `build/dev-db-reset.ps1`.
   The host persists its Data Protection key ring in the same database (`PersistKeysToDbContext`), so one purge resets
@@ -408,8 +408,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   the 63-character label-value limit. Every migration passes the expand-and-contract gate, so from the first stable
   release, when each context's `InitialCreate` becomes the baseline, a model change adds first and drops in a later
   release (issue [#85](https://github.com/NCodeGroup/identity/issues/85),
-  [ADR-1180](docs/decisions/1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md),
-  [ADR-1394](docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
+  [ADR-1180](docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)).
 
 - **The family builds with repository-wide engineering conventions.** These are Central Package Management, lockstep
   Nerdbank.GitVersioning versioning, SourceLink-to-GitHub provenance with portable symbols, a scripted Definition of
@@ -3024,12 +3023,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   changes seed data unless the migration carries `[ExpandMigration("why")]`, when the release still serving reads every
   row it writes, or `[ContractMigration("why")]`, when it does not; a deliberate contract step carries
   `[ContractMigration("why")]`, and the rule fails that marker on a migration that only expands
-  ([ADR-1184](docs/decisions/1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md),
-  [ADR-1250](docs/decisions/1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md),
+  ([ADR-1180](docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md),
   issue [#205](https://github.com/NCodeGroup/identity/issues/205)). Until the first stable release,
   `InitialCreateTests` fails a host context that holds any migration but its `InitialCreate`, and a migration that
   changes data, so the `InitialCreate` migrations pass the rule unmarked
-  ([ADR-1394](docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
+  ([ADR-1180](docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)).
 
 - **`NCode.Identity.Dispatch(.Abstractions)` runs deferred, at-least-once background work behind a
   bring-your-own-orchestration port.** A job is a serializable `IDispatchJob`, handled by an `IDispatchJobHandler<TJob>`

@@ -11,7 +11,7 @@
 
 [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) fails a stored document that names a setting without a
 descriptor, so retiring a setting rewrote the stored documents in the same release.
-[ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md) requires every migration to
+[ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md) requires every migration to
 keep the previous release working, during the rollout and after a rollback. The two collide when the value of a setting
 leaves the settings documents.
 
@@ -39,7 +39,7 @@ it, and a later release removes it from the stored documents together with its d
    value a home outside the settings documents, carries `[ExpandMigration]`: it copies the value and leaves the key, and
    its `Down` writes the value back. A later release's `[ContractMigration]` removes the key from every settings table,
    and the retired descriptor is deleted
-   ([ADR-1250](1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md)).
+   ([ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)).
 4. **`mtls_endpoint_alias_authority` is retired.** The alias is a routed tenant property
    ([ADR-1195](1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md)), and the descriptor is registered
    with a reason in `DefaultSettingDescriptorDataSource`. `PromoteMtlsEndpointAliasAuthority`, which is in no release
@@ -78,13 +78,13 @@ it, and a later release removes it from the stored documents together with its d
 ## References
 
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md): setting names are a closed vocabulary.
-- [ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md): migrations run before
+- [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md): migrations run before
   the rollout and keep the previous release working.
 - [ADR-1195](1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md): a tenant's mTLS endpoint alias is a
   routed tenant property.
 - [ADR-1245](1245-a-management-request-answers-409-for-a-stored-settings-document-it-cannot-honor.md): a management
   request answers 409 for a stored settings document it cannot honor.
-- [ADR-1250](1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md): a
+- [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md): a
   migration classifies its data change.
 - `src/NCode.Identity.Settings/DefaultSettingSerializer.cs` and
   `src/NCode.Identity.OpenId.Core/Settings/DefaultSettingDescriptorDataSource.cs`.

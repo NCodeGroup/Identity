@@ -6,7 +6,7 @@
   [ADR-1165](1165-every-served-tenant-has-an-issuer-and-its-strategy-supplies-the-default.md): every served tenant has an
   issuer; [ADR-1195](1195-a-tenants-mtls-endpoint-alias-is-a-routed-tenant-property.md) adds the tenant's mTLS endpoint
   alias as a derived, routed second host for the endpoints only, while the issuer stays the published origin; amended by
-  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
   migration rewrites stored data)
 - **Date:** 2026-10-18

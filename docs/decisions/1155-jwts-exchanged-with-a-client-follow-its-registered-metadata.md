@@ -6,7 +6,7 @@
   credential selector is a public seam every issuer of a client-addressed JWT resolves; extended by
   [ADR-1206](1206-a-clients-settings-are-checked-by-registered-coherence-rules.md): the checks of decision 2 are a
   registered client coherence rule; amended by
-  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
   migration rewrites stored data; amended by
   [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): a platform write merges

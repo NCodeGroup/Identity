@@ -426,7 +426,7 @@ than inlining the rationale.
   narrowing its domain edits its descriptor and writes no data migration: each host database context has one
   re-scaffolded `InitialCreate` that holds no data, and a stored document that names an unregistered setting or holds a
   value outside its domain fails closed
-  ([ADR-1394](../../docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
+  ([ADR-1180](../../docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)).
   A value that is metadata rather than a runtime control (RFC 7591 `client_name`, `contacts`) is still a registered
   setting. No descriptor stays registered for a name nothing reads, and a management request that loads a stored
   document naming an unregistered setting answers `409`. See
@@ -894,7 +894,7 @@ than inlining the rationale.
   `dotnet ef migrations add` writes its files with a UTF-8 BOM; the repository's files are BOM-less
   (`charset = utf-8`), so strip the BOM from every generated file. See
   [ADR-1073](../../docs/decisions/1073-one-postgresql-database-holds-the-hosts-schema-and-key-ring-migrated-by-a-worker-and-drift-checked.md) and
-  [ADR-1394](../../docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md).
+  [ADR-1180](../../docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md).
 - ✅ **Every migration passes the expand-and-contract gate** — template
   [Entity Framework Core](csharp.instructions.md#entity-framework-core). `ExpandOnlyRule.Check` judges every host
   migration in `ExpandOnlyRuleTests`, which fails a contracting or unclassified migration in the Definition of Done.
@@ -906,8 +906,7 @@ than inlining the rationale.
   too) or `[ContractMigration("why")]` (it fails on, or loses, a value it reads); and a deliberate contract step ships a
   release after its expansion. Hand-written code in `NCode.Identity.OpenId.Host.Database` stays outside
   `Migrations/`, which `.editorconfig` treats as generated code. See
-  [ADR-1184](../../docs/decisions/1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and
-  [ADR-1250](../../docs/decisions/1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md).
+  [ADR-1180](../../docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md).
 - ✅ **Raw SQL in the EF model quotes identifiers** — template
   [Entity Framework Core](csharp.instructions.md#entity-framework-core):
   `HasFilter("\"NormalizedDomainName\" IS NOT NULL")`. The schema uses PascalCase, and only applying the migration to

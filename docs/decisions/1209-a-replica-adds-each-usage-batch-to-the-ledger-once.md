@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amended by [ADR-1213](1213-the-usage-ledger-is-pruned-in-bounded-batches.md): the prune removes
   a bounded batch per unit of work; amended by
-  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, which
   creates the schema this record names)
 - **Date:** 2026-10-22

@@ -44,7 +44,7 @@ a principle by number.
    alerts.
 9. **Small, safe, automated changes.** Rollouts are progressive and halt on failed readiness. Schema changes expand and
    contract so the old and new releases run side by side
-   ([ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)).
+   ([ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)).
 10. **Portable by open standards.** Kubernetes, OCI, OpenTelemetry, PostgreSQL and S3 are the interfaces, so a vendor is
     replaced by swapping a component module.
 11. **Cost-aware.** Sizes come from measurements, and every vendor has a budget alert.
@@ -76,4 +76,4 @@ a principle by number.
   [ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md),
   [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md),
   [ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md),
-  [ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md).
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md).

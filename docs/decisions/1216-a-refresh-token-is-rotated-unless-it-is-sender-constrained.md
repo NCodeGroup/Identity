@@ -1,7 +1,7 @@
 # 1216. A refresh token is rotated unless it is sender-constrained
 
 - **Status:** Accepted (amended by
-  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
   migration rewrites stored data)
 - **Date:** 2026-10-23
@@ -82,7 +82,7 @@ client, and the `refresh_token_rotation_policy` setting replaces the `refresh_to
 - The previous release fails closed on a stored document that names `refresh_token_rotation_policy` until the rollout
   completes, because it does not know the setting
   ([ADR-1139](1139-setting-names-are-a-closed-vocabulary.md),
-  [ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)).
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)).
 - **Breaking:** `refresh_token_rotation_enabled` is removed with its name and key constants, and
   `refresh_token_rotation_policy` is added.
 - This implements issue [#268](https://github.com/NCodeGroup/identity/issues/268).
@@ -96,7 +96,7 @@ client, and the `refresh_token_rotation_policy` setting replaces the `refresh_to
 - [ADR-1140](1140-setting-values-are-validated-against-their-domain.md) and
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — a closed domain fails closed.
 - [ADR-1139](1139-setting-names-are-a-closed-vocabulary.md) and
-  [ADR-1180](1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md) — the rollout of a
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md) — the rollout of a
   renamed setting.
 - [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700) — OAuth 2.0 Security Best Current Practice (§2.2.2, §4.14.2).
 - [FAPI 2.0 Security Profile](https://openid.net/specs/fapi-security-profile-2_0-final.html) (§5.3.2.1).

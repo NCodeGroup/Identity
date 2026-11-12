@@ -9,7 +9,7 @@
   server authenticates the same way and is accepted only at introspection; amended by
   [ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md): the registered method
   descriptors, not the handlers, name the methods; amended by
-  [ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md):
+  [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
   migration rewrites stored data)
 - **Date:** 2026-10-19

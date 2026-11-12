@@ -116,7 +116,7 @@ secret keeps the instants its creator gave it.
   and a retired key for the whole grace after the last.
 - The host database's `Secrets` table holds the four instants, and every persisted secret carries them; the host
   database context's `InitialCreate` holds them
-  ([ADR-1394](1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
+  ([ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)).
 - A key built in code without instants has no bound and no window.
 
 ## References

@@ -211,7 +211,7 @@ host-owned **`NCode.Identity.OpenId.Host.Database`** project under `Migrations/O
 - **Production** (any non-Development deployment) applies schema deliberately, once per release, before the rollout.
   The Helm chart runs the same worker from the host's image as a `pre-install` and `pre-upgrade` Job, and a failed
   migration stops the release before any pod changes
-  ([ADR-1180](../../docs/decisions/1180-migrations-run-before-the-rollout-and-keep-the-previous-release-working.md)). Without the
+  ([ADR-1180](../../docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)). Without the
   chart, run the worker the same way, or apply a generated idempotent script
   (`dotnet ef migrations script --idempotent`).
 
@@ -219,7 +219,7 @@ host-owned **`NCode.Identity.OpenId.Host.Database`** project under `Migrations/O
 
 Until the first stable release ([#535](https://github.com/NCodeGroup/identity/issues/535)), each context has one
 migration, `InitialCreate`, which creates its whole model and changes no data
-([ADR-1394](../../docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
+([ADR-1180](../../docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)).
 After changing the EF model, delete the context's migration, designer file and model snapshot, and scaffold
 `InitialCreate` again (the `Database` project carries the design-time factories, so it is both `--project` and
 `--startup-project`):
@@ -249,8 +249,7 @@ reset the local database with `build/dev-db-reset.ps1` (below).
 From the first stable release ([#535](https://github.com/NCodeGroup/identity/issues/535)), each context's
 `InitialCreate` is its baseline and every model change adds a migration, which only expands the schema unless it is
 marked a contract step
-([ADR-1184](../../docs/decisions/1184-a-migration-only-expands-the-schema-unless-it-is-marked-a-contract-step.md) and
-[ADR-1250](../../docs/decisions/1250-a-migration-classifies-its-data-change-and-a-constraint-added-to-an-existing-table-contracts.md)).
+([ADR-1180](../../docs/decisions/1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md)).
 The Definition of Done enforces the rule over every migration, the `InitialCreate` migrations included, which pass
 unmarked. `ExpandOnlyRuleTests` runs `ExpandOnlyRule.Check` and fails a migration that drops or renames a table or
 column; adds a required column without a default; makes a column required, removes the default of a required column,

@@ -17,7 +17,7 @@ namespace NCode.Identity.OpenId.Host.Database;
 /// The rule classifies schema operations itself. Raw SQL and seed-data changes are opaque to it, so a migration that
 /// makes one states what it does to the previous release with a marker.
 /// </remarks>
-// See ADR-1180 and ADR-1184.
+// See ADR-1180.
 [PublicAPI]
 public static class ExpandOnlyRule
 {

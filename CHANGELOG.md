@@ -2672,8 +2672,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   lifetime claims, then the ID token's `sub`; it refuses JSON, and a client that registered no signing refuses a JWT.
   The BFF names what it registered in each frontend's `IdToken` and `UserInfo` sections (`SigningAlgorithms`, `KeyManagementAlgorithms`,
   `ContentEncryptionAlgorithms`), validated at startup
-  ([ADR-1299](docs/decisions/1299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md),
-  [ADR-1301](docs/decisions/1301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md),
+  ([ADR-1301](docs/decisions/1301-the-protocol-client-reads-userinfo-as-json-or-a-registered-jwt-under-the-familys-claim-mapping.md),
   issues [#415](https://github.com/NCodeGroup/identity/issues/415),
   [#421](https://github.com/NCodeGroup/identity/issues/421)).
 
@@ -2745,7 +2744,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The BFF can merge UserInfo into a session at login.** A frontend's `UserInfo:Load` merges UserInfo into a session at login,
   before the claim contributors and the login gates; a failure ends the login with `userinfo_failed`
   ([#415](https://github.com/NCodeGroup/identity/issues/415),
-  [ADR-1299](docs/decisions/1299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md)).
+  [ADR-1301](docs/decisions/1301-the-protocol-client-reads-userinfo-as-json-or-a-registered-jwt-under-the-familys-claim-mapping.md)).
 
 - **The BFF serves several token requirements and forwards remote APIs.** An endpoint or remote API names its token
   requirement from `BffTokenRequirementNames`: `user` (the user's token), `client` (the BFF's own `client_credentials`
@@ -5530,7 +5529,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **An encrypted UserInfo response must also be signed.** The protocol client never accepts a UserInfo response
   encrypted without a signature, so a `ClientRegistration` with UserInfo encryption and no UserInfo signing throws
   before the request
-  ([ADR-1301](docs/decisions/1301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md),
+  ([ADR-1301](docs/decisions/1301-the-protocol-client-reads-userinfo-as-json-or-a-registered-jwt-under-the-familys-claim-mapping.md),
   issue [#421](https://github.com/NCodeGroup/identity/issues/421)).
 
 - **The OpenID protocol client keeps provider responses in zeroed, pooled memory.** It streams each response body, under

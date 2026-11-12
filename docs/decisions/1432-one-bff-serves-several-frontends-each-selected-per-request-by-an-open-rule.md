@@ -12,8 +12,7 @@
   decisions 1 and 5, and the per-frontend configuration keys that
   [ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
   [ADR-1294](1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md),
-  [ADR-1299](1299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md) and
-  [ADR-1301](1301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md)
+  [ADR-1301](1301-the-protocol-client-reads-userinfo-as-json-or-a-registered-jwt-under-the-familys-claim-mapping.md)
   name; decisions 7, 8 and 11 amended by
   [ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md):
   the frontends follow their configuration and a change takes effect only when the whole set is valid; amended by

@@ -331,14 +331,14 @@ subject than the ID token's
 the session (`iss`, `sub`, `sid`, `auth_time`, `acr`, `amr`); the session claim contributors and the login gates then
 see the merged claims. A failed request ends the login with `userinfo_failed`, or `provider_unavailable` when the OP
 cannot be reached. Without the option, the session's claims come from the ID token
-([ADR-1299](decisions/1299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md)).
+([ADR-1301](decisions/1301-the-protocol-client-reads-userinfo-as-json-or-a-registered-jwt-under-the-familys-claim-mapping.md)).
 When the frontend registered `userinfo_signed_response_alg` (`Bff:Frontends:{name}:UserInfo:SigningAlgorithms`), the
 response must be a JWT
 the OP signed under those algorithms, with its `iss` and an `aud` naming the client, and a Nested JWT that decrypts with
 the client's key ring when it also registered encryption
 (`Bff:Frontends:{name}:UserInfo:KeyManagementAlgorithms`); a JSON response is
 then refused, as is an encrypted response that is not signed
-([ADR-1301](decisions/1301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md)).
+([ADR-1301](decisions/1301-the-protocol-client-reads-userinfo-as-json-or-a-registered-jwt-under-the-familys-claim-mapping.md)).
 
 ### 5.2 Login transaction and callback binding
 

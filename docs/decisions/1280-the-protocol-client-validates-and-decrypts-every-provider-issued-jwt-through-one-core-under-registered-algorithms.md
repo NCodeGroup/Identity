@@ -11,7 +11,7 @@ The protocol client receives three kinds of JWT from the provider: the ID token
 logout token
 ([ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md)) and
 a signed UserInfo response
-([ADR-1301](1301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md)).
+([ADR-1301](1301-the-protocol-client-reads-userinfo-as-json-or-a-registered-jwt-under-the-familys-claim-mapping.md)).
 Each kind checks its own claims, but the work around the claims is the same: choose the permitted algorithms, resolve
 the provider's keys, decrypt, check a replicated issuer, verify the signature and word the failure. That work must exist
 once, so a fix to it reaches every kind.
@@ -39,7 +39,7 @@ the client registered encryption, every token must be encrypted.**
    registered and advertised algorithms, the `typ`, the lifetime rules and the words of the failure reasons. Each kind
    ([ADR-1273](1273-the-protocol-client-validates-id-tokens-and-their-token-hashes-under-openid-connect-core.md),
    [ADR-1274](1274-the-protocol-client-validates-logout-tokens-and-records-each-only-after-the-client-handles-it.md),
-   [ADR-1301](1301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md))
+   [ADR-1301](1301-the-protocol-client-reads-userinfo-as-json-or-a-registered-jwt-under-the-familys-claim-mapping.md))
    checks only its own claims.
 2. **The signature policy is an allow-list.** The internal static `ProviderSignaturePolicy` permits the registered
    `SignatureAlgorithm`s whose key type is `AsymmetricSecretKey`, so `none` is never permitted. It intersects them with
@@ -135,6 +135,6 @@ the client registered encryption, every token must be encrypted.**
   logout-token claim checks
 - [ADR-1278](1278-token-validation-failures-carry-a-machine-readable-code-set-where-the-failure-is-detected.md) — the
   failure codes
-- [ADR-1301](1301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md) —
+- [ADR-1301](1301-the-protocol-client-reads-userinfo-as-json-or-a-registered-jwt-under-the-familys-claim-mapping.md) —
   the UserInfo claim checks
 - Issue [#347](https://github.com/NCodeGroup/identity/issues/347)

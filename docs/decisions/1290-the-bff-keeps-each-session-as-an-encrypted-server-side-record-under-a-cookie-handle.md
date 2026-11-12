@@ -97,7 +97,7 @@ without the cookie.**
     `/bff/user` on each request through `BffUserContext`, which refuses the reserved `sub`, `name`, `claims`, `session`
     and `logoutUrl` and a name already added; the contributors run before the response starts. `Bff:UserInfo:Load`
     merges the provider's UserInfo claims before the contributors run
-    ([ADR-1299](1299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md)).
+    ([ADR-1301](1301-the-protocol-client-reads-userinfo-as-json-or-a-registered-jwt-under-the-familys-claim-mapping.md)).
 12. **Audit.** One public record, `BffAuditEvent : AuditEvent, ISupportAuditDetails`, with event source `bff` and the
     names in `BffAuditEventNames`, records logins, session ends, refresh failures, back-channel logouts and CSRF
     refusals ([audit records](../audit-records.md)). No token, handle, cookie value, state, code or secret is ever

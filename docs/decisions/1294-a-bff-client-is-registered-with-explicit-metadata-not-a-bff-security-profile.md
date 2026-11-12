@@ -40,7 +40,7 @@ A BFF client registers:
   ([ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md)).
 - `id_token_signed_response_alg`, `userinfo_signed_response_alg` and their `_encrypted_response_alg` and `_enc`,
   when set, the same as the BFF's `Bff:IdToken` and `Bff:UserInfo` name
-  ([ADR-1301](1301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md)).
+  ([ADR-1301](1301-the-protocol-client-reads-userinfo-as-json-or-a-registered-jwt-under-the-familys-claim-mapping.md)).
 - The `authorization_code` and `refresh_token` grant types and the `offline_access` scope, which the BFF always
   requests.
 - A refresh-token absolute lifetime no shorter than the BFF's `Session:AbsoluteLifetime`, so the session does not end

@@ -10,7 +10,7 @@ namespace NCode.Identity.OpenId.Client;
 /// access token, the way the token was issued: as a bearer token, or with a DPoP proof (RFC 9449 §7), over mutual TLS
 /// when the client authenticates with it (RFC 8705 §5).
 /// </summary>
-// See ADR-1299.
+// See ADR-1301.
 [PublicAPI]
 public interface IUserInfoClient
 {

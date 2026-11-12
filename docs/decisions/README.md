@@ -288,9 +288,8 @@ The records are grouped by area; within an area they are in number order.
 | [1282](./1282-the-jose-library-implements-neither-none-nor-rsa1-5-and-a-failed-jwe-decryption-reveals-no-cause.md) | The JOSE library implements neither none nor RSA1_5, and a failed JWE decryption reveals no cause | Accepted |
 | [1285](./1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md) | The protocol client is a framework-free library over the family's JOSE stack and named key rings | Accepted |
 | [1286](./1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md) | The protocol client binds tokens with DPoP whenever the provider supports it | Accepted |
-| [1299](./1299-userinfo-is-read-as-json-under-the-familys-claim-mapping-and-merged-once-at-login.md) | UserInfo is read as JSON under the family's claim mapping and merged once at login | Accepted |
 | [1300](./1300-the-protocol-client-authenticates-with-a-key-rings-tls-client-certificate-and-its-issuers-certificates.md) | The protocol client authenticates with a key ring's TLS client certificate and its issuers' certificates | Accepted |
-| [1301](./1301-a-signed-userinfo-response-is-validated-like-an-id-token-under-the-clients-registered-algorithms.md) | A signed UserInfo response is validated like an ID token under the client's registered algorithms | Accepted |
+| [1301](./1301-the-protocol-client-reads-userinfo-as-json-or-a-registered-jwt-under-the-familys-claim-mapping.md) | The protocol client reads UserInfo as JSON or a registered JWT under the family's claim mapping | Accepted |
 | [1336](./1336-the-protocol-client-bounds-its-calls-with-a-polly-core-pipeline.md) | The protocol client bounds its calls with a Polly.Core pipeline | Accepted |
 | [1389](./1389-one-algorithm-name-serves-every-key-type-it-declares.md) | One algorithm name serves every key type it declares | Accepted |
 | [1390](./1390-x25519-and-x448-agree-keys-beside-the-okp-signing-keys-and-a-curves-use-separates-them.md) | X25519 and X448 agree keys beside the OKP signing keys, and a curve's use separates them | Accepted |

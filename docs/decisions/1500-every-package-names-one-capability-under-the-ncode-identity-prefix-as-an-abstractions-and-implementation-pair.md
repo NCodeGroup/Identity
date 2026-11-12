@@ -48,10 +48,10 @@ any package may reference.**
    `NCode.Identity.OpenId.Authentication` uses the OpenID core's services through `NCode.Identity.OpenId.Abstractions`,
    and the Entity Framework accounts slice uses the `IPasswordHasher` that a host registers with
    `AddDefaultPasswordHasher()` from `NCode.Identity.OpenId.Accounts`.
-5. **Foundation packages.** `NCode.Identity.Json`, `NCode.Identity.Time` and `NCode.Identity.AspNetCore(.Abstractions)`
-   may be referenced by any package. A foundation package references only `NCode.Identity.Registration` and other
-   foundation packages, and a new one needs a second package of the family that consumes it; a capability that only one
-   package consumes belongs in that package.
+5. **Foundation packages.** `NCode.Identity.Json`, `NCode.Identity.Jwk`, `NCode.Identity.Time` and
+   `NCode.Identity.AspNetCore(.Abstractions)` may be referenced by any package. A foundation package references only
+   `NCode.Identity.Registration` and other foundation packages, and a new one needs a second package of the family that
+   consumes it; a capability that only one package consumes belongs in that package.
 6. **JSON.** `NCode.Identity.Json.JsonElements` is the one JSON helper home: `TryGetPropertyValue<T>`,
    `IsNullOrUndefined`, `OrEmptyObject` and `Parse`.
 7. **Time.** `NCode.Identity.Time` holds `TimerPeriod`, the range of periods a timer accepts, and `TimePeriod`, the span

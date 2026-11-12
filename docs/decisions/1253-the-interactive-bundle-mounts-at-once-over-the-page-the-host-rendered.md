@@ -12,7 +12,7 @@
 
 The host renders working no-JavaScript login, consent and authorization error pages
 ([ADR-1065](1065-interactive-login-consent-op-hosted-auth-surface.md),
-[ADR-1114](1114-non-redirectable-authorization-errors-are-content-negotiated.md)). When the `apps/auth` bundle is
+[ADR-1114](1114-an-openid-response-is-written-by-a-content-negotiated-response-formatter-json-by-default.md)). When the `apps/auth` bundle is
 present, the host writes the page into the bundle's `#root` element and the bundle replaces it (progressive
 enhancement). Two forces decide how that replacement happens:
 
@@ -89,7 +89,7 @@ the tenant's branding in the page, and the bundle reads the branding and the pag
 
 - [ADR-1065](1065-interactive-login-consent-op-hosted-auth-surface.md): interactive login/consent as the OP-hosted
   `apps/auth` surface.
-- [ADR-1114](1114-non-redirectable-authorization-errors-are-content-negotiated.md): non-redirectable authorization
+- [ADR-1114](1114-an-openid-response-is-written-by-a-content-negotiated-response-formatter-json-by-default.md): non-redirectable authorization
   errors are content-negotiated.
 - [ADR-1193](1193-the-interactive-surface-is-served-under-the-tenant-route.md): the interactive surface is served under
   the tenant route.

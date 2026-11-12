@@ -1263,7 +1263,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   to `DefaultOpenIdRedirectResultExecutor`. The interactive surface (`AddInteractiveAuthentication`) registers the HTML
   page, written through `SecureEncoding.UTF8` like `DefaultAuthorizationResultExecutor`; a deployment without the
   interactive package answers with JSON
-  ([ADR-1114](docs/decisions/1114-non-redirectable-authorization-errors-are-content-negotiated.md)).
+  ([ADR-1114](docs/decisions/1114-an-openid-response-is-written-by-a-content-negotiated-response-formatter-json-by-default.md)).
 
 - **Discovery metadata lists only standardized parameters.** The discovery endpoint does not list itself as
   `discovery_endpoint`, a parameter neither OpenID Connect Discovery 1.0 nor RFC 8414 defines, and because CIBA Core

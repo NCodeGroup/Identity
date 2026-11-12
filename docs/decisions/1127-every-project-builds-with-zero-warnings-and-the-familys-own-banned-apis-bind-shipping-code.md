@@ -57,6 +57,9 @@ binds the projects that ship.**
    `jose-jwt` package that `NCode.Identity.Jose.Tests` references, and banning them would defeat the test strategy. The
    banned-API analyzer itself runs in every project, so `BannedSymbols.Encoding.txt`, added to every project, binds
    tests too ([ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)).
+   `BannedSymbols.Buffers.txt` binds every project that is not a test project, hosts and benchmark projects included,
+   and leaves the test projects free of it
+   ([ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)).
 8. **`Microsoft.CodeAnalysis.PublicApiAnalyzers` runs only where `IsPackable` is not `false`.** Test assemblies have no
    tracked public surface. The null-forgiving operator ban is
    [project-template ADR-0118](project-template/0118-the-null-forgiving-operator-is-banned-outside-tests.md)'s, and it

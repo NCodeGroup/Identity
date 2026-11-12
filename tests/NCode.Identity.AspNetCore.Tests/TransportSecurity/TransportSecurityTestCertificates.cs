@@ -54,11 +54,40 @@ internal static class TransportSecurityTestCertificates
         var notBefore = now.AddDays(-1);
         var notAfter = now.AddDays(90);
 
-        // The framework's signature generator does not sign with SHA-1, so that certificate uses a generator of this
-        // file's own.
+        // The framework's signature generator does not sign with SHA-1, so that certificate uses a generator of its
+        // own.
         return signatureHash == HashAlgorithmName.SHA1
-            ? FinishSha1(request, rsa, notBefore, notAfter)
+            ? FinishWithGenerator(
+                request,
+                rsa,
+                new Sha1RsaSignatureGenerator(rsa),
+                notBefore,
+                notAfter
+            )
             : Finish(request, notBefore, notAfter);
+    }
+
+    /// <summary>
+    /// A 2048-bit RSA certificate signed with RSASSA-PSS and SHA-1, valid from a day before <paramref name="now"/> for
+    /// 90 days.
+    /// </summary>
+    internal static X509Certificate2 CreateRsaPssWithSha1(DateTimeOffset now)
+    {
+        using var rsa = RSA.Create(2048);
+        var request = new CertificateRequest(
+            "CN=localhost",
+            rsa,
+            HashAlgorithmName.SHA256,
+            RSASignaturePadding.Pkcs1
+        );
+
+        return FinishWithGenerator(
+            request,
+            rsa,
+            new Sha1PssSignatureGenerator(rsa),
+            now.AddDays(-1),
+            now.AddDays(90)
+        );
     }
 
     /// <summary>
@@ -123,9 +152,10 @@ internal static class TransportSecurityTestCertificates
         return Reload(selfSigned);
     }
 
-    private static X509Certificate2 FinishSha1(
+    private static X509Certificate2 FinishWithGenerator(
         CertificateRequest request,
         RSA rsa,
+        X509SignatureGenerator signatureGenerator,
         DateTimeOffset notBefore,
         DateTimeOffset notAfter
     )
@@ -140,7 +170,7 @@ internal static class TransportSecurityTestCertificates
 
         using var publicOnly = request.Create(
             subject,
-            new Sha1RsaSignatureGenerator(rsa),
+            signatureGenerator,
             notBefore,
             notAfter,
             serialNumber
@@ -167,36 +197,4 @@ internal static class TransportSecurityTestCertificates
             password: null,
             keyStorageFlags: X509KeyStorageFlags.Exportable
         );
-
-    // Signs with RSA PKCS#1 and SHA-1 (sha1WithRSAEncryption), which the inspector must refuse.
-    private sealed class Sha1RsaSignatureGenerator(RSA rsa) : X509SignatureGenerator
-    {
-        private static ReadOnlySpan<byte> AlgorithmIdentifier =>
-            [
-                0x30,
-                0x0D,
-                0x06,
-                0x09,
-                0x2A,
-                0x86,
-                0x48,
-                0x86,
-                0xF7,
-                0x0D,
-                0x01,
-                0x01,
-                0x05,
-                0x05,
-                0x00,
-            ];
-
-        protected override PublicKey BuildPublicKey() =>
-            CreateForRSA(rsa, RSASignaturePadding.Pkcs1).PublicKey;
-
-        public override byte[] GetSignatureAlgorithmIdentifier(HashAlgorithmName hashAlgorithm) =>
-            AlgorithmIdentifier.ToArray();
-
-        public override byte[] SignData(byte[] data, HashAlgorithmName hashAlgorithm) =>
-            rsa.SignData(data, HashAlgorithmName.SHA1, RSASignaturePadding.Pkcs1);
-    }
 }

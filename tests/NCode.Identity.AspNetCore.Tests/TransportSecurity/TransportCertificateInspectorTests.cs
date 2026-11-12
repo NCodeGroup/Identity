@@ -137,6 +137,20 @@ public sealed class TransportCertificateInspectorTests
         Assert.Empty(TransportCertificateInspector.FindFailures(certificate, Now));
     }
 
+    [Fact]
+    public void FindFailures_WhenTheCertificateIsSignedWithPssAndSha1_ReportsTheWeakHash()
+    {
+        using var certificate = TransportSecurityTestCertificates.CreateRsaPssWithSha1(Now);
+
+        var failures = TransportCertificateInspector.FindFailures(certificate, Now);
+
+        var failure = Assert.Single(failures);
+        Assert.Equal(
+            "is signed with RSASSA-PSS using a hash weaker than SHA-256; only SHA-256 or stronger with RSA or ECDSA is accepted.",
+            failure
+        );
+    }
+
     #endregion
 
     #region IsStrongPssHash Tests

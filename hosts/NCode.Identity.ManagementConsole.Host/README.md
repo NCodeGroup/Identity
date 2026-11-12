@@ -23,6 +23,14 @@ image writes one JSON object per line to standard output, with a UTC timestamp. 
 for `linux/amd64` and `linux/arm64`
 ([ADR-1458](../../docs/decisions/1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md)).
 
+The `ProxyClientCertificate` section makes the host require the reverse proxy's client certificate. With
+`ProxyClientCertificate__Required=true`, the host answers `403` to every request whose connection carries no certificate
+that chains to the authorities in `ProxyClientCertificate__CertificateAuthorityPath` (a PEM file), has the `client auth`
+usage, is valid and has a subject listed in `ProxyClientCertificate__AllowedSubjects__0`, `__1` and so on, except
+`/health/live` and `/health/ready`, which the kubelet sends without a certificate. It is off by default, and the keys
+are refused while `Required` is false
+([ADR-1505](../../docs/decisions/1505-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
+
 The image starts in the `Production` environment, which refuses to start until the deployment provides:
 
 - A serving certificate: the host serves HTTPS only. It refuses to start when an endpoint is plain HTTP, no endpoint is

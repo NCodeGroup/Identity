@@ -28,7 +28,7 @@ soft-revoke.**
 
 - **Opaque `GrantId`, secret `HashedKey`.** Every grant carries a server-generated opaque `GrantId`
   (`ICryptoService.GenerateResourceId()` — the same 128-bit CSPRNG/base64url scheme as every other resource id,
-  [ADR-1014](1014-server-generated-opaque-resource-ids.md)), minted by `DefaultPersistedGrantService` at creation and
+  [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md)), minted by `DefaultPersistedGrantService` at creation and
   stored alongside the internal `HashedKey`. The admin surface lists, gets, and revokes **by `GrantId`**; `HashedKey`
   is never accepted or returned. The runtime token lookup keeps using `HashedKey` unchanged.
 - **Metadata-only projection.** `GrantResource` exposes `GrantId`, `GrantType`, `TenantId`, `ClientId`, `SubjectId`,
@@ -44,7 +44,7 @@ soft-revoke.**
   request sees only its own tenant's grants and a non-tenant (global) grant is simply not materialized. List/get/revoke
   authorize against the request's tenant scope (a `TenantScopeResource`, so `TenantAdminHandler` matches and
   `GlobalAdminHandler` bypasses), consistent with the client family.
-- **Keyset pagination ([ADR-1019](1019-collection-endpoints-keyset-pagination.md)) over the surrogate id.** `GET
+- **Keyset pagination ([ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md)) over the surrogate id.** `GET
 /api/grants` returns a `CollectionResource<GrantResource>` page. Grants have no normalized natural key to order on
   (the natural key is the secret `HashedKey`), so the page orders on the chronological surrogate `Id`. To let a store
   that is **not** keyed by a resource id reuse the cursor machinery, the shared keyset mechanics live in `BaseStore`
@@ -81,11 +81,11 @@ soft-revoke.**
 
 - [ADR-1011](1011-secret-management-api.md) — the "no secret material on the surface" precedent for a metadata-only
   projection.
-- [ADR-1014](1014-server-generated-opaque-resource-ids.md) — the opaque server-generated id scheme reused for
+- [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md) — the opaque server-generated id scheme reused for
   `GrantId`.
 - [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — the query filter that scopes the grant
   surface to the ambient tenant.
-- [ADR-1019](1019-collection-endpoints-keyset-pagination.md) — the keyset pagination shape the grant list uses.
+- [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md) — the keyset pagination shape the grant list uses.
 - Code: `NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant.GrantId`,
   `NCode.Identity.OpenId.Persistence.EntityFramework.Entities.GrantEntity` (`GrantId` / `NormalizedGrantId`),
   `NCode.Identity.OpenId.Persistence.EntityFramework.Stores.GrantStore`,

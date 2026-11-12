@@ -138,5 +138,5 @@ A non-Entity-Framework adapter is not a slice and keeps domain-first naming, as 
   to every slice's `ISupportTenantEntity`.
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md): the dependency discipline that slices follow
   by depending on the framework and not on each other.
-- [ADR-1014](1014-server-generated-opaque-resource-ids.md): the opaque-id generation that `UseIdGeneratorAttribute`
+- [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md): the opaque-id generation that `UseIdGeneratorAttribute`
   provides to every slice.

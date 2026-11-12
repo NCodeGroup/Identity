@@ -65,7 +65,7 @@ client key enters.**
 3. **A `kid` is the client's name for its key, separate from the resource identifier.** A stored secret carries an
    optional `KeyId`; when it is unset the key is selected by its secret identifier, so every server-generated key is
    unchanged. A key registered as a JSON Web Key keeps its own `kid`, under a newly generated, opaque secret identifier
-   ([ADR-1014](1014-server-generated-opaque-resource-ids.md)). Every key of a registered or published JSON Web Key
+   ([ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md)). Every key of a registered or published JSON Web Key
    Set must have a `kid`, unique within the set; a key the management API imports keeps the JWK's `kid` or, from PEM
    or a certificate, is selected by its secret identifier, and the API refuses a `kid` another of the client's keys
    already uses.

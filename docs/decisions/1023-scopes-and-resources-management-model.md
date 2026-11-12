@@ -88,7 +88,7 @@ corruption.
   eventually make authoritative from the database.
 - [ADR-1012](1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) — interceptor-managed concurrency tokens reused by the new
   entities.
-- [ADR-1014](1014-server-generated-opaque-resource-ids.md) — opaque server-generated identifiers reused for the new
+- [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md) — opaque server-generated identifiers reused for the new
   resources.
 - [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — the tenant query filter the new families are
   scoped by.

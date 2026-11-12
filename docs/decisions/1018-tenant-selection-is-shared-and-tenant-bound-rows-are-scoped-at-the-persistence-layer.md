@@ -19,7 +19,7 @@ Two forces shape the design.
   shared concern, separate from materializing the tenant's contexts
   ([ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md) holds materialization).
 - A scope decision made after a row has been read is too late. A resource is addressed by a globally unique opaque
-  identifier ([ADR-1014](1014-server-generated-opaque-resource-ids.md)), so its tenant is knowable only by reading the
+  identifier ([ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md)), so its tenant is knowable only by reading the
   row, and no check before the fetch can gate the specific resource. A logging statement, an early return or a later
   refactor between the read and the comparison can leak another tenant's data, and every call site repeats the risk.
   The fetch itself has to be scoped: "never fetch what you cannot see", not "fetch, then hide".

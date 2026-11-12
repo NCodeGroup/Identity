@@ -3,7 +3,7 @@
 - **Status:** Accepted (extends the GlobalAdmin bootstrap of
   [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md); reinforces
   [ADR-1011](1011-secret-management-api.md) — no secret material on the surface —, the opaque-id rule of
-  [ADR-1014](1014-server-generated-opaque-resource-ids.md), and the composition boundary of
+  [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md), and the composition boundary of
   [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md); credentials location amended by
   [ADR-1145](1145-a-client-authenticates-only-with-its-registered-method.md): the bootstrap administrator registers
   `client_secret_basic`, so the client-credentials login sends its credentials in the `Authorization` header)
@@ -78,7 +78,7 @@ form, to expose it; and a secret is never pre-filled into a served document outs
 ## References
 
 - [ADR-1011](1011-secret-management-api.md) — no secret material on the surface.
-- [ADR-1014](1014-server-generated-opaque-resource-ids.md) — server-generated opaque identifiers.
+- [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md) — server-generated opaque identifiers.
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — composition wires implementations.
 - [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md) — management auth and the GlobalAdmin bootstrap.
 - `src/NCode.Identity.Server/IdentityServerApiReferenceEndpointRouteBuilderExtensions.cs`,

@@ -87,5 +87,5 @@ with no scoped-service workaround.
   mediator litmus test this decision re-applies.
 - [ADR-1013](1013-management-precondition-mediator-pipeline.md) — the superseded mediator pipeline, whose
   "decide on queried facts, not caught exceptions" analysis is retained.
-- [ADR-1014](1014-server-generated-opaque-resource-ids.md) — server-generated ids; its uniqueness checks are the
+- [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md) — server-generated ids; its uniqueness checks are the
   ones the validators assert.

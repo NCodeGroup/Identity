@@ -25,8 +25,8 @@ same filters.**
 
 - **Filtered list.** `GET /api/grants?subjectId=&clientId=&cursor=&limit=` — both filters are optional and combine with
   AND; omitting them yields the existing full-tenant page. Filtering stays within the keyset pagination of
-  [ADR-1019](1019-collection-endpoints-keyset-pagination.md); this is exactly the "a **specific** filter, backed by an
-  explicit store method" that ADR-1019 permits — not a general query protocol.
+  [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md); this is exactly the "a **specific** filter, backed by an
+  explicit store method" that ADR-1014 permits — not a general query protocol.
 - **Bulk revoke.** `DELETE /api/grants?subjectId=&clientId=` soft-revokes every **active** matching grant (sets
   `RevokedWhen`, keeps rows for audit), mirroring the single-grant `DELETE /api/grants/{grantId}`. **At least one filter
   is required** — an unfiltered call returns `400 Bad Request` rather than silently revoking the whole tenant. It
@@ -45,7 +45,7 @@ same filters.**
 ## Options considered
 
 - **A general query protocol (OData/JSON:API) over grants.** Rejected for the same reasons as
-  [ADR-1019](1019-collection-endpoints-keyset-pagination.md): it leaks `IQueryable`, is a denial-of-service and
+  [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md): it leaks `IQueryable`, is a denial-of-service and
   complexity surface over a security store, and is a heavyweight versioned contract. Two indexed, first-class filters
   meet the real need.
 - **A dedicated `POST /api/grants/revoke` action instead of `DELETE` with query filters.** Rejected: `DELETE` on the
@@ -76,7 +76,7 @@ same filters.**
   bulk revoke changes.
 - [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — the query filter that scopes the filtered
   list and bulk revoke to the ambient tenant.
-- [ADR-1019](1019-collection-endpoints-keyset-pagination.md) — keyset pagination and its allowance for specific,
+- [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md) — keyset pagination and its allowance for specific,
   store-backed filters.
 - [ADR-1020](1020-grant-management-read-surface.md) — the grant read surface this extends.
 - Code: `NCode.Identity.OpenId.Persistence.Stores.IGrantStore` (`GetPageAsync`, `RevokeWhereAsync`),

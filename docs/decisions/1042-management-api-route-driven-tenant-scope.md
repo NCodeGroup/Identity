@@ -36,7 +36,7 @@ source, and it produces three defects:
 [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) (superseded by
 [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)) considered nesting management resources under a
 tenant route segment and rejected it, on the grounds that globally-unique opaque ids
-([ADR-1014](1014-server-generated-opaque-resource-ids.md)) make the segment redundant for _addressing_. That reasoning
+([ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md)) make the segment redundant for _addressing_. That reasoning
 predates the persistence query filter: with ADR-1018 the route segment is no longer about addressing — it is the
 **fail-closed source of the ambient scope**, and the only source that is deterministic across every tenant strategy.
 

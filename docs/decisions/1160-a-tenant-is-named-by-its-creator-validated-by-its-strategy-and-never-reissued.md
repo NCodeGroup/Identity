@@ -7,7 +7,7 @@
 
 ## Context
 
-Resource identifiers are server-generated and opaque ([ADR-1014](1014-server-generated-opaque-resource-ids.md)), and
+Resource identifiers are server-generated and opaque ([ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md)), and
 project-template ADR-0123 asks the same of every resource: an identifier is a meaningless anchor for foreign keys and
 audit records, and a caller never chooses one. A tenant's identifier is different, because it is not internal.
 
@@ -153,7 +153,7 @@ through the strategy that serves it on every write path, and a retired identifie
 
 ## References
 
-- [ADR-1014](1014-server-generated-opaque-resource-ids.md) - opaque identifiers for every other resource.
+- [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md) - opaque identifiers for every other resource.
 - [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md) - the issuer as the tenant's identity.
 - [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md) - the tenant route and the base address.
 - [ADR-1042](1042-management-api-route-driven-tenant-scope.md) - the management API's tenant scope.

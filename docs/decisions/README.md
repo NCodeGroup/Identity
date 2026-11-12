@@ -171,9 +171,8 @@ The records are grouped by area; within an area they are in number order.
 | --- | --- | --- |
 | [1009](./1009-endpoint-families-own-their-route-group.md) | Endpoint families own their route group and cross-cutting endpoint filters | Accepted |
 | [1013](./1013-management-precondition-mediator-pipeline.md) | Management preconditions are a mediator validation pipeline | Superseded |
-| [1014](./1014-server-generated-opaque-resource-ids.md) | Resource identifiers are server-generated and opaque | Accepted |
+| [1014](./1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md) | Management resources carry opaque server identifiers and list one keyset page at a time | Accepted |
 | [1015](./1015-management-core-validation-via-validators.md) | Management core validation via replaceable validators | Accepted |
-| [1019](./1019-collection-endpoints-keyset-pagination.md) | Collection endpoints use keyset (cursor) pagination, not a query protocol | Accepted |
 | [1020](./1020-grant-management-read-surface.md) | Grant administration is a tenant-scoped, metadata-only read surface with opaque ids | Accepted |
 | [1022](./1022-grant-filters-and-bulk-revocation.md) | Grant administration gains specific subject/client filters and bulk revocation | Accepted |
 | [1031](./1031-control-plane-management-resource-server-and-root-tenant-seeding.md) | The control-plane management resource server is a planed system resource server seeded only into the root tenant | Accepted |

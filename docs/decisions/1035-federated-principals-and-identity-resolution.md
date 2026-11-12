@@ -32,7 +32,7 @@ directly as the lookup/relationship key. Two problems follow:
   has no `sub` at all. A single hard-coded claim is not a durable principal identity.
 - **An externally-provided value is the key.** Using the upstream `sub` as the relationship key couples authority to
   external-identity churn (issuer migration, re-provisioning) and contradicts
-  [ADR-1014](1014-server-generated-opaque-resource-ids.md) (identifiers are server-generated and opaque), which the
+  [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md) (identifiers are server-generated and opaque), which the
   rest of the system follows.
 
 There is also a modeling hazard to avoid: when the same human signs in through different connections (a Google login,
@@ -75,7 +75,7 @@ resolves to the principal that owns the human's other identities.
 
 ### Identifiers
 
-Each entity owns a server-generated opaque canonical id ([ADR-1014](1014-server-generated-opaque-resource-ids.md)) over
+Each entity owns a server-generated opaque canonical id ([ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md)) over
 an internal surrogate key:
 
 | entity               | identifiers and keys                                                                                                                                                                                     |
@@ -170,7 +170,7 @@ no code today:
 
 ## References
 
-- [ADR-1014](1014-server-generated-opaque-resource-ids.md) — server-generated opaque identifiers, which the principal
+- [ADR-1014](1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md) — server-generated opaque identifiers, which the principal
   and identity ids follow.
 - [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md) — the authorization model whose abstract principal
   this ADR gives a durable identity.

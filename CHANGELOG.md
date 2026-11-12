@@ -2218,7 +2218,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `items` and `continuationToken`) using keyset (cursor) pagination (`?limit=` clamped to 100, `?cursor=` an opaque
   continuation token). Keyset pagination lives in `BaseStore`, so a store not keyed by a resource id, such as the grant
   store, paginates on its chronological surrogate id. There is deliberately no query protocol (no OData); see
-  [ADR-1019](docs/decisions/1019-collection-endpoints-keyset-pagination.md).
+  [ADR-1014](docs/decisions/1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md).
 
 - **Every management write honors optimistic concurrency.** A resource carries its `concurrencyToken`, a write sends it
   as `If-Match`, and a write that loses a concurrency race is answered `412 Precondition Failed`

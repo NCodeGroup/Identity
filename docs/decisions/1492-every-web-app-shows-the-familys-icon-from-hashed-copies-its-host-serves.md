@@ -80,7 +80,7 @@ into the `assets/` its host already serves.**
   that [ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)
   limits serving to.
 - **One shared copy and a preset plugin.** Rejected: a link into another package resolves in a build but not on a dev
-  server ([ADR-1157](1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)).
+  server ([ADR-1151](1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md)).
 - **Reading `brand/` directly.** Rejected: the image builds' context holds no `brand/`
   ([ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)).
 - **Linking the web manifest.** Rejected for the reasons of decision 4.
@@ -97,7 +97,7 @@ into the `assets/` its host already serves.**
 
 - Issue [#737](https://github.com/NCodeGroup/identity/issues/737)
 - `brand/README.md`
-- [ADR-1157](1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)
+- [ADR-1151](1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md)
 - [ADR-1248](1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)
 - [ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)
 - [ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md)

@@ -1,7 +1,7 @@
 import { defineConfig } from 'vitest/config';
 
 // The one workspace that cannot use `@ncode/vite-config`: the preset depends on this package for its own console guard,
-// and turbo rejects a cyclic workspace graph. Keep these gates in step with the preset's `testGates` (ADR-1157).
+// and turbo rejects a cyclic workspace graph. Keep these gates in step with the preset's `testGates` (ADR-1151).
 export default defineConfig({
   test: {
     environment: 'node',

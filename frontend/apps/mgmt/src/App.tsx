@@ -19,7 +19,7 @@ import {
   type TenantSurface,
 } from './routes.js';
 
-// Each surface's container is its own chunk, loaded when the surface is first visited (ADR-1175).
+// Each surface's container is its own chunk, loaded when the surface is first visited (ADR-1151).
 const HomePage = lazy(() =>
   import('./containers/HomePage.js').then((m) => ({ default: m.HomePage })),
 );

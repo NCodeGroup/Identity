@@ -7,7 +7,7 @@ import Toolbar from '@mui/material/Toolbar';
 import Typography from '@mui/material/Typography';
 import { useAppSelector } from '@ncode/store';
 
-// The surface's container is its own chunk, so the shell renders before it loads (ADR-1175).
+// The surface's container is its own chunk, so the shell renders before it loads (ADR-1151).
 const ConformanceDashboard = lazy(() =>
   import('./containers/ConformanceDashboard.js').then((m) => ({ default: m.ConformanceDashboard })),
 );

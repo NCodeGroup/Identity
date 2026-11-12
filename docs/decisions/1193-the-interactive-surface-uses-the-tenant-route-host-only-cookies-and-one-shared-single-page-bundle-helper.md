@@ -89,7 +89,7 @@ named for its tenant, and one general helper reads a single-page bundle and serv
     it, a hidden file and a file of an unknown content type answer `404`, and `index.html` is never served.
 11. **`ServeAsset` sends `Cache-Control: public, max-age=31536000, immutable`** with `ETag`, `Last-Modified` and range
     support. A `404` carries no cache lifetime. `@ncode/vite-config` pins `build.assetsDir` to `assets`
-    ([ADR-1157](1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)).
+    ([ADR-1151](1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md)).
 12. **`[BuiltAuthBundleFact]` tests the real build.** `InteractiveBundleShellTests` runs the host's split against the
     real built `index.html` named by `NCODE_AUTH_BUNDLE_INDEX`. The Frontend CI workflow builds the bundle, sets the
     variable to the absolute path of `apps/auth/dist/index.html` and runs the fact; the Definition of Done reports it
@@ -142,9 +142,9 @@ named for its tenant, and one general helper reads a single-page bundle and serv
 
 - [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md): the
   protocol endpoints are served under the tenant route.
-- [ADR-1157](1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md): every frontend workspace builds
+- [ADR-1151](1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md): every frontend workspace builds
   from one Vite preset.
-- [ADR-1175](1175-bundles-split-into-vendor-and-surface-chunks-and-an-oversized-chunk-fails-the-build.md): bundles split
+- [ADR-1151](1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md): bundles split
   into vendor and surface chunks.
 - [ADR-1253](1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md): the bundle mounts over the
   page the host rendered.

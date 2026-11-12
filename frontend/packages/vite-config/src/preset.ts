@@ -7,7 +7,7 @@ import type { ViteUserConfig } from 'vitest/config';
 
 // Every workspace's vite.config.ts / vitest.config.ts imports this module, and Vite's config bundler externalizes bare
 // imports, so Node loads it natively by stripping its types. Keep it one module of erasable TypeScript with no relative
-// or workspace imports (ADR-1157). The configs that call it are not type-checked, so it validates its own options.
+// or workspace imports (ADR-1151). The configs that call it are not type-checked, so it validates its own options.
 
 /** The coverage floors a workspace holds: the level it has reached, rounded down (ADR-1151). */
 export type CoverageFloors = {
@@ -61,7 +61,7 @@ type BuildConfig = NonNullable<ViteUserConfig['build']>;
 /**
  * The vendor chunks every bundle splits its third-party code into, highest priority first: React, then MUI with its
  * emotion styling engine, then Redux, then every other package. A vendor chunk changes only when its packages are
- * upgraded, so it stays cached across application releases, and no chunk carries the whole dependency graph (ADR-1175).
+ * upgraded, so it stays cached across application releases, and no chunk carries the whole dependency graph (ADR-1151).
  */
 export const VENDOR_CHUNKS: readonly { readonly name: string; readonly test: RegExp }[] = [
   { name: 'react', test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/ },
@@ -114,7 +114,7 @@ export function failOnOversizedChunks(): Plugin {
         const list = oversized.map((c) => `${c.fileName} (${c.sizeKb.toFixed(2)} kB)`).join(', ');
         this.error(
           `Chunks larger than ${String(limitKb)} kB after minification: ${list}. Split them — lazy-load the ` +
-            'route-level containers or add a vendor chunk — rather than raising the limit (ADR-1175).',
+            'route-level containers or add a vendor chunk — rather than raising the limit (ADR-1151).',
         );
       }
     },
@@ -123,7 +123,7 @@ export function failOnOversizedChunks(): Plugin {
 
 /**
  * The build options every bundle shares: the output and assets directories, source maps, the vendor chunks, and the
- * chunk-size limit (ADR-1175).
+ * chunk-size limit (ADR-1151).
  */
 function buildOptions(): BuildConfig {
   return {
@@ -170,7 +170,7 @@ function assertPort(port: number): void {
  * The test timeout, in milliseconds, of a suite that simulates a browser. It leaves room for at least three Testing
  * Library waits, each bounded by `ASYNC_UTIL_TIMEOUT_MS` from `@ncode/test-support`, so a test that waits on a few
  * renders fails with the library's DOM report rather than a bare timeout. The preset names that constant in prose only:
- * it must not import a workspace package (ADR-1157).
+ * it must not import a workspace package (ADR-1151).
  */
 export const BROWSER_TEST_TIMEOUT_MS = 30_000;
 

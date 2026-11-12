@@ -138,9 +138,9 @@ pnpm build                # build all packages/apps
 
 ### Test gates — warnings are errors
 
-A green run means more than "no assertion failed" ([ADR-1151](../docs/decisions/1151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md)).
+A green run means more than "no assertion failed" ([ADR-1151](../docs/decisions/1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md)).
 The gates are set once, in the [`@ncode/vite-config`](packages/vite-config) preset that every workspace's Vite or Vitest
-config calls with its own coverage floors ([ADR-1157](../docs/decisions/1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)):
+config calls with its own coverage floors ([ADR-1151](../docs/decisions/1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md)):
 
 - **A test that logs `console.error` or `console.warn` fails.** Every workspace's `vitest.setup.ts` registers
   `failOnConsole` from [`@ncode/test-support`](packages/test-support). The usual cause is a React
@@ -377,7 +377,7 @@ with an error naming that script when the files are missing; under Aspire the Ap
   `index.ts`), that uses only erasable syntax (`erasableSyntaxOnly`) and has no relative or workspace imports: Node
   cannot map the `.js` specifiers the other packages use to their `.ts` files. The configs that call it are not
   type-checked, so it validates its own options. Keep new presets in that module
-  ([ADR-1157](../docs/decisions/1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md)).
+  ([ADR-1151](../docs/decisions/1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md)).
 - **Turborepo re-runs a task when anything it reads changes.** A task's hash covers only its own package by default, so
   `test` and `typecheck` depend on a no-op `transit` task that links the package graph: editing an internal package
   re-runs its dependents' tests and type-checks (still in parallel), and `globalDependencies` re-runs everything when

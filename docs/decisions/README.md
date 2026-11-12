@@ -327,12 +327,10 @@ The records are grouped by area; within an area they are in number order.
 | [1064](./1064-one-frontend-platform-of-shared-packages-and-thin-app-shells-serves-every-web-surface.md) | One frontend platform of shared packages and thin app shells serves every web surface | Accepted |
 | [1084](./1084-the-playground-explores-the-recommended-flow-and-the-conformance-harness-measures-the-published-spec-surface.md) | The Playground explores the recommended flow and the conformance harness measures the published spec surface | Accepted |
 | [1147](./1147-frontend-toolchain-follows-the-pinned-runtime-and-supported-upstreams.md) | The frontend toolchain follows the pinned runtime and supported upstreams | Accepted |
-| [1151](./1151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md) | Frontend tests treat warnings as errors and hold coverage floors | Accepted |
+| [1151](./1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md) | Every frontend workspace builds and tests from one preset that fails on warnings and oversized chunks | Accepted |
 | [1152](./1152-frontend-node-and-pnpm-are-pinned-once-and-provisioned-without-corepack.md) | The frontend's Node and pnpm are each pinned once and provisioned without Corepack | Accepted |
 | [1153](./1153-one-release-age-window-gates-frontend-dependencies.md) | One release-age window gates frontend dependencies for people and Dependabot | Accepted |
-| [1157](./1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md) | Every frontend workspace builds and tests from one Vite preset | Accepted |
 | [1174](./1174-the-management-consoles-url-is-its-navigation-state.md) | The management console's URL is its navigation state | Accepted |
-| [1175](./1175-bundles-split-into-vendor-and-surface-chunks-and-an-oversized-chunk-fails-the-build.md) | Bundles split into vendor and surface chunks, and an oversized chunk fails the build | Accepted |
 | [1255](./1255-each-tenant-surface-of-the-management-console-has-its-own-address.md) | Each tenant surface of the management console has its own address | Accepted |
 | [1256](./1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md) | Every page the server writes has a strict Content-Security-Policy and is framed only by design | Accepted |
 | [1258](./1258-the-server-sends-strict-transport-security-outside-development.md) | The server sends Strict-Transport-Security outside Development | Accepted |

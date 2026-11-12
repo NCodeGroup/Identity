@@ -131,4 +131,4 @@ over shared, scoped `@ncode/*` packages, and a layering rule keeps each layer in
 - [ADR-1062](1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md)
   (the sign-in bundle's stable-locator contract),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) (open vocabularies),
-  [ADR-1157](1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md) (the shared build preset)
+  [ADR-1151](1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md) (the shared build preset)

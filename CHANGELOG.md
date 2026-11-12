@@ -487,7 +487,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   assertion fails, lint fails on any warning, and tests, stories and setup files are type-checked. Each workspace's
   coverage measures every source file and holds a floor at its level, enforced by `pnpm run test:report` in CI. The
   conformance runner's CLI logic lives in a tested `cli.ts`, and its `--help` documents exit code `2`
-  ([ADR-1151](docs/decisions/1151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md)).
+  ([ADR-1151](docs/decisions/1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md)).
 
 - **The JOSE serializer encodes and decodes the Compact, Flattened and General JSON serializations, with multiple
   signatures and recipients (RFC 7515 §7.2, RFC 7516 §7.2).** The JSON serializations carry multiple signatures (JWS) or
@@ -2119,7 +2119,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   Vite preset splits React, MUI with emotion, Redux and every other package into their own vendor chunks, and each app
   lazy-loads its route-level containers, so no chunk exceeds 500 kB after minification. The preset's
   `failOnOversizedChunks` plugin fails `pnpm build` when a chunk exceeds the build's `chunkSizeWarningLimit`
-  ([ADR-1175](docs/decisions/1175-bundles-split-into-vendor-and-surface-chunks-and-an-oversized-chunk-fails-the-build.md)).
+  ([ADR-1151](docs/decisions/1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md)).
 
 - **The management API is served under a top-level `/api` route group.** `ManagementEndpointGroupProvider` maps the
   management endpoints there, apart from the OpenID protocol endpoints at the root
@@ -3812,7 +3812,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   config is one call that states its coverage floors. Every workspace collects `.test.tsx` files, including those on
   the `node` test environment, and each standalone dev server pins the port its redirect URI and CORS origin assume. Locally, Turborepo re-runs a
   workspace's tests and type-check when an internal package it depends on, `tsconfig.base.json`, or `eslint.config.js`
-  changes. See [ADR-1157](docs/decisions/1157-every-frontend-workspace-builds-and-tests-from-one-vite-preset.md).
+  changes. See [ADR-1151](docs/decisions/1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md).
 
 - **`apps/playground` is an authorization-code + PKCE (`S256`) flow explorer that exercises the OP's consent surface out
   of the box** (issue [#135](https://github.com/NCodeGroup/identity/issues/135),
@@ -5515,7 +5515,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The management console treats the access token as opaque.** The user's subject comes from the ID token only (RFC
   9068 §6), so sign-in and silent renewal work with opaque access tokens, and a refresh that returns no ID token keeps
   the current subject and ID token
-  ([ADR-1151](docs/decisions/1151-frontend-tests-treat-warnings-as-errors-and-hold-coverage-floors.md)).
+  ([ADR-1151](docs/decisions/1151-every-frontend-workspace-builds-and-tests-from-one-preset-that-fails-on-warnings-and-oversized-chunks.md)).
 
 - **An encrypted UserInfo response must also be signed.** The protocol client never accepts a UserInfo response
   encrypted without a signature, so a `ClientRegistration` with UserInfo encryption and no UserInfo signing throws

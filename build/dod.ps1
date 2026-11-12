@@ -302,7 +302,7 @@ try {
             if (-not $Fast) {
                 # Coverage is collected per test host, so it is unaffected by running the assemblies in parallel.
                 # coverage.runsettings sets the coverage scope: hand-written code, without generated sources or EF
-                # migrations (ADR-1185). -Fast skips coverage collection.
+                # migrations (ADR-1143). -Fast skips coverage collection.
                 $testArguments += '--collect:XPlat Code Coverage'
                 $testArguments += '--settings', (Join-Path $PSScriptRoot 'coverage.runsettings')
             }

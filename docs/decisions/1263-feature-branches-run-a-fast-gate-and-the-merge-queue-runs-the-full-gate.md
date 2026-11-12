@@ -124,8 +124,8 @@ ADR-1261 stands.
 - [ADR-1262](1262-minimal-api-request-delegates-are-generated-at-compile-time.md) — the compile-time delegates that
   shorten the test stage.
 - [ADR-1305](1305-shipped-versions-are-serviced-from-release-lines-beside-the-trunk.md) — trunk-based development and the release lines.
-- [ADR-1143](1143-ci-presents-test-results-and-coverage-in-github.md) — how CI presents test results and coverage.
-- [ADR-1185](1185-coverage-measures-hand-written-code-and-counts-a-line-that-runs-as-covered.md) — the coverage scope.
+- [ADR-1143](1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md) — how CI presents test results and coverage.
+- [ADR-1143](1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md) — the coverage scope.
 - [`build/dod.ps1`](../../build/dod.ps1) and [`build/affected-tests.ps1`](../../build/affected-tests.ps1) — the gate and
   the selector; [`build/tests/affected-tests.tests.ps1`](../../build/tests/affected-tests.tests.ps1) — its tests.
 - [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml), [`frontend.yml`](../../.github/workflows/frontend.yml),

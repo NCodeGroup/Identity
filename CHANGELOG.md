@@ -455,7 +455,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   EF Core migrations and `[GeneratedCode]` members, and keeps the reference host in scope because it ships.
   `codecov.yml` counts a partially covered line as a hit, as ReportGenerator does, so both report the same figure from
   the same lines
-  ([ADR-1185](docs/decisions/1185-coverage-measures-hand-written-code-and-counts-a-line-that-runs-as-covered.md)).
+  ([ADR-1143](docs/decisions/1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md)).
 
 - **Doc comments cite no decision records, in production code or tests.** No `///` comment under `src/` or `tests/`
   names an ADR or links into `docs/decisions/`, so each package's XML documentation (IntelliSense) and, for the
@@ -3820,7 +3820,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   required check. The frontend tier has the same reports and coverage (`pnpm run test:report`), and the `coverage`
   artifact holds a browsable HTML report. Locally, `./build/dod.ps1` writes each run's results to
   `artifacts/test-results/` (cleared first) and the coverage report to `artifacts/coverage/index.html`, so coverage
-  reflects only the current run. See [ADR-1143](docs/decisions/1143-ci-presents-test-results-and-coverage-in-github.md).
+  reflects only the current run. See [ADR-1143](docs/decisions/1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md).
 
 - **Dependabot waits three days before it offers a NuGet package, action or base image release**, and gives NCode
   Review's pin bump a group of its own.

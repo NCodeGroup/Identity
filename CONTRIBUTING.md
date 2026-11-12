@@ -56,7 +56,7 @@ Every gate run clears and rewrites `artifacts/test-results/` (one JUnit report p
 of a full run) and prints a test digest and a per-stage duration table; a full run also writes the merged coverage
 report to `artifacts/coverage/` — open `index.html` to browse it. In CI the same results appear on the run's summary
 page, failed tests and the failing stage are annotated, and coverage is uploaded to Codecov
-([ADR-1143](docs/decisions/1143-ci-presents-test-results-and-coverage-in-github.md)). The frontend workspace's equivalent is
+([ADR-1143](docs/decisions/1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md)). The frontend workspace's equivalent is
 `pnpm run test:report` (in `frontend`), which adds per-package JUnit and coverage output to `pnpm test`.
 
 The Definition of Done gates the .NET tier only. A change under `frontend` also runs that workspace's gates before

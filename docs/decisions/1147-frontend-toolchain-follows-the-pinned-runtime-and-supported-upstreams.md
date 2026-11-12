@@ -84,7 +84,7 @@ rules need to live in the repository rather than be rediscovered per update.
 - [`frontend/eslint.config.js`](../../frontend/eslint.config.js),
   [`frontend/package.json`](../../frontend/package.json), [`.github/dependabot.yml`](../../.github/dependabot.yml)
 - [ADR-1064](1064-frontend-presentation-platform.md) (frontend platform),
-  [ADR-1143](1143-ci-presents-test-results-and-coverage-in-github.md) (frontend CI reports)
+  [ADR-1143](1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md) (frontend CI reports)
 - ESLint: [configuration migration guide](https://eslint.org/docs/latest/use/configure/migration-guide);
   [`@eslint-react`](https://eslint-react.xyz); typescript-eslint
   [supported TypeScript versions](https://typescript-eslint.io/users/dependency-versions)

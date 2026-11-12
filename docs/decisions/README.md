@@ -87,10 +87,9 @@ The records are grouped by area; within an area they are in number order.
 | [1127](./1127-every-project-builds-with-zero-warnings-and-the-familys-own-banned-apis-bind-shipping-code.md) | Every project builds with zero warnings, and the family's own banned APIs bind shipping code | Accepted |
 | [1130](./1130-distinct-names-for-host-local-dev-orchestrator-and-library.md) | The deployable host, the local-dev orchestrator, and the shipped library have distinct names | Accepted |
 | [1137](./1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md) | Configuration binds strictly, and every option, timer period and retention is validated at startup | Accepted |
-| [1143](./1143-ci-presents-test-results-and-coverage-in-github.md) | CI presents test results and coverage in GitHub, through job summaries, annotations, and Codecov | Accepted |
+| [1143](./1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md) | CI presents test results and hand-written-code coverage through job summaries, annotations and Codecov | Accepted |
 | [1150](./1150-vocabularies-are-open-unless-provably-closed.md) | Vocabularies are open unless provably closed | Accepted |
 | [1170](./1170-agent-work-is-planned-on-a-frontier-model-and-executed-step-by-step-on-a-cheaper-one.md) | Agent work is planned on a frontier model and executed step by step on a cheaper one | Accepted |
-| [1185](./1185-coverage-measures-hand-written-code-and-counts-a-line-that-runs-as-covered.md) | Coverage measures hand-written code and counts a line that runs as covered | Accepted |
 | [1188](./1188-general-time-helpers-live-in-a-dependency-free-package.md) | General time helpers live in a dependency-free package | Superseded |
 | [1190](./1190-hashing-names-the-framework-algorithm-and-encodings-are-registered.md) | Hashing names the framework algorithm, and binary encodings are registered strategies | Accepted |
 | [1197](./1197-protocol-metrics-have-one-owner-per-signal-and-only-bounded-dimensions.md) | Protocol metrics have one owner per signal and only bounded dimensions | Accepted |

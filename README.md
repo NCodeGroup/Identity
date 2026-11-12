@@ -168,7 +168,7 @@ green run means the same thing in both places. It prints `Definition of Done: PA
 Test results land in `artifacts/test-results/` and the merged coverage report in `artifacts/coverage/` (open
 `index.html`). In CI, each run's summary page shows the stage timings, test results, and coverage, failed tests are
 annotated in place, and coverage history and pull-request diff coverage live on
-[Codecov](https://codecov.io/gh/NCodeGroup/identity) ([ADR-1143](docs/decisions/1143-ci-presents-test-results-and-coverage-in-github.md)).
+[Codecov](https://codecov.io/gh/NCodeGroup/identity) ([ADR-1143](docs/decisions/1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md)).
 
 [`CONTRIBUTING.md`](CONTRIBUTING.md) has the full workflow. Work lands on the single `main` trunk
 ([project-template ADR-0004](docs/decisions/project-template/0004-trunk-based-development-on-the-default-branch.md)),

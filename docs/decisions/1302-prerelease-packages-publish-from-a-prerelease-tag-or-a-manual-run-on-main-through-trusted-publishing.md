@@ -13,7 +13,7 @@ package in lockstep from `version.json`; on `main` and on a `v*` tag, which `pub
 has no commit-height suffix, so every commit of `main` packs the same prerelease version (`0.0.1-alpha`) until
 `version.json` changes.
 
-[ADR-1143](1143-ci-presents-test-results-and-coverage-in-github.md) keeps the one write-scoped permission CI needs, for
+[ADR-1143](1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md) keeps the one write-scoped permission CI needs, for
 the coverage upload, out of the job that runs third-party build and test code.
 
 ## Decision
@@ -59,7 +59,7 @@ workflow whose publishing job holds only a short-lived nuget.org key issued thro
 
 - [nuget.org trusted publishing](https://learn.microsoft.com/nuget/nuget-org/trusted-publishing)
 - [GitHub Actions OIDC](https://docs.github.com/actions/security-for-github-actions/security-hardening-your-deployments/about-security-hardening-with-openid-connect)
-- [ADR-1143](1143-ci-presents-test-results-and-coverage-in-github.md) — no write-scoped permission in the job that runs
+- [ADR-1143](1143-ci-presents-test-results-and-hand-written-code-coverage-through-job-summaries-annotations-and-codecov.md) — no write-scoped permission in the job that runs
   third-party code
 - Issues [#324](https://github.com/NCodeGroup/identity/issues/324) and
   [#184](https://github.com/NCodeGroup/identity/issues/184)

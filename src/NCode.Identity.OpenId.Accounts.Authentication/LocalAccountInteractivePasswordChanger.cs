@@ -99,11 +99,12 @@ internal sealed class LocalAccountInteractivePasswordChanger(
         // Encode each password into its own pinned, zeroed-on-return buffer so the credentials never linger on the GC
         // heap.
         var currentByteCount = SecureEncoding.UTF8.GetByteCount(currentPassword);
-        using var currentOwner = SecureMemoryPool<byte>.Shared.Rent(currentByteCount);
-        var currentWritten = SecureEncoding.UTF8.GetBytes(
-            currentPassword,
-            currentOwner.Memory.Span
+        using var currentOwner = BufferFactory.Rent(
+            currentByteCount,
+            isSensitive: true,
+            out Memory<byte> currentBuffer
         );
+        var currentWritten = SecureEncoding.UTF8.GetBytes(currentPassword, currentBuffer.Span);
 
         // The store asks the gate once, with the user name it holds, between its lookup and its verification, and a
         // password refused at the limit is verified against its dummy hash and counts as a failure, as a wrong one
@@ -112,7 +113,7 @@ internal sealed class LocalAccountInteractivePasswordChanger(
         var gate = new PasswordAttemptGate(PasswordAttemptLimiter, openIdContext);
         var storedResult = await accountStore.VerifyCredentialAsync(
             account.UserName,
-            currentOwner.Memory[..currentWritten],
+            currentBuffer[..currentWritten],
             gate.IsRefusedAsync,
             cancellationToken
         );
@@ -142,13 +143,17 @@ internal sealed class LocalAccountInteractivePasswordChanger(
         );
 
         var newByteCount = SecureEncoding.UTF8.GetByteCount(newPassword);
-        using var newOwner = SecureMemoryPool<byte>.Shared.Rent(newByteCount);
-        var newWritten = SecureEncoding.UTF8.GetBytes(newPassword, newOwner.Memory.Span);
+        using var newOwner = BufferFactory.Rent(
+            newByteCount,
+            isSensitive: true,
+            out Memory<byte> newBuffer
+        );
+        var newWritten = SecureEncoding.UTF8.GetBytes(newPassword, newBuffer.Span);
 
         // The verification's transparent rehash, when one occurred, commits with the new password.
         await accountStore.SetPasswordAsync(
             account.LocalAccountId,
-            newOwner.Memory[..newWritten],
+            newBuffer[..newWritten],
             cancellationToken
         );
         await storeManager.SaveChangesAsync(cancellationToken);

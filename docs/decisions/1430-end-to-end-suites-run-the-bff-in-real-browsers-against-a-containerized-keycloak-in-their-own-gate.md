@@ -94,7 +94,7 @@ run the BFF in Chromium, Firefox and WebKit against a containerized Keycloak.**
     cannot observe a refusal in every browser.
 
 14. **The login requests `offline_access` only when the deployment lists it.** The interop suite runs the BFF as
-    [ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md) describe, so Keycloak's
+    [ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md) describes, so Keycloak's
     logout at the OP reaches the BFF as a back-channel logout token.
 
 ## Options considered

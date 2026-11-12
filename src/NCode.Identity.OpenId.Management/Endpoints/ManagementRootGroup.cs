@@ -49,7 +49,8 @@ internal sealed class ManagementRootGroup : IEndpointGroup
     /// <inheritdoc />
     public void ConfigureRoutes(RouteGroupBuilder group)
     {
-        // Every management endpoint's body can carry a credential or personal data, so HTTP logging never writes one (ADR-1503).
+        // Every management endpoint's body can carry a credential or personal data, so HTTP logging never writes one
+        // (ADR-1503).
         group
             .AddEndpointFilter<RouteGroupBuilder, ManagementEnvironmentEndpointFilter>()
             .AddEndpointFilter<RouteGroupBuilder, ManagementAuthenticationEndpointFilter>()

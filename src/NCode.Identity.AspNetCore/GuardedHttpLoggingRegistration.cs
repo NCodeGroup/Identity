@@ -11,12 +11,12 @@ using NCode.Identity.AspNetCore.Options;
 
 namespace NCode.Identity.AspNetCore;
 
+// See ADR-1503.
 /// <summary>
 /// Registers HTTP logging that writes the request and response properties, the allow-listed headers and the duration,
 /// and a body only for an endpoint that opts in. Apply it with the framework's <c>UseHttpLogging</c>, right after
 /// <c>UseRouting</c>.
 /// </summary>
-// See ADR-1503.
 [PublicAPI]
 public static class GuardedHttpLoggingRegistration
 {

@@ -60,7 +60,8 @@ internal sealed class OpenIdEndpointGroup : IEndpointGroup
     /// <inheritdoc />
     public void ConfigureRoutes(RouteGroupBuilder group)
     {
-        // Every protocol endpoint's body can carry a credential or personal data, so HTTP logging never writes one (ADR-1503).
+        // Every protocol endpoint's body can carry a credential or personal data, so HTTP logging never writes one
+        // (ADR-1503).
         group.WithConfidentialBodies();
 
         // The environment filter is outermost so the ambient tenant scope it opens is still active while the exception

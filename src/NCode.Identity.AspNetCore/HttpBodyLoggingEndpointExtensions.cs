@@ -14,7 +14,8 @@ namespace NCode.Identity.AspNetCore;
 [PublicAPI]
 public static class HttpBodyLoggingEndpointExtensions
 {
-    /// <param name="endpoint">The <see cref="Endpoint"/> instance, or <see langword="null"/> when none is selected.</param>
+    /// <param name="endpoint">The <see cref="Endpoint"/> instance, or <see langword="null"/> when none is
+    /// selected.</param>
     extension(Endpoint? endpoint)
     {
         /// <summary>

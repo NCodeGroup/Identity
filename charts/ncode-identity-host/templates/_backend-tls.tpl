@@ -148,6 +148,8 @@ spec:
 
 {{/*
 The environment of a pod that serves HTTPS: the one HTTPS endpoint and the certificate files the mounted Secret holds.
+When backendTls.clientCertificate.required is true the pod also requires the ingress controller's client certificate:
+one that chains to the mounted ca.crt and whose subject is CN=<backendTls.clientCertificate.commonName>.
 */}}
 {{- define "identity-host.backendTls.env" -}}
 - name: ASPNETCORE_URLS
@@ -156,12 +158,21 @@ The environment of a pod that serves HTTPS: the one HTTPS endpoint and the certi
   value: /etc/ncode-identity/tls/tls.crt
 - name: Kestrel__Certificates__Default__KeyPath
   value: /etc/ncode-identity/tls/tls.key
+{{- if .Values.backendTls.clientCertificate.required }}
+- name: ProxyClientCertificate__Required
+  value: "true"
+- name: ProxyClientCertificate__CertificateAuthorityPath
+  value: /etc/ncode-identity/tls/ca.crt
+- name: ProxyClientCertificate__AllowedSubjects__0
+  value: {{ printf "CN=%s" .Values.backendTls.clientCertificate.commonName | quote }}
+{{- end }}
 {{- end }}
 
 {{/*
-The Ingress annotations that make the ingress-nginx controller speak HTTPS to a Service and verify its pods'
-certificate against the Secret that identity-host.backendTls.verificationSecretName chooses. Takes a dict with root and
-service.
+The Ingress annotations that make the ingress-nginx controller speak HTTPS to a Service, verify its pods' certificate
+and authenticate to them, all through the Secret that identity-host.backendTls.verificationSecretName chooses: the
+proxy-ssl-secret Secret holds the CA in ca.crt and the controller's client certificate in tls.crt and tls.key. Takes a
+dict with root and service.
 */}}
 {{- define "identity-host.backendTls.ingressNginxAnnotations" -}}
 nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
@@ -173,7 +184,8 @@ nginx.ingress.kubernetes.io/proxy-ssl-server-name: "on"
 
 {{/*
 The Service annotations that make the Traefik controller speak HTTPS to a Service through the release's
-ServersTransport. Takes a dict with root and name (the ServersTransport's name).
+ServersTransport, which verifies the pods' certificate and, when backendTls.clientCertificate.required is true,
+presents the controller's client certificate. Takes a dict with root and name (the ServersTransport's name).
 */}}
 {{- define "identity-host.backendTls.traefikServiceAnnotations" -}}
 traefik.ingress.kubernetes.io/service.serversscheme: https

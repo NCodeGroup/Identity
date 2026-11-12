@@ -14,7 +14,7 @@ apply didn't otherwise touch would carry a SHA that says nothing about the code 
 two kinds of things through different paths: **workloads** (container images and Helm charts, rolled out by Flux) and
 **infrastructure** (cloud resources, applied by OpenTofu from GitHub Actions)
 ([ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md),
-[ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md)).
+[ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)).
 
 ## Decision
 
@@ -56,7 +56,7 @@ from audit trails.**
 
 ## References
 
-- [ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md) — signed OCI artifacts and the member rule.
+- [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md) — signed OCI artifacts and the member rule.
 - [ADR-1135](1135-one-resource-tagging-strategy-across-every-vendor.md) — static tag values.
 - [GitHub artifact attestations](https://docs.github.com/actions/security-for-github-actions/using-artifact-attestations).
 - [Flux OCI artifact verification](https://fluxcd.io/flux/components/source/ocirepositories/#verification).

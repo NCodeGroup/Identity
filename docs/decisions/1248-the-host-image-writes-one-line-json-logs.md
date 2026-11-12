@@ -15,7 +15,7 @@ trace. A container log collector reads standard output a line at a time, so it s
 and the exception that explains an error is in another record than the one that reports it (issue [#265](https://github.com/NCodeGroup/identity/issues/265)).
 
 The image is the artifact that the hosted platform and a self-hoster both run
-([ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md),
+([ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md),
 [ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)), so the format that a
 collector expects belongs to the image, not to one deployment of it.
 
@@ -45,7 +45,7 @@ so every log entry is one JSON object on one line.**
 
 - **Set the format in the chart.** Rejected: the same image run another way, with `docker run` or on another
   orchestrator, would write text, and the artifact that is shipped would differ from the one that is run
-  ([ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md)).
+  ([ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)).
 
 ## Consequences
 
@@ -58,7 +58,7 @@ so every log entry is one JSON object on one line.**
 
 ## References
 
-- [ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md) — the shipped artifact is the one that is run.
+- [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md) — the shipped artifact is the one that is run.
 - [ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md) — the host image.
 - [project-template ADR-0115](project-template/0115-a-host-logs-to-standard-output.md) — logs go to standard output, and their format is
   configuration.

@@ -134,7 +134,7 @@ summary and in Codecov alike.**
   [`.github/workflows/frontend.yml`](../../.github/workflows/frontend.yml),
   [`.github/workflows/codecov-upload.yml`](../../.github/workflows/codecov-upload.yml) and
   [`codecov.yml`](../../codecov.yml)
-- [ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md): the host ships in the image the hosted platform
+- [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md): the host ships in the image the hosted platform
   runs.
 - GitHub: [job summaries and workflow commands](https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-commands),
   [OpenID Connect in GitHub Actions](https://docs.github.com/en/actions/concepts/security/openid-connect)

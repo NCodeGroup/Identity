@@ -2,7 +2,7 @@
 
 - **Status:** Living runbook — update it in the same change as anything it describes.
 - **Audience:** anyone reproducing the hosted platform from scratch — the maintainers, or a self-hoster running the
-  published stacks ([ADR-1133](decisions/1133-we-ship-and-run-the-same-deployment-artifacts.md)).
+  published stacks ([ADR-1133](decisions/1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)).
 - **Scope:** the **manual** operations only — the steps no API can do (creating accounts, proving identity, payment,
   registrar delegation, clicking verification links). Everything after them is the OpenTofu bootstrap stack and then
   GitOps ([ADR-1132](decisions/1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md),
@@ -95,12 +95,12 @@ settings declaratively.
      **Secret Protection** click **Enable**, then turn on **Push protection**. After the first push, set up **CodeQL**
      (default setup) — it analyzes the GitHub Actions workflows.
    - Settings → General: turn on **Enable release immutability** (releases and their tags can't be changed after
-     publishing — [ADR-1133](decisions/1133-we-ship-and-run-the-same-deployment-artifacts.md)); disable **Wikis**; under Pull
+     publishing — [ADR-1133](decisions/1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)); disable **Wikis**; under Pull
      Requests, allow **squash merging** only and **automatically delete head branches**.
 4. **Clone it:** `git clone https://github.com/<github-org>/<infra-repo>.git`.
 
 Only one new repository is needed: components, stacks, and live configuration share it, and the host's Helm chart lives
-in the library repository ([ADR-1133](decisions/1133-we-ship-and-run-the-same-deployment-artifacts.md)).
+in the library repository ([ADR-1133](decisions/1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)).
 
 **Verify:** the repository is public and empty; a test push of a file containing a fake AWS key is **blocked** by push
 protection.

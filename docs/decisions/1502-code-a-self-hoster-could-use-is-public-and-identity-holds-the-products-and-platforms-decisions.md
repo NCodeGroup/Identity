@@ -29,13 +29,13 @@ platform.** Anything in the private repository that a self-hoster would want bel
 | Repository                     | Visibility | Holds |
 | ------------------------------ | ---------- | ----- |
 | `NCodeGroup/identity`          | Public     | The NuGet packages (`src/`), the deployables (`hosts/`), the host and console images, the host chart (`charts/ncode-identity-host`), the web apps' pnpm workspace (`frontend/`), and the decisions and issues of the product and its platform |
-| `NCodeGroup/identity-platform` | Public     | The reusable OpenTofu modules, Kustomize components and stacks, and the live configuration for `lab` and `production` ([ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md), [ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md)) |
+| `NCodeGroup/identity-platform` | Public     | The reusable OpenTofu modules, Kustomize components and stacks, and the live configuration for `lab` and `production` ([ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md), [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)) |
 | `NCodeGroup/identity-cloud`    | Private    | Only the managed offering's proprietary parts: billing and metering, sign-up, the customer portal, support tooling and private runbooks |
 
 1. **The repositories.** The three repositories are the table above. `identity-cloud` is created with the managed
    offering's first proprietary code.
 2. **The product's repository.** `identity` is not library-only: the chart and the images change with the host, so they
-   live beside it ([ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md)). The packages, hosts, images and
+   live beside it ([ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)). The packages, hosts, images and
    chart version in lockstep from one `version.json`
    ([ADR-1003](1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md)),
    and the console image builds `frontend/`, whose private packages are never published. So `frontend/` and every
@@ -75,7 +75,7 @@ platform.** Anything in the private repository that a self-hoster would want bel
 ## Options considered
 
 - **A library-only repository, with the chart and images in `identity-platform`.** Rejected: every host configuration
-  change would span two repositories ([ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md)).
+  change would span two repositories ([ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)).
 - **One private repository for the managed offering.** Rejected: self-hosters need the components, and
   [ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md) makes the infrastructure public.
 - **Separate repositories for the packages and the frontend at the first stable release.** Rejected: the packages
@@ -111,7 +111,7 @@ platform.** Anything in the private repository that a self-hoster would want bel
 - [ADR-1003](1003-the-family-versions-in-lockstep-from-one-version-json-and-ships-source-linked-symbol-packages.md),
   [ADR-1064](1064-frontend-presentation-platform.md),
   [ADR-1132](1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md),
-  [ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md),
+  [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md),
   [ADR-1261](1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md),
   [ADR-1306](1306-pending-work-is-tracked-as-github-issues-linked-by-address-in-repository-files.md),
   [ADR-1495](1495-the-hosted-platforms-hosts-live-on-a-platform-domain-of-their-own-and-a-brand-domain-carries-the-site-docs-and-mail.md),

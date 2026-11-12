@@ -79,7 +79,7 @@ Keys are snake_case; values keep their natural form (kebab-case names, emails, p
 
 ## References
 
-- [ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md) — component rules.
+- [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md) — component rules.
 - [ADR-1134](1134-cloud-native-operating-principles.md) — operating principles.
 - [ADR-1136](1136-provenance-is-attested-on-workloads-and-audited-for-infrastructure.md) — where change provenance
   lives instead of tags.

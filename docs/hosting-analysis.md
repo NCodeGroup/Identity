@@ -595,7 +595,7 @@ janitor that destroys anything older than a few hours — that also keeps every 
   [ADR-1132](decisions/1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md) — no secrets in Git (push protection,
   `gitleaks`), no credentials for untrusted pull requests, no plans in public logs or artifacts, operator-specific values
   in SSM.
-- **Same artifacts as self-hosters** ([ADR-1133](decisions/1133-we-ship-and-run-the-same-deployment-artifacts.md)): the host's
+- **Same artifacts as self-hosters** ([ADR-1133](decisions/1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)): the host's
   Helm chart ships from the library repository as a signed OCI chart. `NCodeGroup/identity-platform` layers small
   **component modules** (`modules/`: e.g. `cloudflare-zone`, `aws-state-backend`, `akamai-lke`, `akamai-postgres`,
   `oci-k3s`, `flux-bootstrap`) and **in-cluster components** (`kubernetes/components/`: `traefik`, `cert-manager`,

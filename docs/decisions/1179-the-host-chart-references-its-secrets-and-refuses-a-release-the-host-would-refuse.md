@@ -14,7 +14,7 @@
 ## Context
 
 The Helm chart is the primary deployment artifact for `NCode.Identity.OpenId.Host`. The hosted platform and
-self-hosters install the same chart ([ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md)). It has to run
+self-hosters install the same chart ([ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)). It has to run
 the hardened image ([ADR-1178](1178-the-host-image-is-chiseled-non-root-multi-arch-and-carries-the-login-bundle.md)) as
 a rolling deployment behind an ingress. It also has to enforce the one rule the host cannot enforce itself: more than
 one replica needs Valkey ([ADR-1164](1164-replicas-share-single-use-state-through-an-atomic-expiring-key-set.md)).

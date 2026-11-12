@@ -1,6 +1,6 @@
 # 1495. The hosted platform's hosts live on a platform domain of their own, and a brand domain carries the site, docs and mail
 
-- **Status:** Accepted (amends [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md), [ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md), [ADR-1135](1135-one-resource-tagging-strategy-across-every-vendor.md))
+- **Status:** Accepted (amends [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md), [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md), [ADR-1135](1135-one-resource-tagging-strategy-across-every-vendor.md))
 - **Date:** 2026-11-10
 - **Deciders:** NCode Group
 
@@ -75,7 +75,7 @@ site, docs, status page and operator mail.**
     ([ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)) covers them, and a separate
     non-production domain is not needed.
 14. **No component or stack carries a default for any of the platform's domains**
-    ([ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md)): each environment supplies them as
+    ([ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)): each environment supplies them as
     configuration.
 15. **The Kubernetes label prefix is `ncodeid.net/`** (`ncodeid.net/environment`, `ncodeid.net/role`), and the owner
     mailbox is `platform@ncodeid.com`
@@ -106,7 +106,7 @@ site, docs, status page and operator mail.**
 
 - [ADR-1129](1129-the-tenant-issuer-is-the-single-authoritative-origin.md)
 - [ADR-1131](1131-hosted-platform-environment-model-and-hostname-scheme.md)
-- [ADR-1133](1133-we-ship-and-run-the-same-deployment-artifacts.md)
+- [ADR-1133](1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md)
 - [ADR-1135](1135-one-resource-tagging-strategy-across-every-vendor.md)
 - [ADR-1258](1258-the-server-sends-strict-transport-security-outside-development.md)
 - [`docs/hosting-analysis.md`](../hosting-analysis.md), [`docs/platform-bootstrap.md`](../platform-bootstrap.md)

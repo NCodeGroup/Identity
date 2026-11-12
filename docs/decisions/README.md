@@ -78,7 +78,7 @@ The records are grouped by area; within an area they are in number order.
 | [1012](./1012-concurrency-tokens-are-interceptor-managed-and-a-lost-race-surfaces-as-a-store-neutral-exception.md) | Concurrency tokens are interceptor-managed, and a lost race surfaces as a store-neutral exception | Accepted |
 | [1016](./1016-implementation-packages-depend-only-on-abstractions.md) | Implementation packages depend only on abstractions; composition wires them | Accepted |
 | [1025](./1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) | The family is greenfield and pre-release, tracks its public API, and models Auth0-parity-plus | Accepted |
-| [1052](./1052-entity-framework-persistence-is-a-framework-plus-slices.md) | Entity Framework persistence is a reusable framework plus domain slices | Accepted |
+| [1052](./1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md) | Entity Framework persistence is a reusable framework that domain slices plug into | Accepted |
 | [1056](./1056-abstractions-split-into-framework-free-tiered-packages.md) | `NCode.Identity.Abstractions` is split into framework-free, correctly-tiered packages | Accepted |
 | [1069](./1069-registration-library-compile-time-marker-nesting.md) | DI registration nests per package and folder through compile-time marker builders | Accepted |
 | [1080](./1080-store-query-methods-push-filtering-to-dbms.md) | Store query methods push entity filtering into the DBMS | Accepted |

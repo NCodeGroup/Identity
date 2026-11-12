@@ -76,7 +76,7 @@ compiles it and no gate tests it
   `.Messages.Abstractions`, `.Persistence(.Abstractions)`, `.Persistence.EntityFramework` with its slices
   `NCode.Identity.OpenId.Persistence.EntityFramework.Core` and
   `NCode.Identity.OpenId.Persistence.EntityFramework.Accounts`
-  ([ADR-1052](docs/decisions/1052-entity-framework-persistence-is-a-framework-plus-slices.md)), and
+  ([ADR-1052](docs/decisions/1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md)), and
   `NCode.Identity.OpenId.Protocol.Abstractions` (the dependency-free OAuth/OIDC wire vocabulary `OpenIdProtocol`, shared
   by the OP and the protocol client —
   [ADR-1276](docs/decisions/1276-the-oauth-and-openid-connect-wire-vocabulary-lives-in-a-dependency-free-package.md))

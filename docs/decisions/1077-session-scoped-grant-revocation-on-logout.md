@@ -30,7 +30,7 @@ available as the deliberate opt-in it already was (the management bulk-revoke of
   gains a nullable `SessionId`; `GrantEntity` gains a `SessionId` column and a `(TenantId, SessionId)` lookup index. The
   `sid` is an opaque, case-significant Base64Url key matched verbatim, so — unlike `SubjectId`/`GrantId` — it is indexed
   directly with **no** normalized companion column (the normalized-vs-verbatim rule is recorded in
-  [ADR-1052](1052-entity-framework-persistence-is-a-framework-plus-slices.md)).
+  [ADR-1052](1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md)).
 - **Session-scoped grants carry the `sid` at issuance.** The authorization-code grant, the refresh-token grant, and the
   per-access-token UserInfo-claims grant read the `sid` from the authenticated subject (`SubjectAuthentication.SessionId`,
   a convenience over the subject's `sid` claim) and stamp it on the grant. The **session grant itself** carries its own
@@ -85,7 +85,7 @@ removed: session revocation is now the session-scoped grant revocation, which is
 - [ADR-1074](1074-session-management-and-logout.md) — sessions, the `sid` claim, and the logout pipeline this refines.
 - [ADR-1022](1022-grant-filters-and-bulk-revocation.md) — the subject/client grant filters and bulk revocation that the
   `sessionId` filter joins, and the management "sign out everywhere" path.
-- [ADR-1052](1052-entity-framework-persistence-is-a-framework-plus-slices.md) — the normalized-companion vs.
+- [ADR-1052](1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md) — the normalized-companion vs.
   verbatim-indexed-key convention that governs the `SessionId` column.
 - [ADR-1076](1076-consent-persistence-and-enforcement.md) — durable consent is its own aggregate, immune to grant
   revocation.

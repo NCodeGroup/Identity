@@ -2903,7 +2903,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`AddEntityFrameworkCorePersistence<TDbContext>()`), and a slice may expose typed `DbSet` accessors for its own
   entities as extension members. `EntityStoreManager` has a `DbContext`-less store-factory fallback, so a store that is
   not built on Entity Framework resolves without referencing `OpenIdDbContext`
-  ([ADR-1052](docs/decisions/1052-entity-framework-persistence-is-a-framework-plus-slices.md),
+  ([ADR-1052](docs/decisions/1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md),
   [ADR-1060](docs/decisions/1060-local-account-one-store-seam-and-dependency-inverted-authentication.md)).
 
 - **Store queries take extensible parameter records.** Every store's `GetPageAsync` pages with a shared `PageRequest {

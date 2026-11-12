@@ -42,7 +42,7 @@ so a cross-tenant row is never materialized.** "Never fetch what you cannot see"
   (every `ISupportTenantEntity`) of the form _"ambient tenant is unset **or** the row's tenant equals the
   ambient tenant"_ — compared against a denormalized `NormalizedTenantId` discriminator on the row, so the filter is a
   single indexed-column predicate and the framework stays decoupled from the concrete tenant entity
-  ([ADR-1052](1052-entity-framework-persistence-is-a-framework-plus-slices.md)). When a scope is active, a row owned by
+  ([ADR-1052](1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md)). When a scope is active, a row owned by
   another tenant is never returned by any query, so it is never materialized (defense against cross-tenant leaks). When
   unset — the runtime, and central-admin surfaces — the filter is a no-op. The tenant root itself has no owning-tenant
   foreign key, so it is **not** an `ISupportTenantEntity` and stays unscoped (discoverable by id during resolution); its

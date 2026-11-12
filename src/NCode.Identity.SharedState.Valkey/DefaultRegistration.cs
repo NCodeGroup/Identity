@@ -23,6 +23,33 @@ public static class DefaultRegistration
     /// </summary>
     internal const string HealthCheckName = "valkey";
 
+    private static ConfigurationOptions ParseConnectionString(string connectionString)
+    {
+        const string name = $"ConnectionStrings:{ValkeyOptions.ConnectionStringName}";
+
+        ConfigurationOptions configurationOptions;
+        try
+        {
+            configurationOptions = ConfigurationOptions.Parse(connectionString);
+        }
+        catch (ArgumentException exception)
+        {
+            // The message names the offending setting; the connection string itself may hold a password.
+            throw new InvalidOperationException(
+                $"The '{name}' connection string is malformed: {exception.Message}",
+                exception
+            );
+        }
+
+        if (configurationOptions.EndPoints.Count == 0)
+            throw new InvalidOperationException($"The '{name}' connection string names no server.");
+
+        // A server that is unreachable when the process starts is retried in the background rather than failing it.
+        configurationOptions.AbortOnConnectFail = false;
+
+        return configurationOptions;
+    }
+
     /// <param name="builder">The shared-state-library builder returned by <c>AddSharedStateServices</c>.</param>
     extension(IServiceBuilder<SharedStateLibrary> builder)
     {
@@ -103,32 +130,5 @@ public static class DefaultRegistration
 
             return builder;
         }
-    }
-
-    private static ConfigurationOptions ParseConnectionString(string connectionString)
-    {
-        const string name = $"ConnectionStrings:{ValkeyOptions.ConnectionStringName}";
-
-        ConfigurationOptions configurationOptions;
-        try
-        {
-            configurationOptions = ConfigurationOptions.Parse(connectionString);
-        }
-        catch (ArgumentException exception)
-        {
-            // The message names the offending setting; the connection string itself may hold a password.
-            throw new InvalidOperationException(
-                $"The '{name}' connection string is malformed: {exception.Message}",
-                exception
-            );
-        }
-
-        if (configurationOptions.EndPoints.Count == 0)
-            throw new InvalidOperationException($"The '{name}' connection string names no server.");
-
-        // A server that is unreachable when the process starts is retried in the background rather than failing it.
-        configurationOptions.AbortOnConnectFail = false;
-
-        return configurationOptions;
     }
 }

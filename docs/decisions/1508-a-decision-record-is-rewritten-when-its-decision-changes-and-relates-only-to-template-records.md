@@ -62,6 +62,8 @@ decided and recorded before it is built holds in full.
 - A reader opens one record per decision and finds it current.
 - A pull request that changes a decision edits the record that holds it, so its review sees the decision's text change
   beside the code.
+- `build/adr-index.ps1` fails a family record that relates to another family record, carries another header line or has
+  text after its Status, and a tracked citation of a number that names no record, so the rule holds without a reviewer.
 - `docs/decisions/0000-template.md` and the conventions in `docs/decisions/README.md` describe this shape.
 - Smell: a record whose text describes how the decision differs from an earlier one, or two records that state the same
   rule.

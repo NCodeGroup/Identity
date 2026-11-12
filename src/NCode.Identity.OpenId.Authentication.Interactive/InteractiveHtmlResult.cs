@@ -34,7 +34,8 @@ internal sealed class InteractiveHtmlResult(Sequence<char> html, HtmlPageSecurit
     /// <summary>
     /// Creates a pooled buffer to render a page into.
     /// </summary>
-    public static Sequence<char> CreateBuffer() => new(ArrayPool<char>.Shared);
+    public static Sequence<char> CreateBuffer() =>
+        BufferFactory.CreatePooledBufferWriter<char>(isSensitive: false);
 
     /// <summary>
     /// Writes <paramref name="html"/> to <paramref name="httpResponse"/> as a UTF-8 <c>text/html</c> body under the

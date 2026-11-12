@@ -50,11 +50,13 @@ internal class ClientSecretBasicClientAuthenticationHandler(
             return Disposable.Empty;
         }
 
-        var lease = SecureMemoryPool<char>.Shared.Rent(encoded.Length);
-        // The pool can return more memory than requested, so the replace and the unescape run over exactly the
-        // encoded secret; otherwise the decoded value carries the unused remainder and never matches the stored
-        // secret (RFC 6749 section 2.3.1).
-        var buffer = lease.Memory[..encoded.Length];
+        var lease = BufferFactory.Rent<char>(
+            encoded.Length,
+            isSensitive: true,
+            out Memory<char> buffer
+        );
+        // BufferFactory.Rent slices the buffer to exactly the encoded length, so the replace and the unescape run over
+        // the encoded secret alone (RFC 6749 section 2.3.1).
         try
         {
             var destination = buffer.Span;
@@ -166,9 +168,12 @@ internal class ClientSecretBasicClientAuthenticationHandler(
         var base64Bytes = base64Buffer[..base64BytesWritten];
 
         var decodeCharCount = SecureEncoding.UTF8.GetCharCount(base64Bytes);
-        using var decodeLease = SecureMemoryPool<char>.Shared.Rent(decodeCharCount);
+        using var decodeLease = BufferFactory.Rent<char>(
+            decodeCharCount,
+            isSensitive: true,
+            out Memory<char> decodeBuffer
+        );
 
-        var decodeBuffer = decodeLease.Memory[..decodeCharCount];
         var decodeSpan = decodeBuffer.Span;
 
         var decodeResult = SecureEncoding.UTF8.TryGetChars(

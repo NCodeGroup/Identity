@@ -85,9 +85,13 @@ internal sealed class BootstrapAdminSeedHandler(
         // The configured secret is supplied Base64Url-encoded (not plaintext) so a raw process-memory snapshot does
         // not expose it directly; decode it straight into a pinned, zeroed-on-return buffer threaded as ReadOnlyMemory.
         var secretMaxLength = Base64Url.GetMaxDecodedLength(clientSecret.Length);
-        using var secretOwner = SecureMemoryPool<byte>.Shared.Rent(secretMaxLength);
-        var secretWritten = Base64Url.DecodeFromChars(clientSecret, secretOwner.Memory.Span);
-        var clientSecretBytes = secretOwner.Memory[..secretWritten];
+        using var secretOwner = BufferFactory.Rent(
+            secretMaxLength,
+            isSensitive: true,
+            out Memory<byte> secretBuffer
+        );
+        var secretWritten = Base64Url.DecodeFromChars(clientSecret, secretBuffer.Span);
+        var clientSecretBytes = secretBuffer[..secretWritten];
 
         var existing = await store.GetOrDefaultAsync(clientId, cancellationToken);
         if (existing is not null)

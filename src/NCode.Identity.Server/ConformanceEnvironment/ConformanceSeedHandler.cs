@@ -256,10 +256,10 @@ internal sealed class ConformanceSeedHandler(
         // Encode the password into a pinned, zeroed-on-return buffer so the credential never lingers on the GC heap;
         // the store hashes it internally.
         var byteCount = SecureEncoding.UTF8.GetByteCount(password);
-        using var owner = SecureMemoryPool<byte>.Shared.Rent(byteCount);
-        var written = SecureEncoding.UTF8.GetBytes(password, owner.Memory.Span);
+        using var owner = BufferFactory.Rent(byteCount, isSensitive: true, out Memory<byte> buffer);
+        var written = SecureEncoding.UTF8.GetBytes(password, buffer.Span);
 
-        await store.AddAsync(account, owner.Memory[..written], cancellationToken);
+        await store.AddAsync(account, buffer[..written], cancellationToken);
 
         Logger.ConformanceTestUserSeeded(userName, tenantId);
     }
@@ -338,9 +338,13 @@ internal sealed class ConformanceSeedHandler(
         // The secret is supplied Base64Url-encoded (not plaintext) so a raw process-memory snapshot does not expose it
         // directly; decode it straight into a pinned, zeroed-on-return buffer.
         var secretMaxLength = Base64Url.GetMaxDecodedLength(encodedSecret.Length);
-        using var secretOwner = SecureMemoryPool<byte>.Shared.Rent(secretMaxLength);
-        var secretWritten = Base64Url.DecodeFromChars(encodedSecret, secretOwner.Memory.Span);
-        var clientSecret = secretOwner.Memory.Span[..secretWritten];
+        using var secretOwner = BufferFactory.Rent(
+            secretMaxLength,
+            isSensitive: true,
+            out Span<byte> secretBuffer
+        );
+        var secretWritten = Base64Url.DecodeFromChars(encodedSecret, secretBuffer);
+        var clientSecret = secretBuffer[..secretWritten];
 
         var now = TimeProvider.GetUtcNow();
 

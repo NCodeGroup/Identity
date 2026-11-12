@@ -91,7 +91,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   contracts, `HttpResultException`, `UriDescriptor` and the front-channel endpoint metadata).
   `NCode.Identity.Persistence.Abstractions` holds every persistence contract, and `NCode.Identity.OpenId.Abstractions`
   references `NCode.Identity.Registration.AspNetCore` directly because it exposes `ReadOnlyEndpointDisposition` on its
-  public surface ([#758](https://github.com/NCodeGroup/identity/issues/758),
+  public surface. Apart from the composition roots, the hosts and an Entity Framework slice's reference to its
+  framework, an implementation references no other implementation and collaborates through abstractions resolved from
+  DI; a host registers the default password hasher with `AddDefaultPasswordHasher()` beside
+  `AddLocalAccountEntityFramework()`
+  ([#758](https://github.com/NCodeGroup/identity/issues/758),
+  [#802](https://github.com/NCodeGroup/identity/issues/802),
   [ADR-1500](docs/decisions/1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)).
 
 - **The `NCode.Identity.Json` foundation package holds the shared `JsonElement` helpers.** `JsonElements` (`EmptyObject`,
@@ -3744,9 +3749,12 @@ Until the first stable release, the [Unreleased] section describes the product a
   `build/adr-index.ps1`, with fixture tests, fails when a family record is numbered below 1000, when two files in
   `docs/decisions/` share a four-digit number, when an index row's number is not its file's, when a file is listed
   twice, when a tracked file names a `NNNN-<slug>.md` record in neither `docs/decisions/` nor
-  `docs/decisions/project-template/`, or when a `docs/decisions/0NNN` path points at the family's folder
+  `docs/decisions/project-template/`, when a `docs/decisions/0NNN` path points at the family's folder, when a tracked
+  file cites an `ADR-NNNN` number that names no record, or when a family record carries a Status other than `Accepted`
+  or `Proposed`, a header line other than Status, Date, Deciders, Refines, Supersedes and Conflicts with, or a relation
+  line that names a family record
   ([#371](https://github.com/NCodeGroup/identity/issues/371), [#449](https://github.com/NCodeGroup/identity/issues/449),
-  [#455](https://github.com/NCodeGroup/identity/issues/455)).
+  [#455](https://github.com/NCodeGroup/identity/issues/455), [#801](https://github.com/NCodeGroup/identity/issues/801)).
 
 - **The plan-and-execute workflow comes from the project template, executes on Claude Sonnet 5.5, and runs in Claude
   Code too.** The repository follows [project-template](https://github.com/NCodeGroup/project-template) at the version
@@ -4573,6 +4581,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   are written as strict UTF-8 bytes with `Content-Type: application/jwt`, and `text/plain` responses declare
   `charset=utf-8`. The build bans lenient encodings with `RS0030` in every project
   ([ADR-1266](docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)).
+
+- **Buffers are rented only through `BufferFactory`.** Every pooled buffer states its sensitivity at the call, with
+  `isSensitive: true` for keys, credentials and form-post response parameters, which are pinned and zeroed on return,
+  and a writer that never holds a secret comes from `BufferFactory.CreateArrayBufferWriter()`. The build bans the bare
+  `ArrayPool<T>.Shared`, `MemoryPool<T>.Shared` and `SecureMemoryPool<T>.Shared` pools and the `ArrayBufferWriter<T>`
+  and `Sequence<T>` constructors with `RS0030` in every project but the test projects
+  ([#803](https://github.com/NCodeGroup/identity/issues/803),
+  [ADR-1266](docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)).
 
 - **Stored secrets are protected by a key hierarchy under an external root key.** Stored private and symmetric secrets
   are AES-256-GCM envelopes (`nce1.`) under a fresh data key, wrapped by an HKDF-derived purpose key of the owning

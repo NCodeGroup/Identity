@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers;
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.Claims;
@@ -51,8 +50,6 @@ public static class DefaultRegistration
             var serviceCollection = builder.ServiceCollection;
 
             serviceCollection.TryAddSingleton(TimeProvider.System);
-            serviceCollection.TryAddSingleton(ArrayPool<char>.Shared);
-            serviceCollection.TryAddSingleton(ArrayPool<byte>.Shared);
             serviceCollection.AddEndpointGroupRouting();
 
             var newBuilder = builder.NewBuilder<OpenIdCoreLibrary>();

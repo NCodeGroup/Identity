@@ -22,7 +22,13 @@
     - a tracked file that names a NNNN-<slug>.md record found in neither docs/decisions/ nor
       docs/decisions/project-template/ (a link that a rename or renumber broke);
     - a tracked file that points a docs/decisions/0NNN path at docs/decisions/, because the family's records are
-      numbered from 1000 and the project template's records live in docs/decisions/project-template/.
+      numbered from 1000 and the project template's records live in docs/decisions/project-template/;
+    - a tracked file that cites an ADR number (written ADR- and four digits from 1000) that names no record in
+      docs/decisions/, template-owned files excepted;
+    - a family record whose Status line is not exactly Accepted or Proposed;
+    - a family record whose Refines, Supersedes or Conflicts with line does not name only project template records;
+    - a family record whose header carries a metadata label other than Status, Date, Deciders, Refines, Supersedes and
+      Conflicts with.
 
     0000-template.md is the template, not a decision, so it is deliberately absent from the index, and the one
     docs/decisions/ path numbered below 1000 that a link may use.
@@ -103,8 +109,8 @@ $rows |
 # Searches the tracked text files (never bin/, obj/ or node_modules/, which are untracked) for a pattern. The build
 # scripts' fixture tests under build/tests/ are excluded because their fixtures name records that exist only in the
 # fixtures. A line that repeats a match (an index row names its file in the link and in the title) is reported once.
-function Find-TrackedText([string]$Pattern) {
-    $output = @(git -C $Root grep -I -n -o -z -E $Pattern -- . ':(exclude)build/tests/*.tests.ps1')
+function Find-TrackedText([string]$Pattern, [string[]]$ExcludePathspec = @()) {
+    $output = @(git -C $Root grep -I -n -o -z -E $Pattern -- . ':(exclude)build/tests/*.tests.ps1' @ExcludePathspec)
     if ($LASTEXITCODE -gt 1) {
         throw "git grep failed with exit code $LASTEXITCODE."
     }
@@ -136,6 +142,48 @@ foreach ($match in Find-TrackedText '[0-9]{4}-[a-z0-9][a-z0-9-]*\.md') {
 foreach ($match in Find-TrackedText 'docs/decisions/0[0-9]{3}[a-z0-9.-]*') {
     if ($match.Text -cne 'docs/decisions/0000-template.md') {
         $problems.Add("$($match.Path)($($match.Line)) points $($match.Text) at docs/decisions/, where the family's records are numbered from 1000; the template's records are in docs/decisions/project-template/.")
+    }
+}
+
+# A citation of a record that does not exist is otherwise found only by a reader who looks the number up. Files that
+# the project template owns cite sample numbers, so they are not searched.
+$familyNumbers = @($onDisk | ForEach-Object { $_.Substring(0, 4) })
+$templateOwned = ':(exclude).claude/agents/*', ':(exclude).claude/commands/*', ':(exclude).github/agents/*', ':(exclude).github/prompts/*', ':(exclude).github/skills/*', ':(exclude).template/*', ':(exclude)docs/decisions/project-template/*'
+foreach ($match in Find-TrackedText 'ADR-1[0-9]{3}' $templateOwned) {
+    if ($match.Text.Substring(4) -notin $familyNumbers) {
+        $problems.Add("$($match.Path)($($match.Line)) cites $($match.Text), which names no record in docs/decisions/.")
+    }
+}
+
+# A record's header holds only its own metadata and relates to project template records alone (ADR-1508), so any other
+# label, a Status with a suffix, or a relation to a family record is a shape the rest of the family cannot rely on.
+foreach ($file in $onDisk | Where-Object { [int]$_.Substring(0, 4) -ge 1000 }) {
+    $lines = @(Get-Content -LiteralPath (Join-Path $Directory $file))
+    for ($i = 0; $i -lt $lines.Count; $i++) {
+        if ($lines[$i].StartsWith('## ', [StringComparison]::Ordinal)) {
+            break
+        }
+        if ($lines[$i] -match '^- \*\*([^*:]+):\*\*\s*(.*)$') {
+            $label = $Matches[1]
+            $value = $Matches[2]
+            $where = "docs/decisions/$file($($i + 1))"
+            if ($label -ceq 'Status') {
+                if ($value -cnotin 'Accepted', 'Proposed') {
+                    $problems.Add("$where has Status '$value'; a Status is Accepted or Proposed with nothing after it.")
+                }
+            }
+            elseif ($label -cin 'Date', 'Deciders') {
+                continue
+            }
+            elseif ($label -cin 'Refines', 'Supersedes', 'Conflicts with') {
+                if ($value -match 'ADR-1[0-9]{3}|\]\((\./)?1[0-9]{3}-' -or $value -notmatch 'project-template') {
+                    $problems.Add("$where carries a $label line that does not name only project template records; a family record relates only to template records.")
+                }
+            }
+            else {
+                $problems.Add("$where carries a '$label' metadata line; a family record carries only Status, Date, Deciders, Refines, Supersedes and Conflicts with.")
+            }
+        }
     }
 }
 

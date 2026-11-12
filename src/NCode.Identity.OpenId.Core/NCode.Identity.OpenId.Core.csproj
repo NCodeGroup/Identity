@@ -23,6 +23,7 @@
         <PackageReference Include="NCode.Disposables" />
         <PackageReference Include="NCode.Mediator" />
         <PackageReference Include="NCode.PasswordGenerator" />
+        <PackageReference Include="NCode.PropertyBag" />
         <PackageReference Include="System.IdentityModel.Tokens.Jwt" />
         <PackageReference Include="System.Linq.Async" />
         <PackageReference Include="SystemTextJsonPatch" />
@@ -33,7 +34,6 @@
         <ProjectReference Include="..\NCode.Identity.Cryptography.Abstractions\NCode.Identity.Cryptography.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Dispatch.Abstractions\NCode.Identity.Dispatch.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.Events.Abstractions\NCode.Identity.Events.Abstractions.csproj" />
-        <ProjectReference Include="..\NCode.Identity.Jwt\NCode.Identity.Jwt.csproj" />
         <ProjectReference Include="..\NCode.Identity.Jose.Abstractions\NCode.Identity.Jose.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Abstractions\NCode.Identity.OpenId.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Messages.Abstractions\NCode.Identity.OpenId.Messages.Abstractions.csproj" />

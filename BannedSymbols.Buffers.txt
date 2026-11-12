@@ -1,0 +1,11 @@
+# Buffers come from NCode.Buffers.BufferFactory so sensitivity is stated at every rental; the bare sources are banned in every project but the test projects (RS0030, ADR-1266).
+P:System.Buffers.ArrayPool`1.Shared;Rent with BufferFactory.Rent(..., isSensitive: ..., out ...) (ADR-1266).
+M:System.Buffers.ArrayPool`1.Create;Rent with BufferFactory.Rent(..., isSensitive: ..., out ...) (ADR-1266).
+M:System.Buffers.ArrayPool`1.Create(System.Int32,System.Int32);Rent with BufferFactory.Rent(..., isSensitive: ..., out ...) (ADR-1266).
+P:System.Buffers.MemoryPool`1.Shared;Rent with BufferFactory.Rent(..., isSensitive: ..., out ...) (ADR-1266).
+P:NCode.Buffers.SecureMemoryPool`1.Shared;Rent with BufferFactory.Rent(..., isSensitive: ..., out ...) (ADR-1266).
+M:System.Buffers.ArrayBufferWriter`1.#ctor;Use BufferFactory.CreateArrayBufferWriter() for output that is never secret, or BufferFactory.CreatePooledBufferWriter(isSensitive:) (ADR-1266).
+M:System.Buffers.ArrayBufferWriter`1.#ctor(System.Int32);Use BufferFactory.CreateArrayBufferWriter() for output that is never secret, or BufferFactory.CreatePooledBufferWriter(isSensitive:) (ADR-1266).
+M:Nerdbank.Streams.Sequence`1.#ctor;Use BufferFactory.CreatePooledBufferWriter(isSensitive:) (ADR-1266).
+M:Nerdbank.Streams.Sequence`1.#ctor(System.Buffers.ArrayPool{`0});Use BufferFactory.CreatePooledBufferWriter(isSensitive:) (ADR-1266).
+M:Nerdbank.Streams.Sequence`1.#ctor(System.Buffers.MemoryPool{`0});Use BufferFactory.CreatePooledBufferWriter(isSensitive:) (ADR-1266).

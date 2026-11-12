@@ -91,7 +91,7 @@ try {
     Assert-Problems 'a row with the wrong column count is reported' $fixture @('table row has 2 columns, expected 3')
 
     $fixture = New-Fixture 'link-missing' @('1001-a.md') @('1001|1001-a.md')
-    Add-FixtureFile $fixture 'notes.md' "See [ADR-1003](docs/decisions/1003-c.md).`n"
+    Add-FixtureFile $fixture 'notes.md' "See [the record](docs/decisions/1003-c.md).`n"
     Assert-Problems 'a link to a missing record is reported' $fixture @('notes.md(1) names 1003-c.md, which is in neither')
 
     $fixture = New-Fixture 'link-template' @('1001-a.md') @('1001|1001-a.md')
@@ -103,6 +103,39 @@ try {
     Add-FixtureFile $fixture 'docs/decisions/project-template/0001-t.md' "# 0001-t.md`n"
     Add-FixtureFile $fixture 'notes.md' "See [0001](docs/decisions/0001-t.md).`n"
     Assert-Problems 'a family path with a template number is reported' $fixture @('notes.md(1) points docs/decisions/0001-t.md at docs/decisions/')
+
+    $fixture = New-Fixture 'cite-missing' @('1001-a.md') @('1001|1001-a.md')
+    Add-FixtureFile $fixture 'notes.md' "See ADR-1003.`n"
+    Assert-Problems 'a citation of a missing record is reported' $fixture @('notes.md(1) cites ADR-1003, which names no record')
+
+    $fixture = New-Fixture 'cite-present' @('1001-a.md') @('1001|1001-a.md')
+    Add-FixtureFile $fixture 'notes.md' "See ADR-1001.`n"
+    Assert-Problems 'a citation of an existing record resolves' $fixture @()
+
+    $fixture = New-Fixture 'cite-template-owned' @('1001-a.md') @('1001|1001-a.md')
+    Add-FixtureFile $fixture '.claude/commands/plan.md' "Cite ADR-1007.`n"
+    Assert-Problems 'a template-owned file may cite a sample number' $fixture @()
+
+    $shapeHeader = "# 1002. b`n`n- **Status:** Accepted`n- **Date:** 2026-01-01`n- **Deciders:** NCode Group`n"
+    $templateRecord = "# 0012-t.md`n"
+
+    $fixture = New-Fixture 'shape-ok' @('1001-a.md', '1002-b.md') @('1001|1001-a.md', '1002|1002-b.md')
+    Add-FixtureFile $fixture 'docs/decisions/project-template/0012-t.md' $templateRecord
+    Add-FixtureFile $fixture 'docs/decisions/1002-b.md' "$shapeHeader- **Refines:** [project-template ADR-0012](project-template/0012-t.md)`n`n## Context`n"
+    Assert-Problems 'a header that relates to a template record is accepted' $fixture @()
+
+    $fixture = New-Fixture 'shape-family-relation' @('1001-a.md', '1002-b.md') @('1001|1001-a.md', '1002|1002-b.md')
+    Add-FixtureFile $fixture 'docs/decisions/1002-b.md' "$shapeHeader- **Refines:** [ADR-1001](1001-a.md)`n`n## Context`n"
+    Assert-Problems 'a relation to a family record is reported' $fixture @('carries a Refines line that does not name only project template records')
+
+    $fixture = New-Fixture 'shape-status' @('1001-a.md', '1002-b.md') @('1001|1001-a.md', '1002|1002-b.md')
+    Add-FixtureFile $fixture 'docs/decisions/1002-b.md' "# 1002. b`n`n- **Status:** Accepted, amended later`n- **Date:** 2026-01-01`n- **Deciders:** NCode Group`n`n## Context`n"
+    Assert-Problems 'a Status with a suffix is reported' $fixture @("has Status 'Accepted, amended later'")
+
+    $fixture = New-Fixture 'shape-label' @('1001-a.md', '1002-b.md') @('1001|1001-a.md', '1002|1002-b.md')
+    Add-FixtureFile $fixture 'docs/decisions/project-template/0012-t.md' $templateRecord
+    Add-FixtureFile $fixture 'docs/decisions/1002-b.md' "$shapeHeader- **Amends:** [project-template ADR-0012](project-template/0012-t.md)`n`n## Context`n"
+    Assert-Problems 'an unknown metadata label is reported' $fixture @("carries a 'Amends' metadata line")
 
     Assert-Problems 'the repository has no problems' (Join-Path $PSScriptRoot '..' '..') @()
 

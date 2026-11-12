@@ -864,7 +864,8 @@ than inlining the rationale.
   [`BannedSymbols.txt`](../../BannedSymbols.txt), this repository's own list for shipping code: no legacy
   `JwtSecurityTokenHandler` / `JwtSecurityToken` (use `JsonWebTokenHandler`) and no throwing Unix-time factories. Add
   house rules to that file as they emerge. `BannedSymbols.Encoding.txt` bans lenient text
-  encodings in every project, tests included
+  encodings in every project, tests included, and `BannedSymbols.Buffers.txt` bans the bare buffer sources in every
+  project but the test projects
   ([ADR-1266](../../docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md)).
 - ⏳ **Warnings-as-errors in every project, tests and hosts included, and NuGet vulnerability advisories (`NU190x`) as
   errors in CI** — template [Build](csharp.instructions.md#build) and
@@ -1139,8 +1140,9 @@ says for a pre-release project.
   [ADR-1481](../../docs/decisions/1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md) and
   [ADR-1145](../../docs/decisions/1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md).
 - 👁 **Handle credential and secret bytes in a pinned, zeroed-on-return buffer.** Encode a password or secret into a
-  `SecureMemoryPool<byte>` rental via `SecureEncoding.UTF8` (`NCode.Buffers`) — never a raw `ArrayPool<byte>` +
-  manual `CryptographicOperations.ZeroMemory`, and never a plain `Encoding.UTF8.GetBytes` that leaves the plaintext
+  `BufferFactory.Rent(…, isSensitive: true, out Memory<byte>)` rental via `SecureEncoding.UTF8` (`NCode.Buffers`) —
+  never a raw `ArrayPool<byte>` + manual `CryptographicOperations.ZeroMemory`, never a bare
+  `SecureMemoryPool<byte>.Shared` rental, and never a plain `Encoding.UTF8.GetBytes` that leaves the plaintext
   lingering on the GC heap. Encode/decode **once** at the earliest boundary and thread the sensitive payload as
   `ReadOnlyMemory<byte>` through the (async) call chain rather than re-encoding a `string` in a leaf method. A secret
   that enters from configuration (already an unavoidable managed `string`) is supplied **pre-encoded** (Base64Url) and
@@ -1160,7 +1162,10 @@ IBufferWriter<byte>, allows ref struct` (as in `SymmetricSecretKey.ExportPrivate
   `ReadOnlySpan<byte>` / `ReadOnlyMemory<byte>`. Rent a pooled writer with
   `BufferFactory.CreatePooledBufferWriter(isSensitive:)` (`NCode.Buffers` over `Nerdbank.Streams`), not a bare
   `ArrayBufferWriter<byte>`, `ArrayPool<T>.Shared` or `MemoryPool<T>.Shared` — `isSensitive: true` for secrets (pinned,
-  zeroed `SecureMemoryPool`), `false` for non-secret bytes. Read a multi-segment sequence segment by segment or with
+  zeroed `SecureMemoryPool`), `false` for non-secret bytes. `BufferFactory.CreateArrayBufferWriter()` is the writer
+  for output that is never secret (public keys, wrapped keys, a user's own document). `BannedSymbols.Buffers.txt`
+  fails the build (`RS0030`) on the bare pools, `ArrayBufferWriter<T>` and `Sequence<T>` constructors in every
+  project but the test projects. Read a multi-segment sequence segment by segment or with
   `SequenceReader<byte>`, and take one contiguous span with `GetSpanLease(isSensitive:)` only when a consumer needs
   it — never manual concatenation or `.ToArray()`. This is the general convention for all byte-array/memory/buffer
   usage; existing `byte[]` surfaces migrate incrementally. See

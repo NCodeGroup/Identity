@@ -37,7 +37,10 @@ standards.
   when the index misses a file or links a missing one, or when a row's number is not its file's, so a collision that
   slips past a textual merge still fails the merge queue. It also fails when a tracked file names a `NNNN-<slug>.md`
   record that is in neither this folder nor `project-template/`, or points a `docs/decisions/0NNN` path at this
-  folder, so a link that a rename or renumber breaks fails the gate too.
+  folder, so a link that a rename or renumber breaks fails the gate too. It also fails when a tracked file
+  cites an ADR number that names no record in this folder (the project template's own files, which cite sample numbers,
+  are exempt), and when a family record carries a Status other than Accepted or Proposed, a header line other than
+  Status, Date, Deciders, Refines, Supersedes and Conflicts with, or a relation line that names a family record.
 - Start a new ADR by copying [`0000-template.md`](./0000-template.md).
 - **Status** is `Proposed` or `Accepted`, with nothing after it. A record that builds on one of the project template's
   decisions says so on a metadata line under `**Deciders:**` (see [The template's decisions](#the-templates-decisions));

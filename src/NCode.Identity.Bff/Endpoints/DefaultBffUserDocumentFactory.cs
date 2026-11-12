@@ -1,9 +1,9 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using NCode.Buffers;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Navigation;
 using NCode.Identity.Bff.Sessions;
@@ -48,7 +48,7 @@ internal sealed class DefaultBffUserDocumentFactory(
             await contributor.ContributeAsync(userContext, cancellationToken);
         }
 
-        var buffer = new ArrayBufferWriter<byte>();
+        var buffer = BufferFactory.CreateArrayBufferWriter();
         using (var writer = new Utf8JsonWriter(buffer))
         {
             writer.WriteStartObject();

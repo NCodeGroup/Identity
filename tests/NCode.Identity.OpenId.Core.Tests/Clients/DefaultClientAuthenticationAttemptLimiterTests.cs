@@ -166,6 +166,8 @@ public sealed class DefaultClientAuthenticationAttemptLimiterTests : BaseTests
         );
         Assert.Equal(LogLevel.Warning, record.Level);
         Assert.Contains(TenantId, record.Message, StringComparison.Ordinal);
+        Assert.Contains("'ForwardedHeaders'", record.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("ReverseProxy", record.Message, StringComparison.Ordinal);
     }
 
     [Fact]

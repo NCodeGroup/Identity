@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers;
 using System.Collections.Frozen;
 using System.Security.Cryptography;
 using NCode.Buffers;
@@ -419,7 +418,7 @@ internal partial class DefaultCoseSerializer
         for (var index = 0; index < algorithms.Count; index++)
         {
             var recipient = recipients.Recipients[index];
-            var writer = new ArrayBufferWriter<byte>();
+            var writer = BufferFactory.CreateArrayBufferWriter();
             algorithms[index]
                 .WrapKey(
                     recipient.Credentials.SecretKey,

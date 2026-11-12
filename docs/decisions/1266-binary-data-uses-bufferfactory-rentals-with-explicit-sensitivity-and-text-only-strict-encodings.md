@@ -33,9 +33,13 @@ become text, only through a strict encoding.
 1. **One source of buffers.** The family applies project-template ADR-0112's span, writer, pooling, clearing, sequence
    and hot-path rules through `NCode.Buffers` (`BufferFactory`, `SecureMemoryPool<T>`, `SecureEncoding`,
    `GetSpanLease`) over `Nerdbank.Streams`. `NCode.Identity.Json` depends on `NCode.Buffers`.
-2. **Every pooled buffer comes from `BufferFactory`** (`Rent`, `CreatePooledBufferWriter`, `CreatePinnedArray`). Code
-   must not use a bare `ArrayPool<T>.Shared`, `MemoryPool<T>.Shared` or `new ArrayBufferWriter<T>`, so sensitivity is
-   an argument at every rental.
+2. **Every pooled buffer comes from `BufferFactory`** (`Rent`, `CreatePooledBufferWriter`, `CreatePinnedArray`), and a
+   contiguous writer that never holds a secret comes from `CreateArrayBufferWriter()`: public output, such as a public
+   JWK or a JWKS, a wrapped key, or a document for the user's own browser. Code must not use a bare
+   `ArrayPool<T>.Shared`, `MemoryPool<T>.Shared`, `SecureMemoryPool<T>.Shared`, `new ArrayBufferWriter<T>` or
+   `new Sequence<T>`, so sensitivity is an argument at every rental. `BannedSymbols.Buffers.txt`, which
+   `Directory.Build.targets` adds to every project that is not a test project, bans them with `RS0030`; test projects
+   may build their own fixtures with them.
 3. **Sensitivity.** `isSensitive: true` rents from the pinned `SecureMemoryPool`, zeroed when returned. It is always
    used for keys, passwords, nonces, decrypted JWE plaintext and a payload serialized or compressed before
    encryption. `isSensitive: false` delegates to `MemoryPool<T>.Shared`. Sensitive text is encoded once with
@@ -96,6 +100,7 @@ become text, only through a strict encoding.
   U+FFFD in `ExpiringKeys`, `SecretProtectionFormat` and `SettingsFingerprint`.
 - `text/plain` responses declare `charset=utf-8`, and `application/jwt` responses declare none.
 - A new use of a lenient encoding fails the build with `RS0030`; the two allowed text-result calls rely on review.
+- A bare buffer source in code that is not a test fails the build with `RS0030`.
 - A test that needs UTF-16 or a byte-order mark constructs a strict encoding itself.
 
 ## References
@@ -103,7 +108,7 @@ become text, only through a strict encoding.
 - [project-template ADR-0112](project-template/0112-binary-data-uses-spans-pooled-buffers-and-cleared-secrets.md)
 - [ADR-1127](1127-every-project-builds-with-zero-warnings-and-the-familys-own-banned-apis-bind-shipping-code.md)
 - [ADR-1386](1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md)
-- `BannedSymbols.Encoding.txt`, `Directory.Build.targets`
+- `BannedSymbols.Encoding.txt`, `BannedSymbols.Buffers.txt`, `Directory.Build.targets`
 - `NCode.Buffers` (`BufferFactory`, `SecureMemoryPool<T>`, `SecureEncoding`, `GetSpanLease`)
 - `Utf8TextResults` in `NCode.Identity.OpenId.Authentication.Endpoints`
 - `DefaultDPoPProofService`, `ExpiringKeys`, `SecretProtectionFormat`, `SettingsFingerprint`

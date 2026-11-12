@@ -180,9 +180,11 @@ partial class JoseSerializer
 
         if (signingOptions.DetachPayload)
         {
-            var lease = MemoryPool<char>.Shared.Rent(payloadCharCount);
-            workingPayload = lease.Memory.Span;
-            owner = lease;
+            owner = BufferFactory.Rent<char>(
+                payloadCharCount,
+                isSensitive: false,
+                out workingPayload
+            );
         }
         else
         {

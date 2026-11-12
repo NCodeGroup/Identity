@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Buffers;
 using System.Buffers.Text;
 using System.Collections.Frozen;
 using System.Security.Cryptography;
@@ -9,6 +8,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 using JetBrains.Annotations;
+using NCode.Buffers;
 using NCode.Identity.Json;
 
 namespace NCode.Identity.Jwk;
@@ -243,7 +243,7 @@ public sealed class JsonWebKey
         if (!ContainsPrivateKeyMaterial)
             return this;
 
-        var buffer = new ArrayBufferWriter<byte>();
+        var buffer = BufferFactory.CreateArrayBufferWriter();
         using (var writer = new Utf8JsonWriter(buffer))
         {
             writer.WriteStartObject();
@@ -274,7 +274,8 @@ public sealed class JsonWebKey
     {
         ArgumentException.ThrowIfNullOrEmpty(keyId);
 
-        var buffer = new ArrayBufferWriter<byte>();
+        var isSensitive = ContainsPrivateKeyMaterial;
+        using var buffer = BufferFactory.CreatePooledBufferWriter(isSensitive: isSensitive);
         using (var writer = new Utf8JsonWriter(buffer))
         {
             writer.WriteStartObject();
@@ -294,7 +295,8 @@ public sealed class JsonWebKey
             writer.WriteEndObject();
         }
 
-        var parsed = JsonElement.Parse(buffer.WrittenSpan);
+        using var lease = buffer.GetSpanLease(isSensitive: isSensitive);
+        var parsed = JsonElement.Parse(lease.Span);
         return KeyTypeDescriptor is null
             ? new JsonWebKey(parsed)
             : new JsonWebKey(parsed, KeyTypeDescriptor);
@@ -325,7 +327,7 @@ public sealed class JsonWebKey
                 $"A JWK thumbprint cannot be computed for the key type '{KeyType}' without its JsonWebKeyTypeDescriptor."
             );
 
-        var buffer = new ArrayBufferWriter<byte>(256);
+        var buffer = BufferFactory.CreateArrayBufferWriter(256);
         using (var writer = new Utf8JsonWriter(buffer))
         {
             writer.WriteStartObject();

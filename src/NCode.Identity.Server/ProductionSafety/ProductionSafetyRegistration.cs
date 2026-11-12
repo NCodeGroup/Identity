@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId;
 using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
@@ -26,7 +27,8 @@ namespace NCode.Identity.Server;
 /// that outlives the process, a root key held inline in configuration, or no decision about recovering a lost root
 /// key. Each finding is also silent: a deployment that forgets to override or supply it starts, serves traffic, and
 /// looks healthy, which is precisely why these are startup failures rather than log warnings. Failing before the
-/// server binds a port is the only outcome an operator cannot miss.
+/// server binds a port is the only outcome an operator cannot miss. The gate also refuses, as the host finishes
+/// starting, a server that binds a plain-HTTP endpoint or serves an unusable certificate.
 /// </remarks>
 [PublicAPI]
 public static class ProductionSafetyRegistration
@@ -61,7 +63,8 @@ public static class ProductionSafetyRegistration
         /// protection configuration that cannot keep stored secrets readable and private, and, as the host starts, a
         /// Data Protection key ring that has no repository or is not encrypted at rest, a work factor for supplied
         /// client secrets below the recommended one, and configured platform settings whose <c>environment_type</c> is
-        /// a registered non-production type.
+        /// a registered non-production type. It also refuses, as the host finishes starting, a server that binds a
+        /// plain-HTTP endpoint or serves an unusable certificate.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> to validate.</param>
         /// <param name="hostEnvironment">The <see cref="IHostEnvironment"/> that decides whether to validate at all.</param>
@@ -81,6 +84,9 @@ public static class ProductionSafetyRegistration
 
             if (!hostEnvironment.IsProduction())
                 return serviceCollection;
+
+            // Kestrel serves HTTPS only, with a certificate that passes the transport checks (ADR-1503); inert outside Production, checked as the host finishes starting.
+            serviceCollection.AddTransportSecurity(hostEnvironment);
 
             // Data Protection is composed after this gate runs, so the key ring is checked as the host starts.
             serviceCollection

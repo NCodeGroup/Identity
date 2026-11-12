@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpLogging;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -241,7 +242,103 @@ public sealed class GuardedHttpLoggingRegistrationTests : BaseTests
         await host.StopAsync(CancellationToken.None);
     }
 
+    [Fact]
+    public async Task AddGuardedHttpLogging_WhenTheDefaultLevelIsRaised_CapsTheHostingDiagnosticsCategoryAtWarning()
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging(x => x.AddFakeLogging().SetMinimumLevel(LogLevel.Debug));
+        serviceCollection.AddGuardedHttpLogging();
+        serviceCollection.AddLogging(x => x.AddFilter(null, LogLevel.Debug));
+
+        await using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var records = LogHostingDiagnostics(serviceProvider);
+
+        AssertOnlyTheWarningIsWritten(records);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    public async Task AddGuardedHttpLogging_WhenAProviderScopedLevelIsRaised_CapsTheHostingDiagnosticsCategoryAtWarning(
+        bool filterFirst
+    )
+    {
+        var serviceCollection = new ServiceCollection();
+        if (filterFirst)
+        {
+            serviceCollection.AddLogging(x =>
+                x.AddFakeLogging().AddFilter<FakeLoggerProvider>(level => level >= LogLevel.Debug)
+            );
+            serviceCollection.AddGuardedHttpLogging();
+        }
+        else
+        {
+            serviceCollection.AddLogging(x => x.AddFakeLogging());
+            serviceCollection.AddGuardedHttpLogging();
+            serviceCollection.AddLogging(x =>
+                x.AddFilter<FakeLoggerProvider>(level => level >= LogLevel.Debug)
+            );
+        }
+
+        await using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var records = LogHostingDiagnostics(serviceProvider);
+
+        AssertOnlyTheWarningIsWritten(records);
+    }
+
+    [Fact]
+    public async Task AddGuardedHttpLogging_WhenTheHostingDiagnosticsCategoryIsConfiguredAtInformation_CapsItAtWarning()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    [$"Logging:LogLevel:{GuardedHttpLoggingDefaults.HostingDiagnosticsCategory}"] =
+                        "Information",
+                }
+            )
+            .Build();
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging(x => x.AddConfiguration(configuration.GetSection("Logging")));
+        serviceCollection.AddLogging(x => x.AddFakeLogging());
+        serviceCollection.AddGuardedHttpLogging();
+
+        await using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var records = LogHostingDiagnostics(serviceProvider);
+
+        AssertOnlyTheWarningIsWritten(records);
+    }
+
     #endregion
+
+    private static IReadOnlyList<FakeLogRecord> LogHostingDiagnostics(
+        ServiceProvider serviceProvider
+    )
+    {
+        var loggerFactory = serviceProvider.GetRequiredService<ILoggerFactory>();
+        var logger = loggerFactory.CreateLogger(
+            GuardedHttpLoggingDefaults.HostingDiagnosticsCategory
+        );
+
+        logger.Log(LogLevel.Information, 0, "information-record", null, (state, _) => state);
+        logger.Log(LogLevel.Warning, 0, "warning-record", null, (state, _) => state);
+
+        return serviceProvider.GetFakeLogCollector().GetSnapshot();
+    }
+
+    private static void AssertOnlyTheWarningIsWritten(IReadOnlyList<FakeLogRecord> records)
+    {
+        Assert.DoesNotContain(
+            records,
+            x => x.Message.Contains("information-record", StringComparison.Ordinal)
+        );
+        Assert.Contains(
+            records,
+            x => x.Message.Contains("warning-record", StringComparison.Ordinal)
+        );
+    }
 
     private static async ValueTask<IReadOnlyList<FakeLogRecord>> SendAsync(
         Endpoint? endpoint,

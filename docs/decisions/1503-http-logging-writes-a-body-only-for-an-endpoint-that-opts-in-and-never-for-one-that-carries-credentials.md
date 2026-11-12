@@ -33,7 +33,8 @@ enables a body.**
    `RequestPropertiesAndHeaders | ResponsePropertiesAndHeaders | Duration`, removes `Location` from the response-header
    allow-list and keeps the framework's request-header allow-list. It caps `Microsoft.AspNetCore.Hosting.Diagnostics`
    at `Warning`, because that logger's `Request starting` and `Request finished` lines carry the full URL, query string
-   included, and HTTP logging's request and response records take their place.
+   included, and HTTP logging's request and response records take their place. The cap is added for every logging
+   provider's rules, so a provider-scoped level, such as `Logging:Console:LogLevel`, does not raise it.
 2. **An endpoint opts in, in code.** `WithRequestBodyLogging()` and `WithResponseBodyLogging()` opt an endpoint or route
    group in. A registered `IHttpLoggingInterceptor` gives each request the permitted fields plus exactly the bodies its
    endpoint opts into, and strips every other field, including what `[HttpLogging]` or `WithHttpLogging(...)` enables.
@@ -67,6 +68,8 @@ enables a body.**
 - A configured body field or credential header stops the host with a message naming each finding.
 - A host's own interceptor registered later could enable a field again. That is host code, which this decision does not
   police.
+- A host's own `PostConfigure<LoggerFilterOptions>` or a logging provider that ignores filter rules can still write the
+  hosting layer's request lines. That is host code, which this decision does not police.
 
 ## References
 

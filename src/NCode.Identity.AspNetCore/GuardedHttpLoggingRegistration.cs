@@ -52,14 +52,29 @@ public static class GuardedHttpLoggingRegistration
             serviceCollection.AddOptions<HttpLoggingOptions>().ValidateOnStart();
 
             // The hosting layer's request lines carry the query string, and HTTP logging's records take their place.
-            serviceCollection.AddLogging(logging =>
-                logging.AddFilter(
-                    GuardedHttpLoggingDefaults.HostingDiagnosticsCategory,
-                    LogLevel.Warning
-                )
-            );
+            // A rule scoped to a provider outranks one that is not, so the cap is added for each provider that has a
+            // rule, and as a post-configuration it follows every configuration section and every filter.
+            var loggerFilterBuilder = serviceCollection.AddOptions<LoggerFilterOptions>();
+            loggerFilterBuilder.PostConfigure(CapHostingDiagnostics);
 
             return serviceCollection;
+        }
+    }
+
+    private static void CapHostingDiagnostics(LoggerFilterOptions options)
+    {
+        var providerNames = options.Rules.Select(rule => rule.ProviderName).Distinct().ToList();
+        providerNames.Add(null);
+
+        foreach (var providerName in providerNames.Distinct())
+        {
+            var rule = new LoggerFilterRule(
+                providerName,
+                GuardedHttpLoggingDefaults.HostingDiagnosticsCategory,
+                LogLevel.Warning,
+                filter: null
+            );
+            options.Rules.Add(rule);
         }
     }
 }

@@ -1,5 +1,5 @@
-{{- if and .Values.managementConsole.enabled .Values.managementConsole.ingress.enabled (eq .Values.backendTls.ingressController "traefik") }}
-# Traefik verifies the console pods' certificate against the CA in the verification Secret, under the Service's DNS name.
+{{- if and .Values.managementConsole.enabled .Values.managementConsole.ingress.enabled (eq .Values.ingress.controller "traefik") }}
+# Traefik verifies the console pods' certificate against the CA ConfigMap or, without one, the serving Secret, under the Service's DNS name.
 apiVersion: traefik.io/v1alpha1
 kind: ServersTransport
 metadata:
@@ -8,6 +8,6 @@ metadata:
     {{- include "identity-host.managementConsole.labels" . | nindent 4 }}
 spec:
   serverName: {{ include "identity-host.backendTls.serverName" (dict "root" . "service" (include "identity-host.managementConsole.fullname" .)) | quote }}
-  rootCAsSecrets:
-    - {{ include "identity-host.backendTls.verificationSecretName" (dict "root" . "service" (include "identity-host.managementConsole.fullname" .)) }}
+  rootCAs:
+    - {{- include "identity-host.backendTls.traefikRootCA" (dict "root" . "service" (include "identity-host.managementConsole.fullname" .)) | trim | nindent 6 }}
 {{- end }}

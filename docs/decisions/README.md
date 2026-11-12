@@ -8,9 +8,11 @@ This directory records the **architecturally significant decisions** made for th
 The private `NCodeGroup/identity-cloud` keeps its own decisions, and a decision about a public contract it relies on is
 recorded here ([ADR-1502](./1502-code-a-self-hoster-could-use-is-public-and-the-products-repositories-and-artifacts-follow-one-naming-scheme.md)).
 
-An ADR captures a single decision: the context that forced it, the decision itself, and the
-consequences. ADRs are immutable once **Accepted** — if a decision changes, add a new ADR that
-**supersedes** the old one (and update the old one's status) rather than editing history.
+An ADR captures a single decision as it holds in the code: the context that forces it, the decision itself, the
+options weighed and the consequences. When a decision changes, its record is rewritten in place, and git history
+keeps what it said before; no record here supersedes, amends or overrides another, and each relates only to the
+project template's records
+([ADR-1503](./1503-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md)).
 
 An ADR records a decision **we** made; it is **not** a source of external authority. Where an
 authoritative standard governs — the OpenID Foundation specifications, the IETF OAuth/OIDC RFCs and
@@ -18,7 +20,7 @@ the Security BCP ([RFC 9700](https://datatracker.ietf.org/doc/html/rfc9700)), an
 Foundation conformance suite's pass/warn verdicts — **that external guidance is the authority**, and
 an ADR exists to record how we _apply_ it, not to override it. A self-authored ADR must never be
 cited as justification to deviate from current authoritative best practice: when an ADR and the
-authoritative guidance conflict, re-evaluate and **supersede the ADR to align with the standard**
+authoritative guidance conflict, re-evaluate and **rewrite the ADR to align with the standard**
 rather than treating the ADR as having settled the question. This is a direct corollary of the
 greenfield posture ([ADR-1025](./1025-pre-release-posture-and-auth0-parity-plus.md)) — our own
 docs, code, and ADRs are point-in-time artifacts that may be wrong and are subordinate to the
@@ -38,16 +40,19 @@ standards.
   record that is in neither this folder nor `project-template/`, or points a `docs/decisions/0NNN` path at this
   folder, so a link that a rename or renumber breaks fails the gate too.
 - Start a new ADR by copying [`0000-template.md`](./0000-template.md).
-- **Status** is one of: `Proposed`, `Accepted`, `Deprecated`, or `Superseded by ADR-NNNN`. A record that builds on
-  one of the project template's decisions says so on a metadata line under `**Deciders:**` (see
-  [The template's decisions](#the-templates-decisions)).
+- **Status** is `Proposed` or `Accepted`, with nothing after it. A record that builds on one of the project template's
+  decisions says so on a metadata line under `**Deciders:**` (see [The template's decisions](#the-templates-decisions));
+  a record has no other metadata lines, and cites another record here only in its text, where that record holds a rule
+  this one relies on.
+- When two records come to decide one thing, they become one record that keeps the more-cited number; the other number
+  is retired, never taken again, and every citation of it names the record that holds its decision.
 - Keep ADRs short, concrete, and link to real code so future readers can verify the decision
   against the current source.
 - Write each ADR as a **timeless, present-tense record** of the decision and its rationale — never a
   narrative of the development process. Avoid development-timeline language (_"shipped"_, _"reversed
   before release"_, _"the first cut"_, _"we built"_, _"now/originally/today"_): describe what the
-  decision **is** and why, so the record reads the same a year later. A superseded ADR keeps its
-  original decision text and only gains a status change plus a forward pointer to its successor.
+  decision **is** and why, so the record reads the same a year later. A changed decision is a rewrite of its record,
+  which reads as if the decision had always been so.
 
 ## The template's decisions
 
@@ -56,7 +61,8 @@ replace that folder. They are the source of truth for every rule they cover: cit
 linking `project-template/NNNN-<slug>.md`. A record here never restates one. When it adds NCode.Identity-specific
 decisions to one, it says `- **Refines:** project-template ADR-NNNN`, and where the two differ the template's holds.
 When it contradicts one, it says `- **Conflicts with:** project-template ADR-NNNN` with the issue that tracks bringing
-the two into line; until then the record describes what the code does. To decide otherwise for good, write a record
+the two into line; until then the record describes what the code does. These three lines are the only relations a
+record here carries. To decide otherwise for good, write a record
 that says `- **Supersedes:** project-template ADR-NNNN` and list the override in [`AGENTS.md`](../../AGENTS.md).
 
 ## Index

@@ -337,14 +337,18 @@ The image starts in the `Production` environment, which refuses to start until t
   `SecretProtection__Recovery__PublicKeyPath` or `SecretProtection__Recovery__Disabled=true`, which acknowledges running
   without a recovery key
   ([ADR-1235](../../docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
-- `ConnectionStrings__openiddb`: the Postgres database. It also stores the key ring, so the host refuses to start
-  without it.
+- `ConnectionStrings__openiddb`, or the parts `OpenIdDatabase__Host`, `OpenIdDatabase__Port` (optional),
+  `OpenIdDatabase__Name`, `OpenIdDatabase__Username` and `OpenIdDatabase__Password`: the Postgres database, as a
+  finished Npgsql connection string or as its parts, which the host assembles into one with the password quoted.
+  Setting both, or some but not all of the required parts, stops the host at start. It also stores the key ring, so the
+  host refuses to start without it
+  ([ADR-1509](../../docs/decisions/1509-the-host-chart-passes-a-postgres-operators-secret-as-the-connections-parts-and-the-host-assembles-the-npgsql-connection.md)).
 - `OpenId__TenantResolution__StaticSingle__Issuer`: the public issuer URL, or another tenant resolution mode. A served
   tenant without an issuer fails closed
   ([ADR-1165](../../docs/decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)).
 
 The host does not migrate on boot. The image also carries the migration worker, which runs from `/app/migrations` with
-`dotnet NCode.Identity.OpenId.Host.MigrationService.dll` and the same `ConnectionStrings__openiddb`.
+`dotnet NCode.Identity.OpenId.Host.MigrationService.dll` and the same database settings.
 
 The Helm chart in [`charts/ncode-identity-host`](../../charts/ncode-identity-host/README.md) deploys the image with
 these settings and refuses a release that lacks them.

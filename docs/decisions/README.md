@@ -332,15 +332,13 @@ The records are grouped by area; within an area they are in number order.
 | [1256](./1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md) | Every page the server writes has a strict Content-Security-Policy and is framed only by design | Accepted |
 | [1258](./1258-the-server-sends-strict-transport-security-outside-development.md) | The server sends Strict-Transport-Security outside Development | Accepted |
 | [1290](./1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md) | The BFF keeps each session as an encrypted server-side record under a cookie handle | Accepted |
-| [1291](./1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md) | The BFF refreshes a session single-flight under a lease on its refresh token | Accepted |
+| [1291](./1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md) | The BFF refreshes a session's token single-flight under a lease its winner releases by owner token | Accepted |
 | [1292](./1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md) | The BFF accepts its cookie only with a static header and Fetch Metadata | Accepted |
 | [1293](./1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md) | The BFF ends sessions by guarded logout and by back-channel logout through indexes | Accepted |
 | [1294](./1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md) | A BFF client is registered with explicit metadata, not a bff security profile | Accepted |
-| [1308](./1308-a-refresh-lease-is-released-only-by-the-owner-token-its-winner-holds.md) | A refresh lease is released only by the owner token its winner holds | Accepted |
 | [1311](./1311-the-bff-logs-out-by-a-form-post-that-carries-the-sessions-logout-guard.md) | The BFF logs out by a form post that carries the session's logout guard | Accepted |
 | [1381](./1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md) | The BFF serves its own and exchanged tokens without a lease and forwards remote APIs through YARP | Accepted |
 | [1382](./1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md) | The BFF sends browser security headers and publishes its client keys only when the host opts in | Accepted |
-| [1431](./1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md) | The BFF requests offline access only when its deployment lists it | Accepted |
 | [1432](./1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md) | One BFF serves several frontends, each selected per request by an open rule | Accepted |
 | [1433](./1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md) | A BFF host refuses to start when an endpoint's BFF metadata is incomplete | Accepted |
 | [1434](./1434-open-tabs-learn-that-a-bff-session-ended-from-its-next-answer-not-a-pushed-event.md) | Open tabs learn that a BFF session ended from its next answer, not a pushed event | Accepted |

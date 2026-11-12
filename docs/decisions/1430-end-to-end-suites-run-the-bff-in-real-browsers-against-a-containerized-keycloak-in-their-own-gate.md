@@ -94,8 +94,7 @@ run the BFF in Chromium, Firefox and WebKit against a containerized Keycloak.**
     cannot observe a refusal in every browser.
 
 14. **The login requests `offline_access` only when the deployment lists it.** The interop suite runs the BFF as
-    [ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md) and
-    [ADR-1431](1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md) describe, so Keycloak's
+    [ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md) describe, so Keycloak's
     logout at the OP reaches the BFF as a back-channel logout token.
 
 ## Options considered
@@ -130,8 +129,7 @@ run the BFF in Chromium, Firefox and WebKit against a containerized Keycloak.**
 
 - [ADR-1261](1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md),
   [ADR-1263](1263-branches-and-pull-requests-run-an-affected-gate-and-the-merge-queue-runs-the-full-gate.md),
-  [ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
-  [ADR-1431](1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md),
+  [ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md),
   [project-template ADR-0008](project-template/0008-external-inputs-are-pinned-and-kept-current.md)
 - Issues [#418](https://github.com/NCodeGroup/identity/issues/418) and
   [#419](https://github.com/NCodeGroup/identity/issues/419)

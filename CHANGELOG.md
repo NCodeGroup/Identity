@@ -2700,10 +2700,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   `IdTokenValidationResult` exposes the validated `Identity` ([#394](https://github.com/NCodeGroup/identity/issues/394),
   [#395](https://github.com/NCodeGroup/identity/issues/395),
   [ADR-1290](docs/decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
-  [ADR-1291](docs/decisions/1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
+  [ADR-1291](docs/decisions/1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md),
   [ADR-1293](docs/decisions/1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md),
   [ADR-1294](docs/decisions/1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md),
-  [ADR-1431](docs/decisions/1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md)).
+  [ADR-1291](docs/decisions/1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md)).
 
 - **A BFF is composed in one call.** The `NCode.Identity.Bff.Server` package is the BFF's composition root:
   `AddIdentityBff(configuration)` composes the shared-state (in-process by default), events, secrets, JOSE, JWT,
@@ -2725,7 +2725,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`RefreshLeaseReleaseFailed`, event 19004), and the lease expires on its own; a failure of the refresh itself is
   reported as that failure ([#422](https://github.com/NCodeGroup/identity/issues/422),
   [#462](https://github.com/NCodeGroup/identity/issues/462),
-  [ADR-1308](docs/decisions/1308-a-refresh-lease-is-released-only-by-the-owner-token-its-winner-holds.md)).
+  [ADR-1291](docs/decisions/1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md)).
 
 - **BFF session claim and `/bff/user` contributors.** `IBffSessionClaimContributor` strategies shape a session's claims
   once, at login, after the ID token validates and before the login gates, which judge the shaped claims;

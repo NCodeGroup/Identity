@@ -13,7 +13,7 @@
 A backend-for-frontend session
 ([ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)) ends in four
 ways: it expires, a refresh fails
-([ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md)), the user logs out
+([ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md)), the user logs out
 at the BFF, or the provider ends the user's session and tells the BFF through OpenID Connect Back-Channel Logout. The
 design (§5.8) asked for RP-initiated logout that cannot be forced cross-site, and for a back-channel receiver that ends
 the session on every replica. Phase 2 (issue #394) builds both on the protocol client's logout-token validator

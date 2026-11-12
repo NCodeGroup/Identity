@@ -64,7 +64,7 @@ composition root chooses: in-process for one replica, Valkey for several.**
      unchanged;
    - `TryTakeAsync(key)` atomically removes the live entry and returns it, so a login transaction is redeemed once;
    - `TryRemoveAsync` is an atomic compare-and-remove by value
-     ([ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md));
+     ([ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md));
    - `RemoveAsync(key)` removes an entry.
 
    Values are opaque bytes: the caller serializes them and encrypts what must not be readable in the store. A key that is
@@ -177,7 +177,7 @@ composition root chooses: in-process for one replica, Valkey for several.**
   [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md),
   [ADR-1205](1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md),
   [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md),
-  [ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md)
+  [ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md)
 - [RFC 9449](https://www.rfc-editor.org/rfc/rfc9449), [RFC 7523](https://www.rfc-editor.org/rfc/rfc7523)
 - [Backend for frontend](../backend-for-frontend.md), [hosting analysis](../hosting-analysis.md#valkey)
 - `src/NCode.Identity.SharedState.Abstractions/` (`IExpiringKeySet.cs`, `IExpiringValueSet.cs`, `ExpiringValue.cs`,

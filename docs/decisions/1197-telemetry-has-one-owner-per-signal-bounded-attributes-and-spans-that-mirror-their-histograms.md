@@ -29,7 +29,7 @@ Two forces of the family's own add to those:
   another grant type, client-authentication method or endpoint, so a metric dimension cannot be a closed list either.
 
 The BFF ([ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
-[ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md)) is the first package
+[ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md)) is the first package
 whose latency hides inside a request: a token refresh may wait for the session's lock and for another replica's lease
 before it calls the token endpoint, and every session read or write goes through a replaceable `IBffSessionStore`.
 Without spans of its own, a slow `/api` request shows only the outbound call, not the waits around it.

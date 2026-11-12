@@ -40,7 +40,7 @@ twice.
    package does not take a dependency on `NCode.Identity.Time` for a check they already imply. The names match
    `OutboundHttpOptions`, so the family has one vocabulary. The default `TotalTimeout` is 15 seconds, so the BFF's
    40-second refresh lease covers two attempts of 15 seconds and 10 seconds
-   ([ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md)).
+   ([ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md)).
 
 3. **Only a safe request is retried.** A GET or HEAD without a body and without a `DPoP` header, while
    `MaxRetryAttempts` is above zero, runs through the total timeout, then the retry, then the per-attempt timeout. A
@@ -86,14 +86,14 @@ twice.
 - Discovery, JWKS and bearer userinfo GETs survive a transient provider failure; token requests still fail on the first
   error.
 - The BFF's lease check reads `TotalTimeout`
-  ([ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md)).
+  ([ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md)).
 - `NCode.Identity.OpenId.Client` carries `Polly.Core` and does not carry `Microsoft.Extensions.Telemetry.Abstractions`.
 
 ## References
 
 - [ADR-1137](1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md),
   [ADR-1285](1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md),
-  [ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
+  [ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md),
   [ADR-1315](1315-calls-to-caller-supplied-urls-share-one-guarded-bounded-client-and-one-single-flight-helper.md),
   [ADR-1385](1385-no-shipping-package-replaces-its-consumers-logging-generator-or-carries-microsoft-extensions-http-resilience.md)
 - Issues [#469](https://github.com/NCodeGroup/identity/issues/469) and [#471](https://github.com/NCodeGroup/identity/issues/471)

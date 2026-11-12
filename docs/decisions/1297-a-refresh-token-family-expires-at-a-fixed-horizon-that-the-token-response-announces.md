@@ -21,7 +21,7 @@ lifetimes, and IdentityServer's absolute and sliding lifetimes.
 A client also cannot see when its refresh token's family ends: OAuth 2.0 defines `expires_in` only for the access
 token. The de-facto `refresh_token_expires_in` member (sent by Microsoft Entra ID, among others) carries it. The BFF
 caps a session at it, and only shortens a session by it
-([ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md)), which is sound only
+([ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md)), which is sound only
 when the value is a fixed horizon that never moves later within a family.
 
 ## Decision
@@ -52,7 +52,7 @@ when the value is a fixed horizon that never moves later within a family.
 5. **The protocol client reads it leniently.** `TokenResponse.RefreshTokenExpiresIn` reads the member from the
    extension data and ignores a value that is not a positive whole number, because the member is advisory and a
    provider's odd value must not fail a token response. The BFF bounds its session by it
-   ([ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md)).
+   ([ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md)).
 6. **Introspection honors the horizon.** Introspection reports a refresh token whose family has passed its horizon as
    inactive, as the refresh grant refuses it with `invalid_grant`
    ([ADR-1168](1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md)).
@@ -88,5 +88,5 @@ when the value is a fixed horizon that never moves later within a family.
 - [RFC 9700 §4.14.2](https://www.rfc-editor.org/rfc/rfc9700#section-4.14.2) — refresh token protection
 - [ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md) — when a refresh token is rotated
 - [ADR-1217](1217-a-reused-refresh-token-revokes-its-family-unless-it-is-a-retry-within-an-opt-in-interval.md) — refresh token lineage and retries within a reuse interval
-- [ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md) — the BFF caps a session at `refresh_token_expires_in`
+- [ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md) — the BFF caps a session at `refresh_token_expires_in`
 - [ADR-1168](1168-introspection-reports-a-token-active-only-to-the-party-that-consumes-it.md) — introspection of an expired family

@@ -16,7 +16,7 @@ expiring values and membership indexes of SharedState
 Four things need a decision: how the packages are named (§11.5), how a session record is keyed, encrypted and laid out,
 how the login is bound to the browser that started it, and what the session principal holds. The refresh, the cookie
 acceptance rules and logout have their own records
-([ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md),
+([ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md),
 [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md),
 [ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)), and a
 deployment serves several frontends, each with its own cookies and sessions

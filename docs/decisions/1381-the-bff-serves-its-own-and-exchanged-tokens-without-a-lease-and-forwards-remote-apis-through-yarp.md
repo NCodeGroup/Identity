@@ -15,7 +15,7 @@
 
 The BFF's first token requirement, `user`, serves the session's own access token and refreshes it single-flight under a
 lease on its refresh token
-([ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md)). The lease spans the
+([ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md)). The lease spans the
 replicas because the OP rotates refresh tokens: two replicas that present the same refresh token make the OP revoke the
 whole family (RFC 9700 §4.14.2).
 
@@ -145,7 +145,7 @@ second, equally valid token and revokes nothing.
 
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.5 and §5.6
 - [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)
-- [ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md)
+- [ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md)
 - [ADR-1292](1292-the-bff-accepts-its-cookie-only-with-a-static-header-and-fetch-metadata.md)
 - RFC 6749 §4.4, RFC 8693, RFC 9449, RFC 9700
 - `src/NCode.Identity.Bff/Tokens/`, `src/NCode.Identity.Bff/RemoteApis/`

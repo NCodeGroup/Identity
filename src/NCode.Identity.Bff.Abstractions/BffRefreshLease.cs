@@ -11,6 +11,6 @@ namespace NCode.Identity.Bff;
 /// </summary>
 /// <param name="LeaseKey">The key of the lease.</param>
 /// <param name="Owner">The owner token the store recorded when it granted the lease.</param>
-// See ADR-1308.
+// See ADR-1291.
 [PublicAPI]
 public readonly record struct BffRefreshLease(string LeaseKey, string Owner);

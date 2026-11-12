@@ -1,7 +1,7 @@
 # 1294. A BFF client is registered with explicit metadata, not a bff security profile
 
 - **Status:** Accepted (amended by
-  [ADR-1431](1431-the-bff-requests-offline-access-only-when-its-deployment-lists-it.md): the client registers the
+  [ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md): the client registers the
   `offline_access` scope only when its BFF lists it in `Bff:Scopes`; keys amended by
   [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md): its per-frontend
   settings are configured under Bff:Frontends:{name}; and by
@@ -37,7 +37,7 @@ A BFF client registers:
 - `require_pushed_authorization_requests=true`; the protocol client pushes whenever the provider offers PAR
   ([ADR-1275](1275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md)).
 - `dpop_bound_access_tokens=true` when the BFF runs `Bff:DPoP:Mode` `required`
-  ([ADR-1291](1291-the-bff-refreshes-a-session-single-flight-under-a-lease-on-its-refresh-token.md)).
+  ([ADR-1291](1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md)).
 - `id_token_signed_response_alg`, `userinfo_signed_response_alg` and their `_encrypted_response_alg` and `_enc`,
   when set, the same as the BFF's `Bff:IdToken` and `Bff:UserInfo` name
   ([ADR-1301](1301-the-protocol-client-reads-userinfo-as-json-or-a-registered-jwt-under-the-familys-claim-mapping.md)).

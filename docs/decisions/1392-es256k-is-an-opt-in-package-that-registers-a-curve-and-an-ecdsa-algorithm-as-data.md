@@ -57,7 +57,7 @@ Three facts shape how it is added:
    generation request carries that object whole as its `GenerationParameters`, so an endpoint generates with what was
    validated and copies no field of it. A stored key satisfies a tenant key specification only when its stored public
    half is on the specification's curve and the algorithm's `IsKeyCompatible` accepts it. Every private asymmetric secret stores that half
-   ([ADR-1268](1268-a-generated-private-key-stores-its-public-key-beside-it.md)), so a secret whose public half is missing or
+   ([ADR-1268](1268-an-asymmetric-secrets-public-key-is-stored-beside-it-and-read-without-its-private-key.md)), so a secret whose public half is missing or
    cannot be read cannot be shown to fit and does not satisfy the specification, and a key is provisioned.
 
 4. **`NCode.Identity.Jose.Secp256k1` is an opt-in package.** `AddSecp256k1()` registers the secp256k1
@@ -115,7 +115,7 @@ Three facts shape how it is added:
   [ADR-1069](1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md),
   [ADR-1117](1117-eddsa-clean-room-implementation-opt-in-package.md),
   [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
-  [ADR-1268](1268-a-generated-private-key-stores-its-public-key-beside-it.md),
+  [ADR-1268](1268-an-asymmetric-secrets-public-key-is-stored-beside-it-and-read-without-its-private-key.md),
   [ADR-1272](1272-signature-algorithms-are-fully-specified-and-bound-to-their-curve.md),
   [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md)
 - Issue [#337](https://github.com/NCodeGroup/identity/issues/337), part of [#66](https://github.com/NCodeGroup/identity/issues/66)

@@ -103,7 +103,7 @@ secret keeps the instants its creator gave it.
   ([ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)), so `SecretLifecycle`, `KeyLifecycle`
   and the `IsActive`, `IsExpired` and `GetLifecycleState` extensions are the deliberate exception that
   `PersistedSecretExtensions.HasPublicKey` already is
-  ([ADR-1268](1268-a-generated-private-key-stores-its-public-key-beside-it.md)): a pure
+  ([ADR-1268](1268-an-asymmetric-secrets-public-key-is-stored-beside-it-and-read-without-its-private-key.md)): a pure
   judgment on the contract's own members, with no dependency and no logging. `KeyLifecycle` is the one window rule,
   which the `KeyMetadata` and `PersistedSecret` extensions both call, so a stored secret and its runtime key never
   disagree.

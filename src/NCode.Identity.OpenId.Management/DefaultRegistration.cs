@@ -80,7 +80,7 @@ public static class DefaultRegistration
             // Shared by the tenant/client secret-create endpoints (ADR-1424).
             serviceCollection.TryAddSingleton<ISecretValidator, DefaultSecretValidator>();
 
-            // Shared by the tenant/client public-key read endpoints (ADR-1058). Delegates to each key's
+            // Shared by the tenant/client public-key read endpoints (ADR-1268). Delegates to each key's
             // ISecretKeyTypeDescriptor (the single extensibility seam, ADR-1104) for the JWK/PEM representation.
             serviceCollection.TryAddSingleton<
                 ISecretPublicKeyConverter,

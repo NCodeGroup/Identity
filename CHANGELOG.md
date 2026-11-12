@@ -1103,7 +1103,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   stored secret's public half and returns `false` with the reason for one it cannot read; the client key importer, the
   management secret validator and tenant key provisioning share it, so a stored public key that cannot be read is
   handled the same way on each path
-  ([ADR-1268](docs/decisions/1268-a-generated-private-key-stores-its-public-key-beside-it.md),
+  ([ADR-1268](docs/decisions/1268-an-asymmetric-secrets-public-key-is-stored-beside-it-and-read-without-its-private-key.md),
   [#176](https://github.com/NCodeGroup/identity/issues/176), [#327](https://github.com/NCodeGroup/identity/issues/327)).
 
 - **The secret-key-type descriptor is the seam for every key operation, and its catalog is the single source of truth
@@ -2368,7 +2368,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   key's `ISecretKeyTypeDescriptor.ExportPublicKey` seam) and a SubjectPublicKeyInfo PEM (`-----BEGIN PUBLIC KEY-----`)
   for an admin UI or crypto tooling. Private key material is never exposed; a symmetric secret has no public-key
   sub-resource and answers `404 Not Found`. The read is gated by the same `Operations.Read` authorization as reading the
-  secret. See [ADR-1058](docs/decisions/1058-asymmetric-public-key-material-read-path.md).
+  secret. See [ADR-1268](docs/decisions/1268-an-asymmetric-secrets-public-key-is-stored-beside-it-and-read-without-its-private-key.md).
 
 - **Rotating a client secret keeps the rotated secret beside its replacement.**
   `POST api/tenants/{tenantId}/clients/{clientId}/secrets/{secretId}/rotate` generates a replacement shared secret with

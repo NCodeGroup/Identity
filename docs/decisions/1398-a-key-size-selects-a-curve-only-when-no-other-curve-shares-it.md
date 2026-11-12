@@ -35,7 +35,7 @@ byte string: its type and size are all of its parameters, and its material is pr
 ([ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)). An asymmetric key has
 parameters that its type and size do not show, such as its curve, its parameter set or the parameters of a key type a
 package contributes, which an algorithm's `IsKeyCompatible` may check, and every stored asymmetric secret holds its
-public half ([ADR-1268](1268-a-generated-private-key-stores-its-public-key-beside-it.md)).
+public half ([ADR-1268](1268-an-asymmetric-secrets-public-key-is-stored-beside-it-and-read-without-its-private-key.md)).
 
 ## Decision
 
@@ -127,7 +127,7 @@ public half ([ADR-1268](1268-a-generated-private-key-stores-its-public-key-besid
 
 - Issue [#534](https://github.com/NCodeGroup/identity/issues/534)
 - [ADR-1235](1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md),
-  [ADR-1268](1268-a-generated-private-key-stores-its-public-key-beside-it.md),
+  [ADR-1268](1268-an-asymmetric-secrets-public-key-is-stored-beside-it-and-read-without-its-private-key.md),
   [ADR-1389](1389-one-algorithm-name-serves-every-key-type-it-declares.md),
   [ADR-1392](1392-es256k-is-an-opt-in-package-that-registers-a-curve-and-an-ecdsa-algorithm-as-data.md)
 - `AlgorithmKeyType.GetCurves` and `AlgorithmCollectionExtensions.TryResolveKeyGeneration` and `ValidateKeySize` in

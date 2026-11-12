@@ -224,6 +224,12 @@ try {
         $global:LASTEXITCODE = 0
     }
 
+    # The version stamping script of the image builds is build-free too, so it runs before the slow stages.
+    Invoke-Step 'stamp version' {
+        & (Join-Path $PSScriptRoot 'tests\stamp-version.tests.ps1')
+        $global:LASTEXITCODE = 0
+    }
+
     Invoke-Step 'restore' { dotnet restore $solution }
     # Build also PACKS: GeneratePackageOnBuild (Directory.Build.targets) emits each shippable .nupkg + .snupkg to
     # artifacts/packages as part of the build, so there is no separate pack step. -Fast builds projects in parallel

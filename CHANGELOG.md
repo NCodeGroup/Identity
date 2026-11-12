@@ -263,7 +263,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   capabilities the stock server keeps off** ([ADR-1071](docs/decisions/1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md),
   [ADR-1084](docs/decisions/1084-spec-coverage-conformance-harness.md),
   [ADR-1088](docs/decisions/1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md),
-  [ADR-1144](docs/decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md)). It is the same host project
+  [ADR-1144](docs/decisions/1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md)). It is the same host project
   under the Conformance environment (the `ConformanceAspire` launch profile) on its own port (`https://localhost:5003`,
   which its issuer is pinned to), serving its own `conformance` tenant from the one shared Postgres, and the conformance
   dashboard reads its discovery. Its `appsettings.Conformance.json` sets the `OpenId:Platform:Settings` root ceiling to
@@ -1230,7 +1230,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **OpenID protocol errors map to HTTP statuses consistently.** An OpenID protocol error without a status code is
   `400 Bad Request`: a validation error such as an unsupported scope or response type or a missing `code_challenge`, at
   the pushed authorization request endpoint and elsewhere, is rendered as `400` (RFC 6749 §5.2, RFC 9126 §2.3,
-  [ADR-1144](docs/decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md)). A form body that is malformed or
+  [ADR-1144](docs/decisions/1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md)). A form body that is malformed or
   over the form limits answers `400 invalid_request` at the token, revocation, introspection, pushed authorization,
   device authorization, CIBA, authorization, end-session, device verification and UserInfo endpoints (UserInfo reads a
   form body for its access token) and at the BFF's back-channel logout, and device verification reads its form
@@ -4767,10 +4767,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   advertised in discovery), which accepts the registered transformations and defaults to `S256` alone, so a deployment
   that registers another transformation offers it by listing it (issue
   [#50](https://github.com/NCodeGroup/identity/issues/50),
-  [ADR-1079](docs/decisions/1079-extensible-pkce-code-challenge-methods.md)). A `code_challenge` must name its
+  [ADR-1144](docs/decisions/1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md)). A `code_challenge` must name its
   `code_challenge_method` (`AuthorizationRequest.CodeChallengeMethod` is `null` when the request names none), and both
   the challenge and the verifier must have the RFC 7636 syntax (43 to 128 unreserved characters)
-  ([ADR-1144](docs/decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md)).
+  ([ADR-1144](docs/decisions/1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md)).
 
 - **A request object's parameters are the only parameters of an authorization request (RFC 9101 §6.3), so an unsigned
   parameter cannot change a signed request.** The outer parameters follow one table,

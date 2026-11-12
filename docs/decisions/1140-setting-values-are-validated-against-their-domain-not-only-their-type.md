@@ -61,7 +61,7 @@ point with the same outcome.
    and claim types (of which only `normal` is implemented) are enumerated. Response types are whole canonical values
    ([ADR-1141](1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md)). PKCE methods are the registered `ICodeChallengeMethod`
    transformations, without `plain`
-   ([ADR-1144](1144-authorization-codes-are-bound-to-pkce-by-default.md)). `access_token_type` is `at+jwt` with or
+   ([ADR-1144](1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md)). `access_token_type` is `at+jwt` with or
    without its `application/` prefix. `refresh_token_expiration_policy` is `absolute` or `sliding`, so a refresh token
    always expires (RFC 9700 §4.14.2), and `refresh_token_rotation_policy` is `unbound` or `always`.
 4. **Shapes are checked as the runtime uses the value.**

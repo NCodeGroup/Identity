@@ -3,7 +3,7 @@
 - **Status:** Accepted (amends [ADR-1481](1481-the-composition-layer-serves-the-api-reference-and-each-management-problem-says-when-it-occurs.md),
   [ADR-1063](1063-dynamic-client-registration.md), [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md),
   [ADR-1140](1140-setting-values-are-validated-against-their-domain-not-only-their-type.md), and
-  [ADR-1144](1144-authorization-codes-are-bound-to-pkce-by-default.md); extended by
+  [ADR-1144](1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md); extended by
   [ADR-1168](1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md): a client bound to a resource
   server authenticates the same way and is accepted only at introspection; amended by
   [ADR-1207](1207-client-authentication-methods-are-named-by-registered-descriptors.md): the registered method
@@ -150,7 +150,7 @@ API operation.
   empty one restricts.
 - [ADR-1107](1107-mutual-tls-client-authentication.md) — the mutual-TLS handlers already owned a request only for a
   client registered for their method; every handler now does.
-- [ADR-1144](1144-authorization-codes-are-bound-to-pkce-by-default.md) — the registered and authenticated client types.
+- [ADR-1144](1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md) — the registered and authenticated client types.
 - `src/NCode.Identity.OpenId.Authentication/Clients/DefaultClientAuthenticationService.cs`,
   `src/NCode.Identity.OpenId.Authentication/Clients/OpenIdClientRegistrationExtensions.cs`,
   `src/NCode.Identity.OpenId.Authentication/Clients/Handlers/`,

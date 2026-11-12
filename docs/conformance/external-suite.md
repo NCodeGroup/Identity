@@ -150,7 +150,7 @@ Each module below exercises OP behavior that a specification requires; the OP be
 ### Codified intentional deviations
 
 [`expected-failures.json`](../../build/conformance/expected-failures.json) holds one intentional deviation: every
-authorization code is bound to PKCE ([ADR-1144](../decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md)),
+authorization code is bound to PKCE ([ADR-1144](../decisions/1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md)),
 and the conformance host relaxes `require_pkce` and attests the suite's clients with `pkce_nonce_exemption`, so its
 nonce-carrying requests need no `code_challenge` — but `oidcc-ensure-request-without-nonce-succeeds-for-code-flow`
 sends neither a challenge nor a nonce, which leaves the code unprotected against injection, and the OP refuses it with

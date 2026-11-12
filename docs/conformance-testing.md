@@ -229,7 +229,7 @@ must register the suite callback as a redirect URI.
   (local: `https://localhost.emobix.co.uk:8443/test/a/<ALIAS>/callback`;
   hosted: `https://www.certification.openid.net/test/a/<ALIAS>/callback`).
 - **PKCE:** allow `S256`. The OP binds every authorization code to PKCE by default
-  ([ADR-1144](decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md)); the conformance host relaxes
+  ([ADR-1144](decisions/1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md)); the conformance host relaxes
   `require_pkce` and attests its clients with `pkce_nonce_exemption`, because the suite's requests carry a `nonce` but
   send PKCE in only one module.
 

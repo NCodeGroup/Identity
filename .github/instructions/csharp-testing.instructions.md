@@ -298,7 +298,7 @@ seams, facades, and `InternalsVisibleTo` wiring that make code mockable — live
   tenant needs with `HostApplicationFactory.SeedTenantSettingsAsync` before the first request. Assert that the token is
   a JWE (five segments), so a key that was never provisioned fails the test (`TokenIntrospectionEndpointTests`).
 - 👁 **Drive the authorization endpoint the way a conforming client does.** Every authorization code is bound to an
-  `S256` PKCE challenge by default ([ADR-1144](../../docs/decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md)),
+  `S256` PKCE challenge by default ([ADR-1144](../../docs/decisions/1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md)),
   so an integration test that requests a code sends `TestPkce.QueryParameters` (or `TestPkce.FormFields` at the pushed
   authorization request endpoint) and redeems it with `TestPkce.CodeVerifier`; a test without them exercises the
   refusal, not the flow. Sign a user in with `InteractiveLogin.SignInAsync` rather than another copy of the antiforgery

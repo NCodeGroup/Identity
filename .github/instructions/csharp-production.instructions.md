@@ -399,7 +399,7 @@ than inlining the rationale.
   request endpoint; an endpoint that authenticated the client (the token endpoint redeeming a grant) reads
   `OpenIdClient.IsConfidential`, which agrees with it. Never treat a client registered as confidential as having
   authenticated. See [ADR-1145](../../docs/decisions/1145-a-client-authenticates-only-with-its-registered-method.md) and
-  [ADR-1144](../../docs/decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md).
+  [ADR-1144](../../docs/decisions/1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md).
 - 👁 **Bind configuration strictly and validate it when the host starts** — template
   [Configuration and Options](csharp.instructions.md#configuration-and-options). Bind through `NCode.Identity.Registration`'s
   `BindStrictly`, which names the section in the error. A seeded client's id and redirect URIs have no library default:

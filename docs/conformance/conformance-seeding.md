@@ -52,7 +52,7 @@ client registrations, all registering the suite callback as a redirect URI:
 - **Redirect URI (all):** `https://<SUITE_BASE>/test/a/<ALIAS>/callback`
   (local: `https://localhost.emobix.co.uk:8443/test/a/ncode-basic/callback`).
 - **PKCE:** `S256`. Every authorization code is bound to PKCE by default
-  ([ADR-1144](../decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md)); because the suite sends PKCE in
+  ([ADR-1144](../decisions/1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md)); because the suite sends PKCE in
   only one module, the conformance host relaxes `require_pkce` and attests its clients with `pkce_nonce_exemption`, so a
   confidential client's request that carries a `nonce` may omit the challenge. Each seeded client registers one
   `TokenEndpointAuthMethod` as its `token_endpoint_auth_method`, which makes it confidential and is the only method it

@@ -771,6 +771,40 @@ jobs:
           expect_route 500 traefik/traefik manage.example.com /health/ready \
             'A request to /health/ready on the console host through Traefik with a foreign CA in its verification Secret, which proves that Traefik verifies the certificate of the console pods,'
 
+      # Envoy Gateway implements the Gateway's backend client certificate (spec.tls.backend.clientCertificateRef) and
+      # the BackendTLSPolicy, and bundles the Gateway API CRDs that the chart's HTTPRoutes and BackendTLSPolicies need.
+      - name: Install Envoy Gateway
+        run: |
+          set -euo pipefail
+          helm install eg oci://docker.io/envoyproxy/gateway-helm --version v1.10.0 \
+            --namespace envoy-gateway-system --create-namespace --wait --timeout 5m
+
+      # The release is upgraded to the Gateway API mode with only the Gateway values, so the Traefik leg's settings do
+      # not carry over. The chart's HTTPRoutes attach to the Gateway, its BackendTLSPolicies verify the pods against the
+      # CA that the publisher writes, and the Gateway presents the certificate of the chart's ingress Secret. Envoy
+      # Gateway names the Envoy Service by the Gateway that owns it, so the name is read from the Service's labels.
+      - name: Route the release through the Gateway
+        run: |
+          set -euo pipefail
+          kubectl apply -f "$CHART/ci/kind-gateway.yaml"
+          helm upgrade release "$CHART" --namespace "$NAMESPACE" --values "$CHART/ci/kind-gateway-api-values.yaml" \
+            --wait --timeout 10m
+          kubectl -n "$NAMESPACE" wait certificate --all --for=condition=Ready --timeout=3m
+          kubectl -n gateway-system wait gateway/identity-gateway --for=condition=Programmed --timeout=3m
+          service=$(kubectl -n envoy-gateway-system get svc \
+            -l gateway.envoyproxy.io/owning-gateway-name=identity-gateway,gateway.envoyproxy.io/owning-gateway-namespace=gateway-system \
+            -o jsonpath='{.items[0].metadata.name}')
+          echo "GATEWAY_SERVICE=envoy-gateway-system/$service" >> "$GITHUB_ENV"
+          source "$RUNNER_TEMP/kind-helpers.sh"
+          expect_route 200 "envoy-gateway-system/$service" id.example.com /health/ready \
+            'A request to /health/ready through the Gateway, which proves that the BackendTLSPolicy verified the pods,'
+          expect_route 200 "envoy-gateway-system/$service" id.example.com /.well-known/openid-configuration \
+            'A request to /.well-known/openid-configuration through the Gateway with the client certificate required, which proves that the Gateway presented its certificate on a path the pods do not exempt (a 403 means the pods refused the Gateway),'
+          expect_route 200 "envoy-gateway-system/$service" manage.example.com /health/ready \
+            'A request to /health/ready on the console host through the Gateway, which proves that the BackendTLSPolicy verified the console pods,'
+          expect_route 200 "envoy-gateway-system/$service" manage.example.com / \
+            'A request to / on the console host through the Gateway with the client certificate required, which proves that the Gateway presented its certificate to the console (a 403 means the console refused the Gateway),'
+
       - name: Show the cluster when a step fails
         if: failure()
         run: |

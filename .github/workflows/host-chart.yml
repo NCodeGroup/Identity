@@ -722,6 +722,12 @@ jobs:
       - name: Show the cluster when a step fails
         if: failure()
         run: |
-          kubectl get pods,certificates,issuers,ingress,serversTransport -A || true
+          kubectl get pods -A || true
+          kubectl get certificates -A || true
+          kubectl get issuers -A || true
+          kubectl get ingress -A || true
+          kubectl get serverstransports.traefik.io -A || true
           kubectl -n "$NAMESPACE" describe pods || true
           kubectl -n "$NAMESPACE" logs -l app.kubernetes.io/component=server --tail=200 || true
+          kubectl -n "$NAMESPACE" logs --all-containers --tail=200 -l app.kubernetes.io/component=migrations || true
+          kubectl -n "${{ matrix.controller }}" logs --all-containers --tail=200 -l app.kubernetes.io/instance="${{ matrix.controller }}" || true

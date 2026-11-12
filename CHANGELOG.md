@@ -820,7 +820,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   outside its declared type, including a `Double` of `NaN`/`Infinity` or malformed `JSON`, is emitted as its verbatim
   string. `IJwtEncoder` emits every entry of `JwtEncodingParameters.ExtraPayloadClaims`, including a lone one such as
   `azp` ([#34](https://github.com/NCodeGroup/identity/issues/34),
-  [ADR-1122](docs/decisions/1122-jwt-claim-values-map-to-json-by-declared-type.md)).
+  [ADR-1122](docs/decisions/1122-jwt-claim-values-map-to-and-from-json-by-their-declared-type-alone.md)).
 
 - **Claim dates parse only by declared type, through the public `NCode.Identity.Json.DateCoercion`.** `DateCoercion` is the
   date/time policy shared by `ObjectJsonConverter`, `JsonElements` and `ObjectGraphExtensions`, and its
@@ -831,7 +831,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   a `ClaimValueTypes.String` claim (an OpenID Connect `birthdate` of `"1990-03-15"` stays `"1990-03-15"`), and a caller
   parses it with `DateCoercion` where the claim is known to be a date
   ([#32](https://github.com/NCodeGroup/identity/issues/32),
-  [ADR-1121](docs/decisions/1121-claim-dates-parse-by-declared-type-through-shared-date-coercion.md)).
+  [ADR-1122](docs/decisions/1122-jwt-claim-values-map-to-and-from-json-by-their-declared-type-alone.md)).
 
 - **Applications protect their own data under the secret key hierarchy.** `ISecretProtector` is buffer-first: it writes
   into caller-supplied `IBufferWriter<T>`s, sizes its output with `GetProtectedLength`, and offers a `ProtectToString`

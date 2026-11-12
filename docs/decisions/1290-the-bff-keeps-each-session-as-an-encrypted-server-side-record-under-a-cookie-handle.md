@@ -84,7 +84,7 @@ without the cookie.**
    every call. Every session write is a read-modify-write with `TryReplaceAsync`, retried up to five times on a
    version conflict.
 10. **The session principal** is the ID token's claims as the family's JWT stack maps them
-    ([ADR-1122](1122-jwt-claim-values-map-to-json-by-declared-type.md)): the protocol client exposes
+    ([ADR-1122](1122-jwt-claim-values-map-to-and-from-json-by-their-declared-type-alone.md)): the protocol client exposes
     `IdTokenValidationResult.Identity`, so the BFF never maps JSON to claims itself. The BFF drops `nonce`, `at_hash`,
     `c_hash`, `s_hash`, `exp`, `iat`, `nbf`, `aud` and `azp`, stores each remaining claim as its type, value and value
     type, and rebuilds `ClaimsIdentity(claims, "Bff", "name", "role")` per request. `/bff/user` returns `sub`, `name`,
@@ -131,7 +131,7 @@ without the cookie.**
 
 - [Backend-for-frontend design](../backend-for-frontend.md) §5.2–§5.4, §5.7, §5.11, §11.5, D1, D2 and D4
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md) — abstractions-only dependencies
-- [ADR-1122](1122-jwt-claim-values-map-to-json-by-declared-type.md) — claim mapping
+- [ADR-1122](1122-jwt-claim-values-map-to-and-from-json-by-their-declared-type-alone.md) — claim mapping
 - [ADR-1164](1164-replicas-share-expiring-keys-values-and-indexes-through-ports-with-in-process-and-valkey-adapters.md) — versioned values and indexes
 - [ADR-1270](1270-the-openid-protocol-client-uses-the-familys-jose-stack-and-named-key-rings.md) — the protocol client
 - RFC 5869 (HKDF), RFC 6265bis (`__Host-` prefix, `SameSite`), RFC 9207 (`iss`), RFC 7636 (PKCE)

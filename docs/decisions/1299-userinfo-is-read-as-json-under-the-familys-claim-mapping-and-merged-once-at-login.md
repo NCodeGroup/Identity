@@ -21,7 +21,7 @@ check that the response's `sub` is exactly the ID token's, because a response ab
 response is JSON, or a signed or encrypted JWT when the client registered `userinfo_signed_response_alg`.
 
 The family maps JSON claims to `Claim`s once, in the JWT stack, typing each claim by its JSON value
-([ADR-1122](1122-jwt-claim-values-map-to-json-by-declared-type.md)), but only a JWT's validation could reach that
+([ADR-1122](1122-jwt-claim-values-map-to-and-from-json-by-their-declared-type-alone.md)), but only a JWT's validation could reach that
 mapping.
 
 ## Decision
@@ -80,5 +80,5 @@ mapping.
 - [RFC 6750 §3](https://www.rfc-editor.org/rfc/rfc6750#section-3) — the `WWW-Authenticate` error
 - [RFC 9449 §7, §9](https://www.rfc-editor.org/rfc/rfc9449#section-7) — DPoP-bound access tokens and resource nonces
 - [RFC 8705 §5](https://www.rfc-editor.org/rfc/rfc8705#section-5) — mTLS endpoint aliases
-- [ADR-1122](1122-jwt-claim-values-map-to-json-by-declared-type.md) — claim mapping
+- [ADR-1122](1122-jwt-claim-values-map-to-and-from-json-by-their-declared-type-alone.md) — claim mapping
 - [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md) — BFF sessions

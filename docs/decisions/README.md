@@ -275,8 +275,7 @@ The records are grouped by area; within an area they are in number order.
 | [1118](./1118-ml-dsa-post-quantum-signatures-ship-in-the-core-libraries-over-the-bcl-mldsa-type.md) | ML-DSA post-quantum signatures ship in the core libraries over the BCL MLDsa type | Accepted |
 | [1119](./1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md) | A DI-free JWK package models keys, sets and thumbprints, and key types register their rules | Accepted |
 | [1120](./1120-jwt-validation-requirements-and-handlers.md) | JWT validation is modeled as ASP.NET Core-style requirements and handlers | Accepted |
-| [1121](./1121-claim-dates-parse-by-declared-type-through-shared-date-coercion.md) | Claim dates parse only by declared type, through the shared `DateCoercion` policy | Accepted |
-| [1122](./1122-jwt-claim-values-map-to-json-by-declared-type.md) | JWT claim values map to and from JSON by declared type, in one symmetric mapper | Accepted |
+| [1122](./1122-jwt-claim-values-map-to-and-from-json-by-their-declared-type-alone.md) | JWT claim values map to and from JSON by their declared type alone | Accepted |
 | [1123](./1123-numeric-date-is-read-strictly-and-range-guarded.md) | RFC 7519 NumericDate is read strictly, range-guarded, through `DateCoercion` | Accepted |
 | [1126](./1126-ecdh-es-concat-kdf-digest-is-sha-256-and-oracles-must-be-rfc-conforming.md) | The ECDH-ES Concat KDF digest is SHA-256, and third-party oracles must be RFC-conforming | Accepted |
 | [1154](./1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) | JWTs are validated as signed tokens under explicit algorithm and key policy | Accepted |

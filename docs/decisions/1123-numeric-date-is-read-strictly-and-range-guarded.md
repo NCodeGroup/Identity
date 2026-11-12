@@ -70,6 +70,6 @@ fails closed.**
 - [RFC 7519 §2 — `NumericDate`](https://datatracker.ietf.org/doc/html/rfc7519#section-2)
 - [RFC 9449 §4.3 — DPoP proof `iat`](https://datatracker.ietf.org/doc/html/rfc9449#section-4.3)
 - [RFC 7523 §3 — JWT assertion `exp`](https://datatracker.ietf.org/doc/html/rfc7523#section-3)
-- [ADR-1121](1121-claim-dates-parse-by-declared-type-through-shared-date-coercion.md) — the string-date half of
+- [ADR-1122](1122-jwt-claim-values-map-to-and-from-json-by-their-declared-type-alone.md) — the string-date half of
   `DateCoercion`
 - Issue [#33](https://github.com/NCodeGroup/identity/issues/33)

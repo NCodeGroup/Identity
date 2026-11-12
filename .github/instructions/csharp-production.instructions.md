@@ -965,7 +965,7 @@ invariants, the Law of Demeter, and no call nested in another call's arguments. 
   formats and produces the same values. Apply it only where the value is **declared** to be a date (an explicit claim
   value type, a date-typed target) — **never** to sniff whether an arbitrary string "looks like" a date: lenient parsing
   turns `"1.2"` or `"10:30"` into dates and would rewrite them. A decoded JSON string claim stays a verbatim
-  `ClaimValueTypes.String`. See [ADR-1121](../../docs/decisions/1121-claim-dates-parse-by-declared-type-through-shared-date-coercion.md).
+  `ClaimValueTypes.String`. See [ADR-1122](../../docs/decisions/1122-jwt-claim-values-map-to-and-from-json-by-their-declared-type-alone.md).
 - ✅ **Read an RFC 7519 `NumericDate` (`exp`, `nbf`, `iat`, `auth_time`, a Unix-seconds parameter) strictly and
   range-guarded** — `JsonElement.TryGetNumericDate` / `TryGetPropertyNumericDate` for JSON (a number only, integer or
   fractional; never a string), `DateCoercion.TryParseNumericDate` for a claim value or parameter text, and
@@ -1037,7 +1037,7 @@ invariants, the Law of Demeter, and no call nested in another call's arguments. 
   `value.ToString(CultureInfo.InvariantCulture)`, never culture-formatted (`"1,000"`). The JWT claim ⇄ JSON mapping
   (`ClaimValueMapper`, the single place a `Claim.ValueType` is interpreted) parses each value strictly in its declared
   type and emits a value outside it as a verbatim string. See
-  [ADR-1122](../../docs/decisions/1122-jwt-claim-values-map-to-json-by-declared-type.md).
+  [ADR-1122](../../docs/decisions/1122-jwt-claim-values-map-to-and-from-json-by-their-declared-type-alone.md).
 
 ## 7. Testability & unit-test-friendliness
 

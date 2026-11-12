@@ -23,7 +23,7 @@ every other tenant's production traffic. Nothing limits a tenant's request rate,
 that every other tenant depends on.
 
 A limit has to hold across replicas. Any replica may serve the next request
-([ADR-1134](1134-cloud-native-operating-principles.md)), so a limiter whose state lives in one process admits N times
+([ADR-1134](1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md)), so a limiter whose state lives in one process admits N times
 its limit on N replicas. ASP.NET Core's built-in limiters (`FixedWindowRateLimiter`, `SlidingWindowRateLimiter`,
 `TokenBucketRateLimiter`) keep their state in process. The family already shares single-use state between replicas
 through a port with an in-process default and an opt-in Valkey adapter

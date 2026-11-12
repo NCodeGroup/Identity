@@ -116,7 +116,7 @@ The records are grouped by area; within an area they are in number order.
 | [1131](./1131-hosted-platform-environment-model-and-hostname-scheme.md) | The hosted platform's environment model and hostname scheme | Accepted |
 | [1132](./1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md) | Platform infrastructure code is public on GitHub, and its state and backups live in AWS | Accepted |
 | [1133](./1133-the-hosted-platform-runs-only-the-published-artifacts-it-offers-self-hosters.md) | The hosted platform runs only the published artifacts it offers self-hosters | Accepted |
-| [1134](./1134-cloud-native-operating-principles.md) | Cloud-native operating principles: cattle, immutable, stateless, redundant | Accepted |
+| [1134](./1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md) | The platform and the host follow written cloud-native operating principles | Accepted |
 | [1135](./1135-one-resource-tagging-strategy-across-every-vendor.md) | One resource tagging strategy across every vendor | Accepted |
 | [1136](./1136-provenance-is-attested-on-workloads-and-audited-for-infrastructure.md) | Provenance is attested on workloads and audited for infrastructure | Accepted |
 | [1146](./1146-a-development-seeder-registers-only-the-clients-its-configuration-declares.md) | A development seeder registers only the clients its configuration declares | Accepted |

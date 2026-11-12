@@ -555,7 +555,7 @@ than inlining the rationale.
   per-request state on the request (`HttpContext.Items`, the `OpenIdContext`).
 - 👁 **Correctness never depends on process-local state** — template
   [Distributed State and Background Work](csharp.instructions.md#distributed-state-and-background-work): the host runs
-  as interchangeable replicas ([ADR-1134](../../docs/decisions/1134-cloud-native-operating-principles.md)), and state
+  as interchangeable replicas ([ADR-1134](../../docs/decisions/1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md)), and state
   another replica must see goes to the database or the shared-state port.
 - 👁 **A hosted service whose `StopAsync` does work runs it once and never throws** — template
   [Distributed State and Background Work](csharp.instructions.md#distributed-state-and-background-work)

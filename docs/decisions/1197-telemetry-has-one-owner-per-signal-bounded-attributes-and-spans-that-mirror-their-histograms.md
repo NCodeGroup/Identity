@@ -13,7 +13,7 @@ every metric signal one owner and every metric attribute a value from a vocabula
 its own mechanisms, through one activity source named like its meter, with spans that mirror its duration histograms and
 carry no secret or personal data. This record applies both to the family's packages.
 
-The platform is observable through OpenTelemetry ([ADR-1134](1134-cloud-native-operating-principles.md) §8). ASP.NET
+The platform is observable through OpenTelemetry ([ADR-1134](1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md) §8). ASP.NET
 Core already measures and traces each inbound request, and `System.Net.Http` each outbound call, so the protocol
 endpoints measure only what neither of them nor the event seam
 ([ADR-1047](1047-auditing-and-events-observation-seam.md)) already measures. The rate limiter's refusals

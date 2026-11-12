@@ -11,7 +11,7 @@
 ## Context
 
 Three checks need state that every replica of a deployment sees, because any replica may serve the next request
-([ADR-1134](1134-cloud-native-operating-principles.md)):
+([ADR-1134](1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md)):
 
 - a server-issued DPoP nonce must be recognized by whichever replica receives the proof that echoes it
   ([RFC 9449](https://www.rfc-editor.org/rfc/rfc9449) §8);
@@ -128,7 +128,7 @@ chooses: in-process for a single replica, Valkey for several.**
   `NCode.Identity.SharedState.Valkey`.
 - Amends [ADR-1097](1097-sender-constrained-access-tokens-dpop-and-mtls.md) and
   [ADR-1102](1102-jwt-bearer-client-authentication.md) (where their nonce and replay records are kept), and
-  [ADR-1134](1134-cloud-native-operating-principles.md) principle 4 (shared ephemeral state lives in the shared-state
+  [ADR-1134](1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md) principle 4 (shared ephemeral state lives in the shared-state
   port, backed by Valkey).
 - The shared-state family also carries the replica broadcast port
   ([ADR-1205](1205-replicas-announce-changes-through-a-broadcast-port.md)); the Valkey adapter registers its broadcaster

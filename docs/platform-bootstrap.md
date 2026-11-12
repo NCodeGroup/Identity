@@ -6,7 +6,7 @@
 - **Scope:** the **manual** operations only — the steps no API can do (creating accounts, proving identity, payment,
   registrar delegation, clicking verification links). Everything after them is the OpenTofu bootstrap stack and then
   GitOps ([ADR-1132](decisions/1132-platform-infrastructure-code-is-public-on-github-and-its-state-and-backups-live-in-aws.md),
-  [ADR-1134](decisions/1134-cloud-native-operating-principles.md)).
+  [ADR-1134](decisions/1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md)).
 
 Each step says **what** to do, **why** it is manual, and how to **verify** it. Placeholders are in angle brackets; the
 values used by the NCode hosted platform are listed once here.

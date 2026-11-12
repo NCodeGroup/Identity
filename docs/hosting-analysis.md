@@ -19,7 +19,7 @@
 
 Every option is judged against the platform's operating principles — cattle not pets, immutable artifacts, everything as
 code, stateless services, redundancy by default, proven recoverability, and secure by default
-([ADR-1134](decisions/1134-cloud-native-operating-principles.md)).
+([ADR-1134](decisions/1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md)).
 
 ## 2. Summary and ranked recommendations
 
@@ -79,7 +79,7 @@ Decided in [ADR-1131](decisions/1131-hosted-platform-environment-model-and-hostn
 
 1. **Now — the lab:** run it on OCI's Pay-As-You-Go A1 allowance in Phoenix as an **OKE Basic** cluster (free managed
    control plane) with a 3 × 1 OCPU / 8 GB node pool spread across the region's three availability domains
-   (**~$0–4/month**) — managed node pools keep the lab disposable ([ADR-1134](decisions/1134-cloud-native-operating-principles.md))
+   (**~$0–4/month**) — managed node pools keep the lab disposable ([ADR-1134](decisions/1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md))
    — plus ephemeral load-test and topology runs on the Azure Visual Studio credit
    ([§10](#10-devtest-and-conformance-on-azure-visual-studio-credit), $0). The Kubernetes layer (Traefik, charts, app)
    is identical to production; only the cluster, LB, and database modules differ — acceptable because no customer

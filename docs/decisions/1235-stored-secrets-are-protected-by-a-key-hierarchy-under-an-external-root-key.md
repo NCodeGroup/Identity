@@ -133,7 +133,7 @@ service.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies (root key providers, owner types,
   purposes).
 - [ADR-1169](1169-every-tenant-is-provisioned-with-persisted-keys.md) — persisted tenant keys.
-- [ADR-1134](1134-cloud-native-operating-principles.md) — no long-lived credentials; recoverable, off-vendor backups.
+- [ADR-1134](1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md) — no long-lived credentials; recoverable, off-vendor backups.
 - [ADR-1266](1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md) — spans, pooled writers and secure lifetimes for every
   buffer.
 - Auth0, "Customer Managed Keys" (envelope hierarchy: environment root key → tenant master key → namespace key → data

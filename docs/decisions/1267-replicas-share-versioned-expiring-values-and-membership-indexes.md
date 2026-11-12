@@ -9,7 +9,7 @@
 ## Context
 
 The backend-for-frontend ([design](../backend-for-frontend.md), §5.2–§5.5 and §5.8, issue #123) keeps its state on the
-server and any replica may serve the next request ([ADR-1134](1134-cloud-native-operating-principles.md)). Three things
+server and any replica may serve the next request ([ADR-1134](1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md)). Three things
 follow:
 
 - A login transaction is taken exactly once: the callback that redeems it must remove it atomically, so a replayed

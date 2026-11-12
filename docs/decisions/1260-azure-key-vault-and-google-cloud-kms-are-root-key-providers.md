@@ -110,7 +110,7 @@ never from configuration.
   under it; a corrupted ciphertext surfaces only at unwrap, as a wrong key. The checksums cost one CRC per buffer and no
   dependency. Rejected.
 - **Credentials from configuration** (a client secret, certificate or service-account key in the options). A stored,
-  long-lived credential is what [ADR-1134](1134-cloud-native-operating-principles.md) rules out, and both SDK chains
+  long-lived credential is what [ADR-1134](1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md) rules out, and both SDK chains
   resolve keyless workload identity already, so the options name the key and nothing else. Rejected.
 
 ## Consequences
@@ -133,7 +133,7 @@ never from configuration.
 
 - [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — the key hierarchy
   and the root key provider vocabulary that this extends.
-- [ADR-1134](1134-cloud-native-operating-principles.md) — no long-lived credentials.
+- [ADR-1134](1134-the-platform-and-the-host-follow-written-cloud-native-operating-principles.md) — no long-lived credentials.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md) — open vocabularies (root key providers).
 - [ADR-1179](1179-the-host-chart-references-its-secrets-and-refuses-a-release-the-host-would-refuse.md) — the chart
   refuses a release that the host would refuse.

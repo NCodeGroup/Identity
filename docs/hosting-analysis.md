@@ -680,8 +680,9 @@ speed-test endpoint from the Denver network the users are on.
 - **Kubernetes:** Pod Security `restricted`, default-deny NetworkPolicies (only Traefik → app and app →
   Postgres / Valkey / key vault), read-only root filesystems, the Kubernetes API reachable only from the pipeline, no
   SSH.
-- **Management surface:** the console host `manage.` and the management API at `/api` on `auth.` sit behind an IP
-  allow-list or operator mTLS in addition to OAuth.
+- **Management surfaces:** the console host `manage.` sits behind an IP allow-list in addition to OAuth, and the
+  management API at `/api` on `auth.` accepts only the control-plane tenant's sender-constrained tokens
+  ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)).
 - **Accounts:** passkeys / hardware 2FA on every vendor account (Porkbun, Cloudflare, Akamai, OCI, AWS, GitHub, GitLab,
   npm, Spaceship, Azure, Grafana), least-privilege API tokens, recovery codes stored offline, and a second trusted admin.
 - **Web:** HSTS with `includeSubDomains` on every domain. `ncodeid.net` is preloaded once every host serves HTTPS (the

@@ -22,7 +22,7 @@ same value, and it would be wrong in two ways:
   send the user's access token to another origin.
   [project-template ADR-0126](project-template/0126-published-urls-come-from-a-configured-origin.md) says the request
   contributes nothing to a URL the server publishes.
-- **It would name the wrong tenant.** Under `DynamicByHost` a surface served from a host such as `manage.<apex>` signs
+- **It would name the wrong tenant.** Under `DynamicByHost` a surface served from a host that names no tenant signs
   in against the root tenant, whose issuer is `https://auth.<apex>`; the request origin is neither.
 
 ## Decision
@@ -65,15 +65,15 @@ with per-surface overrides from `Frontend:Surfaces`.
 ## Options considered
 
 - **Resolve the serving tenant fully, as protocol requests do** (`ITenantResolver.ResolveAsync`). Rejected: under the
-  dynamic strategies that resolves the protocol tenant the host or path names, so a surface at `manage.<apex>` would get
-  the tenant that `manage` happens to name, not the control plane it signs in against.
+  dynamic strategies that resolves the protocol tenant the host or path names, so a surface at a host that a tenant's name
+  resolves would get that tenant, not the control plane it signs in against.
 - **Switch on the strategy code** to pick the root or the static tenant. Rejected: a closed switch over an open
   vocabulary; the request-names-a-tenant test covers every strategy.
 - **Keep the request origin as a last resort for the issuer.** Rejected: it is the unvalidated second source this
   decision excludes. A tenant without an issuer is a configuration error, and it fails loudly.
 - **Require `Frontend:ApiBaseUrl` everywhere.** Rejected: it is a second value that must agree with the host.
-- **Derive the API base from the tenant's issuer.** Rejected: under `DynamicByHost` the surface at `manage.<apex>` would
-  call `auth.<apex>` cross-origin.
+- **Derive the API base from the tenant's issuer.** Rejected: under `DynamicByHost` a surface at a host other than the
+  issuer's would call the issuer's host cross-origin.
 - **A configured management-origin setting.** Rejected: every deployment would configure a second value that must agree
   with the first, and `Frontend:ApiBaseUrl` covers a split deployment.
 - **The serving tenant's issuer and a root-relative API base unless configured** (chosen).

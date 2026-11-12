@@ -1481,10 +1481,10 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **OAuth 2.0 Token Exchange (RFC 8693)** (issue [#61](https://github.com/NCodeGroup/identity/issues/61),
   [ADR-1101](docs/decisions/1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md)). The token endpoint's
   `DefaultTokenExchangeGrantHandler` serves `urn:ietf:params:oauth:grant-type:token-exchange`
-  (`OpenIdConstants.GrantTypes.TokenExchange`) through the `ITokenGrantHandler` extension-grant seam. A client presents
+  (`OpenIdProtocol.GrantTypes.TokenExchange`) through the `ITokenGrantHandler` extension-grant seam. A client presents
   a `subject_token` (and, for delegation, an `actor_token`) and receives an `access_token`, `refresh_token` or
-  `id_token` output (`requested_token_type` in, `issued_token_type` out; `OpenIdConstants.TokenTypeIdentifiers.*`, the
-  RFC 8693 `OpenIdConstants.Parameters.*` and `TokenTypes.NotApplicable`). Both impersonation and delegation are
+  `id_token` output (`requested_token_type` in, `issued_token_type` out; `OpenIdProtocol.TokenTypeIdentifiers.*`, the
+  RFC 8693 `OpenIdProtocol.Parameters.*` and `TokenTypes.NotApplicable`). Both impersonation and delegation are
   supported: a delegated exchange emits an `act` claim identifying the actor and nests any existing `act` to preserve
   the delegation chain, and requires the subject token to pre-authorize the actor through a `may_act` claim
   (`JoseClaimNames.Payload.MayAct`, RFC 8693 §4). Presented tokens are validated through the replaceable
@@ -1531,7 +1531,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#54](https://github.com/NCodeGroup/identity/issues/54),
   [ADR-1102](docs/decisions/1102-a-client-authenticates-with-a-single-use-jwt-assertion-signed-by-its-key-or-its-secret.md)). Confidential clients authenticate with a signed
   `client_assertion` (`client_assertion_type=urn:ietf:params:oauth:client-assertion-type:jwt-bearer`,
-  `OpenIdConstants.ClientAssertionTypes.JwtBearer`; OpenID Connect Core §9, RFC 7523). Two handlers share one base, one
+  `OpenIdProtocol.ClientAssertionTypes.JwtBearer`; OpenID Connect Core §9, RFC 7523). Two handlers share one base, one
   for the asymmetric `private_key_jwt`, the FAPI-eligible method, and one for the HMAC `client_secret_jwt`, non-FAPI, so
   each assertion is handled once and each method is advertised independently in `token_endpoint_auth_methods_supported`.
   The client is identified from the assertion (`iss == sub == client_id`), the signature is verified against the
@@ -1835,7 +1835,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1039](docs/decisions/1039-requested-claims-acr-and-auth-time-follow-the-request-and-the-authentication-event.md)). Local interactive sign-in and the
   resource-owner-password subject handler record `amr=["pwd"]` (RFC 8176) and resolve `acr` through the async,
   DI-overridable `IAuthenticationContextReferenceResolver`: the default asserts the PAPE multi-factor URN
-  (`OpenIdConstants.AuthenticationContextClassReferences.MultiFactor`) when several factors were used and otherwise the
+  (`OpenIdProtocol.AuthenticationContextClassReferences.MultiFactor`) when several factors were used and otherwise the
   `default_acr` setting (unset omits the claim); a deployment overrides it by setting, by its own resolver or by a
   custom verifier. The resolved `acr` is stamped on the principal, captured on the session
   (`SessionGrant.AuthenticationContextClassReference`) and emitted by the ID-token and access-token subject-claims
@@ -3635,7 +3635,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `UriJsonConverter.Singleton`. `DelegatingJsonConverter<TInterface, TImplementation>` serializes an interface by
   delegating to a concrete implementation and has no singleton, because it carries mutable `MatchExact` state per
   interface/implementation pair. The OpenID-coupled `StringValuesJsonConverter` (which relies on
-  `OpenIdConstants.ParameterSeparatorChar`) and the claims, message, and JWK converters live in their domain packages,
+  `OpenIdProtocol.ParameterSeparatorChar`) and the claims, message, and JWK converters live in their domain packages,
   so `NCode.Identity.Json` stays dependency-free.
 
 - **`NCode.Identity.Json.ObjectGraphExtensions.TryGetValue<T>` reads typed values from loosely-typed object graphs, tolerant of

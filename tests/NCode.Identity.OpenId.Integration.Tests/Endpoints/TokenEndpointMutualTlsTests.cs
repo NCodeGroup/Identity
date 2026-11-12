@@ -585,6 +585,117 @@ public class TokenEndpointMutualTlsTests
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
     }
 
+    #region Behind a verified proxy
+
+    [Fact]
+    public async Task PostToken_TlsClientAuth_BehindAVerifiedProxy_AuthenticatesWithTheForwardedCertificate()
+    {
+        const string clientId = "it-mtls-pki-proxied";
+        using var authority = CreateAuthority("it-mtls-pki-proxied-root");
+        using var certificate = CreateIssuedCertificate(authority, clientId);
+        using var proxyCertificate = CreateCertificate("it-mtls-pki-proxied-proxy");
+
+        using var factory = new HostApplicationFactory
+        {
+            VerifiedProxyCertificate = proxyCertificate,
+        };
+        await factory.SeedTlsClientAuthSubjectDnClientAsync(
+            clientId,
+            certificate.SubjectName.Name,
+            [authority.ExportCertificatePem()],
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
+        );
+        await factory.SeedResourceServerWithClientGrantAsync(
+            clientId,
+            $"{clientId}-rs-api",
+            $"https://api.{clientId}.integration.test",
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
+        );
+
+        var client = CreateClient(factory);
+        using var request = BuildTokenRequest(clientId, certificate);
+        using var response = await client.SendAsync(request);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+
+        var jsonElement = JsonElement.Parse(body);
+        Assert.False(string.IsNullOrEmpty(jsonElement.GetProperty("access_token").GetString()));
+    }
+
+    [Fact]
+    public async Task PostToken_SelfSignedTlsClientAuth_BehindAVerifiedProxy_AuthenticatesWithTheForwardedCertificate()
+    {
+        const string clientId = "it-mtls-self-signed-proxied";
+        using var certificate = CreateCertificate(clientId);
+        using var proxyCertificate = CreateCertificate("it-mtls-self-signed-proxied-proxy");
+
+        using var factory = new HostApplicationFactory
+        {
+            VerifiedProxyCertificate = proxyCertificate,
+        };
+        await factory.SeedSelfSignedTlsClientAsync(
+            clientId,
+            certificate,
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
+        );
+        await factory.SeedResourceServerWithClientGrantAsync(
+            clientId,
+            "it-mtls-ssp-rs-api",
+            "https://api.mtls-ssp.integration.test",
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
+        );
+
+        var client = CreateClient(factory);
+        using var request = BuildTokenRequest(clientId, certificate);
+        using var response = await client.SendAsync(request);
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.StatusCode == HttpStatusCode.OK, body);
+
+        var jsonElement = JsonElement.Parse(body);
+        Assert.False(string.IsNullOrEmpty(jsonElement.GetProperty("access_token").GetString()));
+    }
+
+    [Fact]
+    public async Task PostToken_TlsClientAuth_BehindAVerifiedProxy_WithoutAForwardedCertificate_IsRefused()
+    {
+        const string clientId = "it-mtls-pki-proxied-nocert";
+        using var authority = CreateAuthority("it-mtls-pki-proxied-nocert-root");
+        using var proxyCertificate = CreateIssuedCertificate(authority, "it-mtls-ingress");
+
+        using var factory = new HostApplicationFactory
+        {
+            VerifiedProxyCertificate = proxyCertificate,
+        };
+        await factory.SeedTlsClientAuthSubjectDnClientAsync(
+            clientId,
+            proxyCertificate.SubjectName.Name,
+            [authority.ExportCertificatePem()],
+            [OpenIdProtocol.GrantTypes.ClientCredentials],
+            CancellationToken.None
+        );
+        await factory.SeedResourceServerWithClientGrantAsync(
+            clientId,
+            $"{clientId}-rs-api",
+            $"https://api.{clientId}.integration.test",
+            [TestPlatformSettingsProvider.ApiScope],
+            CancellationToken.None
+        );
+
+        var client = CreateClient(factory);
+        using var request = BuildTokenRequest(clientId, forwardedCertificate: null);
+        using var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    #endregion
+
     #region Revocation
 
     [Fact]

@@ -6,9 +6,11 @@
   [ADR-1258](1258-the-server-sends-strict-transport-security-outside-development.md) and
   [ADR-1458](1458-the-management-console-ships-as-its-own-image-and-an-opt-in-component-of-the-host-chart.md);
   amended by
-  [ADR-1506](1506-the-host-chart-routes-to-its-https-only-pods-through-gateway-api-a-traefik-ingress-or-the-operators-own-ingress.md):
-  the chart routes through Gateway API, a Traefik Ingress or the operator's own ingress, verifies the pods against a CA
-  ConfigMap, and has no ingress-nginx mode)
+  [ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md):
+  the controller verifies the pods against the chart's ingress Secret and authenticates to them with its client
+  certificate; and by
+  [ADR-1507](1507-the-host-chart-routes-to-its-https-only-pods-through-gateway-api-a-traefik-ingress-or-the-operators-own-ingress.md):
+  the chart routes through Gateway API, a Traefik Ingress or the operator's own ingress, and has no ingress-nginx mode)
 - **Date:** 2026-11-11
 - **Deciders:** NCode Group
 
@@ -67,8 +69,9 @@ not a deployment shape.** Development, Staging, Conformance and every other envi
 6. **The chart serves HTTPS and has the ingress controller verify the pods.** The values `backendTls` and
    `managementConsole.backendTls` select the ingress controller (`ingress-nginx` by default, `traefik` or `none`), an
    `existingSecret` (a `kubernetes.io/tls` Secret that also holds `ca.crt`), the cert-manager `issuerRef`, and an
-   optional `ingressCaSecret` (a Secret that holds only `ca.crt`, which the controller then verifies the pods against in
-   place of the serving Secret; the console's own value falls back to the server's). By
+   optional `ingressSecret` (a Secret the operator created, which is then the only Secret the controller verifies the
+   pods against; the console's own value falls back to the server's, and without either the controller reads the
+   chart's ingress Secret, never a serving Secret, see [ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)). By
    default the chart creates a cert-manager `Certificate` per component from a private CA that it also creates (a
    self-signed Issuer, a CA Certificate and a CA Issuer), with an ECDSA P-256 key. The container port is 8443, the
    probes use `scheme: HTTPS`, the Service is `https` on port 443 with `appProtocol: https`, and the Ingress backend
@@ -92,10 +95,8 @@ not a deployment shape.** Development, Staging, Conformance and every other envi
   and fails its first client.
 - **Parse Kestrel's certificate configuration.** Rejected: it duplicates Kestrel's schema and sees none of the
   certificates that code or a selector supplies. The handshake reads what the endpoint serves.
-- **Require a client certificate from the proxy.** Deferred: the kubelet cannot present one, so the probes need an
-  exempt endpoint or exempt paths; the connection's one client-certificate slot also serves protocol mutual-TLS client
-  authentication, so the two need an explicit separation; and each ingress controller configures the client
-  certificate differently.
+- **Require a client certificate from the proxy.** Decided in
+  [ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md).
 
 ## Consequences
 
@@ -106,10 +107,9 @@ not a deployment shape.** Development, Staging, Conformance and every other envi
   watches, and the check runs at start only.
 - A TLS-terminating proxy has to speak HTTPS to the pod and, to meet the preferred trust tier, verify the pod's
   certificate.
-- With the default `ingress-nginx` or Traefik settings the controller's verification Secret is the serving Secret,
-  because cert-manager issues no CA-only Secret, so the controller, which reads Secrets cluster-wide, receives the pods'
-  private key. `backendTls.ingressCaSecret` names a Secret that holds only `ca.crt`, and the controller then verifies
-  the pods without receiving the key.
+- The controller's verification Secret is the chart's ingress Secret by default, never a serving Secret;
+  `backendTls.ingressSecret` names an operator's Secret instead
+  ([1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
 - The HTTPS redirect of the pipeline applies outside Production only.
 - The unit tests of the inspectors and the probe, the check against real Kestrel, the Production gate and the chart's CI
   gate prove the wiring.

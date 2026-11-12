@@ -4,6 +4,7 @@
 using System.Net.Security;
 using System.Security.Authentication;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
+using NCode.Identity.AspNetCore.Options;
 using NCode.Identity.OpenId.Host;
 using Xunit;
 
@@ -21,7 +22,7 @@ public class HostHttpsDefaultsTests
     {
         var https = new HttpsConnectionAdapterOptions();
 
-        HostHttpsDefaults.Configure(https);
+        HostHttpsDefaults.Configure(https, new ProxyClientCertificateOptions());
 
         Assert.Equal(SslProtocols.Tls12 | SslProtocols.Tls13, https.SslProtocols);
     }
@@ -31,7 +32,7 @@ public class HostHttpsDefaultsTests
     {
         var https = new HttpsConnectionAdapterOptions();
 
-        HostHttpsDefaults.Configure(https);
+        HostHttpsDefaults.Configure(https, new ProxyClientCertificateOptions());
 
         Assert.NotNull(https.ClientCertificateValidation);
     }
@@ -41,9 +42,30 @@ public class HostHttpsDefaultsTests
     {
         var https = new HttpsConnectionAdapterOptions();
 
-        HostHttpsDefaults.Configure(https);
+        HostHttpsDefaults.Configure(https, new ProxyClientCertificateOptions());
 
         Assert.NotNull(https.OnAuthenticate);
+    }
+
+    [Fact]
+    public void Configure_ProxyCertificateRequired_AsksForTheCertificateWithoutRequiringIt()
+    {
+        var https = new HttpsConnectionAdapterOptions();
+
+        HostHttpsDefaults.Configure(https, new ProxyClientCertificateOptions { Required = true });
+
+        Assert.Equal(ClientCertificateMode.AllowCertificate, https.ClientCertificateMode);
+    }
+
+    [Fact]
+    public void Configure_ProxyCertificateNotRequired_LeavesTheClientCertificateModeAlone()
+    {
+        var https = new HttpsConnectionAdapterOptions();
+        var mode = https.ClientCertificateMode;
+
+        HostHttpsDefaults.Configure(https, new ProxyClientCertificateOptions());
+
+        Assert.Equal(mode, https.ClientCertificateMode);
     }
 
     #endregion
@@ -115,7 +137,7 @@ public class HostHttpsDefaultsTests
     private static SslServerAuthenticationOptions InvokeOnAuthenticate()
     {
         var https = new HttpsConnectionAdapterOptions();
-        HostHttpsDefaults.Configure(https);
+        HostHttpsDefaults.Configure(https, new ProxyClientCertificateOptions());
 
         var onAuthenticate = https.OnAuthenticate;
         Assert.NotNull(onAuthenticate);

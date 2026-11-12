@@ -1,0 +1,3 @@
+{{- if include "identity-host.backendTls.ingressCertificateNeeded" . }}
+{{ include "identity-host.backendTls.ingressCertificate" (dict "root" . "labels" (include "identity-host.labels" .)) }}
+{{- end }}

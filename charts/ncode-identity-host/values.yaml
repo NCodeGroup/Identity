@@ -184,10 +184,20 @@ backendTls:
   # Service's DNS names: <service>, <service>.<namespace>, <service>.<namespace>.svc and
   # <service>.<namespace>.svc.cluster.local. Empty makes the chart create a cert-manager Certificate.
   existingSecret: ""
-  # A ConfigMap in the release namespace that holds only ca.crt, the CA that signs the pods' certificate. The Gateway API
-  # mode verifies the pods against it, and the Traefik mode does when it is set. trust-manager makes it, or: kubectl
-  # create configmap <name> --from-file=ca.crt=<ca.pem>. Empty with caPublisher.enabled names <release>-ca, which the
-  # publisher writes.
+  # The name of a Secret in the release namespace that the ingress controller reads: ca.crt verifies the pods'
+  # certificate (Traefik rootCAs) and tls.crt and tls.key are the controller's client certificate, which it presents
+  # when clientCertificate.required is true (Traefik certificatesSecrets, a Gateway's backend client certificate). Empty
+  # makes the chart issue <release>-ingress from the issuer of certManager when a route uses it.
+  ingressSecret: ""
+  clientCertificate:
+    # Whether the pods refuse a request whose connection carries no certificate from the ingress controller, except
+    # the liveness and readiness probes. The controller's certificate must have the subject CN=<commonName>.
+    required: false
+    # The common name of the ingress controller's certificate; the pods accept only the subject CN=<commonName>.
+    commonName: ncode-identity-ingress
+  # A ConfigMap in the release namespace that holds only ca.crt, the CA that signs the pods' certificate, which the
+  # Gateway API mode's BackendTLSPolicy verifies the pods against. trust-manager makes it, or: kubectl create configmap
+  # <name> --from-file=ca.crt=<ca.pem>. Empty with caPublisher.enabled names <release>-ca, which the publisher writes.
   caConfigMap: ""
   # An opt-in hook Job that publishes the ca.crt of the chart's private CA to the CA ConfigMap after cert-manager issues
   # it, so a release that uses the private CA needs no manual ConfigMap. It runs 'kubectl apply -k' and never sees the
@@ -386,9 +396,13 @@ managementConsole:
   # cert-manager Certificate from the issuer of backendTls.certManager.
   backendTls:
     existingSecret: ""
-    # A ConfigMap in the release namespace that holds only ca.crt, for the router to verify the console's pods. Empty
-    # uses the server's CA ConfigMap, so the chart requires it when existingSecret is set and backendTls.caPublisher is
-    # enabled.
+    # A Secret in the release namespace that the ingress controller reads to verify the console's pods and, when
+    # backendTls.clientCertificate.required is true, to authenticate to them (see backendTls.ingressSecret).
+    # Empty uses backendTls.ingressSecret, and then <release>-ingress.
+    ingressSecret: ""
+    # A ConfigMap in the release namespace that holds only ca.crt, for a Gateway API implementation to verify the
+    # console's pods. Empty uses the server's CA ConfigMap, so the chart requires it when existingSecret is set and
+    # backendTls.caPublisher is enabled.
     caConfigMap: ""
   service:
     type: ClusterIP

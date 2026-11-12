@@ -479,6 +479,23 @@
         "existingSecret": {
           "type": "string"
         },
+        "ingressSecret": {
+          "type": "string"
+        },
+        "clientCertificate": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "required": {
+              "type": "boolean"
+            },
+            "commonName": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[A-Za-z0-9._-]+$"
+            }
+          }
+        },
         "caConfigMap": {
           "type": "string"
         },
@@ -1003,6 +1020,9 @@
           "additionalProperties": false,
           "properties": {
             "existingSecret": {
+              "type": "string"
+            },
+            "ingressSecret": {
               "type": "string"
             },
             "caConfigMap": {

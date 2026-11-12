@@ -98,7 +98,7 @@ compiles it and no gate tests it
   ([ADR-1290](docs/decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md)),
   forwards remote APIs with the right token through YARP, its own `MapBffRemoteApi` or configured routes
   (`AddBffTransforms()`, `AsBffRemoteApis()`)
-  ([ADR-1381](docs/decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)),
+  ([ADR-1381](docs/decisions/1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)),
   refuses to start when an endpoint's BFF metadata is incomplete
   ([ADR-1433](docs/decisions/1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md)),
   and on opt-in sends browser security headers (`UseBffSecurityHeaders()`) and publishes its client keys at `/bff/jwks`

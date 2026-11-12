@@ -2754,8 +2754,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   configures; `NCode.Identity.Bff` depends on `Yarp.ReverseProxy`
   ([#395](https://github.com/NCodeGroup/identity/issues/395),
   [#716](https://github.com/NCodeGroup/identity/issues/716),
-  [ADR-1381](docs/decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md),
-  [ADR-1487](docs/decisions/1487-the-bff-forwards-a-remote-api-through-a-named-http-client-a-host-can-configure.md)).
+  [ADR-1381](docs/decisions/1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)).
 
 - **YARP-configured routes can carry the BFF's token.** `AddReverseProxy()…AddBffTransforms()` makes every route whose
   metadata names `BffTokenRequirement` (with the optional `BffResource` and `BffScope`) a remote API, and
@@ -2765,7 +2764,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   forwards or accepts the BFF's own. Route metadata is validated when YARP loads it, and the proxy refuses to start when
   another `IForwarderHttpClientFactory` is registered after `AddBffTransforms()`. Routing beyond a path prefix goes
   through YARP's routes and clusters ([#395](https://github.com/NCodeGroup/identity/issues/395),
-  [ADR-1381](docs/decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
+  [ADR-1381](docs/decisions/1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
   decision 8).
 
 - **The BFF can publish its client keys.** A frontend's `Jwks:Enabled` maps an anonymous, never-cached
@@ -5577,7 +5576,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`BffProblemTypes.MethodNotAllowed`) for a method outside `AllowedMethods`, never forwards the browser's cookies,
   credentials or forwarding headers, drops the upstream `Set-Cookie`, and never follows a redirect
   ([#395](https://github.com/NCodeGroup/identity/issues/395),
-  [ADR-1381](docs/decisions/1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)).
+  [ADR-1381](docs/decisions/1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)).
 
 - **The BFF can send browser security headers.** `app.UseBffSecurityHeaders()` writes `Content-Security-Policy`,
   `X-Content-Type-Options: nosniff`, `Referrer-Policy` and `Cross-Origin-Opener-Policy` on every response, from

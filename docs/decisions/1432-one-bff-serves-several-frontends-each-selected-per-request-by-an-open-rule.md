@@ -6,7 +6,7 @@
   [ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md) decision 3,
   [ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md) decision 7,
   [ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md) decision 2,
-  [ADR-1381](1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
+  [ADR-1381](1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
   decisions 7 and 8,
   [ADR-1382](1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)
   decisions 1 and 5, and the per-frontend configuration keys that
@@ -143,7 +143,7 @@ endpoint or a token takes it from that frontend.**
   [ADR-1294](1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md),
   [ADR-1193](1193-the-interactive-surface-uses-the-tenant-route-host-only-cookies-and-one-shared-single-page-bundle-helper.md),
   [ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md),
-  [ADR-1381](1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md),
+  [ADR-1381](1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md),
   [ADR-1382](1382-the-bff-sends-browser-security-headers-and-publishes-its-client-keys-only-when-the-host-opts-in.md)
 - `src/NCode.Identity.Bff/Frontends/`, `src/NCode.Identity.Bff/Options/BffFrontendOptions.cs`,
   `src/NCode.Identity.Bff.Abstractions/IBffFrontendSelector.cs`

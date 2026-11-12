@@ -1,7 +1,7 @@
 # 1433. A BFF host refuses to start when an endpoint's BFF metadata is incomplete
 
 - **Status:** Accepted (amends
-  [ADR-1381](1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
+  [ADR-1381](1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
   decision 8; amended by
   [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md):
   the check also evaluates each endpoint's IBffEndpointStartupRequirement metadata; decision 4 amended by
@@ -14,7 +14,7 @@
 
 A YARP route that names `BffTokenRequirement` is a remote API only when its endpoint carries the BFF's API metadata,
 which `MapReverseProxy().AsBffRemoteApis()` adds
-([ADR-1381](1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
+([ADR-1381](1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md)
 decision 8). A route without that call fails closed: the token accessor serves a token only to an endpoint the BFF
 guards, so the transform throws and YARP answers `502`. The failure surfaces on every call to the route and never at
 start (issue [#522](https://github.com/NCodeGroup/identity/issues/522)).
@@ -81,7 +81,7 @@ refusals stay the backstop.**
 ## References
 
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.6
-- [ADR-1381](1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md),
+- [ADR-1381](1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md),
   [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md)
 - `src/NCode.Identity.Bff/Hosting/BffEndpointStartupCheck.cs`
 - Issue [#522](https://github.com/NCodeGroup/identity/issues/522)

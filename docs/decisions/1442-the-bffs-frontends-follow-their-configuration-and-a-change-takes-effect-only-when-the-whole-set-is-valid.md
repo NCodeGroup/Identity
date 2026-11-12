@@ -110,7 +110,7 @@ derives from its options reads the current set.**
 
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.6, §5.10 and §5.12
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md),
-  [ADR-1381](1381-the-bff-serves-its-own-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md),
+  [ADR-1381](1381-the-bff-serves-client-and-exchanged-tokens-without-a-lease-and-forwards-remote-apis-through-yarp.md),
   [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md),
   [ADR-1433](1433-a-bff-host-refuses-to-start-when-an-endpoints-bff-metadata-is-incomplete.md),
   [ADR-1443](1443-a-bff-session-ends-when-its-frontend-is-removed-or-registered-as-another-client.md)

@@ -12,7 +12,7 @@ namespace NCode.Identity.Bff.RemoteApis;
 /// sends through the <see cref="BffDefaults.RemoteApiHttpClientName"/> client, whose primary handler the BFF registers
 /// to follow no redirect, send or store no cookie, use no proxy and decompress no response.
 /// </summary>
-// See ADR-1381 and ADR-1487.
+// See ADR-1381.
 internal sealed class BffRemoteApiInvokerFactory(
     IHttpContextAccessor accessor,
     IBffConnectionSessionAccessor connections,

@@ -7,6 +7,7 @@
 #
 # The signing identity of every signature and attestation is this workflow on main or on the release tag:
 # https://github.com/NCodeGroup/identity/.github/workflows/publish-artifacts.yml@refs/heads/main
+# https://github.com/NCodeGroup/identity/.github/workflows/publish-artifacts.yml@refs/tags/<tag>
 #
 # Package visibility and the Actions access of a package are owner settings in GitHub that no workflow can change; see
 # the chart README, section "Published artifacts".

@@ -199,7 +199,7 @@ internal class DefaultSettingDescriptorDataSource(
 
             // access_token_encryption_required: whether issued access tokens must be encrypted (default false).
             // Floor (Or): once a parent requires it, a child cannot un-require it. Scopes: the client's and every
-            // targeted resource server's requirements combine at issuance (ADR-1075, ADR-1158).
+            // targeted resource server's requirements combine at issuance (ADR-1158).
             yield return new SettingDescriptor<bool>
             {
                 Name = OpenIdSettingNames.AccessTokenEncryptionRequired,

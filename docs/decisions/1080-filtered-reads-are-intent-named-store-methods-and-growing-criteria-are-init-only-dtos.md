@@ -119,7 +119,7 @@ loads the full `PersistedResourceServer`.
   for a filtered read.
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md): the
   pre-release posture, and the public API surface that criteria DTOs keep stable.
-- [ADR-1075](1075-runtime-consumption-of-resource-server-secrets.md): the credential resolver's use of one audience's
+- [ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md): the credential resolver's use of one audience's
   keys.
 - `NCode.Identity.Persistence.Abstractions`: `IResourceServerStore`, `ResourceServerScopeProjection`, `IGrantStore`,
   `GrantFilter`, `PageRequest` and `PagedResult<T>`.

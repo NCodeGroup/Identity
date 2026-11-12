@@ -70,7 +70,7 @@ the ownership and admin handlers against the `resource_server` node
 The settings document holds only settings that apply within `resource_server`
 ([ADR-1149](1149-settings-declare-the-scopes-they-apply-to-and-the-scopes-are-a-registered-cascade.md)), and the
 effective settings merge it onto the tenant's effective settings (platform, team, tenant). Runtime use of the stored
-material to protect a token is [ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)'s.
+material to protect a token is [ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md)'s.
 
 ### A client's allowed scopes
 
@@ -178,7 +178,7 @@ database
 - [ADR-1050](1050-secret-material-revealed-once-on-create.md),
   [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md),
   [ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md),
-  [ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md) and
+  [ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md) and
   [ADR-1080](1080-filtered-reads-are-intent-named-store-methods-and-growing-criteria-are-init-only-dtos.md): secret
   reveal, management authority, system resource server keys, runtime key use and the filtered read.
 - [RFC 6749](https://datatracker.ietf.org/doc/html/rfc6749), [RFC 7519](https://datatracker.ietf.org/doc/html/rfc7519),

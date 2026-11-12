@@ -195,7 +195,6 @@ The records are grouped by area; within an area they are in number order.
 | [1059](./1059-the-device-authorization-grant-is-a-pending-request-in-the-grant-store-approved-out-of-band.md) | The device authorization grant is a pending request in the grant store, approved out of band | Accepted |
 | [1063](./1063-dynamic-client-registration.md) | Dynamic Client Registration (RFC 7591/7592) over the persisted-grant store | Accepted |
 | [1074](./1074-session-management-and-logout.md) | End-user sessions, the `sid` claim, and RP-Initiated + Back-Channel Logout | Accepted |
-| [1075](./1075-runtime-consumption-of-resource-server-secrets.md) | Runtime consumption of resource-server secrets and settings at access-token issuance | Accepted |
 | [1081](./1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md) | Consent is a durable record of decided and granted scopes, enforced at the authorization endpoint | Accepted |
 | [1085](./1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md) | CIBA is a pending request in the grant store, delivered by poll, ping or push | Accepted |
 | [1087](./1087-refresh-token-reuse-detection-and-family-revocation.md) | Refresh-token reuse detection revokes the whole rotation family | Accepted |
@@ -211,7 +210,7 @@ The records are grouped by area; within an area they are in number order.
 | [1124](./1124-jwt-lifetime-cap-and-client-assertion-max-lifetime.md) | JWT lifetime is capped from its earliest asserted start; client assertions default to five minutes | Accepted |
 | [1141](./1141-a-response-type-is-a-whole-value-and-the-listed-values-alone-control-front-channel-tokens.md) | A response type is a whole value, and the listed values alone control front-channel tokens | Accepted |
 | [1144](./1144-authorization-codes-are-bound-to-an-s256-pkce-challenge-unless-an-attested-client-uses-the-nonce.md) | Authorization codes are bound to an S256 PKCE challenge unless an attested client uses the nonce | Accepted |
-| [1158](./1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md) | An access token is bound by its client and every resource server it targets | Accepted |
+| [1158](./1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md) | The tenant signs an access token, and its client and targeted resource servers bound it | Accepted |
 | [1167](./1167-the-server-validates-the-tokens-it-issued-under-one-policy.md) | The server validates the tokens it issued under one policy | Accepted |
 | [1168](./1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md) | Introspection discloses a token only to the party that consumes it | Accepted |
 | [1187](./1187-a-signed-request-object-is-short-lived-and-addressed-to-the-issuer.md) | A signed request object is short-lived and addressed to the issuer | Accepted |

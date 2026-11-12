@@ -1,10 +1,10 @@
 # 1167. The server validates the tokens it issued under one policy
 
 - **Status:** Accepted (amends [ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md),
-  [ADR-1075](1075-runtime-consumption-of-resource-server-secrets.md), and
+  [ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md), and
   [ADR-1101](1101-token-exchange-issues-delegation-and-impersonation-tokens-from-tokens-the-tenant-issued.md); closes the follow-ups of
   [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) and
-  [ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md); realizes the
+  [ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md); realizes the
   introspection clause of [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md); amended by
   [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md): the
   event ID `2019` is free; and by
@@ -17,7 +17,7 @@
 
 [ADR-1154](1154-jwts-are-validated-as-signed-tokens-under-explicit-algorithm-and-key-policy.md) made every caller of the
 JWT validator state its algorithm and key policy, and
-[ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md) encrypts an access token
+[ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md) encrypts an access token
 to the party that reads it — a resource server that decrypts its own tokens, or else the tenant. Both left the same
 follow-up: the server's own readers of access tokens name no decryption keys and no algorithm lists, so every access
 token the server encrypted to itself was rejected by the server.
@@ -76,7 +76,7 @@ tenant's policy for that kind of token. A system resource server never holds key
    introspection, token exchange, and the end-session `id_token_hint` all validate through the seam. No production code
    builds `JwtValidationParameters` for a token the tenant issued.
 6. **A system resource server holds no keys** (amends [ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md) and
-   [ADR-1075](1075-runtime-consumption-of-resource-server-secrets.md)). The management API refuses to create or import a
+   [ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md)). The management API refuses to create or import a
    secret for one (`409 Conflict`), and issuance never treats a system resource server as decrypting its own tokens, so a
    key already stored on one is ignored and existing data needs no migration. `ResolvedResourceServer` carries
    `IsSystem` and the resource server's `Scopes`.

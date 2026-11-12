@@ -17,7 +17,7 @@ names, and encrypted to one of its public keys when it registers an encryption a
 cannot reach the selector must either reproduce the policy — and drift from it — or skip it and protect the ID token
 more weakly than the client registered. The access token has the same shape, and `IAccessTokenPolicyService` is the
 public seam a replacement resolves
-([ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)).
+([ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md)).
 
 ## Decision
 
@@ -50,7 +50,7 @@ public seam a replacement resolves
 ## References
 
 - [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md) (extended: the selector is public),
-  [ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md) (the access-token
+  [ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md) (the access-token
   counterpart), [ADR-1168](1168-introspection-discloses-a-token-only-to-the-party-that-consumes-it.md),
   [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md).
 - Code: `NCode.Identity.OpenId.Authentication.Clients.IClientJwtCredentialSelector`, `ClientJwtCredentials`,

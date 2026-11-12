@@ -74,7 +74,7 @@ key for. The server generates keys only to fill those gaps; it never removes, re
    - **Key sizes:** RSA keys are 3072 bits, because NIST SP 800-57 accepts 2048-bit RSA only through 2030 and these
      keys have no rotation until key rollover exists. The EC key is on P-256.
    - **No default encryption key.** Access-token encryption is opt-in. A tenant that encrypts tokens to itself
-     ([ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)) lists a
+     ([ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md)) lists a
      key-management algorithm.
 4. **A held key counts when the server could select it.** It covers an algorithm when:
    - its `use` and `alg` are null or match;

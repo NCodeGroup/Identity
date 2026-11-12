@@ -88,7 +88,7 @@ Ceilings:
 - `token_endpoint_auth_methods_supported` is `private_key_jwt`, `tls_client_auth` and `self_signed_tls_client_auth`.
 - `response_types_supported` is `code`, and the PKCE methods are `S256`.
 - `require_pkce`, `require_pushed_authorization_requests`, `access_token_sender_constraint_required`
-  ([ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)) and
+  ([ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md)) and
   `refresh_token_rotation_retry_required` are on.
 - The authorization code and `clock_skew` are capped at 60 seconds, the PAR `request_uri` at 90 seconds, a client
   assertion at 5 minutes and a request object at 60 minutes with `nbf`.

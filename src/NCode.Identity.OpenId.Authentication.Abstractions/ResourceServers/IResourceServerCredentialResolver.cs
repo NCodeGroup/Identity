@@ -13,7 +13,7 @@ namespace NCode.Identity.OpenId.Authentication.ResourceServers;
 /// targeted resource server's settings with the requesting client's, and chooses the token's credentials, itself. The
 /// token is always signed with the tenant's key. Register a custom implementation to replace the default behavior.
 /// </summary>
-// See ADR-1075, ADR-1154, and ADR-1168.
+// See ADR-1158, ADR-1154, and ADR-1168.
 [PublicAPI]
 public interface IResourceServerCredentialResolver
 {

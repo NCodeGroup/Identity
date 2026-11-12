@@ -107,7 +107,7 @@ than inlining the rationale.
 - 👁 **A policy that a replaceable public service must apply is itself a public seam** — template
   [Public API](csharp.instructions.md#public-api): a replacement of `ITokenService` resolves
   `IAccessTokenPolicyService` and `IClientJwtCredentialSelector`
-  ([ADR-1158](../../docs/decisions/1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md),
+  ([ADR-1158](../../docs/decisions/1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md),
   [ADR-1181](../../docs/decisions/1181-every-issuer-of-a-jwt-addressed-to-a-client-resolves-one-public-credential-selector.md)).
 - 👁 **A token the server issued is validated only through `IIssuedTokenValidator`.** Never build
   `JwtValidationParameters` for an access token, ID token, or `id_token_hint` the tenant minted. The seam states the
@@ -493,7 +493,7 @@ than inlining the rationale.
   which ignores the targeted resource servers' bounds; and never fall back to a weaker or different credential when the
   combined bounds cannot be met — refuse (`invalid_request` when the request can avoid it, `server_error` when the
   configuration cannot be satisfied). See
-  [ADR-1158](../../docs/decisions/1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md).
+  [ADR-1158](../../docs/decisions/1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md).
 - 👁 **A package registers its own services from `DefaultRegistration.cs`** (the class is **always** `DefaultRegistration`)
   using `extension(IServiceBuilder<TMarker>)` + `TryAdd*` so a consumer can override a default, per
   [ADR-1069](../../docs/decisions/1069-di-registration-proves-every-prerequisite-at-compile-time-through-marker-builders.md). **The receiver marker is the

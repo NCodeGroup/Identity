@@ -15,7 +15,7 @@ tenants', and a tenant's into each of its clients' and each of its resource serv
 scope's effective settings. Discovery and the tenant-wide services (sessions, principal resolution, federated-identity
 linking, dynamic registration policy, UserInfo) read a tenant's; the protocol endpoints read the effective settings of
 the client making the request; and access-token issuance reads a targeted resource server's
-([ADR-1075](1075-runtime-consumption-of-resource-server-secrets.md)).
+([ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md)).
 
 If the vocabulary were the same for every scope, a document would accept any registered setting whether or not its
 scope ever read it, and the setting would be stored without effect, the silent failure that
@@ -75,12 +75,12 @@ anywhere else is rejected at every entry point, exactly as an unregistered name 
    with a client: its ceilings bound the settings the client and discovery read, and its requirements run against a
    client's request. `security_profiles` is therefore rejected on a resource-server document. A resource server's
    constraints are its own settings, combined with the client's at issuance by their lattice merges
-   ([ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)), and every setting
+   ([ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md)), and every setting
    that applies to resource servers merges with a lattice operation, which a test pins.
 8. **Examples.** The request-object, UserInfo and ID token algorithm lists apply to clients
    ([ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md)); the access-token lifetime,
    signing and sender-constraint settings apply to resource servers
-   ([ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)).
+   ([ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md)).
 9. **Previews show what governs the scope.** A management effective-settings preview lists only the settings that apply
    within the previewed scope
    ([ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md)).
@@ -132,12 +132,12 @@ anywhere else is rejected at every entry point, exactly as an unregistered name 
   the same entry points.
 - [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md):
   security profiles, which a resource server does not select.
-- [ADR-1075](1075-runtime-consumption-of-resource-server-secrets.md): the settings a targeted resource server governs.
+- [ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md): the settings a targeted resource server governs.
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md):
   an unset list is unrestricted; a set one permits only what it names.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md): vocabularies are open unless provably closed.
 - [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md),
-  [ADR-1158](1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md),
+  [ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md),
   [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md) and
   [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md): the settings that apply to clients and resource servers,
   the previews, and nested teams.

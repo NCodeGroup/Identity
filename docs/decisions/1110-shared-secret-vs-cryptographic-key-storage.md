@@ -11,7 +11,7 @@ A symmetric `PersistedSecret` serves two fundamentally different purposes that h
 generation path (`ISecretGenerator.GenerateSecret`):
 
 1. **A cryptographic key** the server itself uses — an `HS256` signing key, or a symmetric JWE key for
-   audience-specific token encryption ([ADR-1075](1075-runtime-consumption-of-resource-server-secrets.md)). Here the stored key
+   audience-specific token encryption ([ADR-1158](1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md)). Here the stored key
    material **is** the raw CSPRNG bytes, and the one-time reveal ([ADR-1050](1050-secret-material-revealed-once-on-create.md)) is
    their `base64url` form (the JWK `k`). An external party that needs the key imports that `base64url` value.
 

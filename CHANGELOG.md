@@ -5051,8 +5051,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   evaluates an `AccessTokenPolicy` under which `ITokenService` issues access tokens; an extension can register its own
   service to add a bound, and `ResolvedResourceServer` carries its `SecretsProvider` (issue
   [#139](https://github.com/NCodeGroup/identity/issues/139),
-  [ADR-1075](docs/decisions/1075-runtime-consumption-of-resource-server-secrets.md),
-  [ADR-1158](docs/decisions/1158-an-access-token-is-bound-by-its-client-and-every-resource-server-it-targets.md)).
+  [ADR-1158](docs/decisions/1158-the-tenant-signs-an-access-token-and-its-client-and-targeted-resource-servers-bound-it.md)).
 
 - **Resource indicators (RFC 8707) are a multi-valued `resource` parameter that narrows and validates the access token's
   audience** (issue [#50](https://github.com/NCodeGroup/identity/issues/50),

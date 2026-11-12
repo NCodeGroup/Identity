@@ -7,7 +7,7 @@
 ## Context
 
 Settings resolve down the cascade platform, team, tenant, and client or resource server
-([ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)). Each scope may
+([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)). Each scope may
 only make the effective value safer or narrower than the scope above it, or override it where the setting has no
 restriction semantics. A cascade that mixed these directions per setting would let a tenant or client loosen a
 security setting that the operator set above it.
@@ -140,6 +140,6 @@ omits settings that are unset.
 - [ADR-1148](1148-a-scope-selects-security-profiles-that-accumulate-down-the-cascade-as-ceilings-defaults-and-requirements.md): the one `Union` list.
 - [ADR-1155](1155-jwts-exchanged-with-a-client-follow-its-registered-metadata.md): algorithm lists that decide
   what the server accepts.
-- [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the cascade's
+- [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): the cascade's
   scopes.
 - [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700): OAuth 2.0 Security Best Current Practice.

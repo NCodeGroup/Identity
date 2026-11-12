@@ -1,7 +1,7 @@
 # 1050. Secret material is revealed once, only by the client-secret create endpoint
 
 - **Status:** Accepted (amended by
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform is a
+  [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): the platform is a
   singleton with no list, create, delete or secrets, and its management surface is its settings and effective
   settings under `/api/platform`)
 - **Date:** 2026-10-05
@@ -148,7 +148,7 @@ Concretely:
   invariant this decision refines.
 - [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md) — the data-protection boundary that guards
   `EncodedValue`.
-- [ADR-1024](1024-control-plane-and-per-tenant-planes.md) — the server/tenant/client ownership planes
+- [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) — the server/tenant/client ownership planes
   the reveal scope follows.
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the Auth0-parity-plus philosophy that
   frames one-time reveal as parity with familiar client-secret workflows.

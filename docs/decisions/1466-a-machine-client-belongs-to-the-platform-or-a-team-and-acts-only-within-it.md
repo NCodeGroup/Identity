@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amends
   [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md) decision 3 and
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) decision 5)
+  [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) decision 5)
 - **Date:** 2026-11-06
 - **Deciders:** NCode Group
 
@@ -68,7 +68,7 @@ itself, and that holds roles only at its owning node or beneath it.**
 ## References
 
 - [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md),
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+  [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
   [ADR-1418](1418-limits-are-set-by-the-authority-above-their-scope-and-readers-learn-which-they-may-change.md),
   [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md),
   [ADR-1421](1421-the-management-console-addresses-a-client-and-a-resource-server-through-their-tenant.md),

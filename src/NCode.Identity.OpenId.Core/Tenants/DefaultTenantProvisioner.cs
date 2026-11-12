@@ -135,7 +135,7 @@ internal sealed class DefaultTenantProvisioner(
         var isRootTenant = string.Equals(tenantId, rootTenantId, StringComparison.Ordinal);
 
         // The root (control-plane) tenant must exist and be seeded whatever tenant is seeded, so its control-plane data is
-        // in place under every strategy (ADR-1024, ADR-1166). It is seeded on this same path, so root and workload tenants
+        // in place under every strategy (ADR-1411, ADR-1166). It is seeded on this same path, so root and workload tenants
         // are seeded identically.
         if (!isRootTenant)
         {

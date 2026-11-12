@@ -16,7 +16,7 @@ those rules and the master key that implements them.
 The platform and each tenant own master keys, which are rows of the database wrapped by the root key
 ([ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)). The platform is the
 deployment root and a team groups a customer's tenants
-([ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)); the platform is
+([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)); the platform is
 `SecretOwner.Platform` (owner type `platform`, id `platform`), and a team has no master key. The Data Protection key
 ring belongs to the host as a whole, so no tenant can own it, and no stored secret of the family depends on it.
 
@@ -114,7 +114,7 @@ decrypt; and `DataProtectionKeyRing:RevokedKeyIds` revokes keys by ID so that an
 - [project-template ADR-0127](project-template/0127-the-data-protection-key-ring-is-shared-and-encrypted-at-rest.md)
   — the generic ring rules
 - [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) — the key hierarchy
-- [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) — the platform and the
+- [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) — the platform and the
   team
 - [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md)
   — master key rotation and destruction

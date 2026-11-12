@@ -9,7 +9,7 @@
 
 A tenant's effective settings come from a cascade of host configuration, the platform, the team, the tenant and the
 client or resource server
-([ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)). A change to a setting
+([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)). A change to a setting
 that a default handler acts on, such as the algorithms a tenant's keys use or the rules a client must satisfy, has to
 reach every replica at once and then reach the keys and clients that the change affects, once.
 
@@ -115,7 +115,7 @@ what it was last reconciled against, under a lease.
 
 - [project-template ADR-0140](project-template/0140-replicas-converge-through-reconciliation.md) — replicas converge
   through reconciliation
-- [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) — the platform and the
+- [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) — the platform and the
   team
 - [ADR-1205](1205-replicas-announce-changes-to-each-other-through-a-best-effort-broadcast-port.md) — replicas announce changes through a broadcast
   port

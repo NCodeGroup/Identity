@@ -1,7 +1,7 @@
 # 1058. Asymmetric public key material is exposed through a dedicated read endpoint (JWK + PEM)
 
 - **Status:** Accepted (amended by
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform is a
+  [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): the platform is a
   singleton with no list, create, delete or secrets, and its management surface is its settings and effective
   settings under `/api/platform`)
 - **Date:** 2026-10-10
@@ -125,7 +125,7 @@ Concretely:
   invariant this decision extends (public material only).
 - [ADR-1050](1050-secret-material-revealed-once-on-create.md) — the one-time symmetric reveal that
   reserved asymmetric public-material exposure as the additive option adopted here.
-- [ADR-1024](1024-control-plane-and-per-tenant-planes.md) — the server/tenant/client ownership planes the
+- [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) — the server/tenant/client ownership planes the
   read scope follows.
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md) — the Auth0-parity-plus philosophy that
   frames a per-key public-material read as parity with familiar admin workflows.

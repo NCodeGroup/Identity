@@ -18,7 +18,7 @@ that does, so the route discloses which teams, tenants, settings, secrets, keys,
 the store does the work of finding them for a caller who may not see any of them.
 
 Authority is decided at nodes
-([ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
 [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md)), and a node is built from the
 route's values alone: the platform, a team or a tenant needs no row. A tenant node of an unknown tenant has no team
 ancestor, so a role at a team never reaches it. The decision about a caller is therefore the same whether or not the
@@ -75,7 +75,7 @@ or the resource is gone. A tool that reads `404` for a resource it may not see r
 
 - [ADR-1015](1015-management-core-validation-via-validators.md) — management core validation via replaceable
   validators
-- [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) — the platform is the
+- [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) — the platform is the
   deployment root and a team groups a customer's tenants
 - [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md) — a tenant administrator is a
   role assignment at the tenant's node

@@ -9,7 +9,7 @@
   [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, and no
   migration rewrites stored data; amended by
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): a platform write merges
+  [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): a platform write merges
   onto the settings that `OpenIdPlatform.ConfiguredSettingsProvider` exposes)
 - **Date:** 2026-10-19
 - **Deciders:** NCode Group

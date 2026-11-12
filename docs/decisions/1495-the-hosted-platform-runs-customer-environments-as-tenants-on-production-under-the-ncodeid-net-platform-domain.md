@@ -127,7 +127,7 @@ carries nothing else; a brand domain carries the site, docs, status page and ope
   `canary` tenant before customers see it.
 - Each function gets one wildcard certificate.
 - A tenant can move to a dedicated deployment by DNS change without changing its issuer
-  ([ADR-1024](1024-control-plane-and-per-tenant-planes.md)).
+  ([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)).
 - The bootstrap stack creates four zones, each with DNSSEC, a scoped token and its own records.
 - A change to the site, the docs or the mail records touches only the brand zone, never an issuer.
 - `platform@ncodeid.com` must exist as an Email Routing route, because the owner tag of every resource names it

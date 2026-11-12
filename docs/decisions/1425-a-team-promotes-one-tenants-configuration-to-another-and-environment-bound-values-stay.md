@@ -9,7 +9,7 @@
 
 A customer's environments are the tenants of one team
 ([ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) decision 1,
-[ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)). The configuration of
+[ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)). The configuration of
 one environment, its settings, resource servers, clients and client grants, is the configuration of the next, and an
 operator re-enters it in each tenant by hand.
 
@@ -142,7 +142,7 @@ keys, principals and environment-bound values stay with their environment.**
   concurrency race is answered 412
 - [ADR-1289](1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md) — a tenant declares its
   environment type, which selects its guardrails
-- [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) — the platform is the
+- [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) — the platform is the
   deployment root and a team groups a customer's tenants
 - [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md) — a tenant administrator is a
   role assignment at the tenant's node

@@ -3,7 +3,7 @@
 - **Status:** Accepted (amends [ADR-1033](1033-authorization-model-scopes-roles-and-ownership.md),
   [ADR-1034](1034-persisted-role-assignments-and-ownership.md),
   [ADR-1044](1044-management-api-authentication-and-globaladmin-bootstrap.md),
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md); amended by
+  [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md); amended by
   [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md): the administrators of every team above a tenant grant its
   administrators, and a `TenantAdmin` assignment never reaches a team)
 - **Date:** 2026-11-05
@@ -14,7 +14,7 @@
 Management authority has two sources. The first is a role assignment at a node of the resource hierarchy, inherited
 down the authority chain from the platform through a team and a tenant to a client or resource server
 ([ADR-1034](1034-persisted-role-assignments-and-ownership.md),
-[ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)). The second is a role
+[ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)). The second is a role
 claim in the caller's token, matched against the tenant a node carries.
 
 The management API authenticates every caller against the control-plane tenant
@@ -82,5 +82,5 @@ management authority except the bootstrap `GlobalAdmin`.**
   `GlobalAdmin` bootstrap
 - [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md) — the management API
   authenticates against the control-plane tenant
-- [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) — the platform is the
+- [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) — the platform is the
   deployment root and a team groups a customer's tenants

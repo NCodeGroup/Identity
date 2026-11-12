@@ -1,7 +1,7 @@
 # 1033. Authorization model: granular scopes, roles as bundles, and resource-scoped assignments (ownership)
 
 - **Status:** Accepted (amended by
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): a team is an authority
+  [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): a team is an authority
   node between the platform and its tenants, and `TeamAdmin` creates a team's tenants; amended by
   [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md): a tenant administrator is a
   `TenantAdmin` assignment at the tenant's node; amended by
@@ -31,7 +31,7 @@ scopes stop at the entity, not its leaves (settings, secrets), so "secrets manag
 is a global claim rather than an authority bound to a particular tenant.
 
 The resource model ([ADR-1023](1023-scopes-and-resources-management-model.md)) and the single-control-plane deployment
-([ADR-1024](1024-control-plane-and-per-tenant-planes.md)) already give us a resource hierarchy and a `GlobalAdmin`
+([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)) already give us a resource hierarchy and a `GlobalAdmin`
 (everything) / `TenantAdmin` (a tenant) distinction. The pieces above are not three features; they are one model.
 
 ## Decision
@@ -154,7 +154,7 @@ same mechanism at different scopes.
 
 - [ADR-1023](1023-scopes-and-resources-management-model.md) — the resource server / scope / client grant model and the
   resource hierarchy this authorization model scopes assignments over.
-- [ADR-1024](1024-control-plane-and-per-tenant-planes.md) — the single control plane; `GlobalAdmin`/`TenantAdmin` as the
+- [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) — the single control plane; `GlobalAdmin`/`TenantAdmin` as the
   top of the role hierarchy.
 - [ADR-1026](1026-scope-enforcement-via-resource-servers-and-client-grants.md) — scope enforcement via resource servers
   and client grants, which these management scopes extend to the management API.

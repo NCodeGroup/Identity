@@ -65,7 +65,7 @@ filter is a no-op, which is how the runtime and central tenant administration re
 `TenantEntity`, `TeamEntity` and `PlatformEntity` are not `ISupportTenantEntity`, so they stay unscoped and resolvable
 by identifier. A tenant's child rows, its secrets included, are scoped like every other tenant child; tenant
 resolution and tenant management read them with no scope open. The platform has one settings row and no secrets
-([ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)).
 
 ### Opening the scope in the management API
 

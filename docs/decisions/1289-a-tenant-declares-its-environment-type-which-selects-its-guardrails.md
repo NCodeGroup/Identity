@@ -32,7 +32,7 @@ a tenant that declares nothing is `production`.**
 1. **Three tenant settings.** `environment_type`, `environment_name` and `deletion_protection` each apply to the tenant
    scope, are not discoverable and are merged with `Replace`. A platform or team settings document may set them as the
    defaults its tenants inherit
-   ([ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+   ([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)).
    `environment_type` is the name of a registered environment type. `environment_name` is a free-form display name of at
    most 64 characters with no control characters ("sandbox", "qa"); it is used for display only, never for behavior and
    never in telemetry. `deletion_protection` is a bool, `false` by default.
@@ -134,7 +134,7 @@ a tenant that declares nothing is `production`.**
 - [ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md) —
   bounded metric dimensions
 - [ADR-1283](1283-audit-records-are-cloudtrail-shaped-json-with-an-indexable-envelope.md) — audit records
-- [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) — platform and teams
+- [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) — platform and teams
 - [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — settings reconciliation
 - [ADR-1245](1245-management-requests-list-incoherent-clients-name-unreadable-stored-settings-and-let-a-write-repair-them.md)
   — unreadable stored settings

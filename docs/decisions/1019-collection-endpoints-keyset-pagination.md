@@ -1,7 +1,7 @@
 # 1019. Collection endpoints use keyset (cursor) pagination, not a query protocol
 
 - **Status:** Accepted (amended by
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform is a
+  [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): the platform is a
   singleton with no list, create, delete or secrets, and its management surface is its settings and effective
   settings under `/api/platform`)
 - **Date:** 2026-09-30

@@ -1,7 +1,7 @@
 # 1191. The management API authenticates against the control-plane tenant
 
 - **Status:** Accepted (amended by
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): a tenant is created
+  [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): a tenant is created
   under its team at `POST /api/teams/{teamId}/tenants`)
 - **Date:** 2026-10-20
 - **Deciders:** NCode Group
@@ -19,7 +19,7 @@ request. Under `StaticSingle` that is the only tenant there is. Under the dynami
   ([ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md)) is no tenant's host, so every call
   returned `404`, and reaching the API on a workload tenant's host made that tenant authenticate the caller.
 
-The management plane belongs to the control plane ([ADR-1024](1024-control-plane-and-per-tenant-planes.md)), and the
+The management plane belongs to the control plane ([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)), and the
 route's `tenantId` selects the data a call acts on ([ADR-1042](1042-management-api-route-driven-tenant-scope.md)), not
 the security domain that authenticates it. The access token is validated through `IIssuedTokenValidator` against the
 `OpenIdContext` it is given ([ADR-1167](1167-the-server-validates-the-tokens-it-issued-under-one-policy.md)), so the
@@ -75,7 +75,7 @@ fix is only which tenant that context carries.
 
 ## References
 
-- [ADR-1024](1024-control-plane-and-per-tenant-planes.md) — the control plane and the per-tenant planes
+- [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) — the control plane and the per-tenant planes
 - [ADR-1042](1042-management-api-route-driven-tenant-scope.md) — the route drives the management API's tenant scope
 - [ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md) — the management host
 - [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md) — one provisioning pipeline

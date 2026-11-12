@@ -42,7 +42,7 @@ An OpenID request runs against an `OpenIdContext` that exposes `Http`, `Environm
 `EndpointName`. The abstractions (`OpenIdContext`, `OpenIdPlatform`, `OpenIdTeam`, `OpenIdTenant`,
 `IOpenIdContextFactory`, `IOpenIdTenantFactory`) live in `NCode.Identity.OpenId.Abstractions`. Their defaults live in
 `NCode.Identity.OpenId.Core` and are registered by `AddOpenIdCoreLibrary`. The platform and team rows are not
-tenant-scoped ([ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)).
+tenant-scoped ([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)).
 
 `IOpenIdContextFactory` builds from an `HttpContext`, so the core slice takes the ASP.NET Core HTTP dependency. Every
 consumer of the environment is an HTTP surface, so the dependency belongs there, and the authentication slice does not
@@ -144,7 +144,7 @@ runs on the request's context under the route's tenant scope.
   `StaticSingleTenantStrategy`, `DynamicByPathTenantStrategy`, `DynamicByHostTenantStrategy`).
 - [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md): the ambient tenant scope
   the persistence filter reads.
-- [ADR-1024](1024-control-plane-and-per-tenant-planes.md): the control plane and the per-tenant planes.
+- [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): the control plane and the per-tenant planes.
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md): the data-driven,
   per-tenant control philosophy.
 - [ADR-1035](1035-federated-principals-and-identity-resolution.md): the resolution and linking knobs that are tenant

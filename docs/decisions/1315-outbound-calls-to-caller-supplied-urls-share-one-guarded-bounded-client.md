@@ -6,7 +6,7 @@
   [ADR-1385](1385-no-shipping-package-replaces-its-consumers-logging-generator-or-carries-microsoft-extensions-http-resilience.md): the pipeline runs on Polly.Core
   through GuardedResilienceHandler and GuardedResiliencePipelines, which replace the GuardedHttpTimeoutHandler named
   under References, and only a GET or HEAD without a body is retried; amended by
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the fetch limits'
+  [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): the fetch limits'
   ceiling is the platform's settings, configured under `OpenId:Platform:Settings`, and a team, a tenant or a client can
   only lower it)
 - **Date:** 2026-11-01

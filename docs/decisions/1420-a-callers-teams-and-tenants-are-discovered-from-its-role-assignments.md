@@ -3,7 +3,7 @@
 - **Status:** Accepted (amended by [ADR-1484](1484-a-management-routes-caller-is-the-principal-its-management-access-token-authenticates.md))
 - **Date:** 2026-11-05
 - **Deciders:** NCode Group
-- **Amends:** [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) (decision
+- **Amends:** [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) (decision
   7: the console opens on `/home`, which lists the caller's places)
 
 ## Context
@@ -61,6 +61,6 @@ before it can manage them.
   [ADR-1064](1064-frontend-presentation-platform.md),
   [ADR-1174](1174-the-management-consoles-url-is-its-navigation-state.md),
   [ADR-1191](1191-the-management-api-authenticates-against-the-control-plane-tenant.md),
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+  [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
   [ADR-1419](1419-a-client-acting-for-itself-is-a-principal-that-holds-role-assignments.md)
 - Issue [#566](https://github.com/NCodeGroup/identity/issues/566)

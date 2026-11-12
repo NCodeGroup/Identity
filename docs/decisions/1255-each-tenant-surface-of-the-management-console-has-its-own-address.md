@@ -1,7 +1,7 @@
 # 1255. Each tenant surface of the management console has its own address
 
 - **Status:** Accepted (amended by
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): a team has its own
+  [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): a team has its own
   console address above its tenants')
 - **Date:** 2026-10-24
 - **Deciders:** NCode Group

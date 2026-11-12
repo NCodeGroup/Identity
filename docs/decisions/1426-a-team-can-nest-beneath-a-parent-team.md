@@ -2,7 +2,7 @@
 
 - **Status:** Accepted (amends
   [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md),
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+  [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
   [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md),
   [ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md),
   [ADR-1417](1417-a-tenant-administrator-is-a-role-assignment-at-the-tenants-node.md),
@@ -16,7 +16,7 @@
 ## Context
 
 A team groups a customer's tenants, and its settings, administrators, quotas and usage are the customer's
-([ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md)). A customer with
+([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)). A customer with
 several products, each needing a sandbox, a testing and a production tenant, needs two levels: the customer's policy,
 administrators, quota and usage at one team, and each product's at a team beneath it (issue
 [#567](https://github.com/NCodeGroup/identity/issues/567)).
@@ -136,7 +136,7 @@ and missed-announcement revalidation reach every descendant.**
 
 - [ADR-1199](1199-tenant-usage-is-a-daily-ledger-that-replicas-add-to-once-and-prune-in-batches.md) — tenant usage is a daily ledger that
   replicas add to
-- [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) — the platform is the
+- [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) — the platform is the
   deployment root and a team groups a customer's tenants
 - [ADR-1412](1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md) — settings are reconciled per team
 - [ADR-1416](1416-a-replica-that-may-have-missed-announcements-evicts-only-teams-and-tenants-whose-row-changed.md) — a

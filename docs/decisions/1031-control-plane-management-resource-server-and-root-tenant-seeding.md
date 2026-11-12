@@ -7,14 +7,14 @@
   [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md); root-tenant provisioning under the dynamic strategies,
   left as future work below, is realized by
   [ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md); amended by
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the root tenant's
+  [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): the root tenant's
   management resource server seeds the `platform_settings`, `teams`, `team_settings` and `tenants` scope families)
 - **Date:** 2026-09-30
 - **Deciders:** NCode Group
 
 ## Context
 
-[ADR-1024](1024-control-plane-and-per-tenant-planes.md) models the system as a single control plane with logical tenant
+[ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) models the system as a single control plane with logical tenant
 isolation: the control plane administers servers and tenants (the `GlobalAdmin` realm) and _is_ the root tenant, while a
 workload tenant holds its clients, resource servers, scopes, and grants (the `TenantAdmin` realm). It also placed the
 control-plane management resource server in the root tenant and the tenant-plane management resource server in every
@@ -93,7 +93,7 @@ guarantees.**
 
 ## References
 
-- [ADR-1024](1024-control-plane-and-per-tenant-planes.md) — the control-plane / per-tenant-plane deployment model this
+- [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) — the control-plane / per-tenant-plane deployment model this
   change realizes for system-resource-server seeding.
 - [ADR-1023](1023-scopes-and-resources-management-model.md) — the resource server / scope / client grant model and the
   root/system tenant that owns the control plane.

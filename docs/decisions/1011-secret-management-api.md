@@ -9,7 +9,7 @@
   [ADR-1235](1235-stored-secrets-are-protected-by-a-key-hierarchy-under-an-external-root-key.md): the owner's master
   key protects them, in place of a Data Protection key ring; key material stays immutable while a rotation rewrites the
   stored envelope of the same material, amended by [ADR-1407](1407-a-master-key-rotates-its-data-keys-are-rewrapped-in-the-background-and-it-is-destroyed-once-nothing-names-it.md); amended by
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): the platform is a
+  [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): the platform is a
   singleton with no list, create, delete or secrets, and its management surface is its settings and effective
   settings under `/api/platform`;
   amended by [ADR-1451](1451-every-management-route-authorizes-at-its-node-before-it-reads.md): every secret and

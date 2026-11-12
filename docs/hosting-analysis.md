@@ -220,7 +220,7 @@ Why this shape:
 - **Tenants nest under a function label rather than the apex** (`acme.auth.ncodeid.net`, not `acme.ncodeid.net`): no
   tenant name can ever collide with a service host (`www`, `manage`, `mtls`, `status`, `docs`, `dev`, …), so there is no
   reserved-name list to maintain, and each function gets one wildcard certificate. A tenant can still be moved to a
-  dedicated deployment ([ADR-1024](decisions/1024-control-plane-and-per-tenant-planes.md)) by changing its DNS record, without
+  dedicated deployment ([ADR-1411](decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)) by changing its DNS record, without
   changing its issuer.
 - **`mtls` is a sibling namespace, not `mtls.{tenant}.auth…`:** a wildcard covers one label only, so nesting would need a
   certificate per tenant.
@@ -689,7 +689,7 @@ speed-test endpoint from the Denver network the users are on.
 
 **Business and legal (before onboarding customers):** privacy policy, terms, a DPA and subprocessor list (Akamai,
 Cloudflare, Grafana Labs, and the key-vault provider); data residency is US-only (Dallas) — EU customers will need a
-separate EU deployment later ([ADR-1024](decisions/1024-control-plane-and-per-tenant-planes.md)); an SLA no higher than a
+separate EU deployment later ([ADR-1411](decisions/1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)); an SLA no higher than a
 single-datacenter platform supports (~99.9%); an incident-response runbook.
 
 **Outbound email (future):** verification, password reset, and email MFA need a sending provider — OCI Email Delivery

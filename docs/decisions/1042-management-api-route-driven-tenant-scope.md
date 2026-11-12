@@ -1,7 +1,7 @@
 # 1042. The management API is plane-aware; tenant-bound resources nest under the tenant and drive the ambient scope from the route
 
 - **Status:** Accepted (amended by
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): tenants are created and
+  [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): tenants are created and
   listed under `/api/teams/{teamId}/tenants`, and the platform and a team are addressed above the tenant scope)
 - **Date:** 2026-10-03
 - **Deciders:** NCode Group
@@ -9,7 +9,7 @@
 ## Context
 
 The management API is a single, central-admin surface mounted at a fixed `/api` group
-([ADR-1024](1024-control-plane-and-per-tenant-planes.md)), distinct from the OpenID protocol endpoints, which the
+([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)), distinct from the OpenID protocol endpoints, which the
 runtime mounts under the tenant route ([ADR-1009](1009-endpoint-families-own-their-route-group.md)). Tenant-bound data
 access is kept leak-proof by a persistence-layer global query filter keyed on an ambient tenant scope
 ([ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)): every `ISupportTenantEntity` row is visible
@@ -136,7 +136,7 @@ Everything follows from that rule:
   filter this builds on.
 - [ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) — the superseded boundary that
   rejected nesting; this ADR revisits that rejection under ADR-1018's mechanism.
-- [ADR-1024](1024-control-plane-and-per-tenant-planes.md),
+- [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
   [ADR-1031](1031-control-plane-management-resource-server-and-root-tenant-seeding.md),
   [ADR-1034](1034-persisted-role-assignments-and-ownership.md) — the control-plane / workload split and the authorization
   anchor the plane-aware routing follows.

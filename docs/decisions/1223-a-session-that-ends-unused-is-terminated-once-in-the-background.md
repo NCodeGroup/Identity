@@ -13,7 +13,7 @@
   [ADR-1180](1180-each-host-contexts-migrations-run-before-the-rollout-and-only-expand-the-schema.md):
   until the first stable release each host database context has one re-scaffolded initial migration, which
   creates the schema this record names; amended by
-  [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md): background work in
+  [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): background work in
   another package waits for the platform through `IMaterializedPlatformAccessor.GetPlatformAsync` in
   `NCode.Identity.OpenId.Platform`, which a replica materializes when it starts)
 - **Date:** 2026-10-23

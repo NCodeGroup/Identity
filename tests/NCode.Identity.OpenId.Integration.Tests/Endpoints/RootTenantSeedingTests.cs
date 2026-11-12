@@ -19,7 +19,7 @@ public class RootTenantSeedingTests(HostApplicationFactory factory)
     public async Task ResolvingWorkloadTenant_AlsoProvisionsTheRootTenant()
     {
         // A first request forces the static single-tenant strategy to resolve (and lazily provision) the tenant,
-        // which must also ensure the root (control-plane) tenant exists (ADR-1024).
+        // which must also ensure the root (control-plane) tenant exists (ADR-1411).
         using var warmupClient = Factory.CreateClient();
         using var warmupResponse = await warmupClient.GetAsync("/oauth2/jwks");
 

@@ -33,7 +33,7 @@ prunes the days past retention in bounded batches.**
    the meter and the count, unique on the tenant, day and meter. The day is the UTC calendar day, the window the quotas
    count. A row references its tenant by id, with no foreign key and no tenant query filter, so the usage of a deleted
    tenant survives for its final bill and rolls up to every team above it
-   ([ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md),
+   ([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md),
    [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md)).
 2. **The meter is an open vocabulary**
    ([ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md)). The family records `requests`,
@@ -126,7 +126,7 @@ prunes the days past retention in bounded batches.**
 - [ADR-1198](1198-a-daily-quota-counts-a-utc-day-and-a-tier-may-admit-a-bounded-billed-overage.md) — daily quotas and
   the overage meters
 - [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md) — rate-limit stages
-- [ADR-1411](1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) and
+- [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) and
   [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team.md) — teams and team paths
 - `src/NCode.Identity.OpenId.Authentication/Usage/`,
   `src/NCode.Identity.OpenId.Persistence.EntityFramework.Core/Stores/TenantUsageStore.cs`,

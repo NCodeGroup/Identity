@@ -149,7 +149,6 @@ The records are grouped by area; within an area they are in number order.
 | ADR | Title | Status |
 | --- | --- | --- |
 | [1018](./1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md) | Tenant selection is shared and tenant-bound rows are scoped at the persistence layer | Accepted |
-| [1024](./1024-control-plane-and-per-tenant-planes.md) | Deployment model: one control plane with logical tenant isolation; physical isolation is a separate deployment | Accepted |
 | [1036](./1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md) | One factory materializes every OpenID context, for a request, an addressed tenant or a job | Accepted |
 | [1053](./1053-a-host-configured-behavioral-hook-is-declared-on-the-openid-environment-and-combined-with-tenant-data.md) | A host-configured behavioral hook is declared on the OpenID environment and combined with tenant data | Accepted |
 | [1160](./1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md) | A tenant is named by its creator, validated by its strategy, and never reissued | Accepted |
@@ -162,7 +161,7 @@ The records are grouped by area; within an area they are in number order.
 | [1242](./1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md) | Deferred work runs through a replaceable job-dispatch port with a concurrent in-process default | Accepted |
 | [1246](./1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md) | Rate limits are registered descriptors counted in a shared expiring counter set | Accepted |
 | [1351](./1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md) | Work that follows a committed change runs on its own bounded token | Accepted |
-| [1411](./1411-the-platform-is-the-deployment-root-and-a-team-groups-a-customers-tenants.md) | The platform is the deployment root and a team groups a customer's tenants | Accepted |
+| [1411](./1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md) | The platform is the deployment root, a team groups tenants, and tenants share one database | Accepted |
 | [1425](./1425-a-team-promotes-one-tenants-configuration-to-another-and-environment-bound-values-stay.md) | A team promotes one tenant's configuration to another, and environment-bound values stay | Accepted |
 | [1426](./1426-a-team-can-nest-beneath-a-parent-team.md) | A team can nest beneath a parent team | Accepted |
 | [1455](./1455-a-teams-subtree-is-walked-depth-first-one-page-of-child-teams-per-level.md) | A team's subtree is walked depth first, one page of child teams per level | Accepted |

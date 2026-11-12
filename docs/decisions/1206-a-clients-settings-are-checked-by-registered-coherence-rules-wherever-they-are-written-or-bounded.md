@@ -69,7 +69,7 @@ lowers is a violation.**
      [ADR-1217](1217-a-rotated-refresh-token-may-be-retried-within-a-reuse-interval.md)); the FAPI 2.0 profile
      contributes the requirement as data.
    - `LogoutChannelCoherenceRule`
-     ([ADR-1088](1088-opt-in-front-channel-logout-and-session-management.md)) and `ClientSecretKeyCoherenceRule`
+     ([ADR-1088](1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md)) and `ClientSecretKeyCoherenceRule`
      ([ADR-1391](1391-a-client-secret-that-is-only-compared-is-stored-as-a-one-way-verifier.md)).
 3. **A value that a ceiling lowers is a violation.** `SettingDescriptor.HasMeetMerge` is `true` for `Min`, `And` and
    `Intersect`, computed by `SettingMerge.IsMeetOperation`. For each registered setting with `HasMeetMerge` that applies

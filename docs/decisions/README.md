@@ -201,7 +201,7 @@ The records are grouped by area; within an area they are in number order.
 | [1081](./1081-consent-is-a-durable-record-of-decided-and-granted-scopes-enforced-at-the-authorization-endpoint.md) | Consent is a durable record of decided and granted scopes, enforced at the authorization endpoint | Accepted |
 | [1085](./1085-ciba-is-a-pending-request-in-the-grant-store-delivered-by-poll-ping-or-push.md) | CIBA is a pending request in the grant store, delivered by poll, ping or push | Accepted |
 | [1087](./1087-refresh-token-reuse-detection-and-family-revocation.md) | Refresh-token reuse detection revokes the whole rotation family | Accepted |
-| [1088](./1088-opt-in-front-channel-logout-and-session-management.md) | Opt-in Front-Channel Logout and Session Management (available, disabled by default) | Accepted |
+| [1088](./1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md) | Front-channel logout and session management are available but disabled by default | Accepted |
 | [1089](./1089-pushed-authorization-requests.md) | Pushed Authorization Requests (PAR, RFC 9126) | Accepted |
 | [1093](./1093-pairwise-subject-identifiers.md) | Pairwise subject identifiers via a stateless, deterministic projection | Accepted |
 | [1095](./1095-sector-identifier-uri-fetch-and-ssrf-guard.md) | Registration-time `sector_identifier_uri` fetch and validation with an SSRF-guarded client | Accepted |

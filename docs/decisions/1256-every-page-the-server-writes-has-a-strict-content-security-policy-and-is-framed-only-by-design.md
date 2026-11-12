@@ -109,7 +109,7 @@ and the `form_post` response only by its client's origin.**
 8. **The interactive pages are wired through one type.** `InteractivePageSecurity.Create(branding)` returns the nonce
    and the policy of one response. Login, consent, the bundle pages and the error formatter each create one per response
    and pass its nonce to the renderer, and `InteractiveHtmlResult` writes the page through `SetHtmlPageSecurity`.
-9. **Two ADRs are amended.** [ADR-1088](1088-opt-in-front-channel-logout-and-session-management.md): the
+9. **Two ADRs are amended.** [ADR-1088](1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md): the
    `check_session_iframe` is the one page relying parties may frame, and the front-channel logout page frames only the
    clients' logout origins. [ADR-1253](1253-the-interactive-bundle-mounts-at-once-over-the-page-the-host-rendered.md):
    the bundle runs only the scripts and styles that carry the page's nonce.
@@ -174,7 +174,7 @@ model, writer, headers, nonce and framing rules. It differs in one default, and 
 - Session Management 1.0: <https://openid.net/specs/openid-connect-session-1_0.html>
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md): implementation packages depend only on
   abstractions.
-- [ADR-1088](1088-opt-in-front-channel-logout-and-session-management.md): opt-in front-channel logout and session
+- [ADR-1088](1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md): opt-in front-channel logout and session
   management.
 - [ADR-1150](1150-vocabularies-are-open-unless-provably-closed.md): vocabularies are open unless provably closed.
 - [ADR-1193](1193-the-interactive-surface-is-served-under-the-tenant-route.md): the interactive surface is served under

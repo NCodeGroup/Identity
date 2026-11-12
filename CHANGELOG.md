@@ -262,7 +262,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The local-dev Aspire graph runs a dedicated conformance OP instance, `conformanceapi`, that opts into the
   capabilities the stock server keeps off** ([ADR-1071](docs/decisions/1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md),
   [ADR-1084](docs/decisions/1084-spec-coverage-conformance-harness.md),
-  [ADR-1088](docs/decisions/1088-opt-in-front-channel-logout-and-session-management.md),
+  [ADR-1088](docs/decisions/1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md),
   [ADR-1144](docs/decisions/1144-authorization-codes-are-bound-to-pkce-by-default.md)). It is the same host project
   under the Conformance environment (the `ConformanceAspire` launch profile) on its own port (`https://localhost:5003`,
   which its issuer is pinned to), serving its own `conformance` tenant from the one shared Postgres, and the conformance
@@ -1927,7 +1927,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Front-Channel Logout 1.0 and Session Management 1.0 are available behind opt-in settings, off by default**
   (issue [#22](https://github.com/NCodeGroup/identity/issues/22),
-  [ADR-1088](docs/decisions/1088-opt-in-front-channel-logout-and-session-management.md)). With
+  [ADR-1088](docs/decisions/1088-front-channel-logout-and-session-management-are-available-but-disabled-by-default.md)). With
   `frontchannel_logout_supported`, the `end_session_endpoint` renders a hidden iframe per participating client at its
   `frontchannel_logout_uri`, appending `iss` and `sid` when the client sets `frontchannel_logout_session_required`
   (advertised by `frontchannel_logout_session_supported`). With `session_management_supported`, the authorization

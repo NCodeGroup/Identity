@@ -49,9 +49,6 @@ Package access: a package the workflow creates is linked to this repository and 
 hand must be made public, and the repository needs write access under the package's "Manage Actions access". Both are
 set in GitHub, which no workflow can change.
 
-Until the first stable release, a database may need a reset when the schema changes
-([ADR-1394](../../docs/decisions/1394-until-the-first-stable-release-each-host-database-context-has-one-initial-migration.md)).
-
 ## Install
 
 ```bash

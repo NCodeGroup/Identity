@@ -34,7 +34,7 @@ OP session with the RP and/or currently logged in End-User"
 4. **The request is parked as a one-time continuation, through a mediator command.** The endpoint sends
    `ParkEndSessionRequestCommand(OpenIdContext, IEndSessionRequest Request, EndSessionSubject Subject)`, which returns
    the continue URL, so a deployment changes the lifetime, payload or binding by replacing one handler rather than the
-   endpoint ([ADR-1086](1086-canonical-openid-endpoint-shape.md)). Its default handler,
+   endpoint ([ADR-1086](1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md)). Its default handler,
    `DefaultParkEndSessionRequestHandler`, parks the request with `IContinueService` under the new continue code
    `OpenIdConstants.ContinueCodes.EndSession` (`"continue_end_session"`) for 10 minutes, with `clientId: null` (the
    request's `client_id` is unauthenticated). The payload is

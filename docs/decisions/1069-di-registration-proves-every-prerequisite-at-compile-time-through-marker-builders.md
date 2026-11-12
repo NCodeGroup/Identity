@@ -33,7 +33,7 @@ compile-time proof that the prerequisite library is registered: a bolt-on that a
 unless the caller holds the `IServiceBuilder<XLibrary>` that only `X`'s `AddXLibrary()` hands back. The builder
 hierarchy (`NewBuilder<T>()`) is a registration-time organizational device only: at runtime there is one flat
 `IServiceCollection`
-([ADR-1043](1043-endpoint-registration-is-a-cross-cutting-aspnetcore-package.md)).
+([ADR-1086](1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md)).
 
 ### Markers
 
@@ -160,7 +160,7 @@ methods on the bare `IServiceCollection`.
   `ServiceCollectionExtensions` (`NewBuilder`, `AddRegistrationMarker`, `IsRegistered`).
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md): implementation packages depend only on
   abstractions, which is why markers live in `.Abstractions`.
-- [ADR-1043](1043-endpoint-registration-is-a-cross-cutting-aspnetcore-package.md): the builder hierarchy is
+- [ADR-1086](1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md): the builder hierarchy is
   registration-time only; the runtime routing tree is a separate mechanism.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md): the service,
   strategy and mediator model these registrations wire up.

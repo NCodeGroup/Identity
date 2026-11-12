@@ -68,7 +68,7 @@ the generator checks antiforgery validation.**
 - [`LocalAccountLifecycleTests`](../../tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/LocalAccountLifecycleTests.cs)
   — the guard test `ChangePassword_WithoutTheAntiforgeryToken_ChangesNothing`.
 - Issue [#186](https://github.com/NCodeGroup/identity/issues/186).
-- [ADR-1043](1043-endpoint-registration-is-a-cross-cutting-aspnetcore-package.md) — the endpoint-group mechanism that
+- [ADR-1086](1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md) — the endpoint-group mechanism that
   maps the endpoints.
 - `dotnet/aspnetcore` `release/10.0`: `RequestDelegateGeneratorSources` (`TryResolveFormAsync`) and
   `RequestDelegateFactory`.

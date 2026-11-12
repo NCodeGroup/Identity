@@ -152,7 +152,7 @@ The two deferrals above are now implemented, completing issue [#55](https://gith
 - [ADR-1059](1059-device-authorization-grant.md) — the device authorization grant whose pending-request/`UpdatePayloadAsync`
   pattern CIBA reuses.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the `ITokenGrantHandler` grant-handler shape.
-- [ADR-1009](1009-endpoint-families-own-their-route-group.md) — endpoint families own their route and discovery advertisement.
+- [ADR-1086](1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md) — endpoint families own their route and discovery advertisement.
 - [ADR-1074](1074-session-management-and-logout.md) — the `IBackChannelLogoutNotifier` injectable-transport seam the
   CIBA notifier mirrors.
 - [ADR-1070](1070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md) — the credential-verifier

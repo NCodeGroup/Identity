@@ -77,7 +77,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   surface is the hierarchy `api` (`/api`) → `api/tenant` (`/tenants/{tenantId}`) → `api/tenant/client`
   (`/clients/{clientId}`), so tenant-bound families (clients, grants, resource servers, client grants) nest under the
   tenant and map only their relative sub-routes, and the protocol surface is a single `openid` group
-  ([ADR-1043](docs/decisions/1043-endpoint-registration-is-a-cross-cutting-aspnetcore-package.md),
+  ([ADR-1086](docs/decisions/1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md),
   [ADR-1042](docs/decisions/1042-management-api-route-driven-tenant-scope.md)).
 
 - **Every package names one capability under the `NCode.Identity` prefix.** Each capability publishes its contracts in
@@ -1436,7 +1436,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `ValidateDeviceAuthorizationRequestCommand` and `CreateDeviceAuthorizationRequestCommand` (returning
   `DeviceAuthorizationResult`), like the token, end-session and CIBA endpoints, so each protocol step is independently
   testable and replaceable (issue [#56](https://github.com/NCodeGroup/identity/issues/56),
-  [ADR-1086](docs/decisions/1086-canonical-openid-endpoint-shape.md)).
+  [ADR-1086](docs/decisions/1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md)).
 
 - **The OP implements OpenID Connect Client-Initiated Backchannel Authentication (CIBA) with poll, ping and push
   delivery** (issues [#41](https://github.com/NCodeGroup/identity/issues/41) and
@@ -2131,7 +2131,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **The management API is served under a top-level `/api` route group.** `ManagementEndpointGroupProvider` maps the
   management endpoints there, apart from the OpenID protocol endpoints at the root
-  ([ADR-1009](docs/decisions/1009-endpoint-families-own-their-route-group.md)). The control plane is `/api/platform`
+  ([ADR-1086](docs/decisions/1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md)). The control plane is `/api/platform`
   and `/api/teams`, and tenants are created and listed under `/api/teams/{teamId}/tenants`; every tenant-plane family
   (a tenant's own secrets, settings, address and usage, its clients, resource servers, grants, sessions, principals,
   local accounts and audit records) is addressed under `/api/tenants/{tenantId}/…`, the

@@ -360,7 +360,7 @@ than inlining the rationale.
   record alone so it never overwrites a concurrent write, and take an `IExpiringKeySet` lease keyed by the input's
   version so one replica runs each pass
   ([ADR-1412](../../docs/decisions/1412-a-settings-change-reaches-every-replica-at-once-and-is-reconciled-per-team-against-what-changed.md)).
-- 👁 **Build a protocol endpoint to the canonical shape** per [ADR-1086](../../docs/decisions/1086-canonical-openid-endpoint-shape.md):
+- 👁 **Build a protocol endpoint to the canonical shape** per [ADR-1086](../../docs/decisions/1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md):
   a **thin** `IEndpointProvider` whose `HandleRouteAsync` only orchestrates — verb/content-type guard →
   `IClientAuthenticationService.AuthenticateClientAsync` → load a **strongly-typed** `OpenIdMessage<T>` request
   (`FooRequest.Load(env, formData)` with `KnownParameter`-backed properties, registered via `AddMessageFactory<T>()`;

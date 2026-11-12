@@ -23,7 +23,7 @@ authorize on a secondary device (a phone or laptop). The flow has three network 
 
 This server already has every seam the flow needs: grant handlers plug into the token endpoint through
 `ITokenGrantHandler` and are dispatched by `grant_type` ([ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md)),
-endpoints self-register and self-advertise in discovery ([ADR-1009](1009-endpoint-families-own-their-route-group.md)),
+endpoints self-register and self-advertise in discovery ([ADR-1086](1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md)),
 and `IPersistedGrantService` persists "any type of grant and its payload" as a tenant-scoped, hash-keyed, expiring,
 status-bearing `PersistedGrant` envelope. The grant-type constant (`OpenIdConstants.GrantTypes.DeviceCode`) and the
 `device_code` / `user_code` parameter names already exist.
@@ -127,7 +127,7 @@ Concretely:
 
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the grant-handler/mediator shape the device
   grant follows.
-- [ADR-1009](1009-endpoint-families-own-their-route-group.md) — endpoint families own their routes and discovery
+- [ADR-1086](1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md) — endpoint families own their routes and discovery
   advertisement.
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) —
   the settings descriptor and merge conventions the new settings follow.

@@ -140,6 +140,6 @@ Concretely:
 - Session Management 1.0 — <https://openid.net/specs/openid-connect-session-1_0.html>
 - [ADR-1059](1059-device-authorization-grant.md) — the persisted-grant-as-stateful-artifact precedent.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — service vs strategy vs mediator extensibility.
-- [ADR-1009](1009-endpoint-families-own-their-route-group.md) — endpoints self-register and self-advertise.
+- [ADR-1086](1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md) — endpoints self-register and self-advertise.
 - [ADR-1028](1028-token-revocation-refresh-tokens-only.md), [ADR-1020](1020-a-tenants-grants-are-listed-inspected-and-revoked-by-opaque-identifier-never-by-their-key.md) —
   existing grant revocation surface reused by logout.

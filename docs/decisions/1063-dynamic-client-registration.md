@@ -30,7 +30,7 @@ The server already has every seam the feature needs. Clients are persisted as a 
 JSON settings document, and a secret collection) through `IClientStore`; the management API creates them exactly this
 way. Client secrets are generated server-side and revealed once by `ISecretGenerator`
 ([ADR-1050](1050-secret-material-revealed-once-on-create.md)). Protocol endpoints self-register and self-advertise in
-discovery ([ADR-1009](1009-endpoint-families-own-their-route-group.md)). Settings cascade server → tenant → client
+discovery ([ADR-1086](1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md)). Settings cascade server → tenant → client
 through a merge lattice ([ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)). And `IPersistedGrantService` persists "any type of grant and its
 payload" as a tenant-scoped, **hash-keyed**, optionally-expiring, status-bearing envelope — the same machinery the
 authorization-code, refresh-token, and device-code flows ride.
@@ -172,7 +172,7 @@ Concretely:
 
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md) — the service/strategy/mediator extensibility
   model the endpoint family and the validator seam follow.
-- [ADR-1009](1009-endpoint-families-own-their-route-group.md) — endpoint families own their routes and discovery
+- [ADR-1086](1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md) — endpoint families own their routes and discovery
   advertisement.
 - [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md) —
   the settings descriptor and merge-lattice conventions the `registration_endpoint_allow_anonymous` setting follows.

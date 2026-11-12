@@ -10,7 +10,7 @@
 
 The management API is a single, central-admin surface mounted at a fixed `/api` group
 ([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)), distinct from the OpenID protocol endpoints, which the
-runtime mounts under the tenant route ([ADR-1009](1009-endpoint-families-own-their-route-group.md)). Tenant-bound data
+runtime mounts under the tenant route ([ADR-1086](1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md)). Tenant-bound data
 access is kept leak-proof by a persistence-layer global query filter keyed on an ambient tenant scope
 ([ADR-1018](1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)): every `ISupportTenantEntity` row is visible
 only when the ambient scope is unset (central-admin) or equals the row's tenant, so a cross-tenant row is never
@@ -89,7 +89,7 @@ Everything follows from that rule:
   above and the OpenID protocol surface (a single `openid` group mounted under the tenant route that installs the
   environment and exception filters) compose through this one mechanism, replacing the imperative
   `IEndpointGroupProvider` tier of
-  [ADR-1009](1009-endpoint-families-own-their-route-group.md). A group's hierarchy and its contents are declared in one
+  [ADR-1086](1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md). A group's hierarchy and its contents are declared in one
   place, so there is no separate, disjoint list of which endpoint belongs to which group.
 
 ## Options considered
@@ -142,4 +142,4 @@ Everything follows from that rule:
   anchor the plane-aware routing follows.
 - [ADR-1204](1204-a-scopes-effective-settings-are-resolved-by-one-service-and-previewed-through-the-management-api.md) — the effective-settings endpoints, whose tenant "not by-id"
   rationale this supersedes.
-- [ADR-1009](1009-endpoint-families-own-their-route-group.md) — endpoint families own their route group.
+- [ADR-1086](1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md) — endpoint families own their route group.

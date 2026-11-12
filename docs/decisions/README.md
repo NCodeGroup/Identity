@@ -169,7 +169,6 @@ The records are grouped by area; within an area they are in number order.
 
 | ADR | Title | Status |
 | --- | --- | --- |
-| [1009](./1009-endpoint-families-own-their-route-group.md) | Endpoint families own their route group and cross-cutting endpoint filters | Accepted |
 | [1013](./1013-management-precondition-mediator-pipeline.md) | Management preconditions are a mediator validation pipeline | Superseded |
 | [1014](./1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md) | Management resources carry opaque server identifiers and list one keyset page at a time | Accepted |
 | [1015](./1015-management-core-validation-via-validators.md) | Management core validation via replaceable validators | Accepted |
@@ -178,11 +177,10 @@ The records are grouped by area; within an area they are in number order.
 | [1033](./1033-authorization-model-scopes-roles-and-ownership.md) | Authorization model: granular scopes, roles as bundles, and resource-scoped assignments (ownership) | Accepted |
 | [1034](./1034-persisted-role-assignments-and-ownership.md) | Persisted resource-scoped role assignments and ownership | Accepted |
 | [1042](./1042-management-api-route-driven-tenant-scope.md) | The management API is plane-aware; tenant-bound resources nest under the tenant and drive the ambient scope from the route | Accepted |
-| [1043](./1043-endpoint-registration-is-a-cross-cutting-aspnetcore-package.md) | The hierarchical endpoint-group mechanism is a cross-cutting package layered on the registration builder | Accepted |
 | [1044](./1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md) | The management API authenticates its own access tokens and a configured client bootstraps the first GlobalAdmin | Accepted |
 | [1046](./1046-api-reference-openapi-document-and-scalar.md) | The API reference (OpenAPI document + Scalar) is owned by the composition layer and turnkey for every environment | Accepted |
 | [1067](./1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md) | Secret key types form one catalog, and authenticated management callers discover the deployment's capabilities | Accepted |
-| [1086](./1086-canonical-openid-endpoint-shape.md) | Canonical OpenID endpoint shape: a thin endpoint over a strongly-typed message and a mediator pipeline | Accepted |
+| [1086](./1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md) | Endpoints compose as a declarative group tree, and a protocol endpoint is a thin mediator-driven provider | Accepted |
 | [1191](./1191-the-management-api-authenticates-against-the-control-plane-tenant.md) | The management API authenticates against the control-plane tenant | Accepted |
 | [1214](./1214-a-management-write-that-loses-a-race-is-answered-412.md) | A management write that loses a concurrency race is answered 412 | Accepted |
 | [1257](./1257-the-management-console-reaches-every-owners-secrets-and-settings-through-one-endpoint-per-operation.md) | The management console reaches every owner's secrets and settings through one endpoint per operation | Accepted |

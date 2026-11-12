@@ -2701,7 +2701,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#395](https://github.com/NCodeGroup/identity/issues/395),
   [ADR-1290](docs/decisions/1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
   [ADR-1291](docs/decisions/1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md),
-  [ADR-1293](docs/decisions/1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md),
+  [ADR-1293](docs/decisions/1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md),
   [ADR-1294](docs/decisions/1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md),
   [ADR-1291](docs/decisions/1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md)).
 
@@ -5558,7 +5558,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **BFF logout is a form POST.** `POST /bff/logout` takes `sid` and `returnUrl` in a form body and is the only logout
   method; `/bff/user` returns `logoutUrl` as the path alone and the logout guard as `logoutSid`, a reserved field
   ([#442](https://github.com/NCodeGroup/identity/issues/442),
-  [ADR-1311](docs/decisions/1311-the-bff-logs-out-by-a-form-post-that-carries-the-sessions-logout-guard.md)).
+  [ADR-1293](docs/decisions/1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md)).
 
 - **No published URL comes from the request's `Host`.** Each frontend's `PublicOrigin` is required: the absolute URL the BFF is
   published at (scheme, host, optional port and path base; `https` outside Development), from which it builds its

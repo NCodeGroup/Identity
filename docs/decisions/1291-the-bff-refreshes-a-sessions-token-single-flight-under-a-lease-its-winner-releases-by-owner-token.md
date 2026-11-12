@@ -20,7 +20,7 @@ expires makes every replica that lost the race wait for an expiry although the r
 
 A BFF session belongs to a present user: it starts at a login at the OpenID Provider (OP), is bound to the OP's login
 session by the ID token's `sid`, and ends at the BFF's logout or at the OP's back-channel logout
-([ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)). The
+([ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md)). The
 `offline_access` scope asks for something else: OpenID Connect Core 1.0 §11 defines it as a refresh token that reaches
 the user's data "even when the End-User is not present (not logged in)", and Back-Channel Logout 1.0 §2.7 says such
 refresh tokens normally survive the user's logout. Keycloak, asked for `offline_access` at login, moves the client to
@@ -153,7 +153,7 @@ which releases exactly its own lease by the owner token it holds when it finishe
   [ADR-1216](1216-a-refresh-token-rotates-unless-it-is-bound-and-rotation-spends-it-with-its-successor-atomically.md),
   [ADR-1286](1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md),
   [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
-  [ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md),
+  [ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md),
   [ADR-1297](1297-a-refresh-token-family-expires-at-a-fixed-horizon-that-the-token-response-announces.md),
   [ADR-1336](1336-the-protocol-client-bounds-every-call-with-a-polly-core-pipeline-and-retries-only-safe-requests.md)
 - RFC 9700 §4.14.2 (refresh-token rotation), RFC 9449 §7 and §8 (DPoP resource proofs and nonces)

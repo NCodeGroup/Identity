@@ -41,7 +41,7 @@ than inlining the rationale.
   The second is a method an ADR makes uncancellable: its whole awaited work runs on `CancellationToken.None` because a
   caller's abort must not drop it
   ([ADR-1291](../../docs/decisions/1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md),
-  [ADR-1293](../../docs/decisions/1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md),
+  [ADR-1293](../../docs/decisions/1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md),
   [ADR-1291](../../docs/decisions/1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md)).
   It takes no token either, since a parameter it ignores would misstate its cancellation. Each such type or wrapper
   carries a
@@ -692,7 +692,7 @@ than inlining the rationale.
   call it makes. See
   [ADR-1229](../../docs/decisions/1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md),
   [ADR-1291](../../docs/decisions/1291-the-bff-refreshes-a-sessions-token-single-flight-under-a-lease-its-winner-releases-by-owner-token.md),
-  [ADR-1293](../../docs/decisions/1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)
+  [ADR-1293](../../docs/decisions/1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md)
   and
   [ADR-1351](../../docs/decisions/1351-work-that-follows-a-committed-change-runs-on-its-own-bounded-token.md).
 - 👁 **A cookie authentication handler authenticates only the endpoints its guard checked.** The BFF's handler

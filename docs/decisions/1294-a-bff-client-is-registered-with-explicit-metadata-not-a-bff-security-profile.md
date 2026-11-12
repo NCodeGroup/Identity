@@ -33,7 +33,7 @@ A BFF client registers:
 - `redirect_uris` with exactly the BFF's callback, `https://<app>/bff/callback` (exact match).
 - `post_logout_redirect_uris` with the absolute forms of the allow-listed `Bff:ReturnUrls` it logs out to.
 - `backchannel_logout_uri` `https://<app>/bff/backchannel-logout` and `backchannel_logout_session_required=true`
-  ([ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)).
+  ([ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md)).
 - `require_pushed_authorization_requests=true`; the protocol client pushes whenever the provider offers PAR
   ([ADR-1275](1275-the-protocol-client-pushes-authorization-requests-whenever-the-provider-offers-par.md)).
 - `dpop_bound_access_tokens=true` when the BFF runs `Bff:DPoP:Mode` `required`

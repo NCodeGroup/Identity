@@ -84,7 +84,7 @@ client; and a background pass on one replica ends every stored session whose fro
 
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.4, §5.10 and §5.13
 - [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md),
-  [ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md),
+  [ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md),
   [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md),
   [ADR-1442](1442-the-bffs-frontends-follow-their-configuration-and-a-change-takes-effect-only-when-the-whole-set-is-valid.md)
 - `src/NCode.Identity.Bff/Sessions/BffSessionRetirement.cs`, `src/NCode.Identity.Bff/Sessions/DefaultBffSessionStore.cs`,

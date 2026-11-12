@@ -171,7 +171,7 @@ misordered pipeline fails every such request instead of serving it unguarded.**
 - [Backend-for-frontend design](../backend-for-frontend.md) §5.3, §5.6, §5.7, §5.9, §5.14 and D3
 - [ADR-1290](1290-the-bff-keeps-each-session-as-an-encrypted-server-side-record-under-a-cookie-handle.md) — the session
   record and its cookie
-- [ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md) — the logout
+- [ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md) — the logout
   form, a page form post
 - [ADR-1432](1432-one-bff-serves-several-frontends-each-selected-per-request-by-an-open-rule.md) — the frontends
 - [ADR-1435](1435-server-rendered-and-blazor-hosts-use-the-bff-session-through-pages-hubs-and-two-opt-in-blazor-packages.md)

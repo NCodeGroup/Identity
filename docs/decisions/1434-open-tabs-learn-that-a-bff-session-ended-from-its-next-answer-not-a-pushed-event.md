@@ -7,7 +7,7 @@
 ## Context
 
 A BFF session ends in four ways: the user logs out, the OP posts a back-channel logout
-([ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)), a refresh
+([ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md)), a refresh
 comes back `invalid_grant`, or the idle or absolute timeout passes. Only the first happens in the tab that is open. The
 other tabs of the same browser keep showing a signed-in page until they make a call. The design leaves the question open
 ([`docs/backend-for-frontend.md`](../backend-for-frontend.md) §11 question 3, issue
@@ -69,7 +69,7 @@ between tabs.**
 - The BFF adds no endpoint and no shared-state primitive, and a replica holds no connection per tab.
 - A frontend chooses how fresh its signed-in state is: no polling, a probe at the expiry times, a poll at an interval, or
   any mix.
-- The consequence of [ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)
+- The consequence of [ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md)
   holds: telling other open tabs that the session ended is not part of the BFF, and their next guarded call answers
   `401`.
 
@@ -78,5 +78,5 @@ between tabs.**
 - [`docs/backend-for-frontend.md`](../backend-for-frontend.md) §5.7, §5.8 and §11
 - [ADR-1380](1380-logout-ends-the-session-found-in-server-state-confirmed-when-unsure-and-notifies-relying-parties.md),
   [ADR-1292](1292-the-bffs-cookie-authenticates-only-guarded-endpoints-which-refuse-cross-site-requests-and-reload-cookieless-navigations.md),
-  [ADR-1293](1293-the-bff-ends-sessions-by-guarded-logout-and-by-back-channel-logout-through-indexes.md)
+  [ADR-1293](1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md)
 - Issue [#523](https://github.com/NCodeGroup/identity/issues/523)

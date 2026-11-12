@@ -123,3 +123,59 @@ jobs:
             org.opencontainers.image.version=${{ env.VERSION }}
             org.opencontainers.image.licenses=Apache-2.0
             org.opencontainers.image.title=ncode-identity-management-console
+
+      - name: Sign the images
+        shell: pwsh
+        env:
+          HOST: ${{ steps.host.outputs.digest }}
+          CONSOLE: ${{ steps.console.outputs.digest }}
+        run: |
+          cosign sign --yes "ghcr.io/ncodegroup/ncode-identity-host@$env:HOST"
+          if ($LASTEXITCODE -ne 0) { throw "cosign sign failed." }
+          cosign sign --yes "ghcr.io/ncodegroup/ncode-identity-management-console@$env:CONSOLE"
+          if ($LASTEXITCODE -ne 0) { throw "cosign sign failed." }
+
+      - name: Attest the host image
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ghcr.io/ncodegroup/ncode-identity-host
+          subject-digest: ${{ steps.host.outputs.digest }}
+          push-to-registry: true
+
+      - name: Attest the console image
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ghcr.io/ncodegroup/ncode-identity-management-console
+          subject-digest: ${{ steps.console.outputs.digest }}
+          push-to-registry: true
+
+      - name: Set up Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.3.1
+
+      - name: Package and push the chart
+        id: chart
+        shell: pwsh
+        run: |
+          helm package charts/ncode-identity-host --version $env:VERSION --app-version $env:VERSION --destination chart-out
+          if ($LASTEXITCODE -ne 0) { throw 'helm package failed.' }
+          $output = helm push "chart-out/ncode-identity-host-$($env:VERSION).tgz" oci://ghcr.io/ncodegroup/charts 2>&1
+          if ($LASTEXITCODE -ne 0) { throw "helm push failed: $output" }
+          $digest = ($output | Select-String -Pattern 'Digest: (sha256:[0-9a-f]{64})').Matches[0].Groups[1].Value
+          "digest=$digest" >> $env:GITHUB_OUTPUT
+
+      - name: Sign the chart
+        shell: pwsh
+        env:
+          CHART: ${{ steps.chart.outputs.digest }}
+        run: |
+          cosign sign --yes "ghcr.io/ncodegroup/charts/ncode-identity-host@$env:CHART"
+          if ($LASTEXITCODE -ne 0) { throw "cosign sign failed." }
+
+      - name: Attest the chart
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-name: ghcr.io/ncodegroup/charts/ncode-identity-host
+          subject-digest: ${{ steps.chart.outputs.digest }}
+          push-to-registry: true

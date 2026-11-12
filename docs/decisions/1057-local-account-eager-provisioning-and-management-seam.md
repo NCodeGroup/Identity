@@ -118,7 +118,7 @@ without a registered `ILocalAccountProvisioner` they respond `501 Not Implemente
   server-only write invariant the management metadata endpoint upholds.
 - [ADR-1055](1055-subject-metadata-is-a-principal-level-concept-resolved-at-issuance.md) — why metadata is
   principal-level, which makes eager principal creation the clean target for `set-metadata`.
-- [ADR-1035](1035-federated-principals-and-identity-resolution.md) — the `FederatedPrincipal` / `FederatedIdentity`
+- [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md) — the `FederatedPrincipal` / `FederatedIdentity`
   model the self-issued connection participates in.
 - [ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md) — the management-API shape (validators, auditing, ownership) this family
   mirrors.

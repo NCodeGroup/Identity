@@ -11,7 +11,7 @@ settings, merged from the platform, its team or teams and the tenant, and its se
 handlers run. Protocol endpoints (authorize, token, userinfo, introspection, discovery) and the management API both need
 that environment. Per-tenant resolution knobs, setting validation and an "effective settings at this level" view
 ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md),
-[ADR-1035](1035-federated-principals-and-identity-resolution.md)) need it on both surfaces.
+[ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)) need it on both surfaces.
 
 Three forces shape how it is built:
 
@@ -147,7 +147,7 @@ runs on the request's context under the route's tenant scope.
 - [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): the control plane and the per-tenant planes.
 - [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md): the data-driven,
   per-tenant control philosophy.
-- [ADR-1035](1035-federated-principals-and-identity-resolution.md): the resolution and linking knobs that are tenant
+- [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md): the resolution and linking knobs that are tenant
   settings.
 - [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md): the session-termination seam the administrative surface drives.
 - [ADR-1001](1001-behavior-is-a-service-a-strategy-collection-or-a-mediator-seam-chosen-by-one-ladder.md): the service,

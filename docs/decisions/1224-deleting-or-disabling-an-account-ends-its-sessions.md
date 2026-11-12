@@ -14,8 +14,8 @@
 
 A local account is a self-issued connection of a federated principal
 ([ADR-1051](1051-local-accounts-behind-a-pluggable-account-source-seam.md),
-[ADR-1035](1035-federated-principals-and-identity-resolution.md)), and the sessions, grants and consents of the end user
-are keyed by the principal's identifier ([ADR-1094](1094-resolve-principal-at-every-authentication-entry-point.md)).
+[ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)), and the sessions, grants and consents of the end user
+are keyed by the principal's identifier ([ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)).
 Deleting a local account removed the account, its self-issued identity and, with its last identity, the principal and
 its role assignments ([ADR-1212](1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md)), but the sessions, the refresh
 tokens and the consents of the principal remained. Disabling an account kept all of them as well. No handler of
@@ -96,10 +96,10 @@ disabled or gone.**
 
 ## References
 
-- [ADR-1035](1035-federated-principals-and-identity-resolution.md) — the federated principal and its identities.
+- [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md) — the federated principal and its identities.
 - [ADR-1051](1051-local-accounts-behind-a-pluggable-account-source-seam.md) — the local account as a self-issued
   connection.
-- [ADR-1094](1094-resolve-principal-at-every-authentication-entry-point.md) — the principal identifier is the subject
+- [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md) — the principal identifier is the subject
   that grants, consents and sessions are keyed by.
 - [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — the termination seam that the reasons name.
 - [ADR-1212](1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md) — deleting an owner removes what it owns.

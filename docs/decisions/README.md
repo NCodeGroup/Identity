@@ -301,7 +301,7 @@ The records are grouped by area; within an area they are in number order.
 
 | ADR | Title | Status |
 | --- | --- | --- |
-| [1035](./1035-federated-principals-and-identity-resolution.md) | Federated principals: one actor, many connection-identities, with a server-owned stable id | Accepted |
+| [1035](./1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md) | An end user is one tenant-scoped principal that every authentication entry point resolves to | Accepted |
 | [1047](./1047-auditing-and-events-observation-seam.md) | Auditing and events: a dedicated observation seam, distinct from the mediator | Accepted |
 | [1049](./1049-openid-errors-audited-from-single-funnel.md) | OpenID protocol errors are audited once from a single endpoint-filter funnel | Accepted |
 | [1051](./1051-local-accounts-behind-a-pluggable-account-source-seam.md) | Local accounts behind a pluggable account-source seam | Accepted |
@@ -313,7 +313,6 @@ The records are grouped by area; within an area they are in number order.
 | [1062](./1062-opt-in-interactive-login-consent-ui.md) | An opt-in interactive login/consent UI for the OpenID Provider | Accepted |
 | [1065](./1065-interactive-login-consent-op-hosted-auth-surface.md) | Interactive login/consent as the OP-hosted `apps/auth` surface | Accepted |
 | [1070](./1070-interactive-login-consent-leaf-package-and-credential-verifier-seam.md) | Interactive login/consent is a leaf capability package with a pluggable credential verifier | Accepted |
-| [1094](./1094-resolve-principal-at-every-authentication-entry-point.md) | Resolve the principal at every authentication entry point; `SubjectAuthentication.PrincipalId` | Accepted |
 | [1182](./1182-the-frontend-bootstrap-issuer-is-the-serving-tenants-not-the-requests.md) | The frontend bootstrap issuer is the serving tenant's, not the request's | Accepted |
 | [1193](./1193-the-interactive-surface-is-served-under-the-tenant-route.md) | The interactive surface is served under the tenant route, and its session is scoped to the tenant's path | Accepted |
 | [1194](./1194-a-tenant-brands-its-interactive-surface-through-settings.md) | A tenant brands its interactive surface through settings | Accepted |

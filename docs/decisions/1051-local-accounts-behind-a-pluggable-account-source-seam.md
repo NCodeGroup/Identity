@@ -24,7 +24,7 @@ accounts are a self-issued connection behind a pluggable seam — stands.
 The stack authenticates an end-user by delegating to an ASP.NET Core authentication scheme at the
 subject-authentication seam ([ADR-1401](1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md)): the host presents a
 `ClaimsPrincipal`, and the runtime resolves it to a durable `PrincipalId`
-([ADR-1035](1035-federated-principals-and-identity-resolution.md)). That is sufficient when some other authority has
+([ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)). That is sufficient when some other authority has
 already authenticated the user, but it leaves three capabilities to the host with no first-class shape:
 
 - **Credential validation.** The resource-owner password grant handler is an intentional stub returning
@@ -37,7 +37,7 @@ already authenticated the user, but it leaves three capabilities to the host wit
 
 The recurring question is where an end-user account — the thing that holds a credential, a profile, and a status — lives,
 and how it fits the identity model already chosen without introducing a parallel one. A `Principal`
-([ADR-1035](1035-federated-principals-and-identity-resolution.md)) is deliberately contentless: a server-owned opaque
+([ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)) is deliberately contentless: a server-owned opaque
 join key (`PrincipalId` + concurrency token) that aggregates _one human, many connection-identities_ — the persisted
 twin of `ClaimsPrincipal`. A `FederatedIdentity` is the persisted twin of a `ClaimsIdentity`: one connection,
 `(issuer, subject) → principal`. Neither holds a credential or a server-owned profile today, because when that model was
@@ -60,7 +60,7 @@ storage is a host concern satisfied by opt-in reference implementations.**
 ### `FederatedIdentity` is the universal linkage; `LocalAccount` is the payload
 
 `FederatedIdentity` stays the single linkage concept — `(issuer, subject) → principal` — for _every_ connection, as the
-persisted twin of `ClaimsIdentity` that [ADR-1035](1035-federated-principals-and-identity-resolution.md) intends (the
+persisted twin of `ClaimsIdentity` that [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md) intends (the
 `Federated` prefix marks "this system's own type," not "external-only"). A connection whose `issuer` is an upstream IdP
 is a social/enterprise connection; a connection whose `issuer` is this server is a local one. Only local connections
 carry a `LocalAccount`:
@@ -114,7 +114,7 @@ the BCL type. A stored password **hash** remains a `string` — it is a one-way 
 ASP.NET Core Identity is the reference for _shape and lessons_, not a template to adopt wholesale. Its aggregate
 `IdentityUser` fuses the actor, the credential, and the profile, and models external logins as `IdentityUserLogin` rows
 _under_ that user — the "the user is the principal, bolt logins on" shape that double-counts a human holding both a local
-account and a social login, exactly what [ADR-1035](1035-federated-principals-and-identity-resolution.md) rejects. The
+account and a social login, exactly what [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md) rejects. The
 adapter therefore maps _inward_: an `IdentityUser` is a `LocalAccount` plus its self-issued `FederatedIdentity`, and its
 `IdentityUserLogin` rows are additional `FederatedIdentity` rows, all aggregated by one `FederatedPrincipal`.
 
@@ -161,7 +161,7 @@ Any other store (LDAP, a bespoke table, an external API) is a third implementati
   on interface segregation: external, lookup-only identities would carry password and profile columns that are always
   null. A one-to-one `LocalAccount` companion keeps the linkage lean.
 - **A standalone end-user/account model independent of `FederatedPrincipal`/`FederatedIdentity` (chosen against).**
-  Rejected: it reintroduces the duplicate-human hazard [ADR-1035](1035-federated-principals-and-identity-resolution.md)
+  Rejected: it reintroduces the duplicate-human hazard [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)
   exists to prevent — a human with a local account and a social login becomes two actors that account-linking patches over.
 - **Renaming `FederatedIdentity` to a neutral `ConnectionIdentity` (chosen against).** Considered for clarity now that a
   connection may be local, but it splits the `Federated*` family into mixed vocabulary (`FederatedPrincipal` +
@@ -172,7 +172,7 @@ Any other store (LDAP, a bespoke table, an external API) is a third implementati
   persistence DTO like every other data contract; backend variance lives on the `ILocalAccountSource` provider seam, not
   on the row.
 - **Reusing the word "subject" for the account (chosen against).** Rejected for the same reason
-  [ADR-1035](1035-federated-principals-and-identity-resolution.md) reserves it: "subject" is the upstream value and the
+  [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md) reserves it: "subject" is the upstream value and the
   emitted `sub` claim (whose value is the `PrincipalId`), not an entity name.
 - **Adopting ASP.NET Core Identity's `IdentityUser` model wholesale (chosen against).** Rejected: `IdentityUser` fuses
   the actor, credential, and profile and nests external logins beneath it, reproducing the duplicate-human conflation
@@ -187,7 +187,7 @@ Any other store (LDAP, a bespoke table, an external API) is a third implementati
   the surface; the core consumes the source as an optional, nullable dependency that is absent by default, so an
   unconfigured host keeps today's behavior and a configured one returns `invalid_grant` (not `unsupported_grant_type`)
   on a bad credential.
-- `FederatedIdentity`'s definition is clarified ([ADR-1035](1035-federated-principals-and-identity-resolution.md)): its
+- `FederatedIdentity`'s definition is clarified ([ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)): its
   `issuer` is an external IdP for social/enterprise connections, or this server for a local one; resolution and linking
   are unchanged and uniform across both.
 - A local account is written as a `LocalAccount` plus a self-issued `FederatedIdentity` in one unit of work; the `sub`
@@ -205,7 +205,7 @@ Any other store (LDAP, a bespoke table, an external API) is a third implementati
 
 ## References
 
-- [ADR-1035](1035-federated-principals-and-identity-resolution.md) — federated principals and identities; this ADR adds
+- [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md) — federated principals and identities; this ADR adds
   the local kind of connection (a `LocalAccount` payload on a self-issued `FederatedIdentity`) and clarifies that a
   connection's `issuer` may be this server.
 - [ADR-1401](1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md) — the subject-authentication seam and claims

@@ -1842,7 +1842,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **`SubjectAuthentication.Create` guarantees `Subject.sub == PrincipalId` by construction** (issue
   [#60](https://github.com/NCodeGroup/identity/issues/60),
-  [ADR-1094](docs/decisions/1094-resolve-principal-at-every-authentication-entry-point.md)). Every entry point builds
+  [ADR-1035](docs/decisions/1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)). Every entry point builds
   its ticket through this factory, which normalizes the credential principal's subject claim to the resolved
   `PrincipalId`, and the interactive login cookie is stamped through the same seam. The normalization is the inverse of
   subject extraction and a tenant-aware, host-replaceable seam symmetric with `GetSubjectId`:
@@ -5094,12 +5094,12 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Every authentication entry point resolves the verified credential to one stable, server-owned principal id** (issue
   [#60](https://github.com/NCodeGroup/identity/issues/60),
-  [ADR-1094](docs/decisions/1094-resolve-principal-at-every-authentication-entry-point.md)). Interactive login (after
+  [ADR-1035](docs/decisions/1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)). Interactive login (after
   the pluggable `IInteractiveCredentialVerifier`, before the session is established), resource-owner-password and bearer
   re-authentication all key grants, consent, sessions and revocation by `SubjectAuthentication.PrincipalId`, so revoking
   everything for a subject and reusing consent span a user's activity however they authenticated, and the internal
   `LocalAccountId` is never emitted as `sub`
-  ([ADR-1035](docs/decisions/1035-federated-principals-and-identity-resolution.md)).
+  ([ADR-1035](docs/decisions/1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)).
   `IPrincipalResolver.ResolvePrincipalIdAsync(OpenIdContext, ClaimsPrincipal, CancellationToken)` is a self-contained
   unit of work with no persistence types in its signature. The persistence and request `SubjectId` members hold the
   resolved principal id.
@@ -5625,7 +5625,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   resolved request tenant, with no global grant key space. The tenant-scope global query filter is navigation-free:
   `ISupportTenantEntity` carries a denormalized `NormalizedTenantId` discriminator, so the filter is a single
   indexed-column comparison and the framework stays decoupled from the concrete tenant entity
-  ([ADR-1035](docs/decisions/1035-federated-principals-and-identity-resolution.md),
+  ([ADR-1035](docs/decisions/1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md),
   [ADR-1018](docs/decisions/1018-tenant-selection-is-shared-and-tenant-bound-rows-are-scoped-at-the-persistence-layer.md)).
 
 - **The management API never materializes a resource outside the request's tenant.** An `IAmbientTenantAccessor`

@@ -53,7 +53,7 @@ roles only at its owning node or beneath it.**
    `client_id` claim names in the issuing tenant. `DefaultPrincipalResolver` resolves such a subject to that principal
    while the client is enabled and to none when it is disabled, so disabling a client withdraws its authority at once. It
    never provisions a federated principal for it and never reads it as an upstream identity
-   ([ADR-1035](1035-federated-principals-and-identity-resolution.md)).
+   ([ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)).
 4. **The resolver answers each caller once per request.** A caller is the context's tenant, its subject and its
    `client_id`. The first answer, a client or none, holds for the rest of the request.
    `DefaultClientPrincipalResolver` keeps it in `HttpContext.Items` (`ActingClientMemo`) and neither reads the store nor
@@ -141,7 +141,7 @@ roles only at its owning node or beneath it.**
 ## References
 
 - [RFC 9068](https://www.rfc-editor.org/rfc/rfc9068), [RFC 8693](https://www.rfc-editor.org/rfc/rfc8693)
-- [ADR-1035](1035-federated-principals-and-identity-resolution.md),
+- [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md),
   [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md),
   [ADR-1191](1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md),
   [ADR-1257](1257-the-management-console-addresses-every-owners-secrets-settings-and-roles-through-one-owner-value.md),

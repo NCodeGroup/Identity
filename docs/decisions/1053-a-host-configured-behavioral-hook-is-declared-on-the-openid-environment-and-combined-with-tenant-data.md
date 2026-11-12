@@ -63,7 +63,7 @@ combines them. A value a consumer computes itself stays local.
 ### Raw extraction versus federated resolution
 
 `GetSubjectId` is raw, store-free claim extraction. Mapping a caller to the server-owned principal id is
-`IPrincipalResolver` ([ADR-1035](1035-federated-principals-and-identity-resolution.md)), which takes the raw subject as
+`IPrincipalResolver` ([ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)), which takes the raw subject as
 its input. The two do not merge: `OpenIdEnvironment` cannot take an `IStoreManager`, and the principal id is the output
 of resolution, so having `GetSubjectId` return it would be circular.
 
@@ -110,6 +110,6 @@ already-materialized environment, so the seam stays acyclic.
 - `src/NCode.Identity.OpenId.Core/Options/OpenIdOptions.cs`: the host knobs.
 - `src/NCode.Identity.OpenId.Management/Auditing/DefaultManagementAuditRecorder.cs`: a cross-package consumer.
 - [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
-  [ADR-1035](1035-federated-principals-and-identity-resolution.md),
+  [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md),
   [ADR-1036](1036-one-factory-materializes-every-openid-context-for-a-request-an-addressed-tenant-or-a-job.md),
   [ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md).

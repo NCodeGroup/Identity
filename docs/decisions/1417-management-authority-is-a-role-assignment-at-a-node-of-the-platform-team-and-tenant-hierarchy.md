@@ -45,7 +45,7 @@ claim confers management authority except the bootstrap `GlobalAdmin` stamp.** R
    tenant, resource type and resource id. Assignments at team and platform nodes live in the control-plane tenant; one at
    a tenant node is stored under that tenant's identifier.
 4. **The handler.** `OwnershipHandler` resolves the caller's `PrincipalId` (`IPrincipalResolver`,
-   [ADR-1035](1035-federated-principals-and-identity-resolution.md)) in the control-plane tenant's scope and succeeds
+   [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)) in the control-plane tenant's scope and succeeds
    when one of its assignments of an authorizing role sits at the node or at an ancestor that `IAuthorityChainResolver`
    derives from the resource. No parent pointers are stored. Platform, team and tenant nodes match on type and identifier
    across tenants; any other node matches only an assignment of the node's tenant.
@@ -102,7 +102,7 @@ claim confers management authority except the bootstrap `GlobalAdmin` stamp.** R
 
 - `src/NCode.Identity.OpenId.Management/BuiltInRoles.cs`, `ManagementScopes.cs`,
   `ResourceServers/ManagementResourceServerSeedHandler.cs`
-- [ADR-1035](1035-federated-principals-and-identity-resolution.md): principal resolution
+- [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md): principal resolution
 - [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md):
   management API authentication and the `GlobalAdmin` bootstrap
 - [ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md): the

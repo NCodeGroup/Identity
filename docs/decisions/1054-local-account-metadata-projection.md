@@ -146,7 +146,7 @@ protects `app_metadata`. It is called out here and tracked as management work in
 
 - [ADR-1051](1051-local-accounts-behind-a-pluggable-account-source-seam.md) — the `LocalAccount` payload and
   `ILocalAccountSource` seam whose metadata this ADR projects.
-- [ADR-1035](1035-federated-principals-and-identity-resolution.md) — the subject/principal model the stamped `sub` and
+- [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md) — the subject/principal model the stamped `sub` and
   carried claims resolve through.
 - [ADR-1401](1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md) — the UserInfo endpoint and claims-enricher
   seam one of the projection handlers extends.

@@ -107,7 +107,7 @@ request for it, and an administrator's password reset ends the account's session
 
 ## References
 
-- [ADR-1035](1035-federated-principals-and-identity-resolution.md) — the federated principal that carries the block.
+- [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md) — the federated principal that carries the block.
 - [ADR-1112](1112-every-end-of-a-session-runs-one-termination-seam-once-revoking-the-grants-issued-under-it.md) — the termination seam that the reasons name.
 - [ADR-1224](1224-deleting-or-disabling-an-account-ends-its-sessions.md) — the disabled account and the termination of
   its sessions.

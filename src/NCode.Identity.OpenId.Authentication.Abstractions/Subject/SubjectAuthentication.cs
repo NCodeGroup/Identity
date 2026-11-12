@@ -49,7 +49,7 @@ public readonly record struct SubjectAuthentication(
     /// <param name="principalId">The stable, server-owned principal identifier resolved for the subject.</param>
     /// <returns>A <see cref="SubjectAuthentication"/> whose <see cref="Subject"/> carries <paramref name="principalId"/>
     /// as its subject claim.</returns>
-    // See ADR-1094.
+    // See ADR-1035.
     public static SubjectAuthentication Create(
         OpenIdContext openIdContext,
         string authenticationScheme,

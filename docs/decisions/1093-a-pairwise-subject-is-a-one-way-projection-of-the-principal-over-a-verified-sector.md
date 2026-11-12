@@ -15,7 +15,7 @@ OpenID Connect Core 1.0 §8 defines two `subject_type` values a client may be re
 Two facts about the architecture shape the design:
 
 - **The stable identifier is server-owned and internal.** The value a public client receives as `sub` is a
-  `PrincipalId`, a server-generated opaque id ([ADR-1035](1035-federated-principals-and-identity-resolution.md)), that
+  `PrincipalId`, a server-generated opaque id ([ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)), that
   also keys grants, consent, sessions and revocation. Those joins are deliberately **cross-client**: "revoke everything
   for this user" must find every client's grants. If the pairwise value replaced the internal identifier, those
   operations would break, which is precisely the correlation pairwise is designed to prevent.
@@ -139,7 +139,7 @@ verifies.**
 - OpenID Connect Core 1.0 §8 and §8.1; RFC 7591 and RFC 7592.
 - Issues [#47](https://github.com/NCodeGroup/identity/issues/47) and
   [#58](https://github.com/NCodeGroup/identity/issues/58).
-- [ADR-1035](1035-federated-principals-and-identity-resolution.md) (the principal),
+- [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md) (the principal),
   [ADR-1192](1192-dynamic-client-registration-rides-the-client-and-grant-stores-authorized-by-single-use-initial-access-tokens.md) (registration),
   [ADR-1010](1010-settings-merge-as-ceilings-and-floors-unset-lists-restrict-nothing-and-a-secure-baseline-supplies-defaults.md)
   (setting merges),

@@ -85,7 +85,7 @@ internal class DefaultResolveEndSessionSubjectHandler(
         var loginSchemes = await GetLoginSchemesAsync(openIdContext, clientId, cancellationToken);
 
         // The current OP login cookies supply the session (and a provisional subject). A cookie's `sub` is the stable
-        // PrincipalId (ADR-1094).
+        // PrincipalId (ADR-1035).
         var loginSessionIds = new List<string?>(loginSchemes.Count);
         foreach (var loginScheme in loginSchemes)
         {

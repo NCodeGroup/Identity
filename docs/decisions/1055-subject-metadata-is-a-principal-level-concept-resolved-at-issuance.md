@@ -26,7 +26,7 @@ stamped make the projection reachable for only one of the many ways a subject au
 This diverges from the Auth0-parity posture ([ADR-1025](1025-the-family-is-greenfield-and-pre-release-tracks-its-public-api-and-models-auth0-parity-plus.md)) the metadata
 model targets. In Auth0 `user_metadata` / `app_metadata` is a property of the **normalized user** — present for every
 connection type and surfaced on every issuance — not a property of one connection kind. The actor in this model is the
-`FederatedPrincipal` ([ADR-1035](1035-federated-principals-and-identity-resolution.md)): the single per-human entity
+`FederatedPrincipal` ([ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)): the single per-human entity
 every connection resolves to, the persisted twin of `ClaimsPrincipal`. That is the entity Auth0's per-user metadata maps
 to, and it is deliberately **contentless** today — a server-owned opaque join key.
 
@@ -59,7 +59,7 @@ as ceremony that buys nothing for two bags: relatability comes from foreign keys
 ### Resolve at issuance through a pluggable provider, keyed by the principal
 
 The single point every flow and connection kind converges is **token/UserInfo issuance**: by then every subject has
-resolved to a durable `PrincipalId` ([ADR-1035](1035-federated-principals-and-identity-resolution.md)) carried as `sub`.
+resolved to a durable `PrincipalId` ([ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md)) carried as `sub`.
 The three metadata projection handlers (`DefaultGet{AccessToken,IdToken,UserInfo}MetadataClaimsHandler`) resolve the
 bags from `IPrincipalMetadataProvider` by that `PrincipalId`, gated by the six opt-in `send_{profile,system}_metadata_in_*`
 settings, and emit each enabled bag as one nested JSON-object claim. Nothing is stamped at authentication, so ROPC,
@@ -136,7 +136,7 @@ Secrets stay standalone-reusable — is tracked in [GitHub issues](https://githu
   relocates their home from `LocalAccount` to the principal and resolves them fresh at issuance.
 - [ADR-1051](1051-local-accounts-behind-a-pluggable-account-source-seam.md) — the `LocalAccount` payload the bags leave,
   and the `SecurityStamp` revocation hook a distributed-cache decorator would invalidate on.
-- [ADR-1035](1035-federated-principals-and-identity-resolution.md) — the `FederatedPrincipal` actor the bags inline onto
+- [ADR-1035](1035-an-end-user-is-one-tenant-scoped-principal-that-every-authentication-entry-point-resolves-to.md) — the `FederatedPrincipal` actor the bags inline onto
   and whose resolved `PrincipalId` keys the provider.
 - [ADR-1401](1401-userinfo-authenticates-an-access-token-returns-enricher-built-claims-and-audits-disclosures-on-opt-in.md) — the UserInfo endpoint and claims-enricher seam
   one of the projection handlers extends.

@@ -99,6 +99,56 @@ Whether the release shares single-use state through Valkey.
 {{- end }}
 
 {{/*
+The database environment entries of a host container: the parts of a Postgres operator's Secret, each from its own
+key, or the finished connection string. The scope holds the settings of one connection, and its empty keys fall back to
+the defaults, which are the values of the database the host itself uses (ADR-1509).
+*/}}
+{{- define "identity-host.databaseEnv" -}}
+{{- $scope := .scope }}
+{{- $defaults := .defaults }}
+{{- if $scope.parts.existingSecret }}
+{{- range $part := list (list "Host" "hostKey") (list "Port" "portKey") (list "Name" "databaseKey") (list "Username" "usernameKey") (list "Password" "passwordKey") }}
+{{- $key := (index $scope.parts (last $part)) | default (index $defaults.parts (last $part)) }}
+{{- if $key }}
+- name: OpenIdDatabase__{{ first $part }}
+  valueFrom:
+    secretKeyRef:
+      name: {{ $scope.parts.existingSecret }}
+      key: {{ $key }}
+{{- end }}
+{{- end }}
+{{- else }}
+- name: ConnectionStrings__openiddb
+  valueFrom:
+    secretKeyRef:
+      name: {{ $scope.existingSecret }}
+      key: {{ $scope.connectionStringKey | default $defaults.connectionStringKey }}
+{{- end }}
+{{- end }}
+
+{{/*
+Refuses a database connection that names both of its forms, or none when it is required, or a parts Secret whose
+required key is empty. Rendered for its side effect only.
+*/}}
+{{- define "identity-host.databaseValidate" -}}
+{{- $scope := .scope }}
+{{- if and $scope.existingSecret $scope.parts.existingSecret }}
+{{- fail (printf "%s.existingSecret and %s.parts.existingSecret are both set: name the Secret that holds the finished connection string or the Secret that holds its parts, not both." .path .path) }}
+{{- end }}
+{{- if and .required (not $scope.existingSecret) (not $scope.parts.existingSecret) }}
+{{- fail "database.existingSecret must name the Secret holding the openiddb connection string, or database.parts.existingSecret the Secret holding its host, database, user and password." }}
+{{- end }}
+{{- if $scope.parts.existingSecret }}
+{{- range $part := list (list "host" "hostKey") (list "database" "databaseKey") (list "user" "usernameKey") (list "password" "passwordKey") }}
+{{- $keyName := last $part }}
+{{- if not ((index $scope.parts $keyName) | default (index $.defaults.parts $keyName)) }}
+{{- fail (printf "%s.parts.%s must name the key that holds the %s in the Secret." $.path $keyName (first $part)) }}
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}
+
+{{/*
 Refuses a release the host would refuse, or one that would run replicas without shared state, before anything is
 applied. Rendered for its side effect only.
 */}}
@@ -112,9 +162,8 @@ applied. Rendered for its side effect only.
 {{- if contains "*" (include "identity-host.probeHost" .) }}
 {{- fail "probes.host must name a concrete host that allowedHosts accepts: the first allowed host is a wildcard." }}
 {{- end }}
-{{- if not .Values.database.existingSecret }}
-{{- fail "database.existingSecret must name the Secret holding the openiddb connection string." }}
-{{- end }}
+{{- include "identity-host.databaseValidate" (dict "path" "database" "scope" .Values.database "defaults" .Values.database "required" true) }}
+{{- include "identity-host.databaseValidate" (dict "path" "migrations.database" "scope" .Values.migrations.database "defaults" .Values.database "required" false) }}
 {{- if and (eq .Values.tenantResolution.strategyCode "StaticSingle") (not .Values.tenantResolution.staticSingle.issuer) }}
 {{- fail "tenantResolution.staticSingle.issuer must be the public issuer URL." }}
 {{- end }}
@@ -448,11 +497,7 @@ same configuration the pods it rewraps keys for read.
   value: {{ .Values.apiReference.documentEnabled | quote }}
 - name: ApiReference__PageEnabled
   value: {{ .Values.apiReference.pageEnabled | quote }}
-- name: ConnectionStrings__openiddb
-  valueFrom:
-    secretKeyRef:
-      name: {{ .Values.database.existingSecret }}
-      key: {{ .Values.database.connectionStringKey }}
+{{ include "identity-host.databaseEnv" (dict "scope" .Values.database "defaults" .Values.database) | trim }}
 {{- if $valkey }}
 - name: ConnectionStrings__valkey
   valueFrom:

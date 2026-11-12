@@ -108,10 +108,25 @@ management console's Service takes managementConsole.backendTls.caConfigMap firs
 with root and service (the Service's name).
 */}}
 {{- define "identity-host.backendTls.caConfigMap" -}}
+{{- $server := .root.Values.backendTls.caConfigMap }}
+{{- if and (not $server) .root.Values.backendTls.caPublisher.enabled }}
+{{- $server = printf "%s-ca" (include "identity-host.fullname" .root) }}
+{{- end }}
 {{- if eq .service (include "identity-host.managementConsole.fullname" .root) }}
-{{- .root.Values.managementConsole.backendTls.caConfigMap | default .root.Values.backendTls.caConfigMap }}
+{{- .root.Values.managementConsole.backendTls.caConfigMap | default $server }}
 {{- else }}
-{{- .root.Values.backendTls.caConfigMap }}
+{{- $server }}
+{{- end }}
+{{- end }}
+
+{{/*
+Renders true when the chart creates its private CA, and nothing otherwise: no issuer of the operator's is named, and a
+component takes its certificate from the chart.
+*/}}
+{{- define "identity-host.backendTls.privateCa" -}}
+{{- $consoleNeedsCertificate := and .Values.managementConsole.enabled (not .Values.managementConsole.backendTls.existingSecret) }}
+{{- if and (not .Values.backendTls.certManager.issuerRef.name) (or (not .Values.backendTls.existingSecret) $consoleNeedsCertificate) }}
+{{- true }}
 {{- end }}
 {{- end }}
 
@@ -211,9 +226,12 @@ Refuses a certificate the chart's Certificate could not describe to cert-manager
 {{- if not .Values.httpRoute.hostnames }}
 {{- fail "httpRoute.hostnames must not be empty when httpRoute.enabled is true: the route needs a host to match." }}
 {{- end }}
-{{- if not .Values.backendTls.caConfigMap }}
-{{- fail "backendTls.caConfigMap must be set when httpRoute.enabled is true: the BackendTLSPolicy verifies the pods' certificate against the CA in that ConfigMap." }}
+{{- if not (include "identity-host.backendTls.caConfigMap" (dict "root" . "service" (include "identity-host.fullname" .))) }}
+{{- fail "backendTls.caConfigMap must be set, or backendTls.caPublisher.enabled with the chart's private CA, when httpRoute.enabled is true: the BackendTLSPolicy verifies the pods' certificate against the CA in that ConfigMap." }}
 {{- end }}
+{{- end }}
+{{- if and .Values.backendTls.caPublisher.enabled (not (include "identity-host.backendTls.privateCa" .)) }}
+{{- fail "backendTls.caPublisher.enabled needs the chart's private CA: it publishes that CA, so backendTls.certManager.issuerRef.name must be empty and a component must take its certificate from it." }}
 {{- end }}
 {{- if and $consoleOn $console.httpRoute.enabled }}
 {{- if not $console.httpRoute.parentRefs }}

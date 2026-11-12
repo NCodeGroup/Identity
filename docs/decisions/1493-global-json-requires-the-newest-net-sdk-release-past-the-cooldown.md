@@ -1,6 +1,6 @@
 # 1493. global.json requires the newest .NET SDK release past the cooldown
 
-- **Status:** Accepted (amends [ADR-1486](1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md) decision 2)
+- **Status:** Accepted (amends [ADR-1486](1486-the-repositorys-own-analyzer-project-fails-the-build-on-a-field-an-auto-property-could-replace.md) decision 2)
 - **Refines:** [project-template ADR-0008](project-template/0008-external-inputs-are-pinned-and-kept-current.md)
 - **Date:** 2026-11-10
 - **Deciders:** NCode Group
@@ -43,7 +43,7 @@ admits that SDK.
 - **CI installs the newest SDK.** `actions/setup-dotnet` reads `latestMinor` as the newest 10.x SDK with `global.json`'s
   version as the minimum, and `./build/Install-Dotnet.ps1` does the same, so a floor change needs no workflow change.
 - **The analyzers' Roslyn is held by EF Core Design.** `NCode.Identity.Analyzers`
-  ([ADR-1486](1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md)) builds against
+  ([ADR-1486](1486-the-repositorys-own-analyzer-project-fails-the-build-on-a-field-an-auto-property-could-replace.md)) builds against
   `Microsoft.CodeAnalysis.CSharp` 5.0.0. EF Core Design 10.0.14 depends on `Microsoft.CodeAnalysis.CSharp.Workspaces`
   5.0.0, which requires `Microsoft.CodeAnalysis.CSharp` exactly 5.0.0, so central transitive pinning holds the
   analyzers at 5.0.0 whatever the floor is.
@@ -60,7 +60,7 @@ admits that SDK.
 2. **A change that moves the floor never passes the SDK of the pinned SDK image.** The image builds from the same
    `global.json`, so a floor above the image's SDK breaks them.
 3. **The analyzers stay on Roslyn 5.0.0.** This amends
-   [ADR-1486](1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md) decision 2: the
+   [ADR-1486](1486-the-repositorys-own-analyzer-project-fails-the-build-on-a-field-an-auto-property-could-replace.md) decision 2: the
    analyzers build against the `Microsoft.CodeAnalysis.CSharp` version EF Core Design requires exactly, 5.0.0, which is
    older than the Roslyn of every SDK `global.json` admits (10.0.403 ships 5.9.0), so every admitted SDK loads them. The
    version does not wait for the floor. Dependabot's ignore of the minor and major updates of
@@ -100,6 +100,6 @@ admits that SDK.
 - [dotnet/roslyn#80433](https://github.com/dotnet/roslyn/pull/80433)
 - [dotnet/roslyn#80433 maintainer comment](https://github.com/dotnet/roslyn/pull/80433#issuecomment-3798934789)
 - <https://builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json>
-- [ADR-1486](1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md)
+- [ADR-1486](1486-the-repositorys-own-analyzer-project-fails-the-build-on-a-field-an-auto-property-could-replace.md)
 - [project-template ADR-0008](project-template/0008-external-inputs-are-pinned-and-kept-current.md)
 - [project-template ADR-0009](project-template/0009-new-dependency-versions-wait-a-cooldown.md)

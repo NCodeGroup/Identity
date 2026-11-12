@@ -1,7 +1,7 @@
 # 1496. An analyzer reports an own async method that returns Task or takes no trailing cancellation token
 
 - **Status:** Accepted
-- **Refines:** [ADR-1486](1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md) (the same analyzer project)
+- **Refines:** [ADR-1486](1486-the-repositorys-own-analyzer-project-fails-the-build-on-a-field-an-auto-property-could-replace.md) (the same analyzer project)
 - **Date:** 2026-11-10
 - **Deciders:** NCode Group
 
@@ -108,7 +108,7 @@ method that returns `Task` or `Task<T>` and with `NCID0003` on an own asynchrono
 - [#744](https://github.com/NCodeGroup/identity/issues/744)
 - [#740](https://github.com/NCodeGroup/identity/issues/740), the issue of PR #741: the integration test project's
   conversion
-- [ADR-1486](1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md): the analyzer project
+- [ADR-1486](1486-the-repositorys-own-analyzer-project-fails-the-build-on-a-field-an-auto-property-could-replace.md): the analyzer project
 - [ADR-1351](1351-a-committed-change-is-applied-and-announced-on-its-own-bounded-token.md)
 - [ADR-1464](1464-a-management-audit-record-runs-on-its-own-bounded-token-and-takes-no-request-token.md)
 - [ADR-1468](1468-a-security-effect-that-follows-a-committed-change-runs-on-its-own-bounded-token.md)

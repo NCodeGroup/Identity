@@ -91,7 +91,7 @@ than inlining the rationale.
   `analyzers/NCode.Identity.Analyzers`, fails the build of every project on a field that is not a `const`, a `ref` field, a
   `volatile` or fixed-size buffer field, a field of a `[StructLayout]` or `[InlineArray]` struct, or a field the code
   uses by reference (`ref`, `out` or `in`, `Interlocked`, `Volatile`, `&`, or an in-place call on a mutable struct)
-  ([ADR-1486](../../docs/decisions/1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md)).
+  ([ADR-1486](../../docs/decisions/1486-the-repositorys-own-analyzer-project-fails-the-build-on-a-field-an-auto-property-could-replace.md)).
 - 👁 **The narrowest accessor shape** — template
   [Members and Constructors](csharp.instructions.md#members-and-constructors).
 - 👁 **Primary constructors wherever they can express the type**, converting single-purpose constructors too — template

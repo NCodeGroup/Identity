@@ -3740,7 +3740,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   as a Razor `@code` block's field is, and the analyzer's tests compile their snippets against the test host's own
   assemblies ([#713](https://github.com/NCodeGroup/identity/issues/713),
   [#714](https://github.com/NCodeGroup/identity/issues/714),
-  [ADR-1486](docs/decisions/1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md)).
+  [ADR-1486](docs/decisions/1486-the-repositorys-own-analyzer-project-fails-the-build-on-a-field-an-auto-property-could-replace.md)).
 
 - **The build reports an own async method that returns `Task` or takes no trailing `CancellationToken`.**
   `NCode.Identity.Analyzers` fails the build with `NCID0002` on a method returning `Task` or `Task<T>` and with

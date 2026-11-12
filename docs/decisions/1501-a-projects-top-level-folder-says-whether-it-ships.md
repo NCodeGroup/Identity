@@ -4,7 +4,7 @@
 - **Date:** 2026-11-11
 - **Deciders:** NCode Group
 - **Amends:** [ADR-1064](1064-frontend-presentation-platform.md) (placement),
-  [ADR-1486](1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md) (decision 1)
+  [ADR-1486](1486-the-repositorys-own-analyzer-project-fails-the-build-on-a-field-an-auto-property-could-replace.md) (decision 1)
 
 ## Context
 
@@ -55,5 +55,5 @@ has a folder of its own, and the build fails a project whose folder and packing 
 - [ADR-1064](1064-frontend-presentation-platform.md),
   [ADR-1386](1386-primitives-are-benchmarked-in-a-project-the-build-compiles-and-nothing-runs.md),
   [ADR-1430](1430-end-to-end-suites-run-the-bff-in-real-browsers-against-a-containerized-keycloak-in-their-own-gate.md),
-  [ADR-1486](1486-an-analyzer-in-every-project-reports-a-field-that-could-be-an-auto-property.md)
+  [ADR-1486](1486-the-repositorys-own-analyzer-project-fails-the-build-on-a-field-an-auto-property-could-replace.md)
 - `Directory.Build.targets`, `hosts/Directory.Build.props`

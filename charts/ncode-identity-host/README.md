@@ -95,6 +95,9 @@ Rendering fails, before anything is applied, when:
   (which falls back to the server's);
 - `backendTls.caPublisher.enabled` is `true` and the server's certificate does not come from the chart's private CA,
   because `backendTls.certManager.issuerRef.name` or `backendTls.existingSecret` is set;
+- `backendTls.caPublisher.enabled` is `true`, the management console is enabled with a certificate of your own in
+  `managementConsole.backendTls.existingSecret`, and `managementConsole.backendTls.caConfigMap` is empty, because the
+  console's CA ConfigMap would fall back to the one the publisher writes, which holds only the chart's private CA;
 - `database.existingSecret` is empty;
 - the `StaticSingle` strategy has no `https` issuer;
 - `secretProtection.rootKeyProvider` is empty, in any environment, because the host does not start without one;
@@ -815,6 +818,8 @@ The kubelet holds its pod until cert-manager has created the Secret, and `helm u
 wrote. The chart refuses the publisher with an issuer of your own in `backendTls.certManager.issuerRef.name` or a
 server certificate of your own in `backendTls.existingSecret`, because it publishes only the chart's private CA.
 `managementConsole.backendTls.caConfigMap` names the console's ConfigMap and, when empty, falls back to the server's.
+With the publisher, a console certificate of your own in `managementConsole.backendTls.existingSecret` needs its CA in
+`managementConsole.backendTls.caConfigMap`, and the chart refuses the release without it.
 
 ### Trust
 

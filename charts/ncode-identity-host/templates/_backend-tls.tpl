@@ -222,6 +222,9 @@ Refuses a certificate the chart's Certificate could not describe to cert-manager
 {{- if and .Values.backendTls.caPublisher.enabled (or .Values.backendTls.certManager.issuerRef.name .Values.backendTls.existingSecret) }}
 {{- fail "backendTls.caPublisher.enabled publishes the chart's private CA to the server's CA ConfigMap, so the server must take its certificate from that CA: backendTls.certManager.issuerRef.name and backendTls.existingSecret must be empty." }}
 {{- end }}
+{{- if and .Values.backendTls.caPublisher.enabled $consoleOn $console.backendTls.existingSecret (not $console.backendTls.caConfigMap) }}
+{{- fail "managementConsole.backendTls.caConfigMap must name the CA of managementConsole.backendTls.existingSecret when backendTls.caPublisher.enabled is true: the console's CA ConfigMap otherwise falls back to the one the publisher writes, which holds only the chart's private CA." }}
+{{- end }}
 {{- if and $consoleOn $console.httpRoute.enabled }}
 {{- if not $console.httpRoute.parentRefs }}
 {{- fail "managementConsole.httpRoute.parentRefs must name a Gateway listener when managementConsole.httpRoute.enabled is true: an HTTPRoute without a parent attaches to nothing." }}

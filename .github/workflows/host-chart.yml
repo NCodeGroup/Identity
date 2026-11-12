@@ -473,3 +473,76 @@ jobs:
             --show-only templates/management-console-deployment.yaml \
             --set managementConsole.secretProtection.awsKms.webIdentity.roleArn=arn:aws:iam::111122223333:role/x)
           reject "$pem" 'AWS_ROLE_ARN' 'RemoteKeyProviders'
+
+  # Rendering cannot prove what only a cluster does: cert-manager issuing the certificates, the controller reading the
+  # annotations the chart renders, and the controller verifying the pods' certificate. This job installs the chart in a kind
+  # cluster behind each supported ingress controller to prove them.
+  cluster:
+    name: Install the host chart in kind (${{ matrix.controller }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - controller: ingress-nginx
+            class: nginx
+          - controller: traefik
+            class: traefik
+
+    env:
+      CHART: charts/ncode-identity-host
+      NAMESPACE: identity
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Nothing in this job pushes, so the token stays out of .git/config, where later steps could read it.
+          persist-credentials: false
+
+      # A third-party action, so it is pinned to a commit; Dependabot moves the pin and its version comment together.
+      - name: Set up Helm
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v4.3.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build the host image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: hosts/NCode.Identity.OpenId.Host/Dockerfile
+          platforms: linux/amd64
+          load: true
+          tags: ncode-identity-host:kind
+          cache-from: type=gha,scope=host-image
+
+      - name: Create the cluster
+        uses: helm/kind-action@ea822c7bf1874f08e5a491df991c228edffc3376 # v1.15.2
+        with:
+          version: v0.33.0
+          node_image: kindest/node:v1.37.0@sha256:a1ed56cfb0e7b93589bdf97c8cd566405a265939e3620fc4f5de89adff580ae5
+          cluster_name: identity
+
+      - name: Load the host image into the cluster
+        run: kind load docker-image ncode-identity-host:kind --name identity
+
+      - name: Install cert-manager
+        run: |
+          helm install cert-manager oci://quay.io/jetstack/charts/cert-manager --version v1.21.3 \
+            --namespace cert-manager --create-namespace --set crds.enabled=true --wait --timeout 5m
+
+      - name: Install the ingress controller
+        run: |
+          if [ "${{ matrix.controller }}" = ingress-nginx ]; then
+            helm install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --version 4.15.1 \
+              --namespace ingress-nginx --create-namespace --set controller.service.type=ClusterIP \
+              --set controller.admissionWebhooks.enabled=false --wait --timeout 5m
+          else
+            helm install traefik traefik --repo https://traefik.github.io/charts --version 42.3.1 \
+              --namespace traefik --create-namespace --set service.type=ClusterIP --wait --timeout 5m
+          fi

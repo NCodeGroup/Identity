@@ -2377,8 +2377,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `CreatedSecretResource`, the only place its material appears; delete the rotated secret when the switch is done. The
   optional `rotatedExpiresWhen` shortens the rotated secret's expiry and never extends it. Rotation is authorized as
   creating a secret and updating the rotated one, `If-Match` is honored, and a key answers `400`
-  ([ADR-1320](docs/decisions/1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md),
-  [ADR-1183](docs/decisions/1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md), issues
+  ([ADR-1320](docs/decisions/1320-a-rotated-client-secret-overlaps-its-replacement-until-it-expires-or-is-deleted.md), issues
   [#159](https://github.com/NCodeGroup/identity/issues/159), [#445](https://github.com/NCodeGroup/identity/issues/445)).
 
 - **Grant administration is a tenant-scoped, read-and-revoke surface.** `GET api/tenants/{tenantId}/grants` (paged,

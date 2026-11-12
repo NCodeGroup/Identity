@@ -251,7 +251,6 @@ The records are grouped by area; within an area they are in number order.
 | [1104](./1104-a-key-type-is-one-registered-descriptor-and-public-keys-are-imported-and-stored-by-encoding.md) | A key type is one registered descriptor, and public keys are imported and stored by encoding | Accepted |
 | [1110](./1110-shared-secret-vs-cryptographic-key-storage.md) | A shared secret is stored as the UTF-8 bytes of its opaque string, distinct from a cryptographic key | Accepted |
 | [1169](./1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md) | Every tenant is provisioned with a persisted key for each configured algorithm it uses | Accepted |
-| [1183](./1183-a-client-secret-is-rotated-by-replacing-it-in-one-change.md) | A client secret is rotated by replacing it in one change | Superseded |
 | [1235](./1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md) | Stored secrets and grant payloads are protected by a key hierarchy under an external root key | Accepted |
 | [1260](./1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md) | A key wrapper is one open contract, and each key management service has one adapter package | Accepted |
 | [1268](./1268-an-asymmetric-secrets-public-key-is-stored-beside-it-and-read-without-its-private-key.md) | An asymmetric secret's public key is stored beside it and read without its private key | Accepted |

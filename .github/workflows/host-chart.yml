@@ -546,3 +546,74 @@ jobs:
             helm install traefik traefik --repo https://traefik.github.io/charts --version 42.3.1 \
               --namespace traefik --create-namespace --set service.type=ClusterIP --wait --timeout 5m
           fi
+
+      # The release reads the database and the root key from Secrets, which are generated here and never stored.
+      - name: Create the database and its Secrets
+        run: |
+          set -euo pipefail
+          kubectl create namespace "$NAMESPACE"
+          password=$(openssl rand -hex 16)
+          kubectl -n "$NAMESPACE" create secret generic postgres --from-literal=password="$password"
+          kubectl -n "$NAMESPACE" create secret generic identity-database \
+            --from-literal=connection-string="Host=postgres;Port=5432;Database=openiddb;Username=postgres;Password=$password"
+          kubectl -n "$NAMESPACE" create secret generic identity-root-key \
+            --from-literal=key="$(head -c 32 /dev/urandom | basenc --base64url -w0 | tr -d '=')"
+          kubectl -n "$NAMESPACE" apply -f "$CHART/ci/kind-postgres.yaml"
+          kubectl -n "$NAMESPACE" rollout status deployment/postgres --timeout=3m
+
+      # The chart's pre-install migration Job and the pods' readiness probes over HTTPS prove that the pods serve HTTPS.
+      - name: Install the chart
+        run: |
+          set -euo pipefail
+          helm install release "$CHART" --namespace "$NAMESPACE" --values "$CHART/ci/kind-values.yaml" \
+            --set backendTls.ingressController=${{ matrix.controller }} --set ingress.className=${{ matrix.class }} \
+            --wait --timeout 10m
+
+      # through_ingress sends one request to the pods' Host through the ingress controller's Service and prints the HTTP
+      # status code, or 000 when the request fails. Later steps source the file.
+      - name: Verify the pods' certificate through the controller
+        run: |
+          set -euo pipefail
+          helpers="$RUNNER_TEMP/kind-helpers.sh"
+          if [ "${{ matrix.controller }}" = ingress-nginx ]; then
+            controller_namespace=ingress-nginx
+            controller_service=svc/ingress-nginx-controller
+          else
+            controller_namespace=traefik
+            controller_service=svc/traefik
+          fi
+          printf 'CONTROLLER_NAMESPACE=%s\nCONTROLLER_SERVICE=%s\n' "$controller_namespace" "$controller_service" > "$helpers"
+          cat >> "$helpers" <<'EOF'
+          through_ingress() {
+            local path="${1:-/health/ready}"
+            local code=000
+            local forward
+            kubectl -n "$CONTROLLER_NAMESPACE" port-forward "$CONTROLLER_SERVICE" 8080:80 > /dev/null 2>&1 &
+            forward=$!
+            local attempt
+            for attempt in $(seq 1 30); do
+              if (exec 3<> /dev/tcp/127.0.0.1/8080) 2> /dev/null; then
+                break
+              fi
+              sleep 1
+            done
+            code=$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 10 \
+              -H 'Host: id.example.com' "http://127.0.0.1:8080$path" || true)
+            kill "$forward" 2> /dev/null || true
+            wait "$forward" 2> /dev/null || true
+            printf '%s' "$code"
+          }
+          EOF
+          source "$helpers"
+          code=000
+          for attempt in $(seq 1 12); do
+            code=$(through_ingress /health/ready)
+            if [ "$code" = 200 ]; then
+              break
+            fi
+            sleep 5
+          done
+          if [ "$code" != 200 ]; then
+            echo "::error::A request to /health/ready through the ${{ matrix.controller }} controller answered $code; expected 200, so the controller did not verify and reach the pods."
+            exit 1
+          fi

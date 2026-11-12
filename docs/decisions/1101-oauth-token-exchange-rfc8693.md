@@ -65,7 +65,7 @@ Concretely:
   validated token's claims through the existing `IPrincipalResolver`
   ([ADR-1094](1094-resolve-principal-at-every-authentication-entry-point.md)); an unresolvable subject is rejected. For
   the default public subject type the token's `sub` _is_ the server-owned principal id and resolves directly. A
-  pairwise-projected `sub` ([ADR-1093](1093-pairwise-subject-identifiers.md)) is intentionally **not** reversed; forward
+  pairwise-projected `sub` ([ADR-1093](1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md)) is intentionally **not** reversed; forward
   recovery of a pairwise subject (e.g. from `sid` + session state, the [ADR-1096](1096-end-session-subject-from-server-state.md)
   technique) is a documented follow-up rather than a silent mis-resolution.
 - **Outputs and downscoping.** `requested_token_type` selects the output: `access_token` (default), `refresh_token`

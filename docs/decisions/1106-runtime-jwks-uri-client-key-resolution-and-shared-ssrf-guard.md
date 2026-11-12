@@ -26,7 +26,7 @@ with a key published only at `jwks_uri` could never validate.
 
 Resolving `jwks_uri` is a server-side fetch of a **client-supplied URL** — a textbook **server-side request forgery
 (SSRF)** sink, the same class of risk the registration-time `sector_identifier_uri` fetch already defends against with a
-dedicated SSRF-guarded HTTP client ([ADR-1095](1095-sector-identifier-uri-fetch-and-ssrf-guard.md)). That floor lived in
+dedicated SSRF-guarded HTTP client ([ADR-1093](1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md)). That floor lived in
 a `sector_identifier`-specific static helper. A third outbound client-URL fetch — the JAR `request_uri` fetch (RFC 9101)
 — used a plain unnamed `HttpClient` that followed redirects and applied **no** SSRF control at all.
 

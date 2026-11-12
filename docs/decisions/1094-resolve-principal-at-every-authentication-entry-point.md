@@ -49,7 +49,7 @@ subject, and rename the field to say so.**
 - **One subject, one accessor.** `SubjectAuthentication.SubjectId` is renamed **`PrincipalId`**. The `Subject`
   `ClaimsPrincipal` is explicitly documented as raw authentication _material_ (inputs); `PrincipalId` is the single
   authoritative identifier that grants, consent, sessions, revocation, and token `sub` projection all reference. The
-  pairwise projection ([ADR-1093](1093-pairwise-subject-identifiers.md)) now projects `PrincipalId` directly, dropping
+  pairwise projection ([ADR-1093](1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md)) now projects `PrincipalId` directly, dropping
   the transitional "read the principal's `sub` claim" fallback that only existed to paper over the inconsistency.
 - **A `sub`-reading convenience was deliberately _not_ added.** Unlike `SessionId` (whose `sid` lives only as a claim
   and has one unambiguous source), the subject is a first-class resolved field; a second accessor that read the `sub`

@@ -1679,7 +1679,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Dynamic Client Registration accepts, validates, persists and returns the `subject_type` and `sector_identifier_uri`
   client metadata, and verifies the sector document** (issue [#58](https://github.com/NCodeGroup/identity/issues/58),
-  [ADR-1095](docs/decisions/1095-sector-identifier-uri-fetch-and-ssrf-guard.md)). As OpenID Connect Core 1.0 §8.1
+  [ADR-1093](docs/decisions/1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md)). As OpenID Connect Core 1.0 §8.1
   requires, it fetches the JSON document the `sector_identifier_uri` references and checks that it lists every one of
   the client's `redirect_uris`, so a pairwise client shares a sector only when the party controlling that document
   vouches for its redirect URIs. The fetch is the replaceable `ISectorIdentifierValidator` seam. Registration requires
@@ -4620,7 +4620,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1315](docs/decisions/1315-outbound-calls-to-caller-supplied-urls-share-one-guarded-bounded-client.md)).
 
 - **Every server-initiated outbound HTTP call to a client-controlled URL is SSRF-guarded uniformly**
-  ([ADR-1095](docs/decisions/1095-sector-identifier-uri-fetch-and-ssrf-guard.md),
+  ([ADR-1093](docs/decisions/1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md),
   [ADR-1106](docs/decisions/1106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md),
   [ADR-1111](docs/decisions/1111-complete-outbound-fetch-ssrf-coverage.md)). One injectable guard,
   `IOutboundHttpForgeryGuard`, pins each connection to the resolved IP and refuses loopback, private, CGNAT, link-local,
@@ -5123,7 +5123,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **A client registered with `subject_type = pairwise` receives a per-sector Pairwise Pseudonymous Identifier as its
   `sub`**, so relying parties in different sectors cannot correlate the same end-user (issue
   [#47](https://github.com/NCodeGroup/identity/issues/47), OpenID Connect Core 1.0 §8,
-  [ADR-1093](docs/decisions/1093-pairwise-subject-identifiers.md)). The identifier is a stateless, deterministic
+  [ADR-1093](docs/decisions/1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md)). The identifier is a stateless, deterministic
   derivation, `base64url(SHA-256(sectorIdentifier ∥ principalId ∥ tenantId ∥ pairwise_salt))`, through the replaceable
   `ISubjectIdentifierService`, with no table or store of its own. The principal id stays the one internal subject behind
   grants, consent, sessions and revocation; pairwise changes only the emitted `sub` in the ID token, access token,
@@ -5312,7 +5312,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([#515](https://github.com/NCodeGroup/identity/issues/515)).
 
 - **End-session finds the subject from server state, never from the `sub` of the `id_token_hint`.** With pairwise
-  subject identifiers ([ADR-1093](docs/decisions/1093-pairwise-subject-identifiers.md)), the hint's `sub` is a
+  subject identifiers ([ADR-1093](docs/decisions/1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md)), the hint's `sub` is a
   per-sector pseudonym from a one-way projection. `DefaultResolveEndSessionSubjectHandler` reads only `sid` and
   `client_id` from the hint and looks up the stable subject in the persisted session grant, or in the OP login cookie
   when there is no grant. Subject-keyed revocation therefore matches the subject's grants, and each relying party's

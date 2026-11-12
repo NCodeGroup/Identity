@@ -82,7 +82,7 @@ the server does not control.
 
 ## References
 
-- [ADR-1095](1095-sector-identifier-uri-fetch-and-ssrf-guard.md),
+- [ADR-1093](1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md),
   [ADR-1106](1106-runtime-jwks-uri-client-key-resolution-and-shared-ssrf-guard.md),
   [ADR-1111](1111-complete-outbound-fetch-ssrf-coverage.md),
   [ADR-1252](1252-a-revocation-list-retrieval-is-shared-a-failed-one-is-remembered-and-soft-fail-is-opt-in.md)

@@ -6,7 +6,7 @@
 
 ## Context
 
-Pairwise subject identifiers ([ADR-1093](1093-pairwise-subject-identifiers.md)) project the stable internal
+Pairwise subject identifiers ([ADR-1093](1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md)) project the stable internal
 `PrincipalId` to a per-sector pseudonym at the moment the subject leaves the server, using a **one-way, stateless**
 derivation (`base64url(SHA-256(sector ∥ principalId ∥ tenantId ∥ pairwise_salt))`). The projection is deliberately not
 invertible and keeps **no persisted mapping** — the same security property the grant-persistence model relies on, where
@@ -59,7 +59,7 @@ Concretely, `DefaultResolveEndSessionSubjectHandler`:
   silent-no-op-revocation bugs are removed.
 - No reverse map, table, entity, or migration is introduced; the one-way projection stays one-way, consistent with the
   grant-persistence hashing model. The replaceable `ISubjectIdentifierService`
-  ([ADR-1093](1093-pairwise-subject-identifiers.md)) remains the only pairwise seam.
+  ([ADR-1093](1093-a-pairwise-subject-is-a-one-way-projection-of-the-principal-over-a-verified-sector.md)) remains the only pairwise seam.
 - A hint that carries only a pairwise `sub` with **no resolvable session** (no `sid`, an already-lapsed session, and no
   login cookie) leaves the subject unresolved — a safe, documented limitation: the OP declines to reverse a pseudonym
   rather than guess or silently revoke the wrong subject. In practice this is unreachable for OP-issued tokens, which

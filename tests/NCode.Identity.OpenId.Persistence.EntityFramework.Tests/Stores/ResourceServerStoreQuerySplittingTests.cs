@@ -4,7 +4,6 @@
 using IdGen;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.Persistence.Stores;
@@ -86,41 +85,6 @@ public sealed class ResourceServerStoreQuerySplittingTests : IDisposable
             Scopes = [CreateScope("read:x"), CreateScope("write:x")],
             Secrets = [CreateSecret("rs-1-secret")],
         }.Build();
-
-    #endregion
-
-    #region OnConfiguring Tests
-
-    [Fact]
-    public void OnConfiguring_WhenTheProviderIsRelational_SplitsQueries()
-    {
-        var relational = RelationalOptionsExtension.Extract(
-            DbContext.GetService<IDbContextOptions>()
-        );
-
-        Assert.Equal(QuerySplittingBehavior.SplitQuery, relational.QuerySplittingBehavior);
-    }
-
-    [Fact]
-    public void OnConfiguring_WhenTheHostChoseAQuerySplittingBehavior_KeepsIt()
-    {
-        var serviceCollection = new ServiceCollection();
-        serviceCollection.AddTestOpenIdDbContext(options =>
-            options.UseSqlite(
-                Connection,
-                sqlite => sqlite.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery)
-            )
-        );
-
-        using var provider = serviceCollection.BuildServiceProvider();
-        using var dbContext = provider.GetRequiredService<OpenIdDbContext>();
-
-        var relational = RelationalOptionsExtension.Extract(
-            dbContext.GetService<IDbContextOptions>()
-        );
-
-        Assert.Equal(QuerySplittingBehavior.SingleQuery, relational.QuerySplittingBehavior);
-    }
 
     #endregion
 

@@ -184,7 +184,7 @@ public sealed class ManagementApiEndpointHandlerTests : IDisposable
         var json = Assert.IsType<JsonHttpResult<string>>(result);
 
         Assert.Equal("a", json.Value);
-        Assert.Equal(ConcurrencyToken, httpContext.Response.Headers.ETag.ToString());
+        Assert.Equal($"\"{ConcurrencyToken}\"", httpContext.Response.Headers.ETag.ToString());
     }
 
     [Fact]
@@ -192,7 +192,28 @@ public sealed class ManagementApiEndpointHandlerTests : IDisposable
     {
         SetupAuthorization(AuthorizationResult.Success());
         var httpContext = CreateHttpContext(authenticated: true);
-        httpContext.Request.Headers.IfNoneMatch = ConcurrencyToken;
+        httpContext.Request.Headers.IfNoneMatch = $"\"{ConcurrencyToken}\"";
+
+        var result = await Handler.InvokeProcessGetAsync(
+            httpContext,
+            new object(),
+            Operations.Read,
+            _ => ValueTask.FromResult<TestValue?>(new TestValue("a")),
+            value => value.Name,
+            CancellationToken.None
+        );
+
+        var status = Assert.IsType<StatusCodeHttpResult>(result);
+
+        Assert.Equal(StatusCodes.Status304NotModified, status.StatusCode);
+    }
+
+    [Fact]
+    public async Task ProcessGetAsync_WhenIfNoneMatchIsTheWeakTag_ReturnsNotModified()
+    {
+        SetupAuthorization(AuthorizationResult.Success());
+        var httpContext = CreateHttpContext(authenticated: true);
+        httpContext.Request.Headers.IfNoneMatch = $"W/\"{ConcurrencyToken}\"";
 
         var result = await Handler.InvokeProcessGetAsync(
             httpContext,

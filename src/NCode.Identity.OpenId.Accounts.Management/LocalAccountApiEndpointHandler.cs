@@ -261,7 +261,7 @@ internal class LocalAccountApiEndpointHandler(
             ToResourceValues(resource)
         );
 
-        httpContext.Response.Headers.ETag = account.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(account.ConcurrencyToken);
         return TypedResults.Created(
             $"/tenants/{tenantId}/local-accounts/{localAccountId}",
             resource
@@ -390,7 +390,7 @@ internal class LocalAccountApiEndpointHandler(
             ToResourceValues(ToLocalAccountResource(account))
         );
 
-        httpContext.Response.Headers.ETag = account.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(account.ConcurrencyToken);
         return TypedResults.NoContent();
     }
 
@@ -583,7 +583,7 @@ internal class LocalAccountApiEndpointHandler(
             ToResourceValues(ToLocalAccountResource(account))
         );
 
-        httpContext.Response.Headers.ETag = account.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(account.ConcurrencyToken);
         return TypedResults.NoContent();
     }
 
@@ -845,7 +845,7 @@ internal class LocalAccountApiEndpointHandler(
             resourceValues: null
         );
 
-        httpContext.Response.Headers.ETag = principal.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(principal.ConcurrencyToken);
         return TypedResults.NoContent();
     }
 

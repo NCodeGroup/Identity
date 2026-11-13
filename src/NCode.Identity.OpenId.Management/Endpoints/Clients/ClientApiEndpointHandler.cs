@@ -982,7 +982,7 @@ internal class ClientApiEndpointHandler(
         }
 
         // The store assigns the row token on insert (ADR-1012), so no re-read is needed.
-        httpContext.Response.Headers.ETag = client.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(client.ConcurrencyToken);
         return TypedResults.Created(
             $"/tenants/{client.TenantId}/clients/{client.ClientId}",
             resource
@@ -996,7 +996,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="request">The JSON Patch document to apply to the client metadata.</param>
-    /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current client.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the current client. It accepts <c>*</c>, a quoted strong entity tag or a comma-separated list of them, or the bare <c>concurrencyToken</c>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The client was updated.</response>
     /// <response code="400">The JSON Patch document cannot be applied to the client.</response>
@@ -1304,7 +1304,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="request">The JSON Patch document to apply to the settings.</param>
-    /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current settings.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the current settings. It accepts <c>*</c>, a quoted strong entity tag or a comma-separated list of them, or the bare <c>concurrencyToken</c>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The client's settings were updated, and the client was issued the secret in the body, whose
     /// material is revealed only here.</response>
@@ -1357,11 +1357,15 @@ internal class ClientApiEndpointHandler(
         }
 
         if (
-            !string.IsNullOrEmpty(ifMatch)
-            && !string.Equals(ifMatch, clientSettings.ConcurrencyToken, StringComparison.Ordinal)
+            ManagementEntityTags.GetIfMatchErrorOrDefault(
+                ifMatch,
+                clientSettings.ConcurrencyToken,
+                "settings"
+            ) is
+            { } preconditionError
         )
         {
-            return ManagementProblems.PreconditionFailed("settings");
+            return ToErrorResult(preconditionError);
         }
 
         var jsonObject = ClientSettingsJson.ToJsonObject(clientSettings.Value);
@@ -1532,7 +1536,9 @@ internal class ClientApiEndpointHandler(
 
         await RecordSecretChangesAsync(httpContext, client, reconciliation);
 
-        httpContext.Response.Headers.ETag = clientSettings.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(
+            clientSettings.ConcurrencyToken
+        );
 
         // The issued secret's material is revealed here only (ADR-1050).
         return reconciliation.IssuedSecret is { } issued
@@ -1782,7 +1788,9 @@ internal class ClientApiEndpointHandler(
         );
 
         // The store assigns the secret's token on insert (ADR-1012), so no re-read is needed.
-        httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(
+            generatedSecret.Secret.ConcurrencyToken
+        );
 
         // The one-time material is revealed here only (ADR-1050); the audit snapshot above stays material-free.
         return TypedResults.Created(
@@ -1905,7 +1913,9 @@ internal class ClientApiEndpointHandler(
             ToResourceValues(secretResource)
         );
 
-        httpContext.Response.Headers.ETag = importedSecret.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(
+            importedSecret.ConcurrencyToken
+        );
 
         // An imported public key has no secret to reveal; return the material-free resource.
         return TypedResults.Created(
@@ -1997,7 +2007,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="request">The <see cref="UpdateSecretRequest"/> with the new metadata.</param>
-    /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current secret.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the current secret. It accepts <c>*</c>, a quoted strong entity tag or a comma-separated list of them, or the bare <c>concurrencyToken</c>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The secret was updated.</response>
     /// <response code="400">The new metadata is not valid for the secret: an unsupported use or algorithm, a key management service's key whose algorithm changes, or an incoherent lifecycle.</response>
@@ -2059,11 +2069,15 @@ internal class ClientApiEndpointHandler(
         }
 
         if (
-            !string.IsNullOrEmpty(ifMatch)
-            && !string.Equals(ifMatch, secret.ConcurrencyToken, StringComparison.Ordinal)
+            ManagementEntityTags.GetIfMatchErrorOrDefault(
+                ifMatch,
+                secret.ConcurrencyToken,
+                "secret"
+            ) is
+            { } preconditionError
         )
         {
-            return ManagementProblems.PreconditionFailed("secret");
+            return ToErrorResult(preconditionError);
         }
 
         var metadataError = SecretValidator.ValidateUpdate(secret, request);
@@ -2184,13 +2198,13 @@ internal class ClientApiEndpointHandler(
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="secretId">The identifier of the secret to rotate.</param>
     /// <param name="request">The <see cref="RotateSecretRequest"/> describing the replacement.</param>
-    /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the rotated secret.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the rotated secret. It accepts <c>*</c>, a quoted strong entity tag or a comma-separated list of them, or the bare <c>concurrencyToken</c>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The replacement secret.</response>
     /// <response code="400">The secret is not a shared secret or the replacement could not be generated from its parameters.</response>
     /// <response code="404">The client or the secret does not exist.</response>
     /// <response code="409">The client already holds a secret with the generated identifier or is managed by its host.</response>
-    /// <response code="412">The <c>If-Match</c> token does not match the rotated secret, or another request changed the client's secrets after this request read them.</response>
+    /// <response code="412">The <c>If-Match</c> header does not match the rotated secret's current entity tag, is malformed, or another request changed the client's secrets after this request read them.</response>
     // See ADR-1320.
     [EndpointName("api/clients/secrets/rotate")]
     internal virtual async ValueTask<IResult> RotateSecretAsync(
@@ -2250,11 +2264,15 @@ internal class ClientApiEndpointHandler(
         }
 
         if (
-            !string.IsNullOrEmpty(ifMatch)
-            && !string.Equals(ifMatch, secret.ConcurrencyToken, StringComparison.Ordinal)
+            ManagementEntityTags.GetIfMatchErrorOrDefault(
+                ifMatch,
+                secret.ConcurrencyToken,
+                "secret"
+            ) is
+            { } preconditionError
         )
         {
-            return ManagementProblems.PreconditionFailed("secret");
+            return ToErrorResult(preconditionError);
         }
 
         if (secret.SecretType != SecretTypes.Symmetric)
@@ -2386,7 +2404,9 @@ internal class ClientApiEndpointHandler(
             );
         }
 
-        httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(
+            generatedSecret.Secret.ConcurrencyToken
+        );
 
         // The replacement's material is revealed here only (ADR-1050).
         return TypedResults.Created(

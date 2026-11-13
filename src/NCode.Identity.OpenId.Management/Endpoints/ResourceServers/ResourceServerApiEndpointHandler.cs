@@ -536,7 +536,9 @@ internal class ResourceServerApiEndpointHandler(
             );
         }
 
-        httpContext.Response.Headers.ETag = resourceServer.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(
+            resourceServer.ConcurrencyToken
+        );
         return TypedResults.Created(
             $"/tenants/{tenantId}/resource-servers/{resourceServerId}",
             ToResourceServerResource(resourceServer)
@@ -1225,7 +1227,7 @@ internal class ResourceServerApiEndpointHandler(
     /// <response code="204">The settings were updated.</response>
     /// <response code="400">The JSON Patch document cannot be applied to the settings, or the patched settings are not valid for a resource server.</response>
     /// <response code="404">The resource server does not exist.</response>
-    /// <response code="412">The supplied <c>If-Match</c> concurrency token did not match.</response>
+    /// <response code="412">The supplied <c>If-Match</c> header does not match the current settings' entity tag, or is malformed.</response>
     [EndpointName("api/resource-servers/settings/update")]
     internal virtual async ValueTask<IResult> UpdateSettingsAsync(
         HttpContext httpContext,
@@ -1264,11 +1266,15 @@ internal class ResourceServerApiEndpointHandler(
         }
 
         if (
-            !string.IsNullOrEmpty(ifMatch)
-            && !string.Equals(ifMatch, settings.ConcurrencyToken, StringComparison.Ordinal)
+            ManagementEntityTags.GetIfMatchErrorOrDefault(
+                ifMatch,
+                settings.ConcurrencyToken,
+                "settings"
+            ) is
+            { } preconditionError
         )
         {
-            return ManagementProblems.PreconditionFailed("settings");
+            return ToErrorResult(preconditionError);
         }
 
         var jsonObject = ToJsonObject(settings.Value);
@@ -1327,7 +1333,7 @@ internal class ResourceServerApiEndpointHandler(
             ToResourceValues(ToResourceServerSettingsResource(settings))
         );
 
-        httpContext.Response.Headers.ETag = settings.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(settings.ConcurrencyToken);
         return TypedResults.NoContent();
     }
 
@@ -1519,7 +1525,9 @@ internal class ResourceServerApiEndpointHandler(
             ToResourceValues(ToSecretResource(generatedSecret.Secret))
         );
 
-        httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(
+            generatedSecret.Secret.ConcurrencyToken
+        );
         return TypedResults.Created(
             $"/tenants/{tenantId}/resource-servers/{resourceServerId}/secrets/{secretId}",
             ToCreatedSecretResource(generatedSecret.Secret, generatedSecret.SecretMaterial)
@@ -1635,7 +1643,9 @@ internal class ResourceServerApiEndpointHandler(
             ToResourceValues(importedSecretResource)
         );
 
-        httpContext.Response.Headers.ETag = importedSecret.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(
+            importedSecret.ConcurrencyToken
+        );
         return TypedResults.Created(
             $"/tenants/{tenantId}/resource-servers/{resourceServerId}/secrets/{secretId}",
             importedSecretResource
@@ -1721,7 +1731,7 @@ internal class ResourceServerApiEndpointHandler(
     /// <response code="204">The secret was updated.</response>
     /// <response code="400">The new metadata is not valid for the secret: an unsupported use or algorithm, a key management service's key whose algorithm changes, or an incoherent lifecycle.</response>
     /// <response code="404">The resource server or the secret does not exist.</response>
-    /// <response code="412">The supplied <c>If-Match</c> concurrency token did not match.</response>
+    /// <response code="412">The supplied <c>If-Match</c> header does not match the current secret's entity tag, or is malformed.</response>
     [EndpointName("api/resource-servers/secrets/update")]
     internal virtual async ValueTask<IResult> UpdateSecretAsync(
         HttpContext httpContext,
@@ -1766,11 +1776,15 @@ internal class ResourceServerApiEndpointHandler(
         var secret = resourceServerSecret.Value;
 
         if (
-            !string.IsNullOrEmpty(ifMatch)
-            && !string.Equals(ifMatch, secret.ConcurrencyToken, StringComparison.Ordinal)
+            ManagementEntityTags.GetIfMatchErrorOrDefault(
+                ifMatch,
+                secret.ConcurrencyToken,
+                "secret"
+            ) is
+            { } preconditionError
         )
         {
-            return ManagementProblems.PreconditionFailed("secret");
+            return ToErrorResult(preconditionError);
         }
 
         var metadataError = SecretValidator.ValidateUpdate(secret, request);

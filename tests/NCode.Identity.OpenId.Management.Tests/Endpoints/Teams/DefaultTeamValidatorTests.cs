@@ -542,6 +542,20 @@ public sealed class DefaultTeamValidatorTests : IDisposable
     }
 
     [Fact]
+    public async Task ValidateUpdateAsync_WhenIfMatchIsTheQuotedEntityTag_ReturnsNull()
+    {
+        var error = await UpdateAsync(
+            CreateTeam(concurrencyToken: "team-ct"),
+            new UpdateTeamRequest { DisplayName = "New" },
+            ifMatch: "\"team-ct\"",
+            authenticated: true,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
     public async Task ValidateUpdateAsync_WhenDisplayNameBlank_Returns400()
     {
         var error = await UpdateAsync(

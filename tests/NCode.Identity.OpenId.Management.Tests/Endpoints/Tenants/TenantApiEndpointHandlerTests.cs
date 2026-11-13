@@ -746,7 +746,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         Assert.Equal("development", json.Value.Environment.Type);
         Assert.Equal("Dev EU", json.Value.Environment.Name);
         Assert.False(json.Value.Environment.IsProduction);
-        Assert.Equal("tenant-ct", httpContext.Response.Headers.ETag);
+        Assert.Equal("\"tenant-ct\"", httpContext.Response.Headers.ETag);
     }
 
     [Fact]
@@ -2045,6 +2045,41 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateSettingsAsync_WhenIfMatchIsTheQuotedEntityTag_ReturnsNoContent()
+    {
+        SetupTenantChangedAnnouncement();
+        SetupTenantChangedAudit();
+        SetupValidSettings();
+        SetupNoChangedLimits();
+        SetupStore();
+        var settings = CreateSettings("settings-ct");
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(settings)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupClientCoherenceCheck();
+        SetupSettingsWrite(settings);
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            TenantId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: "\"settings-ct\"",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+        VerifyTenantChanged(settingsChanged: true);
+    }
+
+    [Fact]
     public async Task UpdateSettingsAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTenant()
     {
         SetupAuthorization(AuthorizationResult.Failed());
@@ -2214,7 +2249,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var created = Assert.IsType<Created<SecretResource>>(result);
         Assert.Equal("secret-1", created.Value?.SecretId);
-        Assert.Equal("secret-ct", httpContext.Response.Headers.ETag);
+        Assert.Equal("\"secret-ct\"", httpContext.Response.Headers.ETag);
         VerifyTenantChanged(settingsChanged: false);
     }
 
@@ -3846,7 +3881,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         Assert.NotNull(created.Value);
         Assert.Equal("seeded-ct", created.Value.ConcurrencyToken);
         Assert.Equal("production", created.Value.Environment?.Type);
-        Assert.Equal("seeded-ct", httpContext.Response.Headers.ETag.ToString());
+        Assert.Equal("\"seeded-ct\"", httpContext.Response.Headers.ETag.ToString());
     }
 
     [Fact]

@@ -2327,9 +2327,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   store, paginates on its chronological surrogate id. There is deliberately no query protocol (no OData); see
   [ADR-1014](docs/decisions/1014-management-resources-carry-opaque-server-identifiers-and-list-one-keyset-page-at-a-time.md).
 
-- **Every management write honors optimistic concurrency.** A resource carries its `concurrencyToken`, a write sends it
-  as `If-Match`, and a write that loses a concurrency race is answered `412 Precondition Failed`
-  ([ADR-1483](docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md), issue
+- **Every management write honors optimistic concurrency.** A resource carries its `concurrencyToken`, and every
+  response that returns it sends the RFC 9110 strong entity tag `ETag: "<concurrencyToken>"`. A write sends `If-Match`
+  as that entity tag, `*` or the bare `concurrencyToken`, compared strongly. A read honors `If-None-Match` under weak
+  comparison with `304 Not Modified`. A write whose precondition fails or is malformed, or that loses a concurrency
+  race, is answered `412 Precondition Failed`
+  ([ADR-1513](docs/decisions/1513-management-responses-carry-strong-entity-tags-that-preconditions-compare-as-rfc-9110-says.md),
+  [ADR-1483](docs/decisions/1483-every-management-error-is-a-problem-document-that-its-route-declares.md), issues
+  [#782](https://github.com/NCodeGroup/identity/issues/782),
   [#261](https://github.com/NCodeGroup/identity/issues/261)).
 
 - **`GET /api/capabilities` publishes a management discovery document composed from registered providers
@@ -2992,7 +2997,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   `UseIdGenerator` attribute are public so a slice reuses them. Hosts register the framework plus each slice
   (`AddEntityFrameworkCorePersistence<TDbContext>()`), and a slice may expose typed `DbSet` accessors for its own
   entities as extension members. `EntityStoreManager` has a `DbContext`-less store-factory fallback, so a store that is
-  not built on Entity Framework resolves without referencing `OpenIdDbContext`
+  not built on Entity Framework resolves without referencing `OpenIdDbContext`. On a relational provider,
+  `OpenIdDbContext` runs a query that includes several collections as one SQL query per collection, unless the host
+  chose a query splitting behavior. Split queries read one snapshot only inside a transaction, so a host chooses
+  `UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery)` or a query calls `AsSingleQuery()` where it needs one
   ([ADR-1052](docs/decisions/1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md),
   [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md)).
 

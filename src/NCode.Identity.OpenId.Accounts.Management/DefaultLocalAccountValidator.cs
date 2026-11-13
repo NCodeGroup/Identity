@@ -88,18 +88,15 @@ internal class DefaultLocalAccountValidator(IAuthorizationService authorizationS
     )
     {
         if (
-            !string.IsNullOrEmpty(ifMatch)
-            && !string.Equals(ifMatch, concurrencyToken, StringComparison.Ordinal)
+            ManagementEntityTags.GetIfMatchErrorOrDefault(
+                ifMatch,
+                concurrencyToken,
+                "local account"
+            ) is
+            { } preconditionError
         )
         {
-            return ValueTask.FromResult<ManagementError?>(
-                new ManagementError
-                {
-                    StatusCode = StatusCodes.Status412PreconditionFailed,
-                    Detail =
-                        "The supplied If-Match token does not match the current local account.",
-                }
-            );
+            return ValueTask.FromResult<ManagementError?>(preconditionError);
         }
 
         return CheckUserNameAvailableAsync(

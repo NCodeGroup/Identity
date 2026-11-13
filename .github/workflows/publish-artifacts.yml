@@ -287,14 +287,9 @@ jobs:
         shell: pwsh
         run: |
           foreach ($image in 'ncode-identity-host', 'ncode-identity-management-console') {
-            try {
-              $raw = docker buildx imagetools inspect --raw "ghcr.io/ncodegroup/${image}:$env:VERSION"
-              if ($LASTEXITCODE -ne 0) { throw "docker buildx imagetools inspect failed for $image." }
-              $index = $raw | ConvertFrom-Json
-            }
-            catch {
-              throw "$($_.Exception.Message) $env:PACKAGE_HINT"
-            }
+            $raw = docker buildx imagetools inspect --raw "ghcr.io/ncodegroup/${image}:$env:VERSION"
+            if ($LASTEXITCODE -ne 0) { throw "docker buildx imagetools inspect failed for $image. $env:PACKAGE_HINT" }
+            $index = $raw | ConvertFrom-Json
             $platforms = @($index.manifests.platform | ForEach-Object { "$($_.os)/$($_.architecture)" })
             foreach ($platform in 'linux/amd64', 'linux/arm64') {
               if ($platforms -notcontains $platform) { throw "$image is missing the platform $platform." }
@@ -334,26 +329,18 @@ jobs:
       - name: The chart pulls anonymously
         shell: pwsh
         run: |
-          try {
-            helm pull oci://ghcr.io/ncodegroup/charts/ncode-identity-host --version $env:VERSION --destination pulled
-            if ($LASTEXITCODE -ne 0) { throw "helm pull failed." }
-          }
-          catch {
-            throw "$($_.Exception.Message) $env:PACKAGE_HINT"
-          }
+          New-Item -ItemType Directory -Force -Path pulled | Out-Null
+          helm pull oci://ghcr.io/ncodegroup/charts/ncode-identity-host --version $env:VERSION --destination pulled
+          if ($LASTEXITCODE -ne 0) { throw "helm pull failed. $env:PACKAGE_HINT" }
           $chart = helm show chart "pulled/ncode-identity-host-$($env:VERSION).tgz"
+          if ($LASTEXITCODE -ne 0) { throw "helm show chart failed." }
           if ($chart -notcontains "version: $env:VERSION") { throw "The pulled chart is not version $env:VERSION." }
           if ($chart -notcontains "appVersion: $env:VERSION") { throw "The pulled chart has the wrong appVersion." }
 
       - name: The OpenAPI document pulls anonymously
         shell: pwsh
         run: |
-          try {
-            oras pull "ghcr.io/ncodegroup/openapi/ncode-identity-host:$env:VERSION" -o pulled-openapi
-            if ($LASTEXITCODE -ne 0) { throw "oras pull failed." }
-          }
-          catch {
-            throw "$($_.Exception.Message) $env:PACKAGE_HINT"
-          }
+          oras pull "ghcr.io/ncodegroup/openapi/ncode-identity-host:$env:VERSION" -o pulled-openapi
+          if ($LASTEXITCODE -ne 0) { throw "oras pull failed. $env:PACKAGE_HINT" }
           $document = Get-Content pulled-openapi/v1.json -Raw | ConvertFrom-Json
           if ($document.info.version -ne $env:VERSION) { throw "The pulled OpenAPI document is not version $env:VERSION." }

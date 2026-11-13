@@ -356,7 +356,7 @@ internal class TenantRemoteSecretApiEndpointHandler(
         );
 
         // The store assigns the secret's token on insert (ADR-1012), so no re-read is needed.
-        httpContext.Response.Headers.ETag = secret.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(secret.ConcurrencyToken);
         return TypedResults.Created(
             $"/tenants/{tenantId}/secrets/{secret.SecretId}",
             secretResource

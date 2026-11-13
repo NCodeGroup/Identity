@@ -224,7 +224,7 @@ internal class ClientGrantApiEndpointHandler(
         await grantStore.AddAsync(grant, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
-        httpContext.Response.Headers.ETag = grant.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(grant.ConcurrencyToken);
         return TypedResults.Created(
             $"/tenants/{tenantId}/clients/{clientId}/grants/{request.ResourceServerId}",
             ToResource(grant)

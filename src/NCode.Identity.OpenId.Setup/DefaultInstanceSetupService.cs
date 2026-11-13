@@ -150,6 +150,29 @@ internal sealed class DefaultInstanceSetupService(
         };
     }
 
+    // The role that confers every management authority (ADR-1417) is held at the platform node.
+    private async ValueTask StageGlobalAdminAsync(
+        IStoreManager storeManager,
+        string tenantId,
+        string principalId,
+        CancellationToken cancellationToken
+    ) =>
+        await storeManager
+            .GetStore<IRoleAssignmentStore>()
+            .AddAsync(
+                new PersistedRoleAssignment
+                {
+                    TenantId = tenantId,
+                    AssignmentId = CryptoService.GenerateResourceId(),
+                    PrincipalId = principalId,
+                    RoleName = BuiltInRoles.GlobalAdmin,
+                    ResourceType = OpenIdResourceTypes.Platform,
+                    ResourceId = OpenIdConstants.PlatformResourceId,
+                    ConcurrencyToken = string.Empty,
+                },
+                cancellationToken
+            );
+
     /// <inheritdoc />
     public async ValueTask<InstanceSetupResult> SetUpAsync(
         InstanceSetupRequest request,
@@ -262,21 +285,12 @@ internal sealed class DefaultInstanceSetupService(
         if (!creation.Succeeded)
             return new InstanceSetupResult { Error = creation.Error };
 
-        await storeManager
-            .GetStore<IRoleAssignmentStore>()
-            .AddAsync(
-                new PersistedRoleAssignment
-                {
-                    TenantId = tenantId,
-                    AssignmentId = CryptoService.GenerateResourceId(),
-                    PrincipalId = creation.PrincipalId,
-                    RoleName = BuiltInRoles.GlobalAdmin,
-                    ResourceType = OpenIdResourceTypes.Platform,
-                    ResourceId = OpenIdConstants.PlatformResourceId,
-                    ConcurrencyToken = string.Empty,
-                },
-                cancellationToken
-            );
+        await StageGlobalAdminAsync(
+            storeManager,
+            tenantId,
+            creation.PrincipalId,
+            cancellationToken
+        );
 
         string? consoleClientId = null;
         if (consoleRegistration is { } registration)
@@ -321,21 +335,12 @@ internal sealed class DefaultInstanceSetupService(
             if (!machineCreation.Succeeded)
                 return CreateClientFailureResult(machineCreation, "automation client");
 
-            await storeManager
-                .GetStore<IRoleAssignmentStore>()
-                .AddAsync(
-                    new PersistedRoleAssignment
-                    {
-                        TenantId = tenantId,
-                        AssignmentId = CryptoService.GenerateResourceId(),
-                        PrincipalId = machineCreation.Client.PrincipalId,
-                        RoleName = BuiltInRoles.GlobalAdmin,
-                        ResourceType = OpenIdResourceTypes.Platform,
-                        ResourceId = OpenIdConstants.PlatformResourceId,
-                        ConcurrencyToken = string.Empty,
-                    },
-                    cancellationToken
-                );
+            await StageGlobalAdminAsync(
+                storeManager,
+                tenantId,
+                machineCreation.Client.PrincipalId,
+                cancellationToken
+            );
 
             automationClientId = machineCreation.Client.ClientId;
         }

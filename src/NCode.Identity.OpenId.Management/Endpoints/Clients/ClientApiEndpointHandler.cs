@@ -122,7 +122,7 @@ internal class ClientApiEndpointHandler(
     /// Flattens the per-setting errors of a <see cref="ClientCreation"/> into <see cref="SettingError"/> values, in
     /// the order the settings and their messages appear.
     /// </summary>
-    private static IReadOnlyList<SettingError> ToSettingErrors(
+    private static IReadOnlyList<SettingError> FlattenSettingErrors(
         IReadOnlyDictionary<string, string[]>? settingErrors
     ) =>
         settingErrors is null
@@ -887,7 +887,7 @@ internal class ClientApiEndpointHandler(
 
         var clientId = CryptoService.GenerateResourceId();
 
-        var settings = ToJsonObject(request.Settings);
+        var settings = ClientSettingsJson.ToJsonObject(request.Settings);
         if (!settings.ContainsKey(OpenIdSettingNames.GrantTypesSupported))
         {
             settings[OpenIdSettingNames.GrantTypesSupported] = new JsonArray(
@@ -940,7 +940,7 @@ internal class ClientApiEndpointHandler(
         {
             return creation.Error is { } creationError
                 ? ToErrorResult(creationError)
-                : SettingsValidationProblem(ToSettingErrors(creation.SettingErrors));
+                : SettingsValidationProblem(FlattenSettingErrors(creation.SettingErrors));
         }
 
         var client = creation.Client;
@@ -1364,7 +1364,7 @@ internal class ClientApiEndpointHandler(
             return ManagementProblems.PreconditionFailed("settings");
         }
 
-        var jsonObject = ToJsonObject(clientSettings.Value);
+        var jsonObject = ClientSettingsJson.ToJsonObject(clientSettings.Value);
 
         try
         {

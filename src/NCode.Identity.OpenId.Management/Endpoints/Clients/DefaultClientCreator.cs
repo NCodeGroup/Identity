@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Environments;
@@ -69,7 +68,9 @@ internal sealed class DefaultClientCreator(
                 TenantId = request.TenantId,
                 ClientId = request.ClientId,
                 ConcurrencyToken = string.Empty,
-                Value = JsonSerializer.SerializeToElement(ToJsonObject(request.Settings)),
+                Value = JsonSerializer.SerializeToElement(
+                    ClientSettingsJson.ToJsonObject(request.Settings)
+                ),
             },
             Secrets = new PersistedClientSecrets
             {
@@ -98,7 +99,7 @@ internal sealed class DefaultClientCreator(
         )
         {
             return ClientCreation.InvalidSettings(
-                ToSettingErrors([
+                ClientSettingsJson.ToSettingErrors([
                     new SettingError(
                         OpenIdSettingNames.GrantTypesSupported,
                         DefaultClientSettingsEvaluator.MachineClientGrantTypesDetail
@@ -117,7 +118,9 @@ internal sealed class DefaultClientCreator(
         );
         if (settingErrors.Count > 0)
         {
-            return ClientCreation.InvalidSettings(ToSettingErrors(settingErrors));
+            return ClientCreation.InvalidSettings(
+                ClientSettingsJson.ToSettingErrors(settingErrors)
+            );
         }
 
         var effectiveSettingErrors = await ClientSettingsEvaluator.ValidateEffectiveSettingsAsync(
@@ -128,7 +131,9 @@ internal sealed class DefaultClientCreator(
         );
         if (effectiveSettingErrors.Count > 0)
         {
-            return ClientCreation.InvalidSettings(ToSettingErrors(effectiveSettingErrors));
+            return ClientCreation.InvalidSettings(
+                ClientSettingsJson.ToSettingErrors(effectiveSettingErrors)
+            );
         }
 
         var jwksUriRefusal = await ClientJwksUriChecker.GetRefusalAsync(
@@ -138,7 +143,9 @@ internal sealed class DefaultClientCreator(
         );
         if (jwksUriRefusal is not null)
         {
-            return ClientCreation.InvalidSettings(ToSettingErrors([jwksUriRefusal.Value]));
+            return ClientCreation.InvalidSettings(
+                ClientSettingsJson.ToSettingErrors([jwksUriRefusal.Value])
+            );
         }
 
         if (request.Jwks is { } jwks)
@@ -208,29 +215,4 @@ internal sealed class DefaultClientCreator(
 
     private static ManagementError BadRequest(string detail) =>
         new() { StatusCode = StatusCodes.Status400BadRequest, Detail = detail };
-
-    // Groups the errors by setting name in the order the settings first appear, as a validation problem lists them.
-    private static Dictionary<string, string[]> ToSettingErrors(
-        IReadOnlyList<SettingError> errors
-    ) =>
-        errors
-            .GroupBy(error => error.SettingName, StringComparer.Ordinal)
-            .ToDictionary(
-                group => group.Key,
-                group => group.Select(error => error.Message).ToArray(),
-                StringComparer.Ordinal
-            );
-
-    private static JsonObject ToJsonObject(JsonElement element)
-    {
-        switch (element.ValueKind)
-        {
-            case JsonValueKind.Null:
-            case JsonValueKind.Object:
-                return JsonObject.Create(element) ?? [];
-
-            default:
-                return [];
-        }
-    }
 }

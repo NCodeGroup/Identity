@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Text.Json;
-using System.Text.Json.Nodes;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Persistence.Stores;
 using NCode.Identity.OpenId.Settings;
@@ -175,7 +174,7 @@ internal sealed class DefaultClientSettingsEvaluator(
             return clientSettings;
         }
 
-        var settings = ToJsonObject(clientSettings);
+        var settings = ClientSettingsJson.ToJsonObject(clientSettings);
         if (settings.ContainsKey(OpenIdSettingNames.TokenEndpointAuthMethod))
         {
             return clientSettings;
@@ -183,18 +182,5 @@ internal sealed class DefaultClientSettingsEvaluator(
 
         settings[OpenIdSettingNames.TokenEndpointAuthMethod] = tokenEndpointAuthMethod;
         return JsonSerializer.SerializeToElement(settings);
-    }
-
-    private static JsonObject ToJsonObject(JsonElement element)
-    {
-        switch (element.ValueKind)
-        {
-            case JsonValueKind.Null:
-            case JsonValueKind.Object:
-                return JsonObject.Create(element) ?? [];
-
-            default:
-                return [];
-        }
     }
 }

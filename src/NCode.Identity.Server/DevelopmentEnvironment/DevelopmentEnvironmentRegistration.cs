@@ -21,8 +21,8 @@ namespace NCode.Identity.Server;
 /// <remarks>
 /// A host opts into the developer CORS policy, the bootstrap administrator client, the developer and conformance
 /// seeders, and the developer key pruning with one call. Each convenience does nothing unless its configuration
-/// section is present, and <c>AddProductionSafety</c> is the one place that refuses each of those sections in
-/// Production, so this registration never decides the environment.
+/// section is present, and <c>AddDeploymentSafety</c> is the one place that refuses each of those sections in a
+/// deployment, so this registration never decides the environment.
 /// </remarks>
 // See ADR-1370.
 [PublicAPI]
@@ -33,7 +33,7 @@ public static class DevelopmentEnvironmentRegistration
         /// <summary>
         /// Registers the development-only conveniences: the developer CORS policy, the bootstrap administrator client,
         /// the developer and conformance seeders, and the developer key pruning. Every one does nothing unless its
-        /// section is configured, and <c>AddProductionSafety</c> refuses each configured section in Production.
+        /// section is configured, and <c>AddDeploymentSafety</c> refuses each configured section in a deployment.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> each convenience reads its own section from.</param>
         /// <returns>The same <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>

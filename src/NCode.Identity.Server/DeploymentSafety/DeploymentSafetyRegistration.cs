@@ -6,23 +6,23 @@ using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId;
 using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
+using NCode.Identity.Server.DeploymentSafety;
 using NCode.Identity.Server.DevelopmentEnvironment;
-using NCode.Identity.Server.ProductionSafety;
 
 namespace NCode.Identity.Server;
 
 /// <summary>
-/// Refuses to start a Production deployment whose configuration is only safe for local development or does not
-/// protect its stored secrets.
+/// Refuses to start a deployment (a host without <c>LocalDevelopment:Enabled</c>) whose configuration is only safe for
+/// local development or does not protect its stored secrets.
 /// </summary>
 /// <remarks>
-/// Most settings checked here are conveniences that are correct in Development and dangerous on a public origin. The
+/// Most settings checked here are conveniences that are correct on a developer's machine and dangerous on a public
+/// origin. The
 /// rest describe a secret protection configuration that cannot keep stored secrets readable and private: no root key
 /// that outlives the process, a root key held inline in configuration, or no decision about recovering a lost root
 /// key. Each finding is also silent: a deployment that forgets to override or supply it starts, serves traffic, and
@@ -31,7 +31,7 @@ namespace NCode.Identity.Server;
 /// starting, a server that binds a plain-HTTP endpoint or serves an unusable certificate.
 /// </remarks>
 [PublicAPI]
-public static class ProductionSafetyRegistration
+public static class DeploymentSafetyRegistration
 {
     private const string AllowedHostsConfigurationKey = "AllowedHosts";
 
@@ -46,26 +46,29 @@ public static class ProductionSafetyRegistration
     private const string RecoveryDisabledConfigurationKey = "SecretProtection:Recovery:Disabled";
 
     internal const string KeyRingRepositoryMissingMessage =
-        "Refusing to start in the Production environment: the Data Protection key ring has no repository, so it "
+        "Refusing to start a deployment: the Data Protection key ring has no repository, so it "
         + "falls back to a local directory or to memory and is lost when the replica is replaced. Persist it to "
-        + "storage every replica shares (for example PersistKeysToDbContext).";
+        + "storage every replica shares (for example PersistKeysToDbContext). A host for local development sets "
+        + "'LocalDevelopment:Enabled' to true.";
 
     internal const string KeyRingUnprotectedMessage =
-        "Refusing to start in the Production environment: the Data Protection key ring has no XmlEncryptor. "
-        + "Configure the 'SecretProtection' section: its root key protects the key ring and every stored secret.";
+        "Refusing to start a deployment: the Data Protection key ring has no XmlEncryptor. "
+        + "Configure the 'SecretProtection' section: its root key protects the key ring and every stored secret. "
+        + "A host for local development sets 'LocalDevelopment:Enabled' to true.";
 
     /// <summary>
-    /// Returns every unsafe-for-production finding in <paramref name="configuration"/>, regardless of environment.
+    /// Returns every unsafe-for-a-deployment finding in <paramref name="configuration"/>, regardless of whether
+    /// <c>LocalDevelopment:Enabled</c> is set.
     /// </summary>
     /// <param name="configuration">The <see cref="IConfiguration"/> to inspect.</param>
     /// <returns>The findings, empty when the configuration is safe to expose publicly.</returns>
-    public static IReadOnlyList<ProductionSafetyViolation> FindViolations(
+    public static IReadOnlyList<DeploymentSafetyViolation> FindViolations(
         IConfiguration configuration
     )
     {
         ArgumentNullException.ThrowIfNull(configuration);
 
-        var violations = new List<ProductionSafetyViolation>();
+        var violations = new List<DeploymentSafetyViolation>();
 
         // Stored secrets and the key ring are only as safe as the root key that protects them.
         AddSecretProtectionViolations(configuration, violations);
@@ -79,7 +82,7 @@ public static class ProductionSafetyRegistration
         )
         {
             violations.Add(
-                new ProductionSafetyViolation(
+                new DeploymentSafetyViolation(
                     AllowedHostsConfigurationKey,
                     allowedHosts is null or ""
                         ? "is not set, so every Host header is accepted."
@@ -93,7 +96,7 @@ public static class ProductionSafetyRegistration
         // provisioning replaces it (ADR-1370).
         AddSectionViolationIfPresent(
             DeveloperKeysOptions.DefaultSectionName,
-            "prunes signing keys that can no longer be read and provisions new ones, which in Production hides a lost root key behind a silent key change."
+            "prunes signing keys that can no longer be read and provisions new ones, which in a deployment hides a lost root key behind a silent key change."
         );
 
         AddSectionViolationIfPresent(
@@ -115,7 +118,7 @@ public static class ProductionSafetyRegistration
         AddSectionViolationIfPresent(
             BootstrapAdminOptions.DefaultSectionName,
             "configures the bootstrap client, a development and test convenience whose secret confers GlobalAdmin; "
-                + "a Production instance's first administrator is the root that setup creates."
+                + "a deployment's first administrator is the root that setup creates."
         );
 
         return violations;
@@ -124,14 +127,14 @@ public static class ProductionSafetyRegistration
         {
             if (configuration.GetSection(sectionName).Exists())
                 violations.Add(
-                    new ProductionSafetyViolation(sectionName, problem, "Remove the section.")
+                    new DeploymentSafetyViolation(sectionName, problem, "Remove the section.")
                 );
         }
     }
 
     private static void AddSecretProtectionViolations(
         IConfiguration configuration,
-        List<ProductionSafetyViolation> violations
+        List<DeploymentSafetyViolation> violations
     )
     {
         const string providerResolution =
@@ -143,7 +146,7 @@ public static class ProductionSafetyRegistration
         if (string.IsNullOrWhiteSpace(rootKeyProvider))
         {
             violations.Add(
-                new ProductionSafetyViolation(
+                new DeploymentSafetyViolation(
                     RootKeyProviderConfigurationKey,
                     "is not set, so no root key protects the stored secrets.",
                     providerResolution
@@ -155,7 +158,7 @@ public static class ProductionSafetyRegistration
         )
         {
             violations.Add(
-                new ProductionSafetyViolation(
+                new DeploymentSafetyViolation(
                     RootKeyProviderConfigurationKey,
                     $"'{KeyWrapperNames.Ephemeral}' keeps the root key in memory, so every restart makes every "
                         + "stored secret unreadable.",
@@ -164,11 +167,11 @@ public static class ProductionSafetyRegistration
             );
         }
 
-        // An inline root key in Production configuration is a leaked key even when another provider is selected.
+        // An inline root key in a deployment's configuration is a leaked key even when another provider is selected.
         if (!string.IsNullOrWhiteSpace(configuration[LocalRootKeyConfigurationKey]))
         {
             violations.Add(
-                new ProductionSafetyViolation(
+                new DeploymentSafetyViolation(
                     LocalRootKeyConfigurationKey,
                     "holds a root key inline in configuration.",
                     "Mount the key as a file and set 'SecretProtection:RootKeyProviders:Local:KeyPath' instead."
@@ -185,7 +188,7 @@ public static class ProductionSafetyRegistration
         )
         {
             violations.Add(
-                new ProductionSafetyViolation(
+                new DeploymentSafetyViolation(
                     RecoveryPublicKeyPathConfigurationKey,
                     "is not set, so losing the root key loses every stored secret.",
                     $"Configure a recovery public key, or set '{RecoveryDisabledConfigurationKey}' to true to "
@@ -199,8 +202,9 @@ public static class ProductionSafetyRegistration
     {
         /// <summary>
         /// Validates that the current configuration is safe to expose publicly, and throws when it is not. The check
-        /// runs only in a Production environment; every other environment (Development, Conformance, Staging, and any
-        /// custom name) is left alone so local and test hosts keep their conveniences. It also refuses a secret
+        /// runs in every host environment (Development, Conformance, Staging, Production, and any custom name) unless
+        /// <c>LocalDevelopment:Enabled</c> is true, which a local inner-loop host sets and which leaves the gate
+        /// unregistered. It also refuses a secret
         /// protection configuration that cannot keep stored secrets readable and private, and, as the host starts, a
         /// Data Protection key ring that has no repository or is not encrypted at rest, a work factor for supplied
         /// client secrets below the recommended one, and configured platform settings whose <c>environment_type</c> is
@@ -208,27 +212,23 @@ public static class ProductionSafetyRegistration
         /// plain-HTTP endpoint or serves an unusable certificate.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> to validate.</param>
-        /// <param name="hostEnvironment">The <see cref="IHostEnvironment"/> that decides whether to validate at all.</param>
         /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
         /// <exception cref="InvalidOperationException">
-        /// The environment is Production and at least one development-only convenience is still enabled, or the secret
+        /// The host is a deployment and at least one development-only convenience is still enabled, or the secret
         /// protection configuration is unsafe. The message lists every finding at once, so a misconfigured deployment
         /// is fixed in one pass rather than one restart per problem.
         /// </exception>
-        public IServiceCollection AddProductionSafety(
-            IConfiguration configuration,
-            IHostEnvironment hostEnvironment
-        )
+        public IServiceCollection AddDeploymentSafety(IConfiguration configuration)
         {
             ArgumentNullException.ThrowIfNull(configuration);
-            ArgumentNullException.ThrowIfNull(hostEnvironment);
 
-            if (!hostEnvironment.IsProduction())
-                return serviceCollection;
+            serviceCollection.AddLocalDevelopmentOptions(configuration);
 
             // Kestrel serves HTTPS only, with a certificate that passes the transport checks (ADR-1504); inert when LocalDevelopment:Enabled is set, checked as the host finishes starting.
             serviceCollection.AddTransportSecurity(configuration);
 
+            if (configuration.IsLocalDevelopment())
+                return serviceCollection;
             // Data Protection is composed after this gate runs, so the key ring is checked as the host starts.
             serviceCollection
                 .AddOptions<KeyManagementOptions>()
@@ -244,7 +244,7 @@ public static class ProductionSafetyRegistration
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IValidateOptions<Pbkdf2SecretVerifierOptions>,
-                    ProductionPbkdf2IterationsValidator
+                    DeploymentPbkdf2IterationsValidator
                 >()
             );
             serviceCollection.AddOptions<Pbkdf2SecretVerifierOptions>().ValidateOnStart();
@@ -253,12 +253,12 @@ public static class ProductionSafetyRegistration
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<
                     IValidateOptions<OpenIdOptions>,
-                    ProductionEnvironmentTypeValidator
+                    DeploymentEnvironmentTypeValidator
                 >()
             );
             serviceCollection.AddOptions<OpenIdOptions>().ValidateOnStart();
 
-            var violations = ProductionSafetyRegistration.FindViolations(configuration);
+            var violations = DeploymentSafetyRegistration.FindViolations(configuration);
             if (violations.Count == 0)
                 return serviceCollection;
 
@@ -267,9 +267,9 @@ public static class ProductionSafetyRegistration
                 violations.Select(violation => $"  - {violation}")
             );
             throw new InvalidOperationException(
-                $"Refusing to start in the Production environment: {violations.Count} setting(s) are unsafe "
-                    + $"for a production deployment.{Environment.NewLine}{detail}{Environment.NewLine}"
-                    + "Fix them for this deployment, or run under a non-Production environment name."
+                $"Refusing to start a deployment: {violations.Count} setting(s) are unsafe "
+                    + $"for a deployment.{Environment.NewLine}{detail}{Environment.NewLine}"
+                    + "Fix them for this deployment. A host for local development sets 'LocalDevelopment:Enabled' to true."
             );
         }
     }

@@ -50,13 +50,13 @@ var serviceCollection = builder.Services;
 // debugger providers are left out. See project-template ADR-0115.
 builder.Logging.ClearProviders().AddConsole().AddEventSourceLogger();
 
-// SAFETY GATE: refuse to start a Production deployment that still has development-only conveniences enabled
+// SAFETY GATE: refuse to start a deployment that still has development-only conveniences enabled
 // (developer signing keys, a wildcard host filter, developer CORS configuration, seeded accounts) or that does not serve
 // HTTPS only with a usable certificate. Every one of them is silent — the server would start, serve traffic, and look
 // healthy — so the configuration checks fail before the port is bound and the transport check fails as the host
 // finishes starting, before any probe passes.
-// Inert in every non-Production environment.
-serviceCollection.AddProductionSafety(configuration, hostEnvironment);
+// Runs in every host environment; a local inner-loop host turns it off with 'LocalDevelopment:Enabled'.
+serviceCollection.AddDeploymentSafety(configuration);
 
 serviceCollection.AddAntiforgery();
 
@@ -167,7 +167,7 @@ identityServer.OpenIdManagementLibraryBuilder.AddInstanceSetup(configuration, ho
 
 // DEVELOPMENT CONVENIENCE: everything that is only correct on a developer's machine — the Vite CORS policy, the
 // developer and conformance seeders, and the developer key pruning — behind one call. Each piece stays inert unless
-// its own configuration section is present, and AddProductionSafety refuses each of those sections in Production.
+// its own configuration section is present, and AddDeploymentSafety refuses each of those sections in a deployment.
 identityServer.AddDevelopmentEnvironment(configuration);
 
 serviceCollection.AddDatabaseDeveloperPageExceptionFilter();
@@ -244,7 +244,7 @@ if (app.Environment.IsDevelopment())
 // Both are off by default and appsettings.Development.json turns both on (ADR-1481).
 app.MapIdentityServerApiReference();
 
-// A deployment binds HTTPS endpoints only (AddProductionSafety refuses to start otherwise), so it adds no redirect;
+// A deployment binds HTTPS endpoints only (AddDeploymentSafety refuses to start otherwise), so it adds no redirect;
 // a host with 'LocalDevelopment:Enabled' set keeps it.
 app.UseLocalDevelopmentHttpsRedirection();
 
@@ -254,7 +254,7 @@ app.UseRouting();
 app.UseHttpLogging();
 
 // Must run after UseRouting and before the authN/authZ + endpoint middleware. A no-op unless the configuration has a
-// Cors section, which AddProductionSafety refuses in Production.
+// Cors section, which AddDeploymentSafety refuses in a deployment.
 app.UseDeveloperCors();
 
 app.UseAuthentication();

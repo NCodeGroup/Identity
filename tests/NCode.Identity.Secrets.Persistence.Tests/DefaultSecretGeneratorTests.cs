@@ -227,7 +227,7 @@ public class DefaultSecretGeneratorTests : BaseTests
         // OWASP's recommendation for PBKDF2-HMAC-SHA256, as the family's password hashes use.
         Assert.Equal(600_000, pbkdf2Options.Iterations);
         Assert.Equal(
-            Pbkdf2SecretVerifierOptions.MinimumProductionIterations,
+            Pbkdf2SecretVerifierOptions.MinimumDeploymentIterations,
             pbkdf2Options.Iterations
         );
         Assert.Equal(

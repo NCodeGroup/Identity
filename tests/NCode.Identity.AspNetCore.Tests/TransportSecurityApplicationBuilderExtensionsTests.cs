@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Xunit;
 
@@ -15,20 +16,31 @@ public sealed class TransportSecurityApplicationBuilderExtensionsTests : BaseTes
 {
     #region Helpers
 
-    private (RequestDelegate Pipeline, ServiceProvider ServiceProvider) BuildPipeline(
+    private static (RequestDelegate Pipeline, ServiceProvider ServiceProvider) BuildPipeline(
         string environmentName,
+        bool localDevelopment,
         IConfiguration configuration,
         bool useTrustedForwardedHeaders
     )
     {
-        var environmentMock = CreateStrictMock<IHostEnvironment>();
-        environmentMock.SetupGet(x => x.EnvironmentName).Returns(environmentName).Verifiable();
+        var switchConfiguration = new ConfigurationBuilder()
+            .AddConfiguration(configuration)
+            .AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["LocalDevelopment:Enabled"] = localDevelopment ? "true" : "false",
+                }
+            )
+            .Build();
 
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddSingleton(configuration);
-        serviceCollection.AddSingleton(environmentMock.Object);
-        serviceCollection.AddTrustedForwardedHeaders(configuration);
+        serviceCollection.AddSingleton<IConfiguration>(switchConfiguration);
+        serviceCollection.AddSingleton<IHostEnvironment>(
+            new TestHostEnvironment { EnvironmentName = environmentName }
+        );
+        serviceCollection.AddLocalDevelopmentOptions(switchConfiguration);
+        serviceCollection.AddTrustedForwardedHeaders(switchConfiguration);
         serviceCollection.AddHttpsRedirection(options => options.HttpsPort = 8443);
 
         var serviceProvider = serviceCollection.BuildServiceProvider();
@@ -38,25 +50,28 @@ public sealed class TransportSecurityApplicationBuilderExtensionsTests : BaseTes
         {
             app.UseTrustedForwardedHeaders();
         }
-        app.UseHttpsRedirectionOutsideProduction();
+        app.UseLocalDevelopmentHttpsRedirection();
 
         return (app.Build(), serviceProvider);
     }
 
-    private async ValueTask<HttpContext> SendPlainHttpRequestAsync(
+    private static async ValueTask<HttpContext> SendPlainHttpRequestAsync(
         string environmentName,
+        bool localDevelopment,
         CancellationToken cancellationToken
     ) =>
         await SendRequestAsync(
             environmentName,
+            localDevelopment,
             new ConfigurationBuilder().Build(),
             useTrustedForwardedHeaders: false,
             forwardedProto: null,
             cancellationToken
         );
 
-    private async ValueTask<HttpContext> SendRequestAsync(
+    private static async ValueTask<HttpContext> SendRequestAsync(
         string environmentName,
+        bool localDevelopment,
         IConfiguration configuration,
         bool useTrustedForwardedHeaders,
         string? forwardedProto,
@@ -65,6 +80,7 @@ public sealed class TransportSecurityApplicationBuilderExtensionsTests : BaseTes
     {
         var (pipeline, serviceProvider) = BuildPipeline(
             environmentName,
+            localDevelopment,
             configuration,
             useTrustedForwardedHeaders
         );
@@ -91,13 +107,14 @@ public sealed class TransportSecurityApplicationBuilderExtensionsTests : BaseTes
 
     #endregion
 
-    #region UseHttpsRedirectionOutsideProduction Tests
+    #region UseLocalDevelopmentHttpsRedirection Tests
 
     [Fact]
-    public async Task UseHttpsRedirectionOutsideProduction_InDevelopment_RedirectsPlainHttp()
+    public async Task UseLocalDevelopmentHttpsRedirection_LocalDevelopmentEnabledInDevelopment_RedirectsPlainHttp()
     {
         var httpContext = await SendPlainHttpRequestAsync(
             Environments.Development,
+            localDevelopment: true,
             CancellationToken.None
         );
 
@@ -109,10 +126,11 @@ public sealed class TransportSecurityApplicationBuilderExtensionsTests : BaseTes
     }
 
     [Fact]
-    public async Task UseHttpsRedirectionOutsideProduction_InStaging_RedirectsPlainHttp()
+    public async Task UseLocalDevelopmentHttpsRedirection_LocalDevelopmentEnabledInStaging_RedirectsPlainHttp()
     {
         var httpContext = await SendPlainHttpRequestAsync(
             Environments.Staging,
+            localDevelopment: true,
             CancellationToken.None
         );
 
@@ -123,11 +141,17 @@ public sealed class TransportSecurityApplicationBuilderExtensionsTests : BaseTes
         );
     }
 
-    [Fact]
-    public async Task UseHttpsRedirectionOutsideProduction_InProduction_AddsNoRedirect()
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Staging")]
+    [InlineData("Production")]
+    public async Task UseLocalDevelopmentHttpsRedirection_LocalDevelopmentDisabled_AddsNoRedirect(
+        string environmentName
+    )
     {
         var httpContext = await SendPlainHttpRequestAsync(
-            Environments.Production,
+            environmentName,
+            localDevelopment: false,
             CancellationToken.None
         );
 
@@ -136,7 +160,7 @@ public sealed class TransportSecurityApplicationBuilderExtensionsTests : BaseTes
     }
 
     [Fact]
-    public async Task UseHttpsRedirectionOutsideProduction_OutsideProductionBehindATrustedProxyThatForwardedHttps_AddsNoRedirect()
+    public async Task UseLocalDevelopmentHttpsRedirection_LocalDevelopmentEnabledBehindATrustedProxyThatForwardedHttps_AddsNoRedirect()
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(
@@ -146,6 +170,7 @@ public sealed class TransportSecurityApplicationBuilderExtensionsTests : BaseTes
 
         var httpContext = await SendRequestAsync(
             Environments.Staging,
+            localDevelopment: true,
             configuration,
             useTrustedForwardedHeaders: true,
             forwardedProto: "https",
@@ -157,4 +182,15 @@ public sealed class TransportSecurityApplicationBuilderExtensionsTests : BaseTes
     }
 
     #endregion
+
+    private sealed class TestHostEnvironment : IHostEnvironment
+    {
+        public string EnvironmentName { get; set; } = Environments.Development;
+
+        public string ApplicationName { get; set; } = string.Empty;
+
+        public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
+
+        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
+    }
 }

@@ -4,7 +4,6 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.AspNetCore.Options;
 
@@ -21,12 +20,13 @@ public static class StrictTransportSecurityApplicationBuilderExtensions
     {
         /// <summary>
         /// Adds the HSTS middleware, which sends the <c>Strict-Transport-Security</c> header on every response to a
-        /// request that arrived over HTTPS. It is a <b>no-op</b> in the Development environment and when
+        /// request that arrived over HTTPS. It is a <b>no-op</b> when <c>LocalDevelopment:Enabled</c> is set and when
         /// <c>StrictTransportSecurity</c> configuration disables the header, so it is safe to leave wired.
         /// </summary>
         /// <remarks>
         /// Call this right after <c>UseTrustedForwardedHeaders</c> and before HTTPS redirection, so a request that a trusted
-        /// proxy received over HTTPS counts as HTTPS. Requires <c>AddStrictTransportSecurity</c>.
+        /// proxy received over HTTPS counts as HTTPS. Requires <c>AddStrictTransportSecurity</c>, which also registers
+        /// the <c>LocalDevelopment</c> switch.
         /// </remarks>
         /// <returns>The same <see cref="IApplicationBuilder"/> instance for method chaining.</returns>
         public IApplicationBuilder UseStrictTransportSecurity()
@@ -35,8 +35,8 @@ public static class StrictTransportSecurityApplicationBuilderExtensions
 
             var services = app.ApplicationServices;
 
-            // Read the environment first: Development never sends the header (ADR-1447).
-            if (services.GetRequiredService<IHostEnvironment>().IsDevelopment())
+            // Read the switch first: a local inner-loop host never sends the header (ADR-1447).
+            if (services.GetRequiredService<IOptions<LocalDevelopmentOptions>>().Value.Enabled)
                 return app;
 
             var options = services

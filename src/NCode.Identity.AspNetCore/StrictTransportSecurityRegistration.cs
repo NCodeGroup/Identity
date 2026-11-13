@@ -17,7 +17,8 @@ namespace NCode.Identity.AspNetCore;
 /// arrived over HTTPS. Apply it to the request pipeline with <c>UseStrictTransportSecurity</c>.
 /// </summary>
 /// <remarks>
-/// Safe to leave wired: the pipeline step adds nothing in the Development environment or when the policy is disabled.
+/// Safe to leave wired: the pipeline step adds nothing when <c>LocalDevelopment:Enabled</c> is set or when the policy is
+/// disabled.
 /// </remarks>
 // See ADR-1447.
 [PublicAPI]
@@ -53,7 +54,8 @@ public static class StrictTransportSecurityRegistration
     {
         /// <summary>
         /// Registers <see cref="StrictTransportSecurityOptions"/> from the <c>StrictTransportSecurity</c> configuration
-        /// section and configures the framework's HSTS middleware from it.
+        /// section, configures the framework's HSTS middleware from it, and registers the <c>LocalDevelopment</c> switch
+        /// that turns the header off for a local inner-loop host.
         /// </summary>
         /// <remarks>
         /// The section is bound strictly and validated when the host starts: a key that maps to no option, a negative
@@ -69,6 +71,8 @@ public static class StrictTransportSecurityRegistration
         {
             ArgumentNullException.ThrowIfNull(serviceCollection);
             ArgumentNullException.ThrowIfNull(configuration);
+
+            serviceCollection.AddLocalDevelopmentOptions(configuration);
 
             var section = configuration.GetSection(
                 StrictTransportSecurityOptions.DefaultSectionName

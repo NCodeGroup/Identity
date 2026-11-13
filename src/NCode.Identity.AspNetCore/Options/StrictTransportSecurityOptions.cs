@@ -11,7 +11,7 @@ namespace NCode.Identity.AspNetCore.Options;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The header is sent outside the Development environment only, and never to <c>localhost</c>, <c>127.0.0.1</c>, or
+/// The header is sent unless <c>LocalDevelopment:Enabled</c> is set, and never to <c>localhost</c>, <c>127.0.0.1</c>, or
 /// <c>[::1]</c>.
 /// </para>
 /// <para>

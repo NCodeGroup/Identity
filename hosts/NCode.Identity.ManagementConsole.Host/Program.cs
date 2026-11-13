@@ -49,9 +49,9 @@ builder.Services.AddStrictTransportSecurity(builder.Configuration);
 // Send no Server response header, in every environment. See ADR-1511.
 builder.Services.AddServerHeaderSuppression();
 
-// In Production, refuse to start unless Kestrel serves HTTPS only with a certificate that loads and passes the
-// transport checks (ADR-1504). Inert in every other environment.
-builder.Services.AddTransportSecurity(builder.Environment);
+// Refuse to start unless Kestrel serves HTTPS only with a certificate that loads and passes the transport checks
+// (ADR-1504). Inert when 'LocalDevelopment:Enabled' is set.
+builder.Services.AddTransportSecurity(builder.Configuration);
 
 // The pods can require the reverse proxy's client certificate on the proxy-to-pod hop, as configured by the
 // 'ProxyClientCertificate' section (ADR-1506). Inert unless 'ProxyClientCertificate:Required' is true.
@@ -78,7 +78,7 @@ app.UseProxyClientCertificate();
 // rather than the proxy-to-application hop.
 app.UseTrustedForwardedHeaders();
 app.UseStrictTransportSecurity();
-app.UseHttpsRedirectionOutsideProduction();
+app.UseLocalDevelopmentHttpsRedirection();
 app.UseBffSecurityHeaders();
 app.UseBff();
 app.UseAuthentication();

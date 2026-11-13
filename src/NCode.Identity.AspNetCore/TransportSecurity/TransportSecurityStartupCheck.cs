@@ -9,7 +9,7 @@ using Microsoft.Extensions.Hosting;
 namespace NCode.Identity.AspNetCore.TransportSecurity;
 
 /// <summary>
-/// Fails startup in the Production environment unless every endpoint Kestrel bound is HTTPS and the certificate each
+/// Fails startup of a deployment unless every endpoint Kestrel bound is HTTPS and the certificate each
 /// one serves is usable: it completes a TLS handshake, is inside its validity period, has a strong key and signature
 /// algorithm and is not the ASP.NET Core development certificate.
 /// </summary>
@@ -29,7 +29,7 @@ internal sealed class TransportSecurityStartupCheck(
     /// The message of the failure when the server is not Kestrel.
     /// </summary>
     internal const string NotKestrelMessage =
-        "Refusing to start in the Production environment: the server is not Kestrel, so the host cannot verify that it serves HTTPS with a usable certificate. Run the host on Kestrel.";
+        "Refusing to start a deployment: the server is not Kestrel, so the host cannot verify that it serves HTTPS with a usable certificate. Run the host on Kestrel, or set LocalDevelopment:Enabled to true for a local inner-loop host.";
 
     /// <summary>
     /// Creates the message of the failure that lists every transport security problem.
@@ -41,11 +41,11 @@ internal sealed class TransportSecurityStartupCheck(
 
         var lines = new List<string>
         {
-            $"Refusing to start in the Production environment: {failures.Count} transport security problem(s). The host serves HTTPS only, with a certificate that is valid, has a private key and is not the development certificate.",
+            $"Refusing to start a deployment: {failures.Count} transport security problem(s). The host serves HTTPS only, with a certificate that is valid, has a private key and is not the development certificate.",
         };
         lines.AddRange(failures.Select(failure => $"  - {failure}"));
         lines.Add(
-            "Bind HTTPS endpoints only (for example ASPNETCORE_URLS=https://+:8443) and configure the certificate through Kestrel:Certificates:Default or Kestrel:Endpoints:<name>:Certificate."
+            "Bind HTTPS endpoints only (for example ASPNETCORE_URLS=https://+:8443) and configure the certificate through Kestrel:Certificates:Default or Kestrel:Endpoints:<name>:Certificate, or set LocalDevelopment:Enabled to true for a local inner-loop host."
         );
         return string.Join(Environment.NewLine, lines);
     }

@@ -244,9 +244,9 @@ if (app.Environment.IsDevelopment())
 // Both are off by default and appsettings.Development.json turns both on (ADR-1481).
 app.MapIdentityServerApiReference();
 
-// Production binds HTTPS endpoints only (AddProductionSafety refuses to start otherwise), so it adds no redirect;
-// every other environment keeps it.
-app.UseHttpsRedirectionOutsideProduction();
+// A deployment binds HTTPS endpoints only (AddProductionSafety refuses to start otherwise), so it adds no redirect;
+// a host with 'LocalDevelopment:Enabled' set keeps it.
+app.UseLocalDevelopmentHttpsRedirection();
 
 app.UseRouting();
 

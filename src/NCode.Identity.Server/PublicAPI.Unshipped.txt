@@ -224,3 +224,10 @@ NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.Verb.get -> s
 static NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.GetHostArguments(string![]! args) -> string![]!
 static NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.Parse(System.Collections.Generic.IReadOnlyList<string!>! args) -> NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine?
 static NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.Usage.get -> string!
+const NCode.Identity.Server.InstanceSetup.InstanceSetupCommandLine.CommandName = "setup" -> string!
+NCode.Identity.Server.InstanceSetup.InstanceSetupCommandLine
+NCode.Identity.Server.InstanceSetup.InstanceSetupCommandLine.Error.get -> string?
+NCode.Identity.Server.InstanceSetup.InstanceSetupCommandLine.RunAsync(System.IServiceProvider! services, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
+static NCode.Identity.Server.InstanceSetup.InstanceSetupCommandLine.GetHostArguments(string![]! args) -> string![]!
+static NCode.Identity.Server.InstanceSetup.InstanceSetupCommandLine.Parse(System.Collections.Generic.IReadOnlyList<string!>! args) -> NCode.Identity.Server.InstanceSetup.InstanceSetupCommandLine?
+static NCode.Identity.Server.InstanceSetup.InstanceSetupCommandLine.Usage.get -> string!

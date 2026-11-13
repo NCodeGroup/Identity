@@ -23,7 +23,7 @@ internal class ManagementProblemResponseMiddleware(RequestDelegate next)
     public async Task InvokeAsync(HttpContext httpContext)
     {
         var isManagementRequest = httpContext.Request.Path.StartsWithSegments(
-            ManagementRootGroup.RoutePrefix
+            ManagementApiDefaults.RoutePrefix
         );
 
         await next(httpContext);

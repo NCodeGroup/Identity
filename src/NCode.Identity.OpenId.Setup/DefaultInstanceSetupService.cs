@@ -47,9 +47,6 @@ internal sealed class DefaultInstanceSetupService(
 {
     private const string BffPathPrefix = "/bff";
 
-    // The management API's route group, which sits at the host root.
-    private const string ManagementApiPath = "/api";
-
     internal const string BffCallbackPath = BffPathPrefix + "/callback";
 
     internal const string BffBackChannelLogoutPath = BffPathPrefix + "/backchannel-logout";
@@ -162,7 +159,7 @@ internal sealed class DefaultInstanceSetupService(
             ManagementConsoleBaseUrl = consoleBaseUrl,
             Issuer = issuer,
             DiscoveryUrl = $"{issuer.TrimEnd('/')}/.well-known/openid-configuration",
-            ManagementApiUrl = $"{origin}{ManagementApiPath}",
+            ManagementApiUrl = $"{origin}{ManagementApiDefaults.RoutePrefix}",
             ApiReferenceUrl = apiReferencePath is null ? null : $"{origin}{apiReferencePath}",
         };
     }

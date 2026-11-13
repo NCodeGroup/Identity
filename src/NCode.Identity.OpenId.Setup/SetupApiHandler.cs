@@ -161,7 +161,8 @@ internal sealed class SetupApiHandler(
         var request = await ReadRequestOrDefaultAsync<CreateRootRequest>(
             httpContext,
             // a body that names a required field as JSON null leaves it null despite the non-nullable type
-            static request => request is { Token: not null, UserName: not null, Password: not null },
+            static request =>
+                request is { Token: not null, UserName: not null, Password: not null },
             cancellationToken
         );
         if (request is null)

@@ -140,7 +140,9 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
             }
         );
 
-        var options = serviceProvider.GetRequiredService<IOptions<SetupInstanceLinksOptions>>().Value;
+        var options = serviceProvider
+            .GetRequiredService<IOptions<SetupInstanceLinksOptions>>()
+            .Value;
 
         Assert.Equal(IdentityServerApiReferenceOptions.PagePath, options.ApiReferencePath);
     }
@@ -150,7 +152,9 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
     {
         using var serviceProvider = BuildConfiguredServiceProvider([]);
 
-        var options = serviceProvider.GetRequiredService<IOptions<SetupInstanceLinksOptions>>().Value;
+        var options = serviceProvider
+            .GetRequiredService<IOptions<SetupInstanceLinksOptions>>()
+            .Value;
 
         Assert.Null(options.ApiReferencePath);
     }

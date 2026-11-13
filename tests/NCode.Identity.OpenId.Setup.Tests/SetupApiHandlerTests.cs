@@ -752,7 +752,10 @@ public sealed class SetupApiHandlerTests : IDisposable
         );
 
         var problem = AssertProblem(result, StatusCodes.Status429TooManyRequests);
-        Assert.Equal("Too many setup attempts. Try again in a minute.", problem.ProblemDetails.Detail);
+        Assert.Equal(
+            "Too many setup attempts. Try again in a minute.",
+            problem.ProblemDetails.Detail
+        );
     }
 
     [Theory]

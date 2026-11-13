@@ -84,7 +84,12 @@ public class InstanceSetupTests
         HttpClient client,
         string token,
         CancellationToken cancellationToken
-    ) => await client.PostAsJsonAsync(TokenPath, new CheckSetupTokenRequest { Token = token }, cancellationToken);
+    ) =>
+        await client.PostAsJsonAsync(
+            TokenPath,
+            new CheckSetupTokenRequest { Token = token },
+            cancellationToken
+        );
 
     #endregion
 
@@ -172,7 +177,8 @@ public class InstanceSetupTests
             using var factory = CreateFactory(
                 new Dictionary<string, string?>
                 {
-                    [$"{SetupOptions.SectionName}:Wizard:ManagementConsole:BaseUrl"] = ConsoleBaseUrl,
+                    [$"{SetupOptions.SectionName}:Wizard:ManagementConsole:BaseUrl"] =
+                        ConsoleBaseUrl,
                     [$"{SetupOptions.SectionName}:BundleRootPath"] = bundleRoot.FullName,
                 }
             );
@@ -256,9 +262,15 @@ public class InstanceSetupTests
         var root = await response.Content.ReadFromJsonAsync<CreateRootResponse>();
         Assert.NotNull(root);
 
-        var issuerOrigin = new Uri(HostApplicationFactory.TestServerIssuer).GetLeftPart(UriPartial.Authority);
+        var issuerOrigin = new Uri(HostApplicationFactory.TestServerIssuer).GetLeftPart(
+            UriPartial.Authority
+        );
         Assert.Equal(HostApplicationFactory.TestServerIssuer, root.Issuer);
-        Assert.EndsWith("/.well-known/openid-configuration", root.DiscoveryUrl, StringComparison.Ordinal);
+        Assert.EndsWith(
+            "/.well-known/openid-configuration",
+            root.DiscoveryUrl,
+            StringComparison.Ordinal
+        );
         Assert.StartsWith(root.Issuer.TrimEnd('/'), root.DiscoveryUrl, StringComparison.Ordinal);
         Assert.Equal($"{issuerOrigin}/api", root.ManagementApiUrl);
     }

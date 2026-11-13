@@ -203,11 +203,7 @@ public sealed class SecretProtectionCommandLine
     /// <returns>The arguments for the host builder.</returns>
     public static string[] GetHostArguments(string[] args)
     {
-        ArgumentNullException.ThrowIfNull(args);
-
-        return args.Length > 0 && string.Equals(args[0], CommandName, StringComparison.Ordinal)
-            ? []
-            : args;
+        return HostCommandLine.GetHostArguments(args, CommandName);
     }
 
     /// <summary>

@@ -43,8 +43,9 @@ calls it.
 5. **A failed or malformed `If-Match` is answered `412`.** A bare token that differs, or a tag list with no strong
    match, gets the detail "The supplied If-Match entity tag does not match the current {resource}." A value that is
    neither a bare token nor a parseable tag list gets the detail
-   ``The If-Match header must be "*", a list of entity tags such as "\"<concurrency token>\"", or the resource's concurrencyToken.``,
-   which names the accepted forms and never echoes the caller's value. The error is a `ManagementError`, and a handler or a validator answers it through
+   ``The If-Match header must be "*", a list of entity tags such as
+   "\"<concurrency token>\"", or the resource's concurrencyToken.``, which names the accepted forms and never echoes
+   the caller's value. The error is a `ManagementError`, and a handler or a validator answers it through
    `ToErrorResult`, so a handler and a validator share one path.
 6. **The OpenAPI document describes the accepted forms.** The `If-Match` parameter of a route that reads it says that it
    accepts a quoted strong entity tag, a list of them, `*` or the bare `concurrencyToken`.

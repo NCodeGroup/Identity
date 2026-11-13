@@ -38,8 +38,9 @@ internal sealed partial class ManagementParameterDocumentTransformer : IOpenApiD
         {
             ["If-Match"] =
                 "An optional optimistic-concurrency precondition: a quoted strong entity tag from the resource's ETag, "
-                + "\"*\", or the resource's bare concurrencyToken. When supplied, the request succeeds only if it "
-                + "matches the target's current entity tag; otherwise it fails with 412 Precondition Failed.",
+                + "a comma-separated list of them, \"*\", or the resource's bare concurrencyToken. When supplied, the "
+                + "request succeeds only if it matches the target's current entity tag; otherwise it fails with 412 "
+                + "Precondition Failed.",
             ["cursor"] =
                 "The opaque continuation token returned by a previous page, or omitted to fetch the first page.",
             ["limit"] = "The maximum number of items to return on the page.",

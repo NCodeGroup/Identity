@@ -4,6 +4,7 @@
 using System.Text.Json;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Management.Contracts.Clients;
@@ -34,6 +35,7 @@ public sealed class ClientPromotionContributorTests : IDisposable
     private Mock<ITenantClientCoherenceChecker> MockTenantClientCoherenceChecker { get; }
     private Mock<IClientKeySourceChecker> MockClientKeySourceChecker { get; }
     private Mock<IHostManagedClientChecker> MockHostManagedClientChecker { get; }
+    private Mock<IOutboundHostChecker> MockOutboundHostChecker { get; }
     private Mock<IStoreManager> MockStoreManager { get; }
     private Mock<IClientStore> MockClientStore { get; }
     private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
@@ -52,6 +54,7 @@ public sealed class ClientPromotionContributorTests : IDisposable
         MockTenantClientCoherenceChecker = MockRepository.Create<ITenantClientCoherenceChecker>();
         MockClientKeySourceChecker = MockRepository.Create<IClientKeySourceChecker>();
         MockHostManagedClientChecker = MockRepository.Create<IHostManagedClientChecker>();
+        MockOutboundHostChecker = MockRepository.Create<IOutboundHostChecker>();
         MockStoreManager = MockRepository.Create<IStoreManager>();
         MockClientStore = MockRepository.Create<IClientStore>();
         MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
@@ -114,6 +117,12 @@ public sealed class ClientPromotionContributorTests : IDisposable
             .Returns(false)
             .Verifiable();
 
+    private void SetupJwksUriHostCheck(string host, bool isRefused) =>
+        MockOutboundHostChecker
+            .Setup(x => x.IsRefusedAsync(host, CancellationToken.None))
+            .ReturnsAsync(isRefused)
+            .Verifiable();
+
     private ClientPromotionContributor CreateContributor() =>
         new(
             MockPromotedSettingsComposer.Object,
@@ -122,7 +131,8 @@ public sealed class ClientPromotionContributorTests : IDisposable
             MockClientCoherenceValidator.Object,
             MockTenantClientCoherenceChecker.Object,
             MockClientKeySourceChecker.Object,
-            MockHostManagedClientChecker.Object
+            MockHostManagedClientChecker.Object,
+            new DefaultClientJwksUriChecker(MockOutboundHostChecker.Object)
         );
 
     private void SetupResolveTenant(string documentJson, Mock<IReadOnlySettingCollection> result)
@@ -567,11 +577,42 @@ public sealed class ClientPromotionContributorTests : IDisposable
             .Setup(x => x.HasPublicKeys(target.Secrets.Value))
             .Returns(true)
             .Verifiable();
+        SetupJwksUriHostCheck("client", isRefused: false);
 
         await CreateContributor().PlanAsync(context, CancellationToken.None);
 
         var error = Assert.Single(context.Errors);
         Assert.Contains("one source", error.Detail);
+    }
+
+    [Fact]
+    public async Task PlanAsync_WhenTheJwksUriDiffersFromTheTargetsAndItsHostIsRefused_AddsTheRefusalAsAnError()
+    {
+        SetupCompute();
+        SetupNoJwksUri();
+        var context = CreateContext();
+        var source = CreateClient(
+            SourceTenantId,
+            "client-1",
+            settingsJson: """{"jwks_uri":"https://client.example/jwks"}"""
+        );
+        var target = CreateClient(TargetTenantId, "client-1");
+        SetupSource(source);
+        var promoted = SetupClient(
+            context,
+            source,
+            target,
+            """{"jwks_uri":"https://client.example/jwks"}"""
+        );
+        SetupChangedLimits(target, promoted);
+        SetupJwksUriHostCheck("client.example", isRefused: true);
+
+        await CreateContributor().PlanAsync(context, CancellationToken.None);
+
+        var error = Assert.Single(context.Errors);
+        Assert.Equal("client-1", error.ResourceId);
+        Assert.Contains("'jwks_uri' host resolves only to addresses", error.Detail);
+        Assert.Contains("secrets/import", error.Detail);
     }
 
     [Fact]

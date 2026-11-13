@@ -146,7 +146,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             new DefaultClientKeySourceChecker(
                 ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>()
             ),
-            MockOutboundHostChecker.Object,
+            new DefaultClientJwksUriChecker(MockOutboundHostChecker.Object),
             NullLogger<ClientApiEndpointHandler>.Instance,
             MockAmbientTenantAccessor.Object
         );

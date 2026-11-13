@@ -270,8 +270,9 @@ created either. Setup imports each JWK Set by value, so neither client needs a `
 - **The automation client** is a platform-owned `client_credentials` machine client that holds `GlobalAdmin` and
   authenticates with `private_key_jwt`, so a GitOps install manages the instance without the development bootstrap
   client. Setting `setup.automation.clientId` and `setup.automation.jwks` registers it. The platform's
-  `grant_types_supported` must include `client_credentials`, or setup fails as a whole; the
-  [first-use guide](../../docs/first-production-instance.md#6-enable-grants) shows how to enable it.
+  grant list must include `client_credentials`, or setup fails as a whole; the
+  [first-use guide](../../docs/first-production-instance.md#6-enable-grants) shows how to enable it with
+  `grant_types_enabled`.
 
 Delete both Secrets once the instance is initialized. The guide
 [The first use of a Production instance](../../docs/first-production-instance.md) walks through the whole first use.

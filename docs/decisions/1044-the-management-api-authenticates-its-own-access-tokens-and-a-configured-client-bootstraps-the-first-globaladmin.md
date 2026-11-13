@@ -91,14 +91,14 @@ client that configuration seeds.**
     ([ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md): a route answers `409`
     from what it read and declares it).
 12. **A host enables `client_credentials` at the platform**, under the configuration path
-    `OpenId:Platform:Settings:grant_types_supported`, which an environment variable spells
-    `OpenId__Platform__Settings__grant_types_supported__0`, `__1` and so on, one index per grant
+    `OpenId:Platform:Settings:grant_types_enabled`, which an environment variable spells
+    `OpenId__Platform__Settings__grant_types_enabled__0`
     ([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)),
-    because the baseline omits it and the setting is an intersect-merged ceiling. The configured array is the
-    platform's whole list, so it repeats every grant the platform keeps (the baseline is `authorization_code`,
-    `refresh_token`, `urn:ietf:params:oauth:grant-type:device_code` and `urn:openid:params:grant-type:ciba`) and adds
-    `client_credentials`. Until the list holds `client_credentials`, the token request is refused
-    `unauthorized_client`.
+    because the baseline omits it and `grant_types_supported` is an intersect-merged ceiling. `grant_types_enabled`
+    adds its grants to the baseline list (`authorization_code`, `refresh_token`,
+    `urn:ietf:params:oauth:grant-type:device_code` and `urn:openid:params:grant-type:ciba`), so the host names only the
+    grants it adds; a configured `grant_types_supported` is the platform's whole list. Until the effective list holds
+    `client_credentials`, the token request is refused `unauthorized_client`.
 13. **The bootstrap client provisions durable administrators**, human or machine, as role assignments. A lost
     credential is recovered by seeding again from configuration. A Production instance does not use it: its
     administrators descend from the root that setup creates.
@@ -139,8 +139,8 @@ client that configuration seeds.**
   provision durable administrators promptly.
 - A Production instance refuses the bootstrap client, and its first administrator is the root that instance setup
   creates ([ADR-1512](1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
-- The platform's `grant_types_supported` array is the platform's whole list, so a host that adds `client_credentials`
-  repeats the grants the platform keeps.
+- The platform's `grant_types_enabled` array adds to the baseline list, so a host that adds `client_credentials` names
+  only that grant. A configured `grant_types_supported` array is the platform's whole list.
 - `GlobalAdmin` authority is carried by the token's role claim, not its scope, because its authority is cross-plane and
   no single requestable scope represents it.
 - A smell: a route that reads `HttpContext.User.Identity.IsAuthenticated` to decide an authentication-only answer

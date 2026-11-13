@@ -27,6 +27,12 @@ public sealed class InstanceSetupResult
     public string? ManagementConsoleClientId { get; init; }
 
     /// <summary>
+    /// Gets the <c>client_id</c> of the automation client that setup registered, or <c>null</c> when setup registered
+    /// none.
+    /// </summary>
+    public string? AutomationClientId { get; init; }
+
+    /// <summary>
     /// Gets the <see cref="ManagementError"/> describing the first failed precondition, or <c>null</c> when the root
     /// administrator is created.
     /// </summary>

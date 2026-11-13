@@ -32,6 +32,8 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
     private const string Email = "root@example.com";
     private const string Password = "a-root-password-of-15-or-more";
     private const string ConsoleClientId = "mgmt-console";
+    private const string AutomationClientId = "automation";
+    private const string AutomationPrincipalId = "automation-principal";
     private const string ConsoleJwks = """{"keys":[{"kty":"EC","crv":"P-256","x":"x","y":"y"}]}""";
 
     private MockRepository MockRepository { get; }
@@ -107,8 +109,15 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
     private static InstanceSetupRequest CreateRequest(
         string? userName = UserName,
         string? password = Password,
-        SetupManagementConsoleOptions? managementConsole = null
-    ) => new() { Root = CreateRoot(userName, password), ManagementConsole = managementConsole };
+        SetupManagementConsoleOptions? managementConsole = null,
+        SetupAutomationOptions? automation = null
+    ) =>
+        new()
+        {
+            Root = CreateRoot(userName, password),
+            ManagementConsole = managementConsole,
+            Automation = automation,
+        };
 
     private static SetupManagementConsoleOptions CreateConsole() =>
         new()
@@ -161,6 +170,37 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
                 {
                     TenantId = TenantId,
                     ClientId = ConsoleClientId,
+                    ConcurrencyToken = string.Empty,
+                    Value = [],
+                },
+            }
+        );
+
+    private static SetupAutomationOptions CreateAutomation() =>
+        new() { ClientId = AutomationClientId, Jwks = ConsoleJwks };
+
+    private static ClientCreation CreateStagedMachineClient() =>
+        ClientCreation.Staged(
+            new PersistedClient
+            {
+                TenantId = TenantId,
+                ClientId = AutomationClientId,
+                ConcurrencyToken = string.Empty,
+                IsDisabled = false,
+                PrincipalId = AutomationPrincipalId,
+                OwningNodeType = OpenIdResourceTypes.Platform,
+                OwningNodeId = OpenIdConstants.PlatformResourceId,
+                Settings = new PersistedClientSettings
+                {
+                    TenantId = TenantId,
+                    ClientId = AutomationClientId,
+                    ConcurrencyToken = string.Empty,
+                    Value = JsonSerializer.SerializeToElement(new { }),
+                },
+                Secrets = new PersistedClientSecrets
+                {
+                    TenantId = TenantId,
+                    ClientId = AutomationClientId,
                     ConcurrencyToken = string.Empty,
                     Value = [],
                 },
@@ -276,16 +316,16 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
             .Verifiable(Times.Once());
     }
 
-    private void SetupAssignment(Action<PersistedRoleAssignment> onAdded)
+    private void SetupAssignment(Action<PersistedRoleAssignment> onAdded, int assignments = 1)
     {
         MockCryptoService
             .Setup(x => x.GenerateKey(16, BinaryEncodings.Base64Url))
             .Returns(AssignmentId)
-            .Verifiable(Times.Once());
+            .Verifiable(Times.Exactly(assignments));
         MockStoreManager
             .Setup(x => x.GetStore<IRoleAssignmentStore>())
             .Returns(MockRoleAssignmentStore.Object)
-            .Verifiable(Times.Once());
+            .Verifiable(Times.Exactly(assignments));
         MockRoleAssignmentStore
             .Setup(x =>
                 x.AddAsync(It.IsAny<PersistedRoleAssignment>(), It.IsAny<CancellationToken>())
@@ -294,7 +334,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
                 (assignment, _) => onAdded(assignment)
             )
             .Returns(ValueTask.CompletedTask)
-            .Verifiable(Times.Once());
+            .Verifiable(Times.Exactly(assignments));
     }
 
     private void SetupUpdate(PersistedInstanceSetup row, Exception? exception = null)
@@ -707,6 +747,158 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
 
         Assert.True(result.Succeeded);
         Assert.Null(result.ManagementConsoleClientId);
+        Assert.Equal(["tenant", "account"], CallLog);
+    }
+
+    [Fact]
+    public async Task SetUpAsync_Automation_StagesMachineClientAndGlobalAdmin()
+    {
+        var row = CreateRow();
+        ClientCreationRequest? staged = null;
+        List<PersistedRoleAssignment> assignments = [];
+        var state = new Dictionary<string, object?>();
+
+        SetupTenantScope();
+        SetupStoreManagers(2);
+        SetupInstanceSetupStore(2);
+        SetupRead(row);
+        SetupCreator(CreateCreation());
+        SetupAssignment(assignments.Add, assignments: 2);
+        SetupClientCreator(CreateStagedMachineClient(), request => staged = request);
+        SetupUpdate(row);
+        SetupSave();
+        SetupLogged(LogLevel.Information, EventIds.RootAdministratorCreated, state);
+
+        var result = await CreateService()
+            .SetUpAsync(CreateRequest(automation: CreateAutomation()), CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(AutomationClientId, result.AutomationClientId);
+        Assert.Null(result.ManagementConsoleClientId);
+        Assert.Equal(["tenant", "account", "client"], CallLog);
+        Assert.True(row.IsInitialized);
+
+        Assert.NotNull(staged);
+        Assert.Equal(TenantId, staged.TenantId);
+        Assert.Equal(AutomationClientId, staged.ClientId);
+        Assert.False(staged.IsDisabled);
+        Assert.Null(staged.ResourceServerId);
+        Assert.Equal(OpenIdResourceTypes.Platform, staged.OwningNodeType);
+        Assert.Equal(OpenIdConstants.PlatformResourceId, staged.OwningNodeId);
+        Assert.NotNull(staged.Jwks);
+        Assert.Equal(1, staged.Jwks.Value.GetProperty("keys").GetArrayLength());
+        Assert.Equal(
+            ["client_credentials"],
+            staged
+                .Settings.GetProperty("grant_types_supported")
+                .EnumerateArray()
+                .Select(item => item.GetString())
+        );
+        Assert.Equal(
+            "private_key_jwt",
+            staged.Settings.GetProperty("token_endpoint_auth_method").GetString()
+        );
+
+        Assert.Equal(2, assignments.Count);
+        Assert.Equal(PrincipalId, assignments[0].PrincipalId);
+        var machineAssignment = assignments[1];
+        Assert.Equal(TenantId, machineAssignment.TenantId);
+        Assert.Equal(AssignmentId, machineAssignment.AssignmentId);
+        Assert.Equal(AutomationPrincipalId, machineAssignment.PrincipalId);
+        Assert.Equal(BuiltInRoles.GlobalAdmin, machineAssignment.RoleName);
+        Assert.Equal(OpenIdResourceTypes.Platform, machineAssignment.ResourceType);
+        Assert.Equal(OpenIdConstants.PlatformResourceId, machineAssignment.ResourceId);
+        Assert.Equal(string.Empty, machineAssignment.ConcurrencyToken);
+    }
+
+    [Fact]
+    public async Task SetUpAsync_AutomationRefused_SavesNothing()
+    {
+        var error = new ManagementError
+        {
+            StatusCode = StatusCodes.Status400BadRequest,
+            Detail = "The client_credentials grant is not enabled.",
+        };
+
+        SetupTenantScope();
+        SetupStoreManagers(2);
+        SetupInstanceSetupStore(1);
+        SetupRead(CreateRow());
+        SetupCreator(CreateCreation());
+        SetupAssignment(_ => { });
+        SetupClientCreator(ClientCreation.Failed(error));
+
+        var result = await CreateService()
+            .SetUpAsync(CreateRequest(automation: CreateAutomation()), CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Same(error, result.Error);
+    }
+
+    [Fact]
+    public async Task SetUpAsync_AutomationSettingsInvalid_ReturnsBadRequestAndSavesNothing()
+    {
+        SetupTenantScope();
+        SetupStoreManagers(2);
+        SetupInstanceSetupStore(1);
+        SetupRead(CreateRow());
+        SetupCreator(CreateCreation());
+        SetupAssignment(_ => { });
+        SetupClientCreator(
+            ClientCreation.InvalidSettings(
+                new Dictionary<string, string[]>
+                {
+                    ["grant_types_supported"] = ["client_credentials is not enabled."],
+                }
+            )
+        );
+
+        var result = await CreateService()
+            .SetUpAsync(CreateRequest(automation: CreateAutomation()), CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(StatusCodes.Status400BadRequest, result.Error.StatusCode);
+        Assert.Contains("automation client", result.Error.Detail, StringComparison.Ordinal);
+        Assert.Contains(
+            "grant_types_supported: client_credentials is not enabled.",
+            result.Error.Detail,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public async Task SetUpAsync_AutomationIncomplete_ReturnsBadRequest()
+    {
+        var automation = CreateAutomation();
+        automation.Jwks = null;
+
+        var result = await CreateService()
+            .SetUpAsync(CreateRequest(automation: automation), CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(StatusCodes.Status400BadRequest, result.Error.StatusCode);
+    }
+
+    [Fact]
+    public async Task SetUpAsync_NoAutomation_StagesNoMachineClient()
+    {
+        var row = CreateRow();
+        var state = new Dictionary<string, object?>();
+
+        SetupTenantScope();
+        SetupStoreManagers(2);
+        SetupInstanceSetupStore(2);
+        SetupRead(row);
+        SetupCreator(CreateCreation());
+        SetupAssignment(_ => { });
+        SetupUpdate(row);
+        SetupSave();
+        SetupLogged(LogLevel.Information, EventIds.RootAdministratorCreated, state);
+
+        var result = await CreateService().SetUpAsync(CreateRequest(), CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Null(result.AutomationClientId);
         Assert.Equal(["tenant", "account"], CallLog);
     }
 

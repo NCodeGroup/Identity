@@ -1,8 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
-
 namespace NCode.Identity.OpenId.Setup;
 
 /// <summary>
@@ -49,7 +47,7 @@ internal static class SetupManagementConsoleRules
         {
             failures.Add($"'{Section}:{nameof(SetupManagementConsoleOptions.Jwks)}' is required.");
         }
-        else if (!IsKeySet(console.Jwks))
+        else if (!SetupJwksRule.IsKeySet(console.Jwks))
         {
             failures.Add(
                 $"'{Section}:{nameof(SetupManagementConsoleOptions.Jwks)}' must be a JSON object with a non-empty "
@@ -72,21 +70,5 @@ internal static class SetupManagementConsoleRules
             && uri.Scheme == Uri.UriSchemeHttps
             && uri.UserInfo.Length == 0
             && uri.AbsolutePath == "/";
-    }
-
-    private static bool IsKeySet(string value)
-    {
-        try
-        {
-            var root = JsonElement.Parse(value);
-            return root.ValueKind == JsonValueKind.Object
-                && root.TryGetProperty("keys", out var keys)
-                && keys.ValueKind == JsonValueKind.Array
-                && keys.GetArrayLength() > 0;
-        }
-        catch (JsonException)
-        {
-            return false;
-        }
     }
 }

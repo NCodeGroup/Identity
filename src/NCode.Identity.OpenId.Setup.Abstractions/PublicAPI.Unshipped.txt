@@ -39,12 +39,16 @@ NCode.Identity.OpenId.Setup.IInstanceSetupService
 NCode.Identity.OpenId.Setup.IInstanceSetupService.IsInitializedAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.OpenId.Setup.IInstanceSetupService.SetUpAsync(NCode.Identity.OpenId.Setup.InstanceSetupRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Setup.InstanceSetupResult!>
 NCode.Identity.OpenId.Setup.InstanceSetupRequest
+NCode.Identity.OpenId.Setup.InstanceSetupRequest.Automation.get -> NCode.Identity.OpenId.Setup.SetupAutomationOptions?
+NCode.Identity.OpenId.Setup.InstanceSetupRequest.Automation.init -> void
 NCode.Identity.OpenId.Setup.InstanceSetupRequest.InstanceSetupRequest() -> void
 NCode.Identity.OpenId.Setup.InstanceSetupRequest.ManagementConsole.get -> NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions?
 NCode.Identity.OpenId.Setup.InstanceSetupRequest.ManagementConsole.init -> void
 NCode.Identity.OpenId.Setup.InstanceSetupRequest.Root.get -> NCode.Identity.OpenId.Setup.SetupRootOptions!
 NCode.Identity.OpenId.Setup.InstanceSetupRequest.Root.init -> void
 NCode.Identity.OpenId.Setup.InstanceSetupResult
+NCode.Identity.OpenId.Setup.InstanceSetupResult.AutomationClientId.get -> string?
+NCode.Identity.OpenId.Setup.InstanceSetupResult.AutomationClientId.init -> void
 NCode.Identity.OpenId.Setup.InstanceSetupResult.Error.get -> NCode.Identity.OpenId.Management.ManagementError?
 NCode.Identity.OpenId.Setup.InstanceSetupResult.Error.init -> void
 NCode.Identity.OpenId.Setup.InstanceSetupResult.InstanceSetupResult() -> void
@@ -58,6 +62,13 @@ NCode.Identity.OpenId.Setup.ISetupTokenService.EnsureTokenAsync(System.Threading
 NCode.Identity.OpenId.Setup.ISetupTokenService.TokenSource.get -> string!
 NCode.Identity.OpenId.Setup.ISetupTokenService.VerifyAsync(string! token, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.OpenId.Setup.SetupDefaults
+NCode.Identity.OpenId.Setup.SetupAutomationOptions
+NCode.Identity.OpenId.Setup.SetupAutomationOptions.ClientId.get -> string?
+NCode.Identity.OpenId.Setup.SetupAutomationOptions.ClientId.set -> void
+NCode.Identity.OpenId.Setup.SetupAutomationOptions.IsConfigured.get -> bool
+NCode.Identity.OpenId.Setup.SetupAutomationOptions.Jwks.get -> string?
+NCode.Identity.OpenId.Setup.SetupAutomationOptions.Jwks.set -> void
+NCode.Identity.OpenId.Setup.SetupAutomationOptions.SetupAutomationOptions() -> void
 NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions
 NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.BaseUrl.get -> string?
 NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.BaseUrl.set -> void
@@ -68,6 +79,8 @@ NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.Jwks.get -> string?
 NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.Jwks.set -> void
 NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.SetupManagementConsoleOptions() -> void
 NCode.Identity.OpenId.Setup.SetupOptions
+NCode.Identity.OpenId.Setup.SetupOptions.Automation.get -> NCode.Identity.OpenId.Setup.SetupAutomationOptions!
+NCode.Identity.OpenId.Setup.SetupOptions.Automation.set -> void
 NCode.Identity.OpenId.Setup.SetupOptions.BundleRootPath.get -> string?
 NCode.Identity.OpenId.Setup.SetupOptions.BundleRootPath.set -> void
 NCode.Identity.OpenId.Setup.SetupOptions.GeneratedTokenLifetime.get -> System.TimeSpan

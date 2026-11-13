@@ -25,10 +25,11 @@ namespace NCode.Identity.OpenId.Setup;
 /// <summary>
 /// Provides a default implementation of <see cref="IInstanceSetupService"/>. The root administrator is a local account
 /// in the control-plane tenant that holds <see cref="BuiltInRoles.GlobalAdmin"/> at the platform node. The account, its
-/// identity, the role assignment, the management console's client when the request carries one, and the initialized
-/// mark are staged on one store manager and saved once, so the instance is initialized exactly when its root
-/// administrator exists. The console's client is staged through <see cref="IClientCreator"/>, so it passes the same
-/// validation as a client that the management API creates.
+/// identity, the role assignment, the management console's client and the automation client when the request carries
+/// them, and the initialized mark are staged on one store manager and saved once, so the instance is initialized
+/// exactly when its root administrator exists. The automation client is a platform-owned machine client that holds
+/// <see cref="BuiltInRoles.GlobalAdmin"/> at the platform node. Both clients are staged through
+/// <see cref="IClientCreator"/>, so each passes the same validation as a client that the management API creates.
 /// </summary>
 internal sealed class DefaultInstanceSetupService(
     IStoreManagerFactory storeManagerFactory,
@@ -110,7 +111,24 @@ internal sealed class DefaultInstanceSetupService(
         );
     }
 
-    private static InstanceSetupResult CreateClientFailureResult(ClientCreation creation)
+    private static JsonElement CreateAutomationSettings() =>
+        JsonSerializer.SerializeToElement(
+            new Dictionary<string, object>
+            {
+                [OpenIdSettingNames.GrantTypesSupported] = new[]
+                {
+                    OpenIdProtocol.GrantTypes.ClientCredentials,
+                },
+                [OpenIdSettingNames.TokenEndpointAuthMethod] = OpenIdProtocol
+                    .ClientAuthenticationMethods
+                    .PrivateKeyJwt,
+            }
+        );
+
+    private static InstanceSetupResult CreateClientFailureResult(
+        ClientCreation creation,
+        string client
+    )
     {
         if (creation.Error is { } error)
             return new InstanceSetupResult { Error = error };
@@ -127,7 +145,7 @@ internal sealed class DefaultInstanceSetupService(
         {
             Error = CreateError(
                 StatusCodes.Status400BadRequest,
-                $"The management console's client cannot be registered. {detail}"
+                $"The {client} cannot be registered. {detail}"
             ),
         };
     }
@@ -182,6 +200,26 @@ internal sealed class DefaultInstanceSetupService(
             }
 
             consoleRegistration = (console.ClientId, baseUrl, jwks);
+        }
+
+        (string ClientId, string Jwks)? automationRegistration = null;
+        if (request.Automation is { } automation)
+        {
+            if (
+                automation.ClientId is not { } requestedClientId
+                || automation.Jwks is not { } requestedJwks
+            )
+            {
+                return new InstanceSetupResult
+                {
+                    Error = CreateError(
+                        StatusCodes.Status400BadRequest,
+                        "The automation client needs a client ID and a JWK Set."
+                    ),
+                };
+            }
+
+            automationRegistration = (requestedClientId, requestedJwks);
         }
 
         // Resolving the tenant creates the control-plane tenant on demand, so the principal and the role assignment
@@ -258,9 +296,50 @@ internal sealed class DefaultInstanceSetupService(
                 cancellationToken
             );
             if (!clientCreation.Succeeded)
-                return CreateClientFailureResult(clientCreation);
+                return CreateClientFailureResult(clientCreation, "management console's client");
 
             consoleClientId = clientCreation.Client.ClientId;
+        }
+
+        string? automationClientId = null;
+        if (automationRegistration is { } automationClient)
+        {
+            // A machine client lives in the control-plane tenant and is owned by the platform node, as the management
+            // API creates it, so the creator requires it to be limited to the client_credentials grant.
+            var machineCreation = await ClientCreator.StageAsync(
+                storeManager,
+                new ClientCreationRequest
+                {
+                    TenantId = tenantId,
+                    ClientId = automationClient.ClientId,
+                    IsDisabled = false,
+                    OwningNodeType = OpenIdResourceTypes.Platform,
+                    OwningNodeId = OpenIdConstants.PlatformResourceId,
+                    Settings = CreateAutomationSettings(),
+                    Jwks = JsonSerializer.Deserialize<JsonElement>(automationClient.Jwks),
+                },
+                cancellationToken
+            );
+            if (!machineCreation.Succeeded)
+                return CreateClientFailureResult(machineCreation, "automation client");
+
+            await storeManager
+                .GetStore<IRoleAssignmentStore>()
+                .AddAsync(
+                    new PersistedRoleAssignment
+                    {
+                        TenantId = tenantId,
+                        AssignmentId = CryptoService.GenerateResourceId(),
+                        PrincipalId = machineCreation.Client.PrincipalId,
+                        RoleName = BuiltInRoles.GlobalAdmin,
+                        ResourceType = OpenIdResourceTypes.Platform,
+                        ResourceId = OpenIdConstants.PlatformResourceId,
+                        ConcurrencyToken = string.Empty,
+                    },
+                    cancellationToken
+                );
+
+            automationClientId = machineCreation.Client.ClientId;
         }
 
         setup.IsInitialized = true;
@@ -288,6 +367,7 @@ internal sealed class DefaultInstanceSetupService(
         return new InstanceSetupResult
         {
             ManagementConsoleClientId = consoleClientId,
+            AutomationClientId = automationClientId,
             Root = new CreateRootResponse
             {
                 TenantId = tenantId,

@@ -276,6 +276,132 @@ public class SetupOptionsValidatorTests
 
     #endregion
 
+    #region Validate Automation Tests
+
+    private static SetupOptions CreateAutomationOptions(
+        string? clientId = "automation",
+        string? jwks = ValidJwks,
+        SetupManagementConsoleOptions? managementConsole = null
+    ) =>
+        new()
+        {
+            ManagementConsole = managementConsole ?? new SetupManagementConsoleOptions(),
+            Automation = new SetupAutomationOptions { ClientId = clientId, Jwks = jwks },
+        };
+
+    [Fact]
+    public void Validate_AutomationUnset_Succeeds()
+    {
+        var options = new SetupOptions();
+
+        var result = Validator.Validate(null, options);
+
+        Assert.False(options.Automation.IsConfigured);
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_AutomationComplete_Succeeds()
+    {
+        var result = Validator.Validate(null, CreateAutomationOptions());
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_AutomationWithoutJwks_Fails()
+    {
+        var result = Validator.Validate(null, CreateAutomationOptions(jwks: null));
+
+        Assert.True(result.Failed);
+        var failure = Assert.Single(result.Failures!);
+        Assert.Contains("'Setup:Automation:Jwks'", failure, StringComparison.Ordinal);
+        Assert.Contains("is required", failure, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_AutomationWithoutClientId_Fails()
+    {
+        var result = Validator.Validate(null, CreateAutomationOptions(clientId: null));
+
+        Assert.True(result.Failed);
+        var failure = Assert.Single(result.Failures!);
+        Assert.Contains("'Setup:Automation:ClientId'", failure, StringComparison.Ordinal);
+        Assert.Contains("is required", failure, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("has space")]
+    [InlineData("slash/")]
+    public void Validate_AutomationClientIdNotUnreserved_Fails(string clientId)
+    {
+        var result = Validator.Validate(null, CreateAutomationOptions(clientId: clientId));
+
+        Assert.True(result.Failed);
+        var failure = Assert.Single(result.Failures!);
+        Assert.Contains("'Setup:Automation:ClientId'", failure, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_AutomationClientIdTooLong_Fails()
+    {
+        var result = Validator.Validate(
+            null,
+            CreateAutomationOptions(clientId: new string('a', 256))
+        );
+
+        Assert.True(result.Failed);
+        var failure = Assert.Single(result.Failures!);
+        Assert.Contains("'Setup:Automation:ClientId'", failure, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("[]")]
+    [InlineData("""{"keys":[]}""")]
+    [InlineData("not json")]
+    public void Validate_AutomationJwksNotKeySet_Fails(string jwks)
+    {
+        var result = Validator.Validate(null, CreateAutomationOptions(jwks: jwks));
+
+        Assert.True(result.Failed);
+        var failure = Assert.Single(result.Failures!);
+        Assert.Contains("'Setup:Automation:Jwks'", failure, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_AutomationClientIdSameAsConsole_Fails()
+    {
+        var options = CreateAutomationOptions(
+            clientId: "shared",
+            managementConsole: new SetupManagementConsoleOptions
+            {
+                ClientId = "shared",
+                BaseUrl = "https://console.example.com",
+                Jwks = ValidJwks,
+            }
+        );
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        var failure = Assert.Single(result.Failures!);
+        Assert.Contains("'Setup:Automation:ClientId'", failure, StringComparison.Ordinal);
+        Assert.Contains("must differ", failure, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_AutomationClientIdSameAsDefaultConsoleButConsoleUnset_Succeeds()
+    {
+        var result = Validator.Validate(
+            null,
+            CreateAutomationOptions(clientId: SetupManagementConsoleOptions.DefaultClientId)
+        );
+
+        Assert.True(result.Succeeded);
+    }
+
+    #endregion
+
     #region AddInstanceSetup Tests
 
     private static ServiceProvider BuildServiceProvider(

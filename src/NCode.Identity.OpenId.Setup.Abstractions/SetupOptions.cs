@@ -42,4 +42,9 @@ public sealed class SetupOptions
     /// Gets or sets the management console's confidential client that the headless <c>setup</c> command registers.
     /// </summary>
     public SetupManagementConsoleOptions ManagementConsole { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the automation client that the headless <c>setup</c> command registers.
+    /// </summary>
+    public SetupAutomationOptions Automation { get; set; } = new();
 }

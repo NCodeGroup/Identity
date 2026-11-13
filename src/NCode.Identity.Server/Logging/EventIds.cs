@@ -33,9 +33,10 @@ internal static class EventIds
     public const int DeveloperBffClientSkipped = Base + 17;
     public const int InstanceSetupCommandUsageInvalid = Base + 18;
     public const int InstanceSetupCommandAlreadyInitialized = Base + 19;
-    public const int InstanceSetupCommandRootIncomplete = Base + 20;
+    public const int InstanceSetupCommandRootUserNameMissing = Base + 20;
     public const int InstanceSetupCommandFailed = Base + 21;
     public const int InstanceSetupCommandRootCreated = Base + 22;
     public const int InstanceSetupCommandManagementConsoleRegistered = Base + 23;
     public const int InstanceSetupCommandAutomationClientCreated = Base + 24;
+    public const int InstanceSetupCommandRootPasswordMissing = Base + 25;
 }

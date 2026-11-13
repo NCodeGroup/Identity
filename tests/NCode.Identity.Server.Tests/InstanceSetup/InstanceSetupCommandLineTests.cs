@@ -185,17 +185,20 @@ public class InstanceSetupCommandLineTests : BaseTests
     }
 
     [Theory]
-    [InlineData(null, Password)]
-    [InlineData("", Password)]
-    [InlineData("  ", Password)]
-    [InlineData(UserName, null)]
-    [InlineData(UserName, "")]
-    [InlineData(null, null)]
-    public async Task RunAsync_UserNameOrPasswordMissing_ReturnsTwoAndCreatesNothing(
+    [InlineData(null, Password, true, false)]
+    [InlineData("", Password, true, false)]
+    [InlineData("  ", Password, true, false)]
+    [InlineData(UserName, null, false, true)]
+    [InlineData(UserName, "", false, true)]
+    [InlineData(null, null, true, true)]
+    public async Task RunAsync_UserNameOrPasswordMissing_ReturnsTwoAndLogsEachMissingKey(
         string? userName,
-        string? password
+        string? password,
+        bool logsUserName,
+        bool logsPassword
     )
     {
+        var loggerProvider = new CapturingLoggerProvider();
         var setupService = CreateStrictMock<IInstanceSetupService>();
         setupService
             .Setup(x => x.IsInitializedAsync(It.IsAny<CancellationToken>()))
@@ -207,11 +210,28 @@ public class InstanceSetupCommandLineTests : BaseTests
             Email = Email,
             Password = password,
         };
-        using var services = CreateServices(setupService.Object, root);
+        using var services = CreateServices(setupService.Object, root, loggerProvider);
 
         var exitCode = await Parse("setup").RunAsync(services, CancellationToken.None);
 
         Assert.Equal(2, exitCode);
+        Assert.Equal(
+            logsUserName,
+            loggerProvider.Messages.Any(message =>
+                message.Contains("Setup:Root:UserName", StringComparison.Ordinal)
+            )
+        );
+        Assert.Equal(
+            logsPassword,
+            loggerProvider.Messages.Any(message =>
+                message.Contains("Setup:Root:Password", StringComparison.Ordinal)
+            )
+        );
+        Assert.DoesNotContain(
+            loggerProvider.Messages,
+            message =>
+                password is { Length: > 0 } && message.Contains(password, StringComparison.Ordinal)
+        );
     }
 
     [Fact]
@@ -241,7 +261,7 @@ public class InstanceSetupCommandLineTests : BaseTests
     }
 
     [Fact]
-    public async Task RunAsync_CreateRootFails_ReturnsOneAndLogsTheDetail()
+    public async Task RunAsync_CreateRootFails_ReturnsOneAndLogsOnlyTheStatusCode()
     {
         var loggerProvider = new CapturingLoggerProvider();
         var setupService = CreateStrictMock<IInstanceSetupService>();
@@ -272,6 +292,10 @@ public class InstanceSetupCommandLineTests : BaseTests
 
         Assert.Equal(1, exitCode);
         Assert.Contains(
+            loggerProvider.Messages,
+            message => message.Contains("status code 400", StringComparison.Ordinal)
+        );
+        Assert.DoesNotContain(
             loggerProvider.Messages,
             message =>
                 message.Contains(
@@ -469,6 +493,10 @@ public class InstanceSetupCommandLineTests : BaseTests
 
         Assert.Equal(1, exitCode);
         Assert.Contains(
+            loggerProvider.Messages,
+            message => message.Contains("status code 400", StringComparison.Ordinal)
+        );
+        Assert.DoesNotContain(
             loggerProvider.Messages,
             message =>
                 message.Contains("The automation client needs a JWK Set.", StringComparison.Ordinal)

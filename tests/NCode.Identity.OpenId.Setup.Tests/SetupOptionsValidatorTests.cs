@@ -143,6 +143,42 @@ public class SetupOptionsValidatorTests
     }
 
     [Fact]
+    public void Validate_WhenRootPasswordIsShorterThanMinimum_FailsNamingTheKey()
+    {
+        var options = new SetupOptions
+        {
+            Root = new SetupRootOptions
+            {
+                UserName = "root",
+                Password = new string('a', SetupDefaults.MinimumRootPasswordLength - 1),
+            },
+        };
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Failed);
+        var failure = Assert.Single(result.Failures!);
+        Assert.Contains("'Setup:Root:Password'", failure, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_WhenRootPasswordHasMinimumLength_Succeeds()
+    {
+        var options = new SetupOptions
+        {
+            Root = new SetupRootOptions
+            {
+                UserName = "root",
+                Password = new string('a', SetupDefaults.MinimumRootPasswordLength),
+            },
+        };
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
     public void Validate_WhenSeveralOptionsAreInvalid_ReportsEveryFailure()
     {
         var options = new SetupOptions

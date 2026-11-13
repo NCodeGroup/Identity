@@ -121,17 +121,16 @@ public sealed class InstanceSetupCommandLine
         var options = services.GetRequiredService<IOptions<SetupOptions>>().Value;
         var root = options.Root;
 
-        var missingKeys = new List<string>(capacity: 2);
-        if (string.IsNullOrWhiteSpace(root.UserName))
-            missingKeys.Add(UserNameKey);
-        if (string.IsNullOrEmpty(root.Password))
-            missingKeys.Add(PasswordKey);
+        var isUserNameMissing = string.IsNullOrWhiteSpace(root.UserName);
+        if (isUserNameMissing)
+            logger.InstanceSetupCommandRootUserNameMissing();
 
-        if (missingKeys.Count > 0)
-        {
-            logger.InstanceSetupCommandRootIncomplete(string.Join(" and ", missingKeys));
+        var isPasswordMissing = string.IsNullOrEmpty(root.Password);
+        if (isPasswordMissing)
+            logger.InstanceSetupCommandRootPasswordMissing();
+
+        if (isUserNameMissing || isPasswordMissing)
             return 2;
-        }
 
         var result = await setupService.SetUpAsync(
             new InstanceSetupRequest
@@ -146,7 +145,7 @@ public sealed class InstanceSetupCommandLine
         );
         if (!result.Succeeded)
         {
-            logger.InstanceSetupCommandFailed(result.Error.StatusCode, result.Error.Detail);
+            logger.InstanceSetupCommandFailed(result.Error.StatusCode);
             return 1;
         }
 

@@ -202,25 +202,18 @@ internal static partial class Log
     internal static partial void InstanceSetupCommandAlreadyInitialized(this ILogger logger);
 
     [LoggerMessage(
-        EventId = EventIds.InstanceSetupCommandRootIncomplete,
+        EventId = EventIds.InstanceSetupCommandRootUserNameMissing,
         Level = LogLevel.Error,
-        Message = "The setup command needs the root administrator's {MissingKeys}."
+        Message = "The setup command needs the root administrator's Setup:Root:UserName."
     )]
-    internal static partial void InstanceSetupCommandRootIncomplete(
-        this ILogger logger,
-        string missingKeys
-    );
+    internal static partial void InstanceSetupCommandRootUserNameMissing(this ILogger logger);
 
     [LoggerMessage(
         EventId = EventIds.InstanceSetupCommandFailed,
         Level = LogLevel.Error,
-        Message = "The setup command cannot create the root administrator (status {StatusCode}): {Detail}"
+        Message = "The setup command was refused with status code {StatusCode}; the host's options validation names each configuration rule at start."
     )]
-    internal static partial void InstanceSetupCommandFailed(
-        this ILogger logger,
-        int statusCode,
-        string detail
-    );
+    internal static partial void InstanceSetupCommandFailed(this ILogger logger, int statusCode);
 
     [LoggerMessage(
         EventId = EventIds.InstanceSetupCommandRootCreated,
@@ -252,4 +245,11 @@ internal static partial class Log
         this ILogger logger,
         string clientId
     );
+
+    [LoggerMessage(
+        EventId = EventIds.InstanceSetupCommandRootPasswordMissing,
+        Level = LogLevel.Error,
+        Message = "The setup command needs the root administrator's Setup:Root:Password."
+    )]
+    internal static partial void InstanceSetupCommandRootPasswordMissing(this ILogger logger);
 }

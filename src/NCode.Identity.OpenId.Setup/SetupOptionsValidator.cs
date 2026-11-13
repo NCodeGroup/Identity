@@ -8,7 +8,8 @@ namespace NCode.Identity.OpenId.Setup;
 /// <summary>
 /// Checks when the host starts that <see cref="SetupOptions"/> holds a configured token of at least
 /// <see cref="SetupDefaults.MinimumTokenLength"/> characters, a generated-token lifetime between one minute and
-/// twenty-four hours, a root administrator that names both a username and a password or neither, and, when the
+/// twenty-four hours, a root administrator that names both a username and a password of at least
+/// <see cref="SetupDefaults.MinimumRootPasswordLength"/> characters or neither, and, when the
 /// management console is configured, a console client with a client identifier, an https origin and a JWK Set, and,
 /// when the automation client is configured, a client identifier that differs from the console's and a JWK Set. The
 /// check reports every failure at once, each naming its configuration key.
@@ -51,6 +52,18 @@ internal sealed class SetupOptionsValidator : IValidateOptions<SetupOptions>
             failures.Add(
                 $"'{SetupOptions.SectionName}:{nameof(SetupOptions.Root)}' must set both "
                     + $"'{nameof(SetupRootOptions.UserName)}' and '{nameof(SetupRootOptions.Password)}', or neither."
+            );
+        }
+
+        if (
+            options.Root.Password is { } password
+            && hasPassword
+            && password.Length < SetupDefaults.MinimumRootPasswordLength
+        )
+        {
+            failures.Add(
+                $"'{SetupOptions.SectionName}:{nameof(SetupOptions.Root)}:{nameof(SetupRootOptions.Password)}' "
+                    + $"must be at least {SetupDefaults.MinimumRootPasswordLength} characters long."
             );
         }
 

@@ -23,7 +23,7 @@ internal static class OutboundUriRedaction
     /// <param name="uri">The URI text that a guarded fetch targets.</param>
     /// <returns>The URI text without its query or fragment.</returns>
     public static string ForLog(string uri) =>
-        Uri.TryCreate(uri, UriKind.Absolute, out var parsed)
+        AbsoluteUri.TryParse(uri, out var parsed)
             ? parsed.GetLeftPart(UriPartial.Path)
             : StripQuery(uri);
 

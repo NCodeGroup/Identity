@@ -239,9 +239,12 @@ Why this shape:
   aliases follow the same rule: `DynamicByHost:MtlsEndpointAliasTemplate = https://{tenantId}.mtls.ncodeid.net` and
   `Root:MtlsEndpointAliasAuthority = https://mtls.ncodeid.net`
   ([ADR-1165](decisions/1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md)). The root tenant
-  is created when the first request reaches `auth.ncodeid.net`, with the bootstrap administrator named into it
-  (`BootstrapAdmin:TenantId = root`,
-  [ADR-1166](decisions/1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md)). `/api` is served on
+  is created when the first request reaches `auth.ncodeid.net`
+  ([ADR-1166](decisions/1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md)),
+  and its first administrator is created once through `/setup` on that host
+  ([ADR-1512](decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md),
+  [first use of a Production instance](first-production-instance.md)); `BootstrapAdmin` is development-only, and the
+  host refuses it in Production. `/api` is served on
   `auth.ncodeid.net`, the control-plane tenant's origin, because the OP accepts the console's DPoP-bound call only at
   that origin plus `/api` ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)); the API authenticates by the control-plane tenant whichever host or path addresses it
   ([ADR-1191](decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)).

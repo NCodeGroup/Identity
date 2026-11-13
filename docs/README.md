@@ -33,6 +33,10 @@ PostgreSQL, Valkey, KMS) with verified monthly pricing, compute sizing, and Trae
 [`platform-bootstrap.md`](./platform-bootstrap.md) is the step-by-step runbook for the manual operations that create the
 hosted platform from scratch — accounts, the infrastructure repository, credentials, and registrar delegation.
 
+[`first-production-instance.md`](./first-production-instance.md) walks the first use of a Production instance: the
+prerequisites, the install, the schema, the root administrator that setup creates, the management console, the grants
+and the removal of the setup Secrets.
+
 ## Designs
 
 [`backend-for-frontend.md`](./backend-for-frontend.md) is the proposed design for a Backend for Frontend (BFF) library

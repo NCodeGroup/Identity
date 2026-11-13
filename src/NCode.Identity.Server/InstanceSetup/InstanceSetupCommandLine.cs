@@ -41,7 +41,9 @@ public sealed class InstanceSetupCommandLine
     /// </summary>
     public static string Usage { get; } =
         $"Usage: {CommandName} (the root administrator comes from the {UserNameKey}, "
-        + $"{SetupOptions.SectionName}:Root:Email and {PasswordKey} configuration)";
+        + $"{SetupOptions.SectionName}:Root:Email and {PasswordKey} configuration; the optional "
+        + $"{SetupOptions.SectionName}:ManagementConsole and {SetupOptions.SectionName}:Automation "
+        + "sections register the management console's client and an automation client)";
 
     /// <summary>
     /// Gets the reason the arguments are invalid, or <see langword="null"/> when they are. A command with an error
@@ -138,6 +140,7 @@ public sealed class InstanceSetupCommandLine
                 ManagementConsole = options.ManagementConsole.IsConfigured
                     ? options.ManagementConsole
                     : null,
+                Automation = options.Automation.IsConfigured ? options.Automation : null,
             },
             cancellationToken
         );
@@ -150,6 +153,8 @@ public sealed class InstanceSetupCommandLine
         logger.InstanceSetupCommandRootCreated(result.Root.UserName, result.Root.TenantId);
         if (result.ManagementConsoleClientId is { } consoleClientId)
             logger.InstanceSetupCommandManagementConsoleRegistered(consoleClientId);
+        if (result.AutomationClientId is { } automationClientId)
+            logger.InstanceSetupCommandAutomationClientCreated(automationClientId);
 
         return 0;
     }

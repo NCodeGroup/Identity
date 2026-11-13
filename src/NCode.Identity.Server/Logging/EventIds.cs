@@ -37,4 +37,5 @@ internal static class EventIds
     public const int InstanceSetupCommandFailed = Base + 21;
     public const int InstanceSetupCommandRootCreated = Base + 22;
     public const int InstanceSetupCommandManagementConsoleRegistered = Base + 23;
+    public const int InstanceSetupCommandAutomationClientCreated = Base + 24;
 }

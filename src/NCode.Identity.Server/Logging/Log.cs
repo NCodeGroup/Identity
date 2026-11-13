@@ -242,4 +242,14 @@ internal static partial class Log
         this ILogger logger,
         string clientId
     );
+
+    [LoggerMessage(
+        EventId = EventIds.InstanceSetupCommandAutomationClientCreated,
+        Level = LogLevel.Information,
+        Message = "Registered the automation client '{ClientId}' in the control-plane tenant."
+    )]
+    internal static partial void InstanceSetupCommandAutomationClientCreated(
+        this ILogger logger,
+        string clientId
+    );
 }

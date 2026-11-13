@@ -31,12 +31,15 @@ public class InstanceSetupCommandLineTests : BaseTests
         IInstanceSetupService setupService,
         SetupRootOptions? root = null,
         CapturingLoggerProvider? loggerProvider = null,
-        SetupManagementConsoleOptions? managementConsole = null
+        SetupManagementConsoleOptions? managementConsole = null,
+        SetupAutomationOptions? automation = null
     )
     {
         var options = new SetupOptions { Root = root ?? new SetupRootOptions() };
         if (managementConsole is not null)
             options.ManagementConsole = managementConsole;
+        if (automation is not null)
+            options.Automation = automation;
 
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging(builder =>
@@ -352,6 +355,123 @@ public class InstanceSetupCommandLineTests : BaseTests
         Assert.Contains(
             loggerProvider.Messages,
             message => message.Contains("'mgmt-console'", StringComparison.Ordinal)
+        );
+    }
+
+    [Fact]
+    public async Task RunAsync_AutomationConfigured_PassesIt()
+    {
+        var loggerProvider = new CapturingLoggerProvider();
+        InstanceSetupRequest? captured = null;
+        var automation = new SetupAutomationOptions
+        {
+            ClientId = "platform-automation",
+            Jwks = """{"keys":[{"kty":"EC"}]}""",
+        };
+        var setupService = CreateStrictMock<IInstanceSetupService>();
+        setupService
+            .Setup(x => x.IsInitializedAsync(It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<bool>(false))
+            .Verifiable();
+        setupService
+            .Setup(x =>
+                x.SetUpAsync(It.IsAny<InstanceSetupRequest>(), It.IsAny<CancellationToken>())
+            )
+            .Callback<InstanceSetupRequest, CancellationToken>((r, _) => captured = r)
+            .Returns(
+                new ValueTask<InstanceSetupResult>(
+                    new InstanceSetupResult
+                    {
+                        Root = CreateSuccess().Root,
+                        AutomationClientId = "platform-automation",
+                    }
+                )
+            )
+            .Verifiable();
+        using var services = CreateServices(
+            setupService.Object,
+            CreateRoot(),
+            loggerProvider,
+            automation: automation
+        );
+
+        var exitCode = await Parse("setup").RunAsync(services, CancellationToken.None);
+
+        Assert.Equal(0, exitCode);
+        Assert.NotNull(captured);
+        Assert.Same(automation, captured.Automation);
+        Assert.Contains(
+            loggerProvider.Messages,
+            message => message.Contains("'platform-automation'", StringComparison.Ordinal)
+        );
+    }
+
+    [Fact]
+    public async Task RunAsync_AutomationUnset_PassesNone()
+    {
+        InstanceSetupRequest? captured = null;
+        var setupService = CreateStrictMock<IInstanceSetupService>();
+        setupService
+            .Setup(x => x.IsInitializedAsync(It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<bool>(false))
+            .Verifiable();
+        setupService
+            .Setup(x =>
+                x.SetUpAsync(It.IsAny<InstanceSetupRequest>(), It.IsAny<CancellationToken>())
+            )
+            .Callback<InstanceSetupRequest, CancellationToken>((r, _) => captured = r)
+            .Returns(new ValueTask<InstanceSetupResult>(CreateSuccess()))
+            .Verifiable();
+        using var services = CreateServices(setupService.Object, CreateRoot());
+
+        var exitCode = await Parse("setup").RunAsync(services, CancellationToken.None);
+
+        Assert.Equal(0, exitCode);
+        Assert.NotNull(captured);
+        Assert.Null(captured.Automation);
+    }
+
+    [Fact]
+    public async Task RunAsync_AutomationRefused_Returns1()
+    {
+        var loggerProvider = new CapturingLoggerProvider();
+        var automation = new SetupAutomationOptions { ClientId = "platform-automation" };
+        var setupService = CreateStrictMock<IInstanceSetupService>();
+        setupService
+            .Setup(x => x.IsInitializedAsync(It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<bool>(false))
+            .Verifiable();
+        setupService
+            .Setup(x =>
+                x.SetUpAsync(It.IsAny<InstanceSetupRequest>(), It.IsAny<CancellationToken>())
+            )
+            .Returns(
+                new ValueTask<InstanceSetupResult>(
+                    new InstanceSetupResult
+                    {
+                        Error = new ManagementError
+                        {
+                            StatusCode = 400,
+                            Detail = "The automation client needs a JWK Set.",
+                        },
+                    }
+                )
+            )
+            .Verifiable();
+        using var services = CreateServices(
+            setupService.Object,
+            CreateRoot(),
+            loggerProvider,
+            automation: automation
+        );
+
+        var exitCode = await Parse("setup").RunAsync(services, CancellationToken.None);
+
+        Assert.Equal(1, exitCode);
+        Assert.Contains(
+            loggerProvider.Messages,
+            message =>
+                message.Contains("The automation client needs a JWK Set.", StringComparison.Ordinal)
         );
     }
 

@@ -97,7 +97,7 @@ administrator.**
     - The URL fragment may also carry `consoleUrl` and `consoleClientId` beside `token`, and the wizard strips them
       from the address bar as it strips the token. The server's hint wins wherever both name a value, and a fragment
       value fills only what the hint leaves empty.
-    - The page's `connect-src` names only the hinted console's origin, through `ContentSecurityPolicySources.Origin`.
+    - The page's `connect-src` names only the hinted console's origin, through `ContentSecurityPolicySources.AddOrigin`.
       A console URL from the fragment or typed by the operator is not in the policy, so the browser refuses that
       fetch, and a link that someone else wrote cannot make the wizard read keys from an origin that the deployment
       does not name.

@@ -65,6 +65,14 @@ administrator.**
 7. **`BootstrapAdmin` is a development convenience.** The Production safety check refuses the `BootstrapAdmin` section
    in Production like the other development seeders, so the setup token is the Production path
    ([ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)).
+8. **Setup can register the management console's client.** The wizard's console step, or `Setup:ManagementConsole`
+   (`ClientId`, which defaults to `mgmt-console`, `BaseUrl` and `Jwks`) for the headless command, registers the console
+   as a confidential client of the control-plane tenant in the same save as the root administrator
+   ([ADR-1437](1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)).
+   The client has a requested, stable `client_id`, and its public JWK Set is imported by value, never through a
+   `jwks_uri` fetch, because a console on a private network cannot be fetched from. Setup stages the client through
+   `IClientCreator`, the seam the management API's client creation uses, so it passes the same `IClientValidator`,
+   settings and coherence validation, and a refused registration saves nothing, not even the root administrator.
 
 The setup packages follow the package shape of
 [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md):
@@ -101,6 +109,7 @@ The setup packages follow the package shape of
   [#776](https://github.com/NCodeGroup/identity/issues/776)
 - [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md),
   [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md),
+  [ADR-1437](1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md),
   [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md),
   [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
   [ADR-1503](1503-http-logging-writes-a-body-only-for-an-endpoint-that-opts-in-and-never-for-one-that-carries-credentials.md)

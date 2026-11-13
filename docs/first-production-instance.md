@@ -87,7 +87,9 @@ issue a fresh one.
 Browse to `https://<host>/setup/#token=<token>`. The token sits in the URL fragment, so it reaches neither the server's
 logs nor a `Referer` header, and the wizard removes it from the address bar. The wizard also takes the token typed in.
 It asks for the root administrator's user name, email address and password, and creates the account. The password needs
-at least 15 characters and must satisfy the control-plane tenant's password policy.
+at least 15 characters and must satisfy the control-plane tenant's password policy. A third step optionally registers the
+management console's client in the same save, as [The management console's client](#the-management-consoles-client)
+describes.
 
 The setup API is rate-limited to 10 requests per minute per client IP address. Behind a reverse proxy, configure the
 host with forwarded headers, or every client shares the proxy's address and one person's attempts limit everyone's.
@@ -119,13 +121,39 @@ kubectl create secret generic identity-root-admin \
 Set `setup.job.enabled=true` and `setup.job.existingSecret=identity-root-admin`. `setup.job.userNameKey`, `emailKey`
 and `passwordKey` rename the Secret's keys.
 
+### The management console's client
+
+Setup can also register the management console's confidential client in the control-plane tenant, in the same save as
+the root administrator. If the registration is refused, setup saves nothing, so the root administrator is not created
+either. The wizard's console step collects the values, and the headless command reads them from configuration:
+
+| Setting                              | Meaning                                                                         |
+| ------------------------------------ | ------------------------------------------------------------------------------- |
+| `Setup__ManagementConsole__ClientId` | The client's `client_id`. The default is `mgmt-console`.                        |
+| `Setup__ManagementConsole__BaseUrl`  | The console's public https origin, such as `https://console.example.com`.       |
+| `Setup__ManagementConsole__Jwks`     | The console's public JWK Set, a JSON object with a non-empty `keys` array.      |
+
+Set `BaseUrl` and `Jwks` together: setting either one registers the console, and both are then required. Setup imports
+the JWK Set by value and never fetches a `jwks_uri`, so a console on a private network needs no route from the server.
+Setup derives the redirect, post-logout and back-channel logout URIs from `BaseUrl`, and it applies the metadata that
+the chart's [Management console](../charts/ncode-identity-host/README.md#management-console) section lists, except
+`jwks_uri`. The registration passes the same validation as one made through the management API.
+
+Derive the public JWK Set from the console's `mgmt-client.pem` key. Never put the private key in it.
+
 ## 5. Sign in and register the management console
 
 Sign in as the root administrator at the control-plane tenant's issuer. The management console is a confidential client
-of the control-plane tenant, so register `mgmt-console` with the metadata that the chart's
-[Management console](../charts/ncode-identity-host/README.md#management-console) section lists
-([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)),
-and deploy the console with `managementConsole.enabled=true`.
+of the control-plane tenant, and its client has to exist before the console can sign anyone in.
+
+Register the client during setup: fill in the wizard's console step, or set `Setup__ManagementConsole__BaseUrl` and
+`Setup__ManagementConsole__Jwks` (and `Setup__ManagementConsole__ClientId` for an identifier other than `mgmt-console`)
+for the headless command, as [The management console's client](#the-management-consoles-client) describes. Then deploy
+the console with `managementConsole.enabled=true`.
+
+To register a console added later, sign in and register `mgmt-console` through the management API with the metadata that
+the chart's [Management console](../charts/ncode-identity-host/README.md#management-console) section lists
+([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)).
 
 ## 6. Enable grants
 

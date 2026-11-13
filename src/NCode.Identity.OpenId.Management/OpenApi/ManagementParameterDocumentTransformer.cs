@@ -37,9 +37,10 @@ internal sealed partial class ManagementParameterDocumentTransformer : IOpenApiD
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["If-Match"] =
-                "An optional optimistic-concurrency precondition. When supplied, the request succeeds only if the "
-                + "target's current concurrency token matches this value; otherwise it fails with 412 Precondition "
-                + "Failed.",
+                "An optional optimistic-concurrency precondition: a quoted strong entity tag from the resource's ETag, "
+                + "a comma-separated list of them, \"*\", or the resource's bare concurrencyToken. When supplied, the "
+                + "request succeeds only if it matches the target's current entity tag; otherwise it fails with 412 "
+                + "Precondition Failed.",
             ["cursor"] =
                 "The opaque continuation token returned by a previous page, or omitted to fetch the first page.",
             ["limit"] = "The maximum number of items to return on the page.",

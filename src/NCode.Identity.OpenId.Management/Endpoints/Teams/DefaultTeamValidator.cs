@@ -192,15 +192,11 @@ internal class DefaultTeamValidator(
         }
 
         if (
-            !string.IsNullOrEmpty(ifMatch)
-            && !string.Equals(ifMatch, team.ConcurrencyToken, StringComparison.Ordinal)
+            ManagementEntityTags.GetIfMatchErrorOrDefault(ifMatch, team.ConcurrencyToken, "team") is
+            { } preconditionError
         )
         {
-            return new ManagementError
-            {
-                StatusCode = StatusCodes.Status412PreconditionFailed,
-                Detail = "The supplied If-Match token does not match the current team.",
-            };
+            return preconditionError;
         }
 
         if (string.IsNullOrWhiteSpace(model.DisplayName))

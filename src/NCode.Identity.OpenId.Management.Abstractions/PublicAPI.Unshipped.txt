@@ -684,6 +684,7 @@ NCode.Identity.OpenId.Management.Endpoints.IManagementCallerFeature.Caller.get -
 NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler
 NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ManagementApiEndpointHandler() -> void
 NCode.Identity.OpenId.Management.Endpoints.ManagementEndpointGroups
+NCode.Identity.OpenId.Management.Endpoints.ManagementEntityTags
 NCode.Identity.OpenId.Management.Endpoints.ManagementProblems
 NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IClientGrantValidator
 NCode.Identity.OpenId.Management.Endpoints.ResourceServers.IClientGrantValidator.AuthorizeCreateAsync(System.Security.Claims.ClaimsPrincipal! user, string! tenantId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
@@ -781,8 +782,10 @@ static NCode.Identity.OpenId.Management.Endpoints.Clients.ClientCreation.Failed(
 static NCode.Identity.OpenId.Management.Endpoints.Clients.ClientCreation.InvalidSettings(System.Collections.Generic.IReadOnlyDictionary<string!, string![]!>! settingErrors) -> NCode.Identity.OpenId.Management.Endpoints.Clients.ClientCreation!
 static NCode.Identity.OpenId.Management.Endpoints.Clients.ClientCreation.Staged(NCode.Identity.OpenId.Persistence.DataContracts.PersistedClient! client) -> NCode.Identity.OpenId.Management.Endpoints.Clients.ClientCreation!
 static NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.ToResourceValues<T>(T resource) -> System.Text.Json.JsonElement
+static NCode.Identity.OpenId.Management.Endpoints.ManagementEntityTags.Format(string! concurrencyToken) -> string!
+static NCode.Identity.OpenId.Management.Endpoints.ManagementEntityTags.GetIfMatchErrorOrDefault(string? ifMatch, string! concurrencyToken, string! resource) -> NCode.Identity.OpenId.Management.ManagementError?
+static NCode.Identity.OpenId.Management.Endpoints.ManagementEntityTags.MatchesIfNoneMatch(string? ifNoneMatch, string! concurrencyToken) -> bool
 static NCode.Identity.OpenId.Management.Endpoints.ManagementProblems.AuthenticationRequired() -> Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult!
-static NCode.Identity.OpenId.Management.Endpoints.ManagementProblems.PreconditionFailed(string! resource) -> Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult!
 static NCode.Identity.OpenId.Management.Endpoints.ManagementProblems.ResourceNotFound() -> Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult!
 static NCode.Identity.OpenId.Management.Operations.Create.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
 static NCode.Identity.OpenId.Management.Operations.Delete.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!

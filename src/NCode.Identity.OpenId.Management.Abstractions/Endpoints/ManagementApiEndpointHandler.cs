@@ -202,10 +202,10 @@ public abstract class ManagementApiEndpointHandler
         if (value is ISupportConcurrencyToken supportConcurrencyToken)
         {
             var concurrencyToken = supportConcurrencyToken.ConcurrencyToken;
-            httpContext.Response.Headers.ETag = concurrencyToken;
+            httpContext.Response.Headers.ETag = ManagementEntityTags.Format(concurrencyToken);
 
-            var ifNoneMatch = httpContext.Request.Headers.IfNoneMatch;
-            if (string.Equals(ifNoneMatch, concurrencyToken, StringComparison.Ordinal))
+            var ifNoneMatch = httpContext.Request.Headers.IfNoneMatch.ToString();
+            if (ManagementEntityTags.MatchesIfNoneMatch(ifNoneMatch, concurrencyToken))
             {
                 return TypedResults.StatusCode(StatusCodes.Status304NotModified);
             }

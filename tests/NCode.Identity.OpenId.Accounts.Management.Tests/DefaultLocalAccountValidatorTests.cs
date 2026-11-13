@@ -354,6 +354,23 @@ public sealed class DefaultLocalAccountValidatorTests : IDisposable
     }
 
     [Fact]
+    public async Task ValidateUpdateAsync_WhenIfMatchIsTheQuotedEntityTag_ReturnsNull()
+    {
+        SetupUserNameLookup(existing: null);
+
+        var error = await Validator.ValidateUpdateAsync(
+            LocalAccountId,
+            UserName,
+            concurrencyToken: "current-ct",
+            ifMatch: "\"current-ct\"",
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
     public async Task ValidateUpdateAsync_WhenUserNameTakenByAnotherAccount_Returns409()
     {
         SetupUserNameLookup(CreateAccount(localAccountId: "other-account"));

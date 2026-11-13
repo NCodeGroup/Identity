@@ -351,7 +351,7 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
         var created = Assert.IsType<Created<SecretResource>>(result);
         Assert.Equal("secret-1", created.Value?.SecretId);
         Assert.Equal(Provider, created.Value?.RemoteKeyProvider);
-        Assert.Equal("secret-ct", httpContext.Response.Headers.ETag);
+        Assert.Equal("\"secret-ct\"", httpContext.Response.Headers.ETag);
         Assert.NotNull(generateRequest);
         Assert.Equal("generated-id", generateRequest.SecretId);
         Assert.Equal(SecretOwner.ForTenant(TenantId), generateRequest.Owner);
@@ -688,7 +688,7 @@ public sealed class TenantRemoteSecretApiEndpointHandlerTests : IDisposable
         var created = Assert.IsType<Created<SecretResource>>(result);
         Assert.Equal("secret-1", created.Value?.SecretId);
         Assert.Equal(Provider, created.Value?.RemoteKeyProvider);
-        Assert.Equal("secret-ct", httpContext.Response.Headers.ETag);
+        Assert.Equal("\"secret-ct\"", httpContext.Response.Headers.ETag);
     }
 
     [Fact]

@@ -480,7 +480,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         var json = Assert.IsType<JsonHttpResult<TeamResource>>(result);
         Assert.Equal(TeamId, json.Value?.TeamId);
         Assert.Equal("Team One", json.Value?.DisplayName);
-        Assert.Equal("team-ct", httpContext.Response.Headers.ETag);
+        Assert.Equal("\"team-ct\"", httpContext.Response.Headers.ETag);
         var node = Assert.IsType<ResourceNode>(authorizedResource);
         Assert.Equal(
             (ControlPlaneTenantId, ResourceNodeTypes.Team, TeamId),
@@ -804,7 +804,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
 
         var created = Assert.IsType<Created<TeamResource>>(result);
         Assert.Equal("reloaded-ct", created.Value?.ConcurrencyToken);
-        Assert.Equal("reloaded-ct", httpContext.Response.Headers.ETag);
+        Assert.Equal("\"reloaded-ct\"", httpContext.Response.Headers.ETag);
         Assert.Equal($"/teams/{TeamId}", created.Location);
         Assert.Equal(TeamId, created.Value?.TeamId);
         Assert.Equal(TeamId, added?.TeamId);
@@ -1445,7 +1445,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
             new ManagementError
             {
                 StatusCode = StatusCodes.Status412PreconditionFailed,
-                Detail = "The supplied If-Match token does not match the current team.",
+                Detail = "The supplied If-Match entity tag does not match the current team.",
             },
             ifMatch: "stale"
         );
@@ -1638,7 +1638,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
 
         var json = Assert.IsType<JsonHttpResult<TeamSettingsResource>>(result);
         Assert.Equal(TeamId, json.Value?.TeamId);
-        Assert.Equal("settings-ct", httpContext.Response.Headers.ETag);
+        Assert.Equal("\"settings-ct\"", httpContext.Response.Headers.ETag);
     }
 
     [Fact]
@@ -1997,7 +1997,7 @@ public sealed class TeamApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
-        Assert.Equal("settings-ct", httpContext.Response.Headers.ETag);
+        Assert.Equal("\"settings-ct\"", httpContext.Response.Headers.ETag);
         Assert.Equal("bar", settings.Value.GetProperty("foo").GetString());
     }
 

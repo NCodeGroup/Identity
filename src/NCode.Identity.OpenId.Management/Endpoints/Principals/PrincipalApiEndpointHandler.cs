@@ -133,7 +133,7 @@ internal class PrincipalApiEndpointHandler(
             return ManagementProblems.ResourceNotFound();
         }
 
-        httpContext.Response.Headers.ETag = principal.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(principal.ConcurrencyToken);
         return TypedResults.Json(ToPrincipalResource(principal));
     }
 

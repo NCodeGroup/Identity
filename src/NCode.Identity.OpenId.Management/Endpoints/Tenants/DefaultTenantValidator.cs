@@ -128,15 +128,15 @@ internal class DefaultTenantValidator(
     )
     {
         if (
-            !string.IsNullOrEmpty(ifMatch)
-            && !string.Equals(ifMatch, tenant.ConcurrencyToken, StringComparison.Ordinal)
+            ManagementEntityTags.GetIfMatchErrorOrDefault(
+                ifMatch,
+                tenant.ConcurrencyToken,
+                "tenant"
+            ) is
+            { } preconditionError
         )
         {
-            return new ManagementError
-            {
-                StatusCode = StatusCodes.Status412PreconditionFailed,
-                Detail = "The supplied If-Match token does not match the current tenant.",
-            };
+            return preconditionError;
         }
 
         if (string.IsNullOrWhiteSpace(model.DisplayName))

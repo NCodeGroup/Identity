@@ -193,6 +193,7 @@ The records are grouped by area; within an area they are in number order.
 | [1466](./1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md) | A client is its own principal, and a machine client acts only within its owning node | Accepted |
 | [1481](./1481-the-composition-layer-serves-the-api-reference-only-where-a-host-enables-it-and-each-management-problem-says-when-it-occurs.md) | The composition layer serves the API reference only where a host enables it, and each management problem says when it occurs | Accepted |
 | [1483](./1483-every-management-error-is-a-problem-document-that-its-route-declares.md) | Every management error is a problem document that its route declares | Accepted |
+| [1513](./1513-management-responses-carry-strong-entity-tags-that-preconditions-compare-as-rfc-9110-says.md) | Management responses carry strong entity tags that preconditions compare as RFC 9110 says | Accepted |
 
 ### Protocol endpoints, grants and tokens
 

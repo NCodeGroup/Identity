@@ -494,7 +494,7 @@ internal class TeamApiEndpointHandler(
             await RecordRoleAssignmentChangedAsync(httpContext, admin, ResourceChangeTypes.Created);
         }
 
-        httpContext.Response.Headers.ETag = team.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(team.ConcurrencyToken);
         return TypedResults.Created($"/teams/{team.TeamId}", ToTeamResource(team));
     }
 
@@ -617,7 +617,7 @@ internal class TeamApiEndpointHandler(
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="teamId">The identifier of the team.</param>
     /// <param name="request">The JSON Patch document to apply to the team metadata.</param>
-    /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current team.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the current team. It accepts <c>*</c>, a quoted strong entity tag or a comma-separated list of them, or the bare <c>concurrencyToken</c>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The team was updated.</response>
     /// <response code="400">The JSON Patch document cannot be applied to the team, or the patched display name is missing.</response>
@@ -901,7 +901,7 @@ internal class TeamApiEndpointHandler(
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="teamId">The identifier of the team.</param>
     /// <param name="request">The JSON Patch document to apply to the settings.</param>
-    /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current settings.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the current settings. It accepts <c>*</c>, a quoted strong entity tag or a comma-separated list of them, or the bare <c>concurrencyToken</c>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The team's settings were updated.</response>
     /// <response code="400">The JSON Patch document cannot be applied to the settings, the patched settings are not valid for a team, or a client in the team or beneath it holds a value the patched settings do not permit.</response>
@@ -939,11 +939,15 @@ internal class TeamApiEndpointHandler(
         var teamSettings = team.Settings;
 
         if (
-            !string.IsNullOrEmpty(ifMatch)
-            && !string.Equals(ifMatch, teamSettings.ConcurrencyToken, StringComparison.Ordinal)
+            ManagementEntityTags.GetIfMatchErrorOrDefault(
+                ifMatch,
+                teamSettings.ConcurrencyToken,
+                "settings"
+            ) is
+            { } preconditionError
         )
         {
-            return ManagementProblems.PreconditionFailed("settings");
+            return ToErrorResult(preconditionError);
         }
 
         var jsonObject = ToJsonObject(teamSettings.Value);
@@ -1045,7 +1049,9 @@ internal class TeamApiEndpointHandler(
             cancellationToken
         );
 
-        httpContext.Response.Headers.ETag = teamSettings.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(
+            teamSettings.ConcurrencyToken
+        );
 
         return TypedResults.NoContent();
     }

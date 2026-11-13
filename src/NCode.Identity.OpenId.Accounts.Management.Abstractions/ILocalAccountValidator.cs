@@ -74,7 +74,7 @@ public interface ILocalAccountValidator
     /// <param name="localAccountId">The opaque identifier of the account being updated.</param>
     /// <param name="userName">The proposed (patched) username of the account.</param>
     /// <param name="concurrencyToken">The current concurrency token of the account.</param>
-    /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> precondition: <c>*</c>, a quoted strong entity tag or a comma-separated list of them, or the bare concurrency token.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> for the current unit of work.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>A <see cref="ManagementError"/> describing the first failed precondition, or <c>null</c> when valid.</returns>

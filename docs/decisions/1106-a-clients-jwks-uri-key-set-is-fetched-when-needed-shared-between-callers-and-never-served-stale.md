@@ -90,7 +90,8 @@ shared between concurrent callers, remembered when the fetch fails, and never se
     unauthenticated or holds only an initial access token, and would learn how the server's resolver answers for names
     it chooses. The runtime log covers that path.
 
-## Options considered considered
+## Options considered
+
 - **Key the shared fetch and the failure by the URI alone.** Rejected: a client with a one-second fetch timeout would
   make the fetch of another client's document fail, and the remembered failure would then suppress that client too.
 - **A per-scope setting for the failure duration.** Rejected: a tenant or a client could set it to zero and switch the

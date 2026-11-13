@@ -8,8 +8,10 @@ using System.Security.Cryptography;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using Moq;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
@@ -74,7 +76,8 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
 
     private DefaultClientKeyResolver CreateFetchingResolver(
         HttpMessageHandler handler,
-        OutboundHttpOptions options
+        OutboundHttpOptions options,
+        ILogger<DefaultClientKeyResolver> logger
     )
     {
         var mockHttpClientFactory = CreateStrictMock<IHttpClientFactory>();
@@ -84,7 +87,7 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
             .Verifiable();
 
         return new DefaultClientKeyResolver(
-            ServiceProvider.GetRequiredService<ILogger<DefaultClientKeyResolver>>(),
+            logger,
             TimeProvider.System,
             mockHttpClientFactory.Object,
             CreateStrictMock<IOutboundHttpContentReader>().Object,
@@ -186,11 +189,38 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
     }
 
     [Fact]
+    public async Task ResolveSecretKeysAsync_WhenJwksUriResolvesToARefusedAddress_LogsBlockedAddress()
+    {
+        var logger = new FakeLogger<DefaultClientKeyResolver>();
+        using var handler = new SocketsHttpHandler
+        {
+            ConnectCallback = new DefaultOutboundHttpForgeryGuard([]).ConnectAsync,
+        };
+        var resolver = CreateFetchingResolver(handler, new OutboundHttpOptions(), logger);
+        var settings = FetchSettings(TimeSpan.FromSeconds(10));
+        settings[OpenIdSettingNames.JwksUri] = "https://10.0.0.5/jwks";
+        var client = CreateClient(settings, readsClientId: true);
+
+        var keys = await resolver.ResolveSecretKeysAsync(client, CancellationToken.None);
+
+        AssertOnlySharedSecret(keys);
+        var record = Assert.Single(
+            logger.Collector.GetSnapshot(),
+            r => r.Id.Id == EventIds.ClientJwksFetchFailed
+        );
+        Assert.Equal("blocked_address", record.GetStructuredStateValue("Reason"));
+    }
+
+    [Fact]
     public async Task ResolveSecretKeysAsync_WhenTwoRequestsMissAtOnce_FetchesOnce()
     {
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var handler = new CountingHttpMessageHandler(gate.Task);
-        var resolver = CreateFetchingResolver(handler, new OutboundHttpOptions());
+        var resolver = CreateFetchingResolver(
+            handler,
+            new OutboundHttpOptions(),
+            ServiceProvider.GetRequiredService<ILogger<DefaultClientKeyResolver>>()
+        );
         var settings = FetchSettings(TimeSpan.FromSeconds(10));
         var client = CreateClient(settings, readsClientId: true);
 
@@ -207,7 +237,11 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
     public async Task ResolveSecretKeysAsync_WhenTheFetchFailed_DoesNotFetchAgain()
     {
         using var handler = new CountingHttpMessageHandler(Task.CompletedTask);
-        var resolver = CreateFetchingResolver(handler, new OutboundHttpOptions());
+        var resolver = CreateFetchingResolver(
+            handler,
+            new OutboundHttpOptions(),
+            ServiceProvider.GetRequiredService<ILogger<DefaultClientKeyResolver>>()
+        );
         var settings = FetchSettings(TimeSpan.FromSeconds(10));
         var client = CreateClient(settings, readsClientId: true);
 
@@ -227,7 +261,11 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
         {
             FailureCacheDuration = TimeSpan.FromMilliseconds(1),
         };
-        var resolver = CreateFetchingResolver(handler, options);
+        var resolver = CreateFetchingResolver(
+            handler,
+            options,
+            ServiceProvider.GetRequiredService<ILogger<DefaultClientKeyResolver>>()
+        );
         var settings = FetchSettings(TimeSpan.FromSeconds(10));
         var client = CreateClient(settings, readsClientId: true);
 
@@ -244,7 +282,11 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
     public async Task ResolveSecretKeysAsync_WhenAnotherClientHasOtherLimits_FetchesSeparately()
     {
         using var handler = new CountingHttpMessageHandler(Task.CompletedTask);
-        var resolver = CreateFetchingResolver(handler, new OutboundHttpOptions());
+        var resolver = CreateFetchingResolver(
+            handler,
+            new OutboundHttpOptions(),
+            ServiceProvider.GetRequiredService<ILogger<DefaultClientKeyResolver>>()
+        );
         var firstSettings = FetchSettings(TimeSpan.FromSeconds(10));
         var firstClient = CreateClient(firstSettings, readsClientId: true);
         var secondSettings = FetchSettings(TimeSpan.FromSeconds(5));
@@ -263,7 +305,11 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
     {
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var handler = new CountingHttpMessageHandler(gate.Task);
-        var resolver = CreateFetchingResolver(handler, new OutboundHttpOptions());
+        var resolver = CreateFetchingResolver(
+            handler,
+            new OutboundHttpOptions(),
+            ServiceProvider.GetRequiredService<ILogger<DefaultClientKeyResolver>>()
+        );
         var settings = FetchSettings(TimeSpan.FromSeconds(10));
         var client = CreateClient(settings, readsClientId: true);
         using var cancellation = new CancellationTokenSource();

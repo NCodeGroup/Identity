@@ -3,7 +3,7 @@
 
 using System.Net;
 
-namespace NCode.Identity.OpenId.Authentication.OutboundHttp;
+namespace NCode.Identity.OpenId.Authentication.OutboundHttp.Facades;
 
 /// <summary>
 /// Resolves a host name to the addresses an outbound fetch would connect to.

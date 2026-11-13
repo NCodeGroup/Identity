@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using Moq;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
+using NCode.Identity.OpenId.Authentication.OutboundHttp.Facades;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.OutboundHttp;

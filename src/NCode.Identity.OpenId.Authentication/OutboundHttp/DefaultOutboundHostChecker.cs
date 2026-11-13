@@ -3,6 +3,7 @@
 
 using System.Net;
 using System.Net.Sockets;
+using NCode.Identity.OpenId.Authentication.OutboundHttp.Facades;
 
 namespace NCode.Identity.OpenId.Authentication.OutboundHttp;
 

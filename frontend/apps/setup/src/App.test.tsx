@@ -1,11 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { AppThemeProvider } from '@ncode/ui';
-import { App } from './App.js';
-import { createRoot, getStatus, type CreateRootResult, type GetStatusResult } from './setupApi.js';
+import { App, mergeConsoleHint } from './App.js';
+import {
+  checkToken,
+  createRoot,
+  getStatus,
+  type CheckTokenResult,
+  type CreateRootResult,
+  type GetStatusResult,
+} from './setupApi.js';
 import { takeSetupFragment } from './setupToken.js';
 
-vi.mock('./setupApi.js', () => ({ createRoot: vi.fn(), getStatus: vi.fn() }));
+vi.mock('./setupApi.js', () => ({ checkToken: vi.fn(), createRoot: vi.fn(), getStatus: vi.fn() }));
 vi.mock('./setupToken.js', () => ({ takeSetupFragment: vi.fn() }));
 
 const READY: GetStatusResult = {
@@ -28,7 +35,14 @@ function fill(label: RegExp, value: string): void {
 async function enterToken(token: string): Promise<void> {
   await screen.findByLabelText(/^Setup token/);
   fill(/^Setup token/, token);
-  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  await act(async () => {
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+  });
+}
+
+async function enterAcceptedToken(token: string): Promise<void> {
+  await enterToken(token);
+  await screen.findByLabelText(/^User name/);
 }
 
 function submitAccount(): void {
@@ -42,6 +56,8 @@ function submitAccount(): void {
 describe('App', () => {
   beforeEach(() => {
     vi.mocked(getStatus).mockReset();
+    vi.mocked(checkToken).mockReset();
+    vi.mocked(checkToken).mockResolvedValue({ kind: 'ok' });
     vi.mocked(createRoot).mockReset();
     vi.mocked(takeSetupFragment).mockReset();
     vi.mocked(takeSetupFragment).mockReturnValue({});
@@ -123,6 +139,89 @@ describe('App', () => {
     expect(getStatus).toHaveBeenCalledOnce();
   });
 
+  it('reaches the account step only after the instance accepts the token', async () => {
+    vi.mocked(getStatus).mockResolvedValue(READY);
+    let resolve: (result: CheckTokenResult) => void = () => undefined;
+    vi.mocked(checkToken).mockReturnValue(
+      new Promise<CheckTokenResult>((r) => {
+        resolve = r;
+      }),
+    );
+    renderApp();
+
+    await enterToken('the-token');
+
+    expect(checkToken).toHaveBeenCalledExactlyOnceWith('the-token');
+    expect(screen.getByLabelText(/^Setup token/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^User name/)).not.toBeInTheDocument();
+
+    await act(async () => {
+      resolve({ kind: 'ok' });
+    });
+    expect(await screen.findByLabelText(/^User name/)).toBeInTheDocument();
+  });
+
+  it('stays on the token step with an error when the instance rejects the token', async () => {
+    vi.mocked(getStatus).mockResolvedValue(READY);
+    vi.mocked(checkToken).mockResolvedValue({ kind: 'forbidden', problem: {} });
+    renderApp();
+
+    await enterToken('wrong-token');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The instance did not accept the setup token.',
+    );
+    expect(screen.getByLabelText(/^Setup token/)).toHaveValue('wrong-token');
+    expect(screen.queryByLabelText(/^User name/)).not.toBeInTheDocument();
+  });
+
+  it('shows the problem’s detail when the token check is rate limited', async () => {
+    vi.mocked(getStatus).mockResolvedValue(READY);
+    vi.mocked(checkToken).mockResolvedValue({
+      kind: 'rateLimited',
+      problem: { detail: 'Too many setup attempts. Try again in a minute.' },
+    });
+    renderApp();
+
+    await enterToken('the-token');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Too many setup attempts. Try again in a minute.',
+    );
+    expect(screen.queryByLabelText(/^User name/)).not.toBeInTheDocument();
+  });
+
+  it('says to try again when the token cannot be checked', async () => {
+    vi.mocked(getStatus).mockResolvedValue(READY);
+    vi.mocked(checkToken).mockResolvedValueOnce({ kind: 'failed' });
+    vi.mocked(checkToken).mockResolvedValueOnce({ kind: 'invalid', problem: {} });
+    renderApp();
+
+    await enterToken('the-token');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The setup token could not be checked. Try again.',
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await waitFor(() => {
+      expect(checkToken).toHaveBeenCalledTimes(2);
+    });
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The setup token could not be checked. Try again.',
+    );
+  });
+
+  it('shows the already-set-up page when the instance finishes setup before the token check', async () => {
+    vi.mocked(getStatus).mockResolvedValue(READY);
+    vi.mocked(checkToken).mockResolvedValue({ kind: 'notFound' });
+    renderApp();
+
+    await enterToken('the-token');
+
+    await screen.findByRole('heading', { level: 1, name: 'This instance is already set up.' });
+    expect(screen.queryByLabelText(/^Setup token/)).not.toBeInTheDocument();
+  });
+
   it('walks from the token through the account to the done page', async () => {
     vi.mocked(getStatus).mockResolvedValue(READY);
     vi.mocked(createRoot).mockResolvedValue({
@@ -131,7 +230,7 @@ describe('App', () => {
     } satisfies CreateRootResult);
     renderApp();
 
-    await enterToken('the-token');
+    await enterAcceptedToken('the-token');
     submitAccount();
 
     expect(
@@ -159,7 +258,7 @@ describe('App', () => {
     } satisfies CreateRootResult);
     renderApp();
 
-    await enterToken('the-token');
+    await enterAcceptedToken('the-token');
     fill(/^User name/, 'root');
     fill(/^Password/, 'a long passphrase!');
     fill(/^Confirm password/, 'a long passphrase!');
@@ -192,7 +291,7 @@ describe('App', () => {
     vi.mocked(createRoot).mockResolvedValue({ kind: 'forbidden', problem: {} });
     renderApp();
 
-    await enterToken('wrong-token');
+    await enterAcceptedToken('wrong-token');
     submitAccount();
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -206,10 +305,37 @@ describe('App', () => {
     vi.mocked(createRoot).mockResolvedValue({ kind: 'notFound' });
     renderApp();
 
-    await enterToken('the-token');
+    await enterAcceptedToken('the-token');
     submitAccount();
 
     await screen.findByRole('heading', { level: 1, name: 'This instance is already set up.' });
     expect(screen.queryByLabelText(/^Password/)).not.toBeInTheDocument();
+  });
+});
+
+describe('mergeConsoleHint', () => {
+  const hint = { baseUrl: 'https://server.example.test', clientId: 'server-client' };
+  const fragment = {
+    consoleUrl: 'https://fragment.example.test',
+    consoleClientId: 'fragment-client',
+  };
+
+  it('lets the server’s hint win over the fragment', () => {
+    expect(mergeConsoleHint(hint, fragment)).toEqual(hint);
+  });
+
+  it('fills from the fragment only what the server’s hint leaves empty', () => {
+    expect(mergeConsoleHint(undefined, fragment)).toEqual({
+      baseUrl: 'https://fragment.example.test',
+      clientId: 'fragment-client',
+    });
+    expect(mergeConsoleHint({ baseUrl: hint.baseUrl, clientId: '' }, fragment)).toEqual({
+      baseUrl: 'https://server.example.test',
+      clientId: 'fragment-client',
+    });
+  });
+
+  it('returns an empty hint when neither names a console', () => {
+    expect(mergeConsoleHint(undefined, {})).toEqual({});
   });
 });

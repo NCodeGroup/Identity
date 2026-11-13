@@ -11,7 +11,7 @@ import { ConsoleClientStep } from './ConsoleClientStep.js';
 import { DonePage } from './DonePage.js';
 import { RootAccountStep, type RootAccount } from './RootAccountStep.js';
 import { TokenStep } from './TokenStep.js';
-import { getStatus, type SetupStatus } from './setupApi.js';
+import { checkToken, getStatus, type ManagementConsoleHint, type SetupStatus } from './setupApi.js';
 import { takeSetupFragment } from './setupToken.js';
 
 type Load =
@@ -20,10 +20,13 @@ type Load =
   | { readonly kind: 'notFound' }
   | { readonly kind: 'error' };
 
+/** The console the deployment or the page's URL fragment names, which the console step prefills. */
+type ConsoleHint = { readonly baseUrl?: string; readonly clientId?: string };
+
 type Step =
   | { readonly name: 'token'; readonly errorMessage?: string }
-  | { readonly name: 'account' }
-  | { readonly name: 'console'; readonly account: RootAccount }
+  | { readonly name: 'account'; readonly consoleHint: ConsoleHint }
+  | { readonly name: 'console'; readonly account: RootAccount; readonly consoleHint: ConsoleHint }
   | {
       readonly name: 'done';
       readonly userName: string;
@@ -31,6 +34,24 @@ type Step =
     };
 
 const TOKEN_REJECTED = 'The instance did not accept the setup token. Check it and enter it again.';
+const TOKEN_NOT_CHECKED = 'The setup token could not be checked. Try again.';
+const RATE_LIMITED = 'Too many attempts. Wait a minute, then try again.';
+
+/**
+ * Merges the console the server hints with the one the page's URL fragment names. The server's hint wins on each
+ * field, and the fragment fills only what the hint leaves empty.
+ */
+export function mergeConsoleHint(
+  hint: ManagementConsoleHint | undefined,
+  fragment: { readonly consoleUrl?: string; readonly consoleClientId?: string },
+): ConsoleHint {
+  const baseUrl = hint?.baseUrl || fragment.consoleUrl;
+  const clientId = hint?.clientId || fragment.consoleClientId;
+  return {
+    ...(baseUrl ? { baseUrl } : {}),
+    ...(clientId ? { clientId } : {}),
+  };
+}
 
 /**
  * The setup wizard. It reads the instance's setup status, then walks the operator through the setup token, the root
@@ -96,9 +117,28 @@ export function App() {
             tokenSource={load.status.tokenSource}
             initialToken={token}
             errorMessage={step.errorMessage}
-            onContinue={(entered) => {
-              setToken(entered);
-              setStep({ name: 'account' });
+            onContinue={async (entered) => {
+              const result = await checkToken(entered);
+              switch (result.kind) {
+                case 'ok': {
+                  setToken(entered);
+                  setStep({
+                    name: 'account',
+                    consoleHint: mergeConsoleHint(result.hint, fragment),
+                  });
+                  return undefined;
+                }
+                case 'forbidden':
+                  return TOKEN_REJECTED;
+                case 'rateLimited':
+                  return result.problem.detail ?? RATE_LIMITED;
+                case 'notFound':
+                  setLoad({ kind: 'notFound' });
+                  return undefined;
+                case 'invalid':
+                case 'failed':
+                  return TOKEN_NOT_CHECKED;
+              }
             }}
           />
         );
@@ -107,7 +147,7 @@ export function App() {
           <RootAccountStep
             minimumPasswordLength={load.status.minimumPasswordLength}
             onContinue={(account) => {
-              setStep({ name: 'console', account });
+              setStep({ name: 'console', account, consoleHint: step.consoleHint });
             }}
           />
         );

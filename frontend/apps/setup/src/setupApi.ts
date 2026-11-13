@@ -39,6 +39,12 @@ export interface ProblemDetail {
   readonly detail?: string;
 }
 
+/** The management console the deployment names for this instance, which the console step prefills. */
+export interface ManagementConsoleHint {
+  readonly baseUrl: string;
+  readonly clientId: string;
+}
+
 export type GetStatusResult =
   | { readonly kind: 'ok'; readonly status: SetupStatus }
   | { readonly kind: 'notFound' }
@@ -52,8 +58,24 @@ export type CreateRootResult =
   | { readonly kind: 'rateLimited'; readonly problem: ProblemDetail }
   | { readonly kind: 'failed' };
 
+export type CheckTokenResult =
+  | { readonly kind: 'ok'; readonly hint?: ManagementConsoleHint }
+  | { readonly kind: 'forbidden'; readonly problem: ProblemDetail }
+  | { readonly kind: 'notFound' }
+  | { readonly kind: 'rateLimited'; readonly problem: ProblemDetail }
+  | { readonly kind: 'invalid'; readonly problem: ProblemDetail }
+  | { readonly kind: 'failed' };
+
+export type FetchKeySetResult =
+  | { readonly kind: 'ok'; readonly jwks: unknown }
+  | { readonly kind: 'status'; readonly status: number }
+  | { readonly kind: 'unreachable' }
+  | { readonly kind: 'aborted' };
+
 const STATUS_URL = './api/status';
 const ROOT_URL = './api/root';
+const TOKEN_URL = './api/token';
+const CONSOLE_JWKS_PATH = '/bff/jwks';
 
 async function readProblem(response: Response): Promise<ProblemDetail> {
   try {
@@ -80,6 +102,66 @@ export async function getStatus(): Promise<GetStatusResult> {
     return { kind: 'ok', status: (await response.json()) as SetupStatus };
   } catch {
     return { kind: 'error' };
+  }
+}
+
+/** Checks the setup token and reads the management console the deployment names, if it names one. */
+export async function checkToken(token: string): Promise<CheckTokenResult> {
+  try {
+    const response = await fetch(TOKEN_URL, {
+      method: 'POST',
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      body: JSON.stringify({ token }),
+    });
+    switch (response.status) {
+      case 200: {
+        const body = (await response.json()) as {
+          readonly managementConsole?: ManagementConsoleHint | null;
+        } | null;
+        const hint = body?.managementConsole;
+        return hint ? { kind: 'ok', hint } : { kind: 'ok' };
+      }
+      case 400:
+        return { kind: 'invalid', problem: await readProblem(response) };
+      case 403:
+        return { kind: 'forbidden', problem: await readProblem(response) };
+      case 404:
+        return { kind: 'notFound' };
+      case 429:
+        return { kind: 'rateLimited', problem: await readProblem(response) };
+      default:
+        return { kind: 'failed' };
+    }
+  } catch {
+    return { kind: 'failed' };
+  }
+}
+
+/**
+ * Reads the management console's public JWK Set from `<baseUrl>/bff/jwks` with a credential-less, uncached,
+ * non-redirected cross-origin request that carries no custom headers.
+ */
+export async function fetchConsoleKeySet(
+  baseUrl: string,
+  signal?: AbortSignal,
+): Promise<FetchKeySetResult> {
+  try {
+    const response = await fetch(new URL(CONSOLE_JWKS_PATH, baseUrl), {
+      mode: 'cors',
+      credentials: 'omit',
+      cache: 'no-store',
+      redirect: 'error',
+      ...(signal ? { signal } : {}),
+    });
+    if (!response.ok) {
+      return { kind: 'status', status: response.status };
+    }
+    return { kind: 'ok', jwks: await response.json().catch(() => null) };
+  } catch (error) {
+    if (signal?.aborted || (error instanceof DOMException && error.name === 'AbortError')) {
+      return { kind: 'aborted' };
+    }
+    return { kind: 'unreachable' };
   }
 }
 

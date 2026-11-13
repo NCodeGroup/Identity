@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Accounts.Management;
@@ -27,6 +28,7 @@ namespace NCode.Identity.OpenId.Setup;
 internal sealed class DefaultInstanceSetupService(
     IStoreManagerFactory storeManagerFactory,
     ITenantResolver tenantResolver,
+    IServiceScopeFactory serviceScopeFactory,
     IAmbientTenantAccessor ambientTenantAccessor,
     ILocalAccountCreator localAccountCreator,
     ICryptoService cryptoService,
@@ -37,6 +39,8 @@ internal sealed class DefaultInstanceSetupService(
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
 
     private ITenantResolver TenantResolver { get; } = tenantResolver;
+
+    private IServiceScopeFactory ServiceScopeFactory { get; } = serviceScopeFactory;
 
     private IAmbientTenantAccessor AmbientTenantAccessor { get; } = ambientTenantAccessor;
 
@@ -100,7 +104,21 @@ internal sealed class DefaultInstanceSetupService(
             };
         }
 
-        var tenantId = TenantResolver.GetControlPlaneTenantId();
+        // Resolving the tenant creates the control-plane tenant on demand, so the principal and the role assignment
+        // staged below have a tenant to reference even on a database that no replica has served. The resolver needs an
+        // HTTP context only for its request-scoped services, so one is built over a scope of its own, as for other
+        // work outside a request.
+        string tenantId;
+        await using (var scope = ServiceScopeFactory.CreateAsyncScope())
+        {
+            var httpContext = new DefaultHttpContext { RequestServices = scope.ServiceProvider };
+            var tenant = await TenantResolver.ResolveControlPlaneTenantAsync(
+                httpContext,
+                cancellationToken
+            );
+            tenantId = tenant.TenantId;
+        }
+
         using var tenantScope = AmbientTenantAccessor.BeginScope(tenantId);
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);

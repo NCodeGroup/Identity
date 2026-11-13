@@ -3,6 +3,7 @@
 
 using System.Globalization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 using NCode.Identity.Cryptography;
@@ -35,12 +36,16 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
     private Mock<IInstanceSetupStore> MockInstanceSetupStore { get; }
     private Mock<IRoleAssignmentStore> MockRoleAssignmentStore { get; }
     private Mock<ITenantResolver> MockTenantResolver { get; }
+    private Mock<IServiceScopeFactory> MockServiceScopeFactory { get; }
+    private Mock<IServiceScope> MockServiceScope { get; }
+    private Mock<IServiceProvider> MockServiceProvider { get; }
     private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private Mock<IDisposable> MockTenantScope { get; }
     private Mock<ILocalAccountCreator> MockLocalAccountCreator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<ILogger<DefaultInstanceSetupService>> MockLogger { get; }
     private FakeTimeProvider TimeProvider { get; }
+    private List<string> CallLog { get; } = [];
 
     public DefaultInstanceSetupServiceTests()
     {
@@ -50,6 +55,9 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         MockInstanceSetupStore = MockRepository.Create<IInstanceSetupStore>();
         MockRoleAssignmentStore = MockRepository.Create<IRoleAssignmentStore>();
         MockTenantResolver = MockRepository.Create<ITenantResolver>();
+        MockServiceScopeFactory = MockRepository.Create<IServiceScopeFactory>();
+        MockServiceScope = MockRepository.Create<IServiceScope>();
+        MockServiceProvider = MockRepository.Create<IServiceProvider>();
         MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
         MockTenantScope = MockRepository.Create<IDisposable>();
         MockLocalAccountCreator = MockRepository.Create<ILocalAccountCreator>();
@@ -70,6 +78,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         new(
             MockStoreManagerFactory.Object,
             MockTenantResolver.Object,
+            MockServiceScopeFactory.Object,
             MockAmbientTenantAccessor.Object,
             MockLocalAccountCreator.Object,
             MockCryptoService.Object,
@@ -146,9 +155,27 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
 
     private void SetupTenantScope()
     {
+        MockServiceScopeFactory
+            .Setup(x => x.CreateScope())
+            .Returns(MockServiceScope.Object)
+            .Verifiable(Times.Once());
+        MockServiceScope
+            .Setup(x => x.ServiceProvider)
+            .Returns(MockServiceProvider.Object)
+            .Verifiable(Times.Once());
+        MockServiceScope.Setup(x => x.Dispose()).Verifiable(Times.Once());
+
         MockTenantResolver
-            .Setup(x => x.GetControlPlaneTenantId())
-            .Returns(TenantId)
+            .Setup(x =>
+                x.ResolveControlPlaneTenantAsync(
+                    It.Is<HttpContext>(httpContext =>
+                        ReferenceEquals(httpContext.RequestServices, MockServiceProvider.Object)
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(() => CallLog.Add("tenant"))
+            .ReturnsAsync(new PersistedTenantBuilder { TenantId = TenantId }.Build())
             .Verifiable(Times.Once());
         MockAmbientTenantAccessor
             .Setup(x => x.BeginScope(TenantId))
@@ -174,6 +201,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
+            .Callback(() => CallLog.Add("account"))
             .ReturnsAsync(creation)
             .Verifiable(Times.Once());
     }
@@ -319,6 +347,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         var result = await CreateService().CreateRootAsync(CreateRoot(), CancellationToken.None);
 
         Assert.True(result.Succeeded);
+        Assert.Equal(["tenant", "account"], CallLog);
         Assert.Equal(TenantId, result.Root.TenantId);
         Assert.Equal(PrincipalId, result.Root.PrincipalId);
         Assert.Equal(UserName, result.Root.UserName);

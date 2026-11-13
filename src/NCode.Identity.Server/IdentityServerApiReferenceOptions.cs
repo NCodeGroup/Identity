@@ -20,9 +20,14 @@ public sealed class IdentityServerApiReferenceOptions
     public const string DefaultSectionName = "ApiReference";
 
     /// <summary>
+    /// The host-root route prefix under which the Scalar API reference page is mapped.
+    /// </summary>
+    public const string PagePrefix = "/scalar";
+
+    /// <summary>
     /// The host-root path at which the Scalar API reference page is served, <c>/scalar/v1</c>.
     /// </summary>
-    public const string PagePath = "/scalar/v1";
+    public const string PagePath = PagePrefix + "/v1";
 
     /// <summary>
     /// Gets or sets a value indicating whether the OpenAPI document is served at <c>/openapi/v1.json</c>.

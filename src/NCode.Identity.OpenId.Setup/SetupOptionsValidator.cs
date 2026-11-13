@@ -70,7 +70,9 @@ internal sealed class SetupOptionsValidator : IValidateOptions<SetupOptions>
         if (!console.IsConfigured)
             return;
 
-        failures.AddRange(SetupManagementConsoleRules.Validate(console));
+        failures.AddRange(
+            SetupManagementConsoleRules.Validate(console, namesConfigurationKeys: true)
+        );
     }
 
     private static void ValidateAutomation(SetupOptions options, List<string> failures)

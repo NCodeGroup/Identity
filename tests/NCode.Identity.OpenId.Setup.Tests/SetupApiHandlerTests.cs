@@ -529,8 +529,43 @@ public sealed class SetupApiHandlerTests : IDisposable
         );
 
         var problem = AssertProblem(result, StatusCodes.Status400BadRequest);
-        Assert.Contains("BaseUrl", problem.ProblemDetails.Detail, StringComparison.Ordinal);
-        Assert.Contains("Jwks", problem.ProblemDetails.Detail, StringComparison.Ordinal);
+        Assert.Contains("console URL", problem.ProblemDetails.Detail, StringComparison.Ordinal);
+        Assert.Contains("JWK Set", problem.ProblemDetails.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain("Setup:", problem.ProblemDetails.Detail, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(
+        "https://console.example.com/app",
+        null,
+        "The console URL must be an absolute https origin"
+    )]
+    [InlineData(
+        ConsoleBaseUrl,
+        """{ "other": [] }""",
+        "The public JWK Set must be a JSON object with a non-empty keys array."
+    )]
+    public async Task CreateRootAsync_ManagementConsoleBreaksARule_AnswersInTheWizardsTerms(
+        string baseUrl,
+        string? jwks,
+        string expected
+    )
+    {
+        SetupIsInitialized(false);
+        SetupVerify(true);
+        var handler = CreateHandler(HostEnvironments.Development);
+        var body = jwks is null
+            ? CreateConsoleRequestJson(baseUrl: baseUrl)
+            : CreateConsoleRequestJson(baseUrl: baseUrl, jwks: jwks);
+
+        var result = await handler.CreateRootAsync(
+            CreateHttpContext(body: body),
+            CancellationToken.None
+        );
+
+        var problem = AssertProblem(result, StatusCodes.Status400BadRequest);
+        Assert.Contains(expected, problem.ProblemDetails.Detail, StringComparison.Ordinal);
+        Assert.DoesNotContain("Setup:", problem.ProblemDetails.Detail, StringComparison.Ordinal);
     }
 
     [Fact]

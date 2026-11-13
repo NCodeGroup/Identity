@@ -62,7 +62,7 @@ internal sealed class SetupApiHandler(
     /// address has used its attempts of the current minute, <c>400</c> when the body is not a JSON
     /// <see cref="CreateRootRequest"/>, and <c>403</c> when the setup token is not the current one; a management
     /// console that breaks <see cref="SetupManagementConsoleRules"/> is refused with <c>400</c> listing each broken
-    /// rule, and a failed precondition of the setup is answered with its own status.
+    /// rule in the wizard's terms, and a failed precondition of the setup is answered with its own status.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request, whose body carries the
     /// setup token and the root administrator.</param>
@@ -106,7 +106,10 @@ internal sealed class SetupApiHandler(
         var console = request.ManagementConsole is { } requested ? MapConsole(requested) : null;
         if (console is not null)
         {
-            var failures = SetupManagementConsoleRules.Validate(console);
+            var failures = SetupManagementConsoleRules.Validate(
+                console,
+                namesConfigurationKeys: false
+            );
             if (failures.Count > 0)
             {
                 return TypedResults.Problem(

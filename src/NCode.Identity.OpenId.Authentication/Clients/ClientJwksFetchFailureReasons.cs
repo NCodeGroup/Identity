@@ -10,11 +10,11 @@ namespace NCode.Identity.OpenId.Authentication.Clients;
 /// <see cref="DefaultClientKeyResolver"/>.
 /// </summary>
 /// <remarks>
-/// The reasons are a closed vocabulary (ADR-1150): each is one of the resolver's own failure sites, no other package
+/// The reasons are a closed vocabulary: each is one of the resolver's own failure sites, no other package
 /// can add a site to the resolver, and a new reason would need a change to the resolver anyway. Names compare
 /// ordinally.
 /// </remarks>
-// See ADR-1106.
+// See ADR-1106 and ADR-1150.
 internal static class ClientJwksFetchFailureReasons
 {
     /// <summary>

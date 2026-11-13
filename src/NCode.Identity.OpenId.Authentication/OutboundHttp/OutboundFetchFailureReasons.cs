@@ -10,10 +10,10 @@ namespace NCode.Identity.OpenId.Authentication.OutboundHttp;
 /// Contains the names of the transport causes that stop a fetch through the guarded outbound client.
 /// </summary>
 /// <remarks>
-/// The reasons are a closed vocabulary (ADR-1150): each is one way the guarded client's send can fail. Names compare
+/// The reasons are a closed vocabulary: each is one way the guarded client's send can fail. Names compare
 /// ordinally.
 /// </remarks>
-// See ADR-1315.
+// See ADR-1150 and ADR-1315.
 internal static class OutboundFetchFailureReasons
 {
     /// <summary>

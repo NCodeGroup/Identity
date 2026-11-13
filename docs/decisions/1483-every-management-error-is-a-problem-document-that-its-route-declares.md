@@ -48,10 +48,10 @@ that loses a concurrency race with `412`, from one endpoint filter on the API's 
 answers `404` and `409` from the rows it read, and each route declares every problem it answers.**
 
 1. **`ManagementProblems` creates the shared problems.** The public static class `ManagementProblems` in
-   `NCode.Identity.OpenId.Management.Abstractions` creates `AuthenticationRequired()` (`401`), `ResourceNotFound()`
-   (`404`, "The resource does not exist.") and `PreconditionFailed(resource)` (`412`, "The supplied If-Match token does
-   not match the current <resource>."), which answers an `If-Match` token that does not match the stored settings or
-   secret.
+   `NCode.Identity.OpenId.Management.Abstractions` creates `AuthenticationRequired()` (`401`) and `ResourceNotFound()`
+   (`404`, "The resource does not exist."). `ManagementEntityTags.GetIfMatchErrorOrDefault` creates the `412` error for
+   an `If-Match` precondition that fails, which a route answers through `ToErrorResult`
+   ([ADR-1513](1513-management-responses-carry-strong-entity-tags-that-preconditions-compare-as-rfc-9110-says.md)).
 2. **One middleware answers every bodyless error under the management prefix.** `ManagementProblemResponseMiddleware`,
    added by `ManagementProblemResponseStartupFilter` (an `IStartupFilter`) as the outermost middleware, answers every
    response under `ManagementRootGroup.RoutePrefix`, the one source of the prefix, that ends with a status of `400` to

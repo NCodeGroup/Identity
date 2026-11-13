@@ -40,10 +40,20 @@ public sealed partial class SetupPageHandlerTests : IDisposable
 
     #region Helpers
 
-    private SetupPageHandler CreateHandler()
+    private SetupPageHandler CreateHandler(string? managementConsoleBaseUrl = null)
     {
         var options = Microsoft.Extensions.Options.Options.Create(
-            new SetupOptions { BundleRootPath = BundleRoot.FullName }
+            new SetupOptions
+            {
+                BundleRootPath = BundleRoot.FullName,
+                Wizard = new SetupWizardOptions
+                {
+                    ManagementConsole = new SetupWizardManagementConsoleOptions
+                    {
+                        BaseUrl = managementConsoleBaseUrl,
+                    },
+                },
+            }
         );
         var handler = new SetupPageHandler(options, MockSurfaceGate.Object);
         Handlers.Add(handler);
@@ -143,6 +153,38 @@ public sealed partial class SetupPageHandlerTests : IDisposable
             $"default-src 'none'; script-src 'nonce-{nonce}' 'strict-dynamic'; style-src 'nonce-{nonce}'; img-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'",
             policy
         );
+    }
+
+    [Fact]
+    public async Task HandlePageAsync_WhenAConsoleIsHinted_AllowsConnectingToItsOrigin()
+    {
+        await WriteIndexAsync(CancellationToken.None);
+        SetupIsServed(true);
+        var handler = CreateHandler("https://console.example.com");
+        var httpContext = CreateHttpContext();
+
+        await handler.HandlePageAsync(httpContext, CancellationToken.None);
+
+        var policy = httpContext.Response.Headers.ContentSecurityPolicy.ToString();
+        Assert.Contains(
+            "connect-src 'self' https://console.example.com;",
+            policy,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public async Task HandlePageAsync_WhenNoConsoleIsHinted_AllowsConnectingOnlyToItsOwnOrigin()
+    {
+        await WriteIndexAsync(CancellationToken.None);
+        SetupIsServed(true);
+        var handler = CreateHandler();
+        var httpContext = CreateHttpContext();
+
+        await handler.HandlePageAsync(httpContext, CancellationToken.None);
+
+        var policy = httpContext.Response.Headers.ContentSecurityPolicy.ToString();
+        Assert.Contains("connect-src 'self';", policy, StringComparison.Ordinal);
     }
 
     [Fact]

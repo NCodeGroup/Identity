@@ -14,7 +14,8 @@ namespace NCode.Identity.Bff.Endpoints;
 /// <summary>
 /// Handles <c>GET /bff/jwks</c>, which publishes the public keys of the request's frontend's client-authentication key
 /// ring as a JSON Web Key Set (RFC 7517 §5), so the OpenID Provider reads them from the client's registered
-/// <c>jwks_uri</c>.
+/// <c>jwks_uri</c>. The set holds only public keys and is answered without credentials, so any origin may read it, such
+/// as the OpenID Provider's setup wizard.
 /// </summary>
 internal class BffJwksHandler(
     IClientKeyRingProvider keyRingProvider,
@@ -64,6 +65,9 @@ internal class BffJwksHandler(
         // No cache may hold a key set that a rotation has replaced.
         var response = httpContext.Response;
         response.SetNoStore();
+
+        // The set holds only public keys and is answered without credentials, so any page may read it.
+        response.Headers.AccessControlAllowOrigin = "*";
         response.StatusCode = StatusCodes.Status200OK;
         response.ContentType = JsonContentType;
         return new ValueTask(response.WriteAsync(json, SecureEncoding.UTF8, cancellationToken));

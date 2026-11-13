@@ -11,8 +11,15 @@ import { ConsoleClientStep } from './ConsoleClientStep.js';
 import { DonePage } from './DonePage.js';
 import { RootAccountStep, type RootAccount } from './RootAccountStep.js';
 import { TokenStep } from './TokenStep.js';
-import { getStatus, type SetupStatus } from './setupApi.js';
-import { takeSetupToken } from './setupToken.js';
+import { mergeConsoleHint, type ConsoleHint } from './consoleHint.js';
+import {
+  checkToken,
+  fetchConsoleKeySet,
+  getStatus,
+  type CreatedRoot,
+  type SetupStatus,
+} from './setupApi.js';
+import { takeSetupFragment } from './setupToken.js';
 
 type Load =
   | { readonly kind: 'loading' }
@@ -22,15 +29,13 @@ type Load =
 
 type Step =
   | { readonly name: 'token'; readonly errorMessage?: string }
-  | { readonly name: 'account' }
-  | { readonly name: 'console'; readonly account: RootAccount }
-  | {
-      readonly name: 'done';
-      readonly userName: string;
-      readonly managementConsoleClientId?: string;
-    };
+  | { readonly name: 'account'; readonly consoleHint: ConsoleHint }
+  | { readonly name: 'console'; readonly account: RootAccount; readonly consoleHint: ConsoleHint }
+  | { readonly name: 'done'; readonly root: CreatedRoot };
 
 const TOKEN_REJECTED = 'The instance did not accept the setup token. Check it and enter it again.';
+const TOKEN_NOT_CHECKED = 'The setup token could not be checked. Try again.';
+const RATE_LIMITED = 'Too many attempts. Wait a minute, then try again.';
 
 /**
  * The setup wizard. It reads the instance's setup status, then walks the operator through the setup token, the root
@@ -40,7 +45,8 @@ const TOKEN_REJECTED = 'The instance did not accept the setup token. Check it an
 export function App() {
   const [load, setLoad] = useState<Load>({ kind: 'loading' });
   const [attempt, setAttempt] = useState(0);
-  const [token, setToken] = useState(() => takeSetupToken() ?? '');
+  const [fragment] = useState(() => takeSetupFragment());
+  const [token, setToken] = useState(fragment.token ?? '');
   const [step, setStep] = useState<Step>({ name: 'token' });
 
   useEffect(() => {
@@ -95,9 +101,28 @@ export function App() {
             tokenSource={load.status.tokenSource}
             initialToken={token}
             errorMessage={step.errorMessage}
-            onContinue={(entered) => {
-              setToken(entered);
-              setStep({ name: 'account' });
+            onContinue={async (entered) => {
+              const result = await checkToken(entered);
+              switch (result.kind) {
+                case 'ok': {
+                  setToken(entered);
+                  setStep({
+                    name: 'account',
+                    consoleHint: mergeConsoleHint(result.hint, fragment),
+                  });
+                  return undefined;
+                }
+                case 'forbidden':
+                  return TOKEN_REJECTED;
+                case 'rateLimited':
+                  return result.problem.detail ?? RATE_LIMITED;
+                case 'notFound':
+                  setLoad({ kind: 'notFound' });
+                  return undefined;
+                case 'invalid':
+                case 'failed':
+                  return TOKEN_NOT_CHECKED;
+              }
             }}
           />
         );
@@ -106,7 +131,7 @@ export function App() {
           <RootAccountStep
             minimumPasswordLength={load.status.minimumPasswordLength}
             onContinue={(account) => {
-              setStep({ name: 'console', account });
+              setStep({ name: 'console', account, consoleHint: step.consoleHint });
             }}
           />
         );
@@ -115,15 +140,11 @@ export function App() {
           <ConsoleClientStep
             token={token}
             account={step.account}
+            consoleHint={step.consoleHint}
+            loadKeySet={fetchConsoleKeySet}
             onCreated={(root) => {
               setToken('');
-              setStep({
-                name: 'done',
-                userName: root.userName,
-                ...(root.managementConsoleClientId
-                  ? { managementConsoleClientId: root.managementConsoleClientId }
-                  : {}),
-              });
+              setStep({ name: 'done', root });
             }}
             onTokenRejected={() => {
               setStep({ name: 'token', errorMessage: TOKEN_REJECTED });
@@ -135,12 +156,7 @@ export function App() {
           />
         );
       case 'done':
-        return (
-          <DonePage
-            userName={step.userName}
-            managementConsoleClientId={step.managementConsoleClientId}
-          />
-        );
+        return <DonePage root={step.root} tokenSource={load.status.tokenSource} />;
     }
   }
 

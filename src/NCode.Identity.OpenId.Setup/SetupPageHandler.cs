@@ -56,7 +56,10 @@ internal sealed class SetupPageHandler(
             return TypedResults.NotFound();
         }
 
-        var security = SetupPageSecurity.Create();
+        var console = optionsAccessor.Value.Wizard.ManagementConsole;
+        var managementConsoleOrigin = console.IsConfigured ? new Uri(console.BaseUrl) : null;
+
+        var security = SetupPageSecurity.Create(managementConsoleOrigin);
         httpContext.Response.SetHtmlPageSecurity(security.Policy);
 
         var html = page.Render(security.Nonce, httpContext.Request.PathBase);

@@ -54,11 +54,11 @@ answers `404` and `409` from the rows it read, and each route declares every pro
    ([ADR-1513](1513-management-responses-carry-strong-entity-tags-that-preconditions-compare-as-rfc-9110-says.md)).
 2. **One middleware answers every bodyless error under the management prefix.** `ManagementProblemResponseMiddleware`,
    added by `ManagementProblemResponseStartupFilter` (an `IStartupFilter`) as the outermost middleware, answers every
-   response under `ManagementRootGroup.RoutePrefix`, the one source of the prefix, that ends with a status of `400` to
-   `599` and no body (not started, no `Content-Length`, no `Content-Type`: the rule the status-code pages middleware
-   uses) with `TypedResults.Problem(statusCode: …)`. A handler's result, a failed binding's `400`, the router's `404`,
-   `405` and `415`, and any endpoint a host maps under the prefix are therefore problem documents, in every host, and a
-   host adds nothing.
+   response under `ManagementApiDefaults.RoutePrefix`, the one source of the prefix, that ends with a status of `400`
+   to `599` and no body (not started, no `Content-Length`, no `Content-Type`: the rule the status-code pages
+   middleware uses) with `TypedResults.Problem(statusCode: …)`. A handler's result, a failed binding's `400`, the
+   router's `404`, `405` and `415`, and any endpoint a host maps under the prefix are therefore problem documents, in
+   every host, and a host adds nothing.
 3. **The root group converts a thrown binding failure.** `BindingExceptionEndpointConvention` answers a
    `BadHttpRequestException` that `ThrowOnBadRequest` throws with its status and no body, before a host exception
    handler renders it, and the middleware writes the problem. `ManagementEnvironmentEndpointFilter` returns an

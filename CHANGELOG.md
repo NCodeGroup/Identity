@@ -15,22 +15,39 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **A setup wizard at `/setup` creates an instance's first administrator.** The OP serves the `@ncode/app-setup` bundle
   (`frontend/apps/setup`) under a per-response CSP nonce, and the wizard asks for the setup token, reads it from the URL
-  fragment (`#token=`) and strips it from the address bar, then creates the root administrator (`UserName`, optional
-  `Email`, `Password`) through `POST /setup/api/root` and lists the remaining configuration with a link to
-  `docs/first-production-instance.md`. The root administrator is a local account in the control-plane tenant holding
+  fragment (`#token=`, beside the optional `consoleUrl` and `consoleClientId`) and strips them from the address bar,
+  checks the token through `POST /setup/api/token` before it moves on, so a wrong token keeps the operator on the token
+  step, then creates the root administrator (`UserName`, optional `Email`, `Password`) through `POST /setup/api/root`.
+  The done page lists the instance's addresses as links with copy buttons (the management console, the issuer, the
+  discovery document, the management API and the API reference when it is served, all computed from the control-plane
+  tenant's issuer), shows the root user and the tenant, and lists the remaining configuration with a link to
+  `docs/first-production-instance.md`, naming the setup token Secret only when the token was configured. The root
+  administrator is a local account in the control-plane tenant holding
   `GlobalAdmin` at the platform node; the account, its identity, that role assignment and the initialized mark of the
   `InstanceSetup` row are saved together, so one setup creates one root. `NCode.Identity.OpenId.Setup.Abstractions`
   holds `SetupOptions` (the `Setup` section: `Token`, at least 32 characters or unset to have the host generate one;
   `GeneratedTokenLifetime`, 1 hour by default and between 1 minute and 24 hours; `BundleRootPath`, `/app/setup` in the
   host image; and `Root` with `UserName`, `Email` and `Password`, where `UserName` and `Password` are set both or
-  neither), the wire contracts, `IInstanceSetupService` and `ISetupTokenService`; `NCode.Identity.OpenId.Setup`
+  neither), the wire contracts, whose unknown members round-trip, `IInstanceSetupService` and `ISetupTokenService`;
+  `NCode.Identity.OpenId.Setup`
   implements them over the abstractions and registers through `AddInstanceSetup` on the management library builder. The
   root password is at least 15 characters and satisfies the control-plane tenant's password policy. Setup can also
   register the management console's confidential client, which authenticates with `private_key_jwt`: the wizard's
   optional console step and the `Setup:ManagementConsole` section (`ClientId`, `mgmt-console` by default; `BaseUrl`, the
   console's `https` origin; `Jwks`) give it a requested stable `client_id` and its public JWK Set, which setup imports
-  by value and never fetches, and the client is saved with the root administrator
+  by value and never fetches, and the client is saved with the root administrator. The `Setup:Wizard:ManagementConsole`
+  section (`BaseUrl`, an `https` origin without a path; `ClientId`, `mgmt-console` by default) only hints the console
+  and registers nothing: `POST /setup/api/token` answers a valid token with that hint, so the console step opens with
+  registration checked, the client ID and console URL filled and the console's public JWK Set fetched by the browser
+  from `<console>/bff/jwks`, and a hint from the deployment wins over the fragment's `consoleUrl` and `consoleClientId`.
+  The set passes through the wizard's public-key check, which refuses private members, and a "Fetch from the console"
+  button repeats the fetch; a fetch that fails (the console is unreachable or the browser refuses its origin, the console
+  answers an HTTP status, or the set is invalid) says why and leaves the field for pasting. The host chart passes the
+  hint as `Setup__Wizard__ManagementConsole__BaseUrl` and `Setup__Wizard__ManagementConsole__ClientId` when
+  `managementConsole.enabled` is true, and then refuses to render with an empty `setup.managementConsole.clientId`
   ([#777](https://github.com/NCodeGroup/identity/issues/777),
+  [#829](https://github.com/NCodeGroup/identity/issues/829),
+  [#830](https://github.com/NCodeGroup/identity/issues/830),
   [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 
 - **The host's `setup` command creates the root administrator without a browser.** `NCode.Identity.OpenId.Host.dll
@@ -2893,7 +2910,10 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The BFF can publish its client keys.** A frontend's `Jwks:Enabled` maps an anonymous, never-cached
   `GET {PathPrefix}/jwks` for that frontend that publishes the public keys of its `ClientAuthentication:KeyRing`, for an
   OP that reads a `private_key_jwt` client's keys from its `jwks_uri`; it is off by default and validated when the host
-  starts ([#396](https://github.com/NCodeGroup/identity/issues/396),
+  starts. The key set answers `Access-Control-Allow-Origin: *`, so a browser on another origin, such as the setup
+  wizard, can read it; it holds only public keys and is anonymous, so the wildcard discloses nothing a direct request
+  would not ([#396](https://github.com/NCodeGroup/identity/issues/396),
+  [#829](https://github.com/NCodeGroup/identity/issues/829),
   [ADR-1382](docs/decisions/1382-the-bffs-browser-security-headers-and-its-client-key-endpoint-are-each-opt-in-for-the-host.md)).
 
 - **One BFF serves several browser frontends.** Each `Bff:Frontends:<name>` entry (`BffFrontendOptions`) is a frontend
@@ -4295,10 +4315,16 @@ Until the first stable release, the [Unreleased] section describes the product a
   on the replica that stored it. The token expires after `Setup:GeneratedTokenLifetime` and a restart issues a fresh
   one. Creating the root administrator marks the instance initialized in the same save, after which every `/setup`
   route answers 404 and the token is useless, and a concurrent second attempt loses on the row's concurrency token.
-  `/setup` answers 404 to a request that is not HTTPS in Production, rate-limits `POST /setup/api/root` to 10 requests
-  per minute per client address (429), serves its page with a nonce Content-Security-Policy and `no-store` caching, and
-  never writes its request or response bodies to HTTP logging
+  `/setup` answers 404 to a request that is not HTTPS in Production, rate-limits `POST /setup/api/token` and
+  `POST /setup/api/root` together to 10 requests per minute per client address (a refused attempt answers `429` with
+  `Retry-After` and `Cache-Control: no-store`), serves its page with a nonce Content-Security-Policy and `no-store`
+  caching, and never writes its request or response bodies to HTTP logging. The
+  page's `connect-src` is `'self'` plus only the origin of the console that the deployment hints through
+  `Setup:Wizard:ManagementConsole`, so a console URL from a link or typed by the operator is refused by the browser and
+  a link someone else wrote cannot make the wizard read keys from an origin the deployment does not name, and the
+  console hint answers only to a holder of the token
   ([#777](https://github.com/NCodeGroup/identity/issues/777),
+  [#829](https://github.com/NCodeGroup/identity/issues/829),
   [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 
 - **`AddProductionSafety` refuses the `BootstrapAdmin` section in Production.** The bootstrap client, a development and

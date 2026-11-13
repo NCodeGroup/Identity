@@ -146,7 +146,7 @@ public sealed class InstanceSetupCommandLine
         }
 
         logger.InstanceSetupCommandRootCreated(result.Root.UserName, result.Root.TenantId);
-        if (result.ManagementConsoleClientId is { } consoleClientId)
+        if (result.Root.ManagementConsoleClientId is { } consoleClientId)
             logger.InstanceSetupCommandManagementConsoleRegistered(consoleClientId);
         if (result.AutomationClientId is { } automationClientId)
             logger.InstanceSetupCommandAutomationClientCreated(automationClientId);

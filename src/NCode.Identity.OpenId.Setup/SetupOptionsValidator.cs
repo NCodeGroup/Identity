@@ -11,9 +11,11 @@ namespace NCode.Identity.OpenId.Setup;
 /// <see cref="SetupDefaults.MinimumTokenLength"/> characters, a generated-token lifetime between one minute and
 /// twenty-four hours, a root administrator that names both a username and a password of at least
 /// <see cref="SetupDefaults.MinimumRootPasswordLength"/> characters or neither, and, when the
-/// management console is configured, a console client with a client identifier, an https origin and a JWK Set, and,
-/// when the automation client is configured, a client identifier that differs from the console's and a JWK Set. The
-/// check reports every failure at once, each naming its configuration key.
+/// management console is configured, a console client with a client identifier, an https origin and a JWK Set,
+/// when the wizard's console hint (<c>Setup:Wizard:ManagementConsole</c>) is configured, a console address that is an
+/// absolute https origin and a non-empty client identifier, and, when the automation client is configured, a client
+/// identifier that differs from the console's and a JWK Set. The check reports every failure at once, each naming its
+/// configuration key.
 /// </summary>
 internal sealed class SetupOptionsValidator : IValidateOptions<SetupOptions>
 {
@@ -70,6 +72,7 @@ internal sealed class SetupOptionsValidator : IValidateOptions<SetupOptions>
 
         ValidateManagementConsole(options.ManagementConsole, failures);
         ValidateAutomation(options, failures);
+        ValidateWizard(options.Wizard, failures);
 
         return failures.Count == 0
             ? ValidateOptionsResult.Success
@@ -87,6 +90,34 @@ internal sealed class SetupOptionsValidator : IValidateOptions<SetupOptions>
         failures.AddRange(
             SetupManagementConsoleRules.Validate(console, namesConfigurationKeys: true)
         );
+    }
+
+    private static void ValidateWizard(SetupWizardOptions wizard, List<string> failures)
+    {
+        var console = wizard.ManagementConsole;
+        if (!console.IsConfigured)
+            return;
+
+        const string section =
+            $"{SetupOptions.SectionName}:{nameof(SetupOptions.Wizard)}:{nameof(SetupWizardOptions.ManagementConsole)}";
+
+        if (
+            string.IsNullOrWhiteSpace(console.BaseUrl)
+            || !SetupManagementConsoleRules.IsHttpsOrigin(console.BaseUrl)
+        )
+        {
+            failures.Add(
+                $"'{section}:{nameof(SetupWizardManagementConsoleOptions.BaseUrl)}' must be an absolute https origin "
+                    + $"without a path, query or fragment (was '{console.BaseUrl}')."
+            );
+        }
+
+        if (string.IsNullOrWhiteSpace(console.ClientId))
+        {
+            failures.Add(
+                $"'{section}:{nameof(SetupWizardManagementConsoleOptions.ClientId)}' must not be empty."
+            );
+        }
     }
 
     private static void ValidateAutomation(SetupOptions options, List<string> failures)

@@ -94,6 +94,7 @@ public static class IdentityServerApiReferenceEndpointRouteBuilderExtensions
             var bootstrap = services.GetRequiredService<IOptions<BootstrapAdminOptions>>().Value;
 
             endpoints.MapScalarApiReference(
+                IdentityServerApiReferenceOptions.PagePrefix,
                 (scalarOptions, httpContext) =>
                 {
                     var nonce = ContentSecurityPolicySources.CreateNonce();

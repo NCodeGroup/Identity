@@ -30,6 +30,7 @@ const NCode.Identity.OpenId.Management.Contracts.ManagementProblemMembers.Settin
 const NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.DefaultPageSize = 50 -> int
 const NCode.Identity.OpenId.Management.Endpoints.ManagementApiEndpointHandler.MaxPageSize = 100 -> int
 const NCode.Identity.OpenId.Management.Endpoints.ManagementEndpointGroups.Tenant = "api/tenant" -> string!
+const NCode.Identity.OpenId.Management.ManagementApiDefaults.RoutePrefix = "/api" -> string!
 NCode.Identity.OpenId.Management.Auditing.ClientChangedAuditEvent
 NCode.Identity.OpenId.Management.Auditing.ClientSecretChangedAuditEvent
 NCode.Identity.OpenId.Management.Auditing.GrantRevokedAuditEvent
@@ -748,6 +749,7 @@ NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateDele
 NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateUpdateAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest! model, string? ifMatch, NCode.Identity.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.BuiltInRoles
 NCode.Identity.OpenId.Management.ClientIdRules
+NCode.Identity.OpenId.Management.ManagementApiDefaults
 NCode.Identity.OpenId.Management.ManagementError
 NCode.Identity.OpenId.Management.ManagementError.Detail.get -> string!
 NCode.Identity.OpenId.Management.ManagementError.Detail.init -> void

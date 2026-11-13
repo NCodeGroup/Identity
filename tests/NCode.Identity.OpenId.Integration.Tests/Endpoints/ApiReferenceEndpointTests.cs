@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using NCode.Identity.OpenId.Host;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
+using NCode.Identity.Server;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Integration.Tests.Endpoints;
@@ -44,7 +45,7 @@ public sealed class ApiReferenceEndpointTests
         );
         using var client = CreateClient(staging);
 
-        using var response = await client.GetAsync("/scalar/v1");
+        using var response = await client.GetAsync(IdentityServerApiReferenceOptions.PagePath);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -77,7 +78,7 @@ public sealed class ApiReferenceEndpointTests
         );
         using var client = CreateClient(staging);
 
-        using var response = await client.GetAsync("/scalar/v1");
+        using var response = await client.GetAsync(IdentityServerApiReferenceOptions.PagePath);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -88,7 +89,7 @@ public sealed class ApiReferenceEndpointTests
         using var factory = new HostApplicationFactory();
         using var client = CreateClient(factory);
 
-        using var response = await client.GetAsync("/scalar/v1");
+        using var response = await client.GetAsync(IdentityServerApiReferenceOptions.PagePath);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
@@ -115,7 +116,7 @@ public sealed class ApiReferenceEndpointTests
         using var factory = new HostApplicationFactory();
         using var client = CreateClient(factory);
 
-        using var response = await client.GetAsync("/scalar/v1");
+        using var response = await client.GetAsync(IdentityServerApiReferenceOptions.PagePath);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 
@@ -135,7 +136,7 @@ public sealed class ApiReferenceEndpointTests
         using var factory = new HostApplicationFactory();
         using var client = CreateClient(factory);
 
-        using var response = await client.GetAsync("/scalar/v1");
+        using var response = await client.GetAsync(IdentityServerApiReferenceOptions.PagePath);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
 

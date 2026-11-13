@@ -120,6 +120,18 @@ public sealed class BffJwksHandlerTests : BaseTests
     }
 
     [Fact]
+    public async Task HandleAsync_AnyOrigin_AllowsReadingTheKeySet()
+    {
+        var mockKeyRingProvider = CreateKeyRingProvider(EcKey);
+        var handler = CreateHandler(mockKeyRingProvider.Object, KeyRingName);
+        var httpContext = CreateHttpContext();
+
+        await handler.HandleAsync(httpContext, CancellationToken.None);
+
+        Assert.Equal("*", httpContext.Response.Headers.AccessControlAllowOrigin.ToString());
+    }
+
+    [Fact]
     public async Task HandleAsync_NeverPublishesPrivateParameters()
     {
         var mockKeyRingProvider = CreateKeyRingProvider(EcKey, RsaKey);

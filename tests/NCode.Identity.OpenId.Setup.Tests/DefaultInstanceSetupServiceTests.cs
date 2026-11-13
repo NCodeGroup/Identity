@@ -6,6 +6,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Accounts.DataContracts;
@@ -26,6 +27,7 @@ namespace NCode.Identity.OpenId.Setup;
 public sealed class DefaultInstanceSetupServiceTests : IDisposable
 {
     private const string TenantId = "control-plane";
+    private const string Issuer = "https://id.example.test/";
     private const string PrincipalId = "principal-1";
     private const string AssignmentId = "assignment-1";
     private const string UserName = "root";
@@ -82,7 +84,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
 
     #region Helpers
 
-    private DefaultInstanceSetupService CreateService() =>
+    private DefaultInstanceSetupService CreateService(string? apiReferencePath = null) =>
         new(
             MockStoreManagerFactory.Object,
             MockTenantResolver.Object,
@@ -91,6 +93,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
             MockLocalAccountCreator.Object,
             MockClientCreator.Object,
             MockCryptoService.Object,
+            Options.Create(new SetupInstanceLinksOptions { ApiReferencePath = apiReferencePath }),
             TimeProvider,
             MockLogger.Object
         );
@@ -263,7 +266,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
             .Verifiable(Times.Once());
     }
 
-    private void SetupTenantScope()
+    private void SetupTenantScope(string issuer = Issuer)
     {
         MockServiceScopeFactory
             .Setup(x => x.CreateScope())
@@ -285,7 +288,9 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
                 )
             )
             .Callback(() => CallLog.Add("tenant"))
-            .ReturnsAsync(new PersistedTenantBuilder { TenantId = TenantId }.Build())
+            .ReturnsAsync(
+                new PersistedTenantBuilder { TenantId = TenantId, Issuer = issuer }.Build()
+            )
             .Verifiable(Times.Once());
         MockAmbientTenantAccessor
             .Setup(x => x.BeginScope(TenantId))
@@ -417,6 +422,28 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
                 })
             )
             .Verifiable(Times.Once());
+    }
+
+    private ValueTask<InstanceSetupResult> SetUpWithIssuer(
+        string issuer,
+        string? apiReferencePath,
+        CancellationToken cancellationToken
+    )
+    {
+        var row = CreateRow();
+        var state = new Dictionary<string, object?>();
+
+        SetupTenantScope(issuer);
+        SetupStoreManagers(1);
+        SetupInstanceSetupStore(1);
+        SetupRead(row);
+        SetupCreator(CreateCreation());
+        SetupAssignment(_ => { });
+        SetupUpdate(row);
+        SetupSave();
+        SetupLogged(LogLevel.Information, EventIds.RootAdministratorCreated, state);
+
+        return CreateService(apiReferencePath).SetUpAsync(CreateRequest(), cancellationToken);
     }
 
     #endregion
@@ -740,7 +767,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
             .SetUpAsync(CreateRequest(managementConsole: CreateConsole()), CancellationToken.None);
 
         Assert.True(result.Succeeded);
-        Assert.Equal(ConsoleClientId, result.ManagementConsoleClientId);
+        Assert.Equal(ConsoleClientId, result.Root.ManagementConsoleClientId);
         Assert.Equal(ConsoleClientId, clientState["ClientId"]);
         Assert.Equal(TenantId, clientState["TenantId"]);
         Assert.Equal(["tenant", "account", "client"], CallLog);
@@ -878,8 +905,79 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         var result = await CreateService().SetUpAsync(CreateRequest(), CancellationToken.None);
 
         Assert.True(result.Succeeded);
-        Assert.Null(result.ManagementConsoleClientId);
+        Assert.Null(result.Root.ManagementConsoleClientId);
         Assert.Equal(["tenant", "account"], CallLog);
+    }
+
+    [Fact]
+    public async Task SetUpAsync_ComputesTheInstanceAddressesFromTheTenantIssuer()
+    {
+        var result = await SetUpWithIssuer(Issuer, null, CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(Issuer, result.Root.Issuer);
+        Assert.Equal(
+            "https://id.example.test/.well-known/openid-configuration",
+            result.Root.DiscoveryUrl
+        );
+        Assert.Equal("https://id.example.test/api", result.Root.ManagementApiUrl);
+        Assert.Null(result.Root.ApiReferenceUrl);
+        Assert.Null(result.Root.ManagementConsoleBaseUrl);
+    }
+
+    [Fact]
+    public async Task SetUpAsync_WhenTheApiReferenceIsServed_LinksIt()
+    {
+        var result = await SetUpWithIssuer(Issuer, "/scalar/v1", CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("https://id.example.test/scalar/v1", result.Root.ApiReferenceUrl);
+    }
+
+    [Fact]
+    public async Task SetUpAsync_WhenTheIssuerHasAPath_LinksTheManagementApiAtItsOrigin()
+    {
+        var result = await SetUpWithIssuer(
+            "https://id.example.test/t/acme",
+            null,
+            CancellationToken.None
+        );
+
+        Assert.True(result.Succeeded);
+        Assert.Equal("https://id.example.test/t/acme", result.Root.Issuer);
+        Assert.Equal(
+            "https://id.example.test/t/acme/.well-known/openid-configuration",
+            result.Root.DiscoveryUrl
+        );
+        Assert.Equal("https://id.example.test/api", result.Root.ManagementApiUrl);
+    }
+
+    [Fact]
+    public async Task SetUpAsync_ManagementConsole_ReturnsItsClientIdAndBaseUrl()
+    {
+        var row = CreateRow();
+        var state = new Dictionary<string, object?>();
+        var clientState = new Dictionary<string, object?>();
+
+        SetupTenantScope();
+        SetupStoreManagers(1);
+        SetupInstanceSetupStore(1);
+        SetupRead(row);
+        SetupCreator(CreateCreation());
+        SetupAssignment(_ => { });
+        SetupClientCreator(CreateStagedClient());
+        SetupUpdate(row);
+        SetupSave();
+        SetupLogEnabled(LogLevel.Information, 2);
+        SetupLogEntry(LogLevel.Information, EventIds.RootAdministratorCreated, state);
+        SetupLogEntry(LogLevel.Information, EventIds.InstanceSetupClientRegistered, clientState);
+
+        var result = await CreateService()
+            .SetUpAsync(CreateRequest(managementConsole: CreateConsole()), CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(ConsoleClientId, result.Root.ManagementConsoleClientId);
+        Assert.Equal("https://manage.example.com/", result.Root.ManagementConsoleBaseUrl);
     }
 
     [Fact]
@@ -911,7 +1009,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         Assert.Equal(AutomationClientId, result.AutomationClientId);
         Assert.Equal(AutomationClientId, clientState["ClientId"]);
         Assert.Equal(TenantId, clientState["TenantId"]);
-        Assert.Null(result.ManagementConsoleClientId);
+        Assert.Null(result.Root.ManagementConsoleClientId);
         Assert.Equal(["tenant", "account", "client"], CallLog);
         Assert.True(row.IsInitialized);
 

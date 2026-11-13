@@ -13,10 +13,11 @@ namespace NCode.Identity.OpenId.Setup;
 
 /// <summary>
 /// The route group of the setup surface (<c>/setup</c>): the setup page and its single-page routes, the page's
-/// content-hashed assets, and the status and root-creation API the page calls. The user agent navigates to the page
-/// and the page calls the API from the same origin, so no CORS policy applies. The routes have confidential bodies, so
-/// HTTP logging never writes a request or response body, and the group is excluded from the OpenAPI description. A
-/// literal route wins over the page's catch-all, so the surface is reachable whatever the tenant route strategy.
+/// content-hashed assets, and the status, token-check and root-creation API the page calls. The user agent navigates
+/// to the page and the page calls the API from the same origin, so no CORS policy applies. The routes have
+/// confidential bodies, so HTTP logging never writes a request or response body, and the group is excluded from the
+/// OpenAPI description. A literal route wins over the page's catch-all, so the surface is reachable whatever the
+/// tenant route strategy.
 /// </summary>
 internal sealed class SetupEndpointGroup : IEndpointGroup
 {
@@ -53,7 +54,13 @@ internal sealed class SetupEndpointGroup : IEndpointGroup
                 handler.GetStatusAsync(httpContext, httpContext.RequestAborted)
         );
 
-        // The body is not a parameter: the handler reads it after it checks that the surface is served.
+        // The bodies are not parameters: the handlers read them after they check that the surface is served.
+        group.MapPost(
+            "/api/token",
+            static ([FromServices] SetupApiHandler handler, HttpContext httpContext) =>
+                handler.CheckTokenAsync(httpContext, httpContext.RequestAborted)
+        );
+
         group.MapPost(
             "/api/root",
             static ([FromServices] SetupApiHandler handler, HttpContext httpContext) =>

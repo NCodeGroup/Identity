@@ -196,6 +196,8 @@ Rendering fails, before anything is applied, when:
   single-use state through Valkey;
 - `managementConsole.enabled` is `true` and `managementConsole.host` is empty or contains `*`;
 - `managementConsole.enabled` is `true` and the console's authority is empty or does not start with `https://`;
+- `managementConsole.enabled` is `true` and `setup.managementConsole.clientId` is empty, because the setup wizard hints
+  the console's `client_id` and the host refuses an empty one;
 - `managementConsole.enabled` is `true` and a console key ring, `managementConsole.keyRings.client` or `.dpop`, names
   neither `pemSecret` nor a remote key;
 - a console key ring holds two keys with the same id, compared without case, where a `pemSecret` key's id is
@@ -237,6 +239,12 @@ Warning level, on the one replica that issued it. The generated token expires (a
 
 The wizard answers at `https://<host>/setup/#token=<token>`. It creates the root global administrator once, and every
 `/setup` route answers 404 after the instance is initialized.
+
+With `managementConsole.enabled`, the host receives `Setup__Wizard__ManagementConsole__BaseUrl` (`https://<managementConsole.host>`)
+and `Setup__Wizard__ManagementConsole__ClientId` (`setup.managementConsole.clientId`), so the wizard's console step opens
+with registration checked, the client ID and the console URL filled, and the key set read from
+`https://<managementConsole.host>/bff/jwks`. The operator submits without typing. When the browser cannot reach the
+console, the step says so and takes a pasted set.
 
 To create the root administrator without a browser, enable `setup.job`. It renders a Job per release revision that runs
 the host image's `setup` command, creates the root administrator from the Secret named in `setup.job.existingSecret`, and

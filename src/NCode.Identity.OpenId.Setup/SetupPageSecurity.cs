@@ -15,13 +15,22 @@ internal readonly record struct SetupPageSecurity(string Nonce, HtmlPageSecurity
 {
     /// <summary>
     /// Creates the security of one setup page response. The policy allows the page's scripts and styles only with a
-    /// fresh nonce, and the page's own images and API calls. It allows a base URI of the page's own origin, because
-    /// the page carries a same-origin <c>base</c> element, and it forbids form submission and framing.
+    /// fresh nonce, and the page's own images. The page may call its own API and read the hinted management console's
+    /// public key set, so <c>connect-src</c> allows the page's own origin and the console's origin. It allows a base
+    /// URI of the page's own origin, because the page carries a same-origin <c>base</c> element, and it forbids form
+    /// submission and framing.
     /// </summary>
+    /// <param name="managementConsoleOrigin">
+    /// The hinted management console's absolute URL, whose origin the page may connect to, or <see langword="null"/>
+    /// when no console is hinted.
+    /// </param>
     /// <returns>The nonce and the policy of the response.</returns>
-    public static SetupPageSecurity Create()
+    public static SetupPageSecurity Create(Uri? managementConsoleOrigin)
     {
         var nonce = ContentSecurityPolicySources.CreateNonce();
+
+        var connectSources = new List<string> { ContentSecurityPolicySources.Self };
+        ContentSecurityPolicySources.AddOrigin(connectSources, managementConsoleOrigin);
 
         var policy = new HtmlPageSecurityPolicy
         {
@@ -42,7 +51,7 @@ internal readonly record struct SetupPageSecurity(string Nonce, HtmlPageSecurity
                 ),
                 new ContentSecurityPolicyDirective(
                     ContentSecurityPolicyDirectives.ConnectSrc,
-                    ContentSecurityPolicySources.Self
+                    connectSources
                 ),
                 new ContentSecurityPolicyDirective(
                     ContentSecurityPolicyDirectives.BaseUri,

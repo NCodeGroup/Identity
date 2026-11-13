@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { AppThemeProvider } from '@ncode/ui';
 import { TokenStep, type TokenStepProps } from './TokenStep.js';
 
 function renderStep(props: Partial<TokenStepProps> = {}) {
-  const onContinue = vi.fn();
+  const onContinue = vi.fn<TokenStepProps['onContinue']>().mockResolvedValue(undefined);
   render(
     <AppThemeProvider>
       <TokenStep tokenSource="configured" initialToken="" onContinue={onContinue} {...props} />
@@ -47,7 +47,7 @@ describe('TokenStep', () => {
     expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
   });
 
-  it('continues with the trimmed token the operator typed', () => {
+  it('continues with the trimmed token the operator typed', async () => {
     const { onContinue } = renderStep();
 
     fireEvent.change(screen.getByLabelText(/^Setup token/), {
@@ -56,6 +56,66 @@ describe('TokenStep', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
     expect(onContinue).toHaveBeenCalledExactlyOnceWith('typed-token');
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
+    });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('disables continuing and shows progress while the token is checked', async () => {
+    let resolve: (message: string | undefined) => void = () => undefined;
+    const onContinue = vi.fn(
+      () =>
+        new Promise<string | undefined>((r) => {
+          resolve = r;
+        }),
+    );
+    renderStep({ initialToken: 'a-token', onContinue });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(onContinue).toHaveBeenCalledOnce();
+    expect(screen.getByRole('button', { name: /Continue/ })).toBeDisabled();
+    expect(screen.getByRole('progressbar', { name: 'Checking the token' })).toBeInTheDocument();
+
+    resolve(undefined);
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
+    });
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+  });
+
+  it('shows the message of a rejected token and stays on the step', async () => {
+    renderStep({
+      initialToken: 'wrong-token',
+      onContinue: vi.fn().mockResolvedValue('The instance did not accept the setup token.'),
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The instance did not accept the setup token.',
+    );
+    expect(screen.getByLabelText(/^Setup token/)).toHaveValue('wrong-token');
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
+  });
+
+  it('clears the message when the next check is accepted', async () => {
+    renderStep({
+      initialToken: 'a-token',
+      onContinue: vi
+        .fn()
+        .mockResolvedValueOnce('The instance did not accept the setup token.')
+        .mockResolvedValueOnce(undefined),
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    await screen.findByRole('alert');
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
   });
 
   it('keeps continue disabled for a token of only blanks', () => {

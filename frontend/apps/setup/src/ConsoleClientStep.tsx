@@ -1,19 +1,34 @@
-import { useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Checkbox from '@mui/material/Checkbox';
+import CircularProgress from '@mui/material/CircularProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import type { RootAccount } from './RootAccountStep.js';
-import { createRoot, type CreatedRoot, type ManagementConsoleRegistration } from './setupApi.js';
+import type { ConsoleHint } from './consoleHint.js';
+import {
+  consoleKeySetUrl,
+  createRoot,
+  type CreatedRoot,
+  type FetchKeySetResult,
+  type ManagementConsoleRegistration,
+} from './setupApi.js';
 
 export type ConsoleClientStepProps = {
   /** The setup token the operator entered. */
   readonly token: string;
   /** The root administrator's account the previous step collected. */
   readonly account: RootAccount;
+  /**
+   * The console the deployment or the page's URL fragment names. When it has a URL, the step opens with the
+   * registration checked, the fields filled and the console's key set fetched.
+   */
+  readonly consoleHint?: ConsoleHint;
+  /** Loads the management console's public key set from the console at the given base URL. */
+  readonly loadKeySet: (baseUrl: string, signal?: AbortSignal) => Promise<FetchKeySetResult>;
   /** Called with the root administrator once the instance created it. */
   readonly onCreated: (root: CreatedRoot) => void;
   /** Called when the instance refuses the setup token. */
@@ -30,6 +45,7 @@ const URL_NOT_HTTPS = 'The console URL must start with https://.';
 const JWKS_INVALID =
   'Paste the console’s public JWK Set: a JSON object with a non-empty keys array.';
 const JWKS_PRIVATE = 'Paste the console’s public keys only.';
+const PASTE_THE_SET = 'Paste the console’s public JWK Set.';
 
 type JwksParse =
   | { readonly kind: 'ok'; readonly jwks: unknown }
@@ -60,16 +76,81 @@ function parsePublicJwks(text: string): JwksParse {
 export function ConsoleClientStep({
   token,
   account,
+  consoleHint,
+  loadKeySet,
   onCreated,
   onTokenRejected,
   onNotFound,
 }: ConsoleClientStepProps) {
-  const [register, setRegister] = useState(false);
-  const [clientId, setClientId] = useState(DEFAULT_CLIENT_ID);
-  const [baseUrl, setBaseUrl] = useState('');
+  const [hintedUrl] = useState(consoleHint?.baseUrl);
+  const [register, setRegister] = useState(Boolean(consoleHint?.baseUrl));
+  const [clientId, setClientId] = useState(consoleHint?.clientId ?? DEFAULT_CLIENT_ID);
+  const [baseUrl, setBaseUrl] = useState(consoleHint?.baseUrl ?? '');
   const [jwksText, setJwksText] = useState('');
   const [error, setError] = useState<string | undefined>(undefined);
   const [submitting, setSubmitting] = useState(false);
+  const [fetching, setFetching] = useState(Boolean(consoleHint?.baseUrl));
+  const [fetchedFrom, setFetchedFrom] = useState<string | undefined>(undefined);
+  const [fetchWarning, setFetchWarning] = useState<string | undefined>(undefined);
+  const fetchControllerRef = useRef<AbortController | undefined>(undefined);
+
+  const fetchKeySet = useCallback(
+    async (url: string): Promise<void> => {
+      fetchControllerRef.current?.abort();
+      const controller = new AbortController();
+      fetchControllerRef.current = controller;
+
+      let target = url;
+      try {
+        target = consoleKeySetUrl(url);
+      } catch {
+        // The warning names the console URL itself when it cannot be turned into a key set address.
+      }
+      setFetching(true);
+      setFetchedFrom(undefined);
+      setFetchWarning(undefined);
+      const result = await loadKeySet(url, controller.signal);
+      if (controller.signal.aborted) {
+        return;
+      }
+      setFetching(false);
+
+      switch (result.kind) {
+        case 'ok': {
+          const parsed = parsePublicJwks(JSON.stringify(result.jwks));
+          if (parsed.kind === 'refused') {
+            setFetchWarning(parsed.message);
+            return;
+          }
+          setJwksText(JSON.stringify(parsed.jwks, null, 2));
+          setFetchedFrom(target);
+          return;
+        }
+        case 'status':
+          setFetchWarning(
+            `The console answered HTTP ${String(result.status)} for its key set at ${target}. ${PASTE_THE_SET}`,
+          );
+          return;
+        case 'unreachable':
+          setFetchWarning(
+            `This page could not read the console’s key set at ${target}. The browser refuses a console origin this deployment does not name, and a console that is not running or not reachable from this browser cannot answer. ${PASTE_THE_SET}`,
+          );
+          return;
+        case 'aborted':
+          return;
+      }
+    },
+    [loadKeySet],
+  );
+
+  useEffect(() => {
+    if (hintedUrl) {
+      void fetchKeySet(hintedUrl);
+    }
+    return () => {
+      fetchControllerRef.current?.abort();
+    };
+  }, [hintedUrl, fetchKeySet]);
 
   async function submit(): Promise<void> {
     let managementConsole: ManagementConsoleRegistration | undefined;
@@ -181,6 +262,21 @@ export function ConsoleClientStep({
             }}
             fullWidth
           />
+          {baseUrl.trim() ? (
+            <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+              <Button
+                variant="outlined"
+                disabled={fetching}
+                onClick={() => {
+                  void fetchKeySet(baseUrl.trim());
+                }}
+              >
+                Fetch from the console
+              </Button>
+              {fetching ? <CircularProgress size={24} aria-label="Fetching the key set" /> : null}
+            </Stack>
+          ) : null}
+          {fetchWarning ? <Alert severity="warning">{fetchWarning}</Alert> : null}
           <TextField
             id="console-jwks"
             name="console-jwks"
@@ -195,6 +291,9 @@ export function ConsoleClientStep({
             minRows={5}
             fullWidth
           />
+          {fetchedFrom ? (
+            <Typography variant="caption">Fetched from {fetchedFrom}</Typography>
+          ) : null}
         </>
       ) : null}
 

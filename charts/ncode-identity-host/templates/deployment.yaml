@@ -88,6 +88,12 @@ spec:
                   name: {{ .Values.setup.token.existingSecret }}
                   key: {{ .Values.setup.token.key | quote }}
             {{- end }}
+            {{- if .Values.managementConsole.enabled }}
+            - name: Setup__Wizard__ManagementConsole__BaseUrl
+              value: {{ printf "https://%s" .Values.managementConsole.host | quote }}
+            - name: Setup__Wizard__ManagementConsole__ClientId
+              value: {{ .Values.setup.managementConsole.clientId | quote }}
+            {{- end }}
           {{- with .Values.extraEnvFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

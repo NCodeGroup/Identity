@@ -5,6 +5,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using NCode.Identity.Cryptography;
 using NCode.Identity.OpenId.Accounts.Management;
 using NCode.Identity.OpenId.Accounts.Management.Contracts;
@@ -39,6 +40,7 @@ internal sealed class DefaultInstanceSetupService(
     ILocalAccountCreator localAccountCreator,
     IClientCreator clientCreator,
     ICryptoService cryptoService,
+    IOptions<SetupInstanceLinksOptions> instanceLinksOptions,
     TimeProvider timeProvider,
     ILogger<DefaultInstanceSetupService> logger
 ) : IInstanceSetupService
@@ -62,6 +64,8 @@ internal sealed class DefaultInstanceSetupService(
     private IClientCreator ClientCreator { get; } = clientCreator;
 
     private ICryptoService CryptoService { get; } = cryptoService;
+
+    private SetupInstanceLinksOptions InstanceLinksOptions { get; } = instanceLinksOptions.Value;
 
     private TimeProvider TimeProvider { get; } = timeProvider;
 
@@ -130,6 +134,21 @@ internal sealed class DefaultInstanceSetupService(
                     .PrivateKeyJwt,
             }
         );
+
+    // The addresses come from the control-plane tenant's issuer, never from the request, so a request's Host header
+    // cannot choose where the done page sends the operator. The management API and the API reference sit at the host
+    // root, outside any tenant path, so they hang off the issuer's origin.
+    private static string GetOrigin(string issuer) =>
+        new Uri(issuer).GetLeftPart(UriPartial.Authority);
+
+    private static string GetDiscoveryUrl(string issuer) =>
+        issuer.TrimEnd('/') + OpenIdConstants.EndpointPaths.Discovery;
+
+    private static string GetManagementApiUrl(string issuer) =>
+        GetOrigin(issuer) + ManagementApiDefaults.RoutePrefix;
+
+    private static string? GetApiReferenceUrl(string issuer, string? apiReferencePath) =>
+        apiReferencePath is null ? null : GetOrigin(issuer) + apiReferencePath;
 
     private static InstanceSetupResult CreateClientFailureResult(
         ClientCreation creation,
@@ -256,6 +275,7 @@ internal sealed class DefaultInstanceSetupService(
         // HTTP context only for its request-scoped services, so one is built over a scope of its own, as for other
         // work outside a request.
         string tenantId;
+        string issuer;
         await using (var scope = ServiceScopeFactory.CreateAsyncScope())
         {
             var httpContext = new DefaultHttpContext { RequestServices = scope.ServiceProvider };
@@ -264,6 +284,13 @@ internal sealed class DefaultInstanceSetupService(
                 cancellationToken
             );
             tenantId = tenant.TenantId;
+
+            // A served tenant always has an issuer, and the control-plane tenant is served.
+            issuer =
+                tenant.Issuer
+                ?? throw new InvalidOperationException(
+                    "The control-plane tenant has no issuer to compute the instance's addresses from."
+                );
         }
 
         using var tenantScope = AmbientTenantAccessor.BeginScope(tenantId);
@@ -400,13 +427,18 @@ internal sealed class DefaultInstanceSetupService(
 
         return new InstanceSetupResult
         {
-            ManagementConsoleClientId = consoleClientId,
             AutomationClientId = automationClientId,
             Root = new CreateRootResponse
             {
                 TenantId = tenantId,
                 PrincipalId = creation.PrincipalId,
                 UserName = root.UserName,
+                ManagementConsoleClientId = consoleClientId,
+                ManagementConsoleBaseUrl = consoleRegistration?.BaseUrl,
+                Issuer = issuer,
+                DiscoveryUrl = GetDiscoveryUrl(issuer),
+                ManagementApiUrl = GetManagementApiUrl(issuer),
+                ApiReferenceUrl = GetApiReferenceUrl(issuer, InstanceLinksOptions.ApiReferencePath),
             },
         };
     }

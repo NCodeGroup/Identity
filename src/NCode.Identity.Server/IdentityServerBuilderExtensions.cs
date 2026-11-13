@@ -6,6 +6,7 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using NCode.Identity.Dispatch.Options;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication.Auditing;
@@ -14,6 +15,7 @@ using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Usage;
+using NCode.Identity.OpenId.Setup;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Registration;
 using NCode.Identity.Registration.AspNetCore;
@@ -233,6 +235,16 @@ public static class IdentityServerBuilderExtensions
                 .AddOptions<IdentityServerApiReferenceOptions>()
                 .Configure(options => apiReferenceSection.BindStrictly(options))
                 .ValidateOnStart();
+
+            // Setup lists the API reference among the instance's addresses when the host serves it.
+            serviceCollection
+                .AddOptions<SetupInstanceLinksOptions>()
+                .Configure<IOptions<IdentityServerApiReferenceOptions>>(
+                    (links, apiReference) =>
+                        links.ApiReferencePath = apiReference.Value.PageEnabled
+                            ? IdentityServerApiReferenceOptions.PagePath
+                            : null
+                );
 
             // Stored secrets and the Data Protection key ring are protected under a root key held outside the database (ADR-1235).
             SecretProtectionRegistration.AddSecretProtection(builder, configuration);

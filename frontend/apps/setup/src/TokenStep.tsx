@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
@@ -13,8 +14,11 @@ export type TokenStepProps = {
   readonly initialToken: string;
   /** A human-readable error to show above the field, or `undefined` when none. */
   readonly errorMessage?: string | undefined;
-  /** Called with the trimmed token when the operator continues. */
-  readonly onContinue: (token: string) => void;
+  /**
+   * Called with the trimmed token when the operator continues. It answers the error message to show when the token
+   * is not accepted, or `undefined` when the wizard moves on.
+   */
+  readonly onContinue: (token: string) => Promise<string | undefined>;
 };
 
 const TOKEN_HELP: Readonly<Record<SetupTokenSource, string>> = {
@@ -25,16 +29,28 @@ const TOKEN_HELP: Readonly<Record<SetupTokenSource, string>> = {
 };
 
 /**
- * The first step of the setup wizard: it collects the one-time setup token. The token stays in the component's state;
- * it is never written to the URL, a log or storage.
+ * The first step of the setup wizard: it collects the one-time setup token and has the instance check it before the
+ * wizard moves on. The token stays in the component's state; it is never written to the URL, a log or storage.
  */
 export function TokenStep({ tokenSource, initialToken, errorMessage, onContinue }: TokenStepProps) {
   const [token, setToken] = useState(initialToken);
+  const [error, setError] = useState<string | undefined>(undefined);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function submit(): Promise<void> {
+    setError(undefined);
+    setSubmitting(true);
+    const message = await onContinue(token.trim());
+    setError(message);
+    setSubmitting(false);
+  }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    onContinue(token.trim());
+    void submit();
   }
+
+  const shownError = error ?? errorMessage;
 
   return (
     <Stack spacing={3} component="form" onSubmit={handleSubmit}>
@@ -44,7 +60,7 @@ export function TokenStep({ tokenSource, initialToken, errorMessage, onContinue 
 
       <Typography variant="body2">{TOKEN_HELP[tokenSource]}</Typography>
 
-      {errorMessage ? <Alert severity="error">{errorMessage}</Alert> : null}
+      {shownError ? <Alert severity="error">{shownError}</Alert> : null}
 
       <TextField
         id="setup-token"
@@ -60,7 +76,15 @@ export function TokenStep({ tokenSource, initialToken, errorMessage, onContinue 
         fullWidth
       />
 
-      <Button type="submit" variant="contained" disabled={token.trim() === ''} fullWidth>
+      <Button
+        type="submit"
+        variant="contained"
+        disabled={submitting || token.trim() === ''}
+        startIcon={
+          submitting ? <CircularProgress size={16} aria-label="Checking the token" /> : undefined
+        }
+        fullWidth
+      >
         Continue
       </Button>
     </Stack>

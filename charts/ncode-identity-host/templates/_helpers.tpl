@@ -285,6 +285,9 @@ applied. Rendered for its side effect only.
 {{- if and .Values.setup.job.enabled .Values.setup.managementConsole.baseUrl (not .Values.setup.managementConsole.clientId) }}
 {{- fail "setup.managementConsole.clientId must name the console's client_id when setup.managementConsole.baseUrl is set and setup.job.enabled is true." }}
 {{- end }}
+{{- if and .Values.managementConsole.enabled (not .Values.setup.managementConsole.clientId) }}
+{{- fail "setup.managementConsole.clientId must name the console's client_id when managementConsole.enabled is true: the setup wizard hints it, and the host refuses an empty one." }}
+{{- end }}
 {{- if and .Values.setup.job.enabled .Values.setup.automation.clientId (not .Values.setup.automation.jwks) }}
 {{- fail "setup.automation.jwks must hold the automation client's public JWK Set when setup.automation.clientId is set and setup.job.enabled is true." }}
 {{- end }}

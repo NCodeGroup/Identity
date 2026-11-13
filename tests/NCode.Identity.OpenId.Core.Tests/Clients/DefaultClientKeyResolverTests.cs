@@ -117,7 +117,9 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
         );
     }
 
-    private DefaultClientKeyResolver CreateRefusingResolver(ILogger<DefaultClientKeyResolver> logger)
+    private DefaultClientKeyResolver CreateRefusingResolver(
+        ILogger<DefaultClientKeyResolver> logger
+    )
     {
         // A strict factory with no setup: a jwks_uri refused before any fetch never reaches it.
         return new DefaultClientKeyResolver(
@@ -322,7 +324,9 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
     public async Task ResolveSecretKeysAsync_WhenTheDocumentIsTooLarge_LogsTooLarge()
     {
         var logger = new FakeLogger<DefaultClientKeyResolver>();
-        using var handler = new StubContentHttpMessageHandler("""{"keys":[],"padding":"xxxxxxxx"}""");
+        using var handler = new StubContentHttpMessageHandler(
+            """{"keys":[],"padding":"xxxxxxxx"}"""
+        );
         var collaborators = new FetchCollaborators(
             new OutboundHttpOptions(),
             new DefaultOutboundHttpContentReader(),

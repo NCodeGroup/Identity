@@ -87,7 +87,7 @@ public interface ITeamValidator
     /// <param name="controlPlaneTenantId">The identifier of the tenant that serves the management request.</param>
     /// <param name="team">The current <see cref="PersistedTeam"/> being updated.</param>
     /// <param name="model">The proposed (patched) team metadata.</param>
-    /// <param name="ifMatch">The optional <c>If-Match</c> precondition: a quoted strong entity tag, <c>*</c>, or the bare concurrency token.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> precondition: <c>*</c>, a quoted strong entity tag or a comma-separated list of them, or the bare concurrency token.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> for the current unit of work.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>A <see cref="ManagementError"/> describing the first failed precondition, or <c>null</c> when valid.</returns>

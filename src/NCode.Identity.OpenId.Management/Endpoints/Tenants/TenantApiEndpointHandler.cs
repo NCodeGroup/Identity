@@ -1095,7 +1095,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="request">The JSON Patch document to apply to the tenant metadata.</param>
-    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the current tenant. It accepts a quoted strong entity tag, <c>*</c>, or the bare <c>concurrencyToken</c>.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the current tenant. It accepts <c>*</c>, a quoted strong entity tag or a comma-separated list of them, or the bare <c>concurrencyToken</c>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The tenant was updated.</response>
     /// <response code="400">The JSON Patch document cannot be applied to the tenant, the patched display name is missing, or the patched issuer or mutual-TLS endpoint-alias authority is not valid.</response>
@@ -1604,7 +1604,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="request">The JSON Patch document to apply to the settings.</param>
-    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the current settings. It accepts a quoted strong entity tag, <c>*</c>, or the bare <c>concurrencyToken</c>.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the current settings. It accepts <c>*</c>, a quoted strong entity tag or a comma-separated list of them, or the bare <c>concurrencyToken</c>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The tenant's settings were updated.</response>
     /// <response code="400">The JSON Patch document cannot be applied to the settings, the patched settings are not valid for a tenant, or a client of the tenant holds a value the patched settings do not permit.</response>
@@ -2070,7 +2070,7 @@ internal class TenantApiEndpointHandler(
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="request">The <see cref="UpdateSecretRequest"/> with the new metadata.</param>
-    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the current secret. It accepts a quoted strong entity tag, <c>*</c>, or the bare <c>concurrencyToken</c>.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the current secret. It accepts <c>*</c>, a quoted strong entity tag or a comma-separated list of them, or the bare <c>concurrencyToken</c>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The secret was updated.</response>
     /// <response code="400">The metadata is not coherent for the secret.</response>

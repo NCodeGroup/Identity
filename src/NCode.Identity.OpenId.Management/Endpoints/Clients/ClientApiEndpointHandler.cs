@@ -996,7 +996,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="request">The JSON Patch document to apply to the client metadata.</param>
-    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the current client. It accepts a quoted strong entity tag, <c>*</c>, or the bare <c>concurrencyToken</c>.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the current client. It accepts <c>*</c>, a quoted strong entity tag or a comma-separated list of them, or the bare <c>concurrencyToken</c>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The client was updated.</response>
     /// <response code="400">The JSON Patch document cannot be applied to the client.</response>
@@ -1304,7 +1304,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="tenantId">The identifier of the OpenID Tenant.</param>
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="request">The JSON Patch document to apply to the settings.</param>
-    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the current settings. It accepts a quoted strong entity tag, <c>*</c>, or the bare <c>concurrencyToken</c>.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the current settings. It accepts <c>*</c>, a quoted strong entity tag or a comma-separated list of them, or the bare <c>concurrencyToken</c>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="200">The client's settings were updated, and the client was issued the secret in the body, whose
     /// material is revealed only here.</response>
@@ -2007,7 +2007,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="secretId">The identifier of the secret.</param>
     /// <param name="request">The <see cref="UpdateSecretRequest"/> with the new metadata.</param>
-    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the current secret. It accepts a quoted strong entity tag, <c>*</c>, or the bare <c>concurrencyToken</c>.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the current secret. It accepts <c>*</c>, a quoted strong entity tag or a comma-separated list of them, or the bare <c>concurrencyToken</c>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The secret was updated.</response>
     /// <response code="400">The new metadata is not valid for the secret: an unsupported use or algorithm, a key management service's key whose algorithm changes, or an incoherent lifecycle.</response>
@@ -2198,7 +2198,7 @@ internal class ClientApiEndpointHandler(
     /// <param name="clientId">The identifier of the OpenID Client.</param>
     /// <param name="secretId">The identifier of the secret to rotate.</param>
     /// <param name="request">The <see cref="RotateSecretRequest"/> describing the replacement.</param>
-    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the rotated secret. It accepts a quoted strong entity tag, <c>*</c>, or the bare <c>concurrencyToken</c>.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the rotated secret. It accepts <c>*</c>, a quoted strong entity tag or a comma-separated list of them, or the bare <c>concurrencyToken</c>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="201">The replacement secret.</response>
     /// <response code="400">The secret is not a shared secret or the replacement could not be generated from its parameters.</response>

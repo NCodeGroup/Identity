@@ -202,6 +202,19 @@ describe('App', () => {
     expect(screen.queryByLabelText(/^User name/)).not.toBeInTheDocument();
   });
 
+  it('says to wait when the rate-limited token check names no detail', async () => {
+    vi.mocked(getStatus).mockResolvedValue(READY);
+    vi.mocked(checkToken).mockResolvedValue({ kind: 'rateLimited', problem: {} });
+    renderApp();
+
+    await enterToken('the-token');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Too many attempts. Wait a minute, then try again.',
+    );
+    expect(screen.queryByLabelText(/^User name/)).not.toBeInTheDocument();
+  });
+
   it('says to try again when the token cannot be checked', async () => {
     vi.mocked(getStatus).mockResolvedValue(READY);
     vi.mocked(checkToken).mockResolvedValueOnce({ kind: 'failed' });

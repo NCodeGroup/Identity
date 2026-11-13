@@ -20,7 +20,7 @@ function renderStep(
   const onCreated = vi.fn();
   const onTokenRejected = vi.fn();
   const onNotFound = vi.fn();
-  render(
+  const { unmount } = render(
     <AppThemeProvider>
       <ConsoleClientStep
         token="the-token"
@@ -32,7 +32,7 @@ function renderStep(
       />
     </AppThemeProvider>,
   );
-  return { onCreated, onTokenRejected, onNotFound };
+  return { onCreated, onTokenRejected, onNotFound, unmount };
 }
 
 function fill(label: RegExp, value: string): void {
@@ -179,6 +179,36 @@ describe('ConsoleClientStep', () => {
     });
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByLabelText(/^Public JWK Set/)).toHaveValue('');
+  });
+
+  it('names the console URL itself when it cannot be parsed into a key set address', async () => {
+    vi.mocked(fetchConsoleKeySet).mockResolvedValue({ kind: 'unreachable' });
+    renderStep(undefined, { baseUrl: 'not a url' });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This page could not read the console’s key set at not a url.',
+    );
+  });
+
+  it('aborts a pending fetch when the step unmounts and ignores its late answer', async () => {
+    let answer: (result: Awaited<ReturnType<typeof fetchConsoleKeySet>>) => void = () => undefined;
+    vi.mocked(fetchConsoleKeySet).mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+    );
+    const { unmount } = renderStep(undefined, { baseUrl: 'https://console.example.test' });
+    await waitFor(() => {
+      expect(fetchConsoleKeySet).toHaveBeenCalledTimes(1);
+    });
+    const signal = vi.mocked(fetchConsoleKeySet).mock.calls[0]?.[1];
+
+    unmount();
+    answer({ kind: 'ok', jwks: PUBLIC_JWKS });
+    await Promise.resolve();
+
+    expect(signal?.aborted).toBe(true);
   });
 
   it('refuses a fetched set with a private member', async () => {

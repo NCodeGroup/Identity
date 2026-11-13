@@ -196,6 +196,26 @@ describe('fetchConsoleKeySet', () => {
       kind: 'aborted',
     });
   });
+
+  it('returns aborted for an abort error without a signal', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new DOMException('The operation was aborted.', 'AbortError'))),
+    );
+
+    expect(await fetchConsoleKeySet('https://console.example.test')).toEqual({ kind: 'aborted' });
+  });
+
+  it('returns unreachable for any other DOM exception', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => Promise.reject(new DOMException('The network failed.', 'NetworkError'))),
+    );
+
+    expect(await fetchConsoleKeySet('https://console.example.test')).toEqual({
+      kind: 'unreachable',
+    });
+  });
 });
 
 describe('createRoot', () => {

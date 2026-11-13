@@ -27,7 +27,7 @@ public static class SetupDefaults
     public const int MinimumRootPasswordLength = 15;
 
     /// <summary>
-    /// The number of root-creation attempts allowed per client address each minute.
+    /// The number of setup attempts, token checks and root creations together, allowed per client address each minute.
     /// </summary>
-    public const int RootAttemptsPerMinute = 10;
+    public const int SetupAttemptsPerMinute = 10;
 }

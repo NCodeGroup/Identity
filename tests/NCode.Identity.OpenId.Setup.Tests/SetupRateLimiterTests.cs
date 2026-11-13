@@ -25,7 +25,7 @@ public sealed class SetupRateLimiterTests : IDisposable
 
     private async ValueTask ExhaustAsync(string? remoteAddress, CancellationToken cancellationToken)
     {
-        for (var attempt = 0; attempt < SetupDefaults.RootAttemptsPerMinute; ++attempt)
+        for (var attempt = 0; attempt < SetupDefaults.SetupAttemptsPerMinute; ++attempt)
         {
             Assert.True(
                 await RateLimiter.TryAcquireAsync(

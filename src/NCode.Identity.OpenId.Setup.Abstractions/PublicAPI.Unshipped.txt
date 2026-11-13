@@ -143,7 +143,7 @@ NCode.Identity.OpenId.Setup.SetupWizardOptions.SetupWizardOptions() -> void
 const NCode.Identity.OpenId.Setup.SetupDefaults.MinimumRootPasswordLength = 15 -> int
 const NCode.Identity.OpenId.Setup.SetupDefaults.MinimumTokenLength = 32 -> int
 const NCode.Identity.OpenId.Setup.SetupDefaults.PathPrefix = "/setup" -> string!
-const NCode.Identity.OpenId.Setup.SetupDefaults.RootAttemptsPerMinute = 10 -> int
+const NCode.Identity.OpenId.Setup.SetupDefaults.SetupAttemptsPerMinute = 10 -> int
 const NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.DefaultClientId = "mgmt-console" -> string!
 const NCode.Identity.OpenId.Setup.SetupOptions.SectionName = "Setup" -> string!
 const NCode.Identity.OpenId.Setup.SetupTokenSources.Configured = "configured" -> string!

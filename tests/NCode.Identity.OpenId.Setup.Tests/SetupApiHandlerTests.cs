@@ -328,10 +328,10 @@ public sealed class SetupApiHandlerTests : IDisposable
     [Fact]
     public async Task CreateRootAsync_WhenTheClientHasUsedItsAttempts_Answers429WithoutVerifyingTheToken()
     {
-        SetupIsServed(true, Times.Exactly(SetupDefaults.RootAttemptsPerMinute + 1));
-        SetupVerify(false, Times.Exactly(SetupDefaults.RootAttemptsPerMinute));
+        SetupIsServed(true, Times.Exactly(SetupDefaults.SetupAttemptsPerMinute + 1));
+        SetupVerify(false, Times.Exactly(SetupDefaults.SetupAttemptsPerMinute));
         var handler = CreateHandler();
-        for (var attempt = 0; attempt < SetupDefaults.RootAttemptsPerMinute; ++attempt)
+        for (var attempt = 0; attempt < SetupDefaults.SetupAttemptsPerMinute; ++attempt)
         {
             await handler.CreateRootAsync(CreateHttpContext(), CancellationToken.None);
         }
@@ -344,10 +344,10 @@ public sealed class SetupApiHandlerTests : IDisposable
     [Fact]
     public async Task CreateRootAsync_WhenAnotherClientHasUsedItsAttempts_StillVerifiesTheToken()
     {
-        SetupIsServed(true, Times.Exactly(SetupDefaults.RootAttemptsPerMinute + 1));
-        SetupVerify(false, Times.Exactly(SetupDefaults.RootAttemptsPerMinute + 1));
+        SetupIsServed(true, Times.Exactly(SetupDefaults.SetupAttemptsPerMinute + 1));
+        SetupVerify(false, Times.Exactly(SetupDefaults.SetupAttemptsPerMinute + 1));
         var handler = CreateHandler();
-        for (var attempt = 0; attempt < SetupDefaults.RootAttemptsPerMinute; ++attempt)
+        for (var attempt = 0; attempt < SetupDefaults.SetupAttemptsPerMinute; ++attempt)
         {
             await handler.CreateRootAsync(
                 CreateHttpContext(remoteAddress: "10.0.0.1"),
@@ -735,10 +735,10 @@ public sealed class SetupApiHandlerTests : IDisposable
     [Fact]
     public async Task CheckTokenAsync_WhenRateLimited_Answers429()
     {
-        SetupIsServed(true, Times.Exactly(SetupDefaults.RootAttemptsPerMinute + 1));
-        SetupVerify(false, Times.Exactly(SetupDefaults.RootAttemptsPerMinute));
+        SetupIsServed(true, Times.Exactly(SetupDefaults.SetupAttemptsPerMinute + 1));
+        SetupVerify(false, Times.Exactly(SetupDefaults.SetupAttemptsPerMinute));
         var handler = CreateHandler();
-        for (var attempt = 0; attempt < SetupDefaults.RootAttemptsPerMinute; ++attempt)
+        for (var attempt = 0; attempt < SetupDefaults.SetupAttemptsPerMinute; ++attempt)
         {
             await handler.CheckTokenAsync(
                 CreateHttpContext(body: CreateCheckTokenJson()),

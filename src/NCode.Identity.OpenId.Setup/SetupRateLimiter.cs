@@ -8,9 +8,9 @@ using NCode.Identity.AspNetCore;
 namespace NCode.Identity.OpenId.Setup;
 
 /// <summary>
-/// Limits the root-creation attempts of each client address to <see cref="SetupDefaults.RootAttemptsPerMinute"/> in
-/// a fixed one-minute window, so a setup token cannot be guessed by brute force. A request refused by the limit is
-/// not queued.
+/// Limits the setup attempts of each client address, token checks and root creations together, to
+/// <see cref="SetupDefaults.SetupAttemptsPerMinute"/> in a fixed one-minute window, so a setup token cannot be
+/// guessed by brute force. A request refused by the limit is not queued.
 /// </summary>
 internal sealed class SetupRateLimiter : IDisposable
 {
@@ -25,7 +25,7 @@ internal sealed class SetupRateLimiter : IDisposable
                     : UnknownAddressPartition,
                 static _ => new FixedWindowRateLimiterOptions
                 {
-                    PermitLimit = SetupDefaults.RootAttemptsPerMinute,
+                    PermitLimit = SetupDefaults.SetupAttemptsPerMinute,
                     Window = TimeSpan.FromMinutes(1),
                     QueueLimit = 0,
                     AutoReplenishment = true,
@@ -37,7 +37,7 @@ internal sealed class SetupRateLimiter : IDisposable
     public void Dispose() => Limiter.Dispose();
 
     /// <summary>
-    /// Counts one root-creation attempt against the client address of the request.
+    /// Counts one setup attempt, a token check or a root creation, against the client address of the request.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>

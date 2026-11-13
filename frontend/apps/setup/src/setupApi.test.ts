@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { checkToken, createRoot, fetchConsoleKeySet, getStatus } from './setupApi.js';
+import {
+  checkToken,
+  consoleKeySetUrl,
+  createRoot,
+  fetchConsoleKeySet,
+  getStatus,
+} from './setupApi.js';
 
 function json(status: number, body: unknown, contentType = 'application/json'): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'content-type': contentType } });
@@ -121,6 +127,24 @@ describe('checkToken', () => {
   });
 });
 
+describe('consoleKeySetUrl', () => {
+  it('addresses the key set on the origin of the console URL', () => {
+    expect(consoleKeySetUrl('https://console.example.test')).toBe(
+      'https://console.example.test/bff/jwks',
+    );
+  });
+
+  it('resolves the key set against the origin when the console URL has a path', () => {
+    expect(consoleKeySetUrl('https://console.example.test/manage/')).toBe(
+      'https://console.example.test/bff/jwks',
+    );
+  });
+
+  it('throws for a value that is not a URL', () => {
+    expect(() => consoleKeySetUrl('not a url')).toThrow(TypeError);
+  });
+});
+
 describe('fetchConsoleKeySet', () => {
   const jwks = { keys: [{ kty: 'EC', crv: 'P-256', x: 'x', y: 'y' }] };
 
@@ -131,16 +155,13 @@ describe('fetchConsoleKeySet', () => {
     const result = await fetchConsoleKeySet('https://console.example.test', controller.signal);
 
     expect(result).toEqual({ kind: 'ok', jwks });
-    expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
-      new URL('https://console.example.test/bff/jwks'),
-      {
-        mode: 'cors',
-        credentials: 'omit',
-        cache: 'no-store',
-        redirect: 'error',
-        signal: controller.signal,
-      },
-    );
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith('https://console.example.test/bff/jwks', {
+      mode: 'cors',
+      credentials: 'omit',
+      cache: 'no-store',
+      redirect: 'error',
+      signal: controller.signal,
+    });
   });
 
   it('resolves the key set against the origin when the console URL has a trailing slash', async () => {
@@ -148,7 +169,7 @@ describe('fetchConsoleKeySet', () => {
 
     await fetchConsoleKeySet('https://console.example.test/');
 
-    expect(fetchMock.mock.calls[0]?.[0]).toEqual(new URL('https://console.example.test/bff/jwks'));
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('https://console.example.test/bff/jwks');
   });
 
   it('returns a body that is not JSON as null for the caller to refuse', async () => {

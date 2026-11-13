@@ -2,9 +2,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { AppThemeProvider } from '@ncode/ui';
 import { App } from './App.js';
+import type * as SetupApi from './setupApi.js';
 import {
   checkToken,
   createRoot,
+  fetchConsoleKeySet,
   getStatus,
   type CheckTokenResult,
   type CreateRootResult,
@@ -12,7 +14,8 @@ import {
 } from './setupApi.js';
 import { takeSetupFragment } from './setupToken.js';
 
-vi.mock('./setupApi.js', () => ({
+vi.mock('./setupApi.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof SetupApi>()),
   checkToken: vi.fn(),
   createRoot: vi.fn(),
   fetchConsoleKeySet: vi.fn(),
@@ -320,6 +323,27 @@ describe('App', () => {
         jwks: { keys: [{ kty: 'EC', crv: 'P-256', x: 'x', y: 'y' }] },
       },
     });
+  });
+
+  it('opens the console step prefilled from the console URL in the fragment', async () => {
+    vi.mocked(takeSetupFragment).mockReturnValue({
+      token: 'the-token',
+      consoleUrl: 'https://console.example.test',
+    });
+    vi.mocked(getStatus).mockResolvedValue(READY);
+    vi.mocked(fetchConsoleKeySet).mockReturnValue(new Promise(() => undefined));
+    renderApp();
+
+    await enterAcceptedToken('the-token');
+    fill(/^User name/, 'root');
+    fill(/^Password/, 'a long passphrase!');
+    fill(/^Confirm password/, 'a long passphrase!');
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+
+    expect(
+      screen.getByRole('checkbox', { name: 'Register the management console’s client now' }),
+    ).toBeChecked();
+    expect(screen.getByLabelText(/^Console URL/)).toHaveValue('https://console.example.test');
   });
 
   it('returns to the token step with an error when the token is refused', async () => {

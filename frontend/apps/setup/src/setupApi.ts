@@ -148,6 +148,14 @@ export async function checkToken(token: string): Promise<CheckTokenResult> {
 }
 
 /**
+ * The address of the management console's public JWK Set: `/bff/jwks` on the origin of `baseUrl`.
+ * Throws, as `new URL` does, for a value that is not a URL.
+ */
+export function consoleKeySetUrl(baseUrl: string): string {
+  return new URL(CONSOLE_JWKS_PATH, baseUrl).href;
+}
+
+/**
  * Reads the management console's public JWK Set from `<baseUrl>/bff/jwks` with a credential-less, uncached,
  * non-redirected cross-origin request that carries no custom headers.
  */
@@ -156,7 +164,7 @@ export async function fetchConsoleKeySet(
   signal?: AbortSignal,
 ): Promise<FetchKeySetResult> {
   try {
-    const response = await fetch(new URL(CONSOLE_JWKS_PATH, baseUrl), {
+    const response = await fetch(consoleKeySetUrl(baseUrl), {
       mode: 'cors',
       credentials: 'omit',
       cache: 'no-store',

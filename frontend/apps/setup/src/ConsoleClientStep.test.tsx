@@ -1,21 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { AppThemeProvider } from '@ncode/ui';
-import { ConsoleClientStep } from './ConsoleClientStep.js';
+import { ConsoleClientStep, type ConsoleClientStepProps } from './ConsoleClientStep.js';
 import type { RootAccount } from './RootAccountStep.js';
-import { createRoot, fetchConsoleKeySet, type CreateRootResult } from './setupApi.js';
+import type { ConsoleHint } from './consoleHint.js';
+import type * as SetupApi from './setupApi.js';
+import { createRoot, type CreateRootResult, type FetchKeySetResult } from './setupApi.js';
 
-vi.mock('./setupApi.js', () => ({
+vi.mock('./setupApi.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof SetupApi>()),
   createRoot: vi.fn(),
-  fetchConsoleKeySet: vi.fn(),
   getStatus: vi.fn(),
 }));
 
 const PUBLIC_JWKS = { keys: [{ kty: 'EC', crv: 'P-256', x: 'x', y: 'y', kid: 'k1' }] };
 
+const loadKeySet = vi.fn<ConsoleClientStepProps['loadKeySet']>();
+
 function renderStep(
   account: RootAccount = { userName: 'root', password: 'a long passphrase!' },
-  consoleHint?: { readonly baseUrl?: string; readonly clientId?: string },
+  consoleHint?: ConsoleHint,
 ) {
   const onCreated = vi.fn();
   const onTokenRejected = vi.fn();
@@ -26,6 +30,7 @@ function renderStep(
         token="the-token"
         account={account}
         {...(consoleHint ? { consoleHint } : {})}
+        loadKeySet={loadKeySet}
         onCreated={onCreated}
         onTokenRejected={onTokenRejected}
         onNotFound={onNotFound}
@@ -71,12 +76,12 @@ const CREATED: CreateRootResult = { kind: 'created', root: CREATED_ROOT };
 describe('ConsoleClientStep', () => {
   beforeEach(() => {
     vi.mocked(createRoot).mockReset();
-    vi.mocked(fetchConsoleKeySet).mockReset();
+    loadKeySet.mockReset();
   });
 
   it('opens a hinted step checked and filled, fetches the key set and submits it without typing', async () => {
     vi.mocked(createRoot).mockResolvedValue(CREATED);
-    vi.mocked(fetchConsoleKeySet).mockResolvedValue({ kind: 'ok', jwks: PUBLIC_JWKS });
+    loadKeySet.mockResolvedValue({ kind: 'ok', jwks: PUBLIC_JWKS });
     const { onCreated } = renderStep(undefined, {
       baseUrl: 'https://console.example.test',
       clientId: 'hinted-console',
@@ -96,7 +101,7 @@ describe('ConsoleClientStep', () => {
       JSON.stringify(PUBLIC_JWKS, null, 2),
     );
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
-    expect(fetchConsoleKeySet).toHaveBeenCalledExactlyOnceWith(
+    expect(loadKeySet).toHaveBeenCalledExactlyOnceWith(
       'https://console.example.test',
       expect.any(AbortSignal),
     );
@@ -119,7 +124,7 @@ describe('ConsoleClientStep', () => {
   });
 
   it('proposes the default client ID when the hint names only a console URL', () => {
-    vi.mocked(fetchConsoleKeySet).mockReturnValue(new Promise(() => undefined));
+    loadKeySet.mockReturnValue(new Promise(() => undefined));
     renderStep(undefined, { baseUrl: 'https://console.example.test' });
 
     expect(screen.getByLabelText(/^Client ID/)).toHaveValue('mgmt-console');
@@ -131,7 +136,7 @@ describe('ConsoleClientStep', () => {
     expect(
       screen.getByRole('checkbox', { name: 'Register the management console’s client now' }),
     ).not.toBeChecked();
-    expect(fetchConsoleKeySet).not.toHaveBeenCalled();
+    expect(loadKeySet).not.toHaveBeenCalled();
     expect(
       screen.queryByRole('button', { name: 'Fetch from the console' }),
     ).not.toBeInTheDocument();
@@ -139,7 +144,7 @@ describe('ConsoleClientStep', () => {
 
   it('warns when the console is unreachable and accepts a pasted set', async () => {
     vi.mocked(createRoot).mockResolvedValue(CREATED);
-    vi.mocked(fetchConsoleKeySet).mockResolvedValue({ kind: 'unreachable' });
+    loadKeySet.mockResolvedValue({ kind: 'unreachable' });
     const { onCreated } = renderStep(undefined, { baseUrl: 'https://console.example.test' });
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -162,7 +167,7 @@ describe('ConsoleClientStep', () => {
   });
 
   it('shows the HTTP status the console answered', async () => {
-    vi.mocked(fetchConsoleKeySet).mockResolvedValue({ kind: 'status', status: 503 });
+    loadKeySet.mockResolvedValue({ kind: 'status', status: 503 });
     renderStep(undefined, { baseUrl: 'https://console.example.test' });
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -171,7 +176,7 @@ describe('ConsoleClientStep', () => {
   });
 
   it('shows nothing when the fetch is aborted', async () => {
-    vi.mocked(fetchConsoleKeySet).mockResolvedValue({ kind: 'aborted' });
+    loadKeySet.mockResolvedValue({ kind: 'aborted' });
     renderStep(undefined, { baseUrl: 'https://console.example.test' });
 
     await waitFor(() => {
@@ -182,7 +187,7 @@ describe('ConsoleClientStep', () => {
   });
 
   it('names the console URL itself when it cannot be parsed into a key set address', async () => {
-    vi.mocked(fetchConsoleKeySet).mockResolvedValue({ kind: 'unreachable' });
+    loadKeySet.mockResolvedValue({ kind: 'unreachable' });
     renderStep(undefined, { baseUrl: 'not a url' });
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -191,8 +196,8 @@ describe('ConsoleClientStep', () => {
   });
 
   it('aborts a pending fetch when the step unmounts and ignores its late answer', async () => {
-    let answer: (result: Awaited<ReturnType<typeof fetchConsoleKeySet>>) => void = () => undefined;
-    vi.mocked(fetchConsoleKeySet).mockImplementation(
+    let answer: (result: FetchKeySetResult) => void = () => undefined;
+    loadKeySet.mockImplementation(
       () =>
         new Promise((resolve) => {
           answer = resolve;
@@ -200,9 +205,9 @@ describe('ConsoleClientStep', () => {
     );
     const { unmount } = renderStep(undefined, { baseUrl: 'https://console.example.test' });
     await waitFor(() => {
-      expect(fetchConsoleKeySet).toHaveBeenCalledTimes(1);
+      expect(loadKeySet).toHaveBeenCalledTimes(1);
     });
-    const signal = vi.mocked(fetchConsoleKeySet).mock.calls[0]?.[1];
+    const signal = loadKeySet.mock.calls[0]?.[1];
 
     unmount();
     answer({ kind: 'ok', jwks: PUBLIC_JWKS });
@@ -212,7 +217,7 @@ describe('ConsoleClientStep', () => {
   });
 
   it('refuses a fetched set with a private member', async () => {
-    vi.mocked(fetchConsoleKeySet).mockResolvedValue({
+    loadKeySet.mockResolvedValue({
       kind: 'ok',
       jwks: { keys: [{ ...PUBLIC_JWKS.keys[0], d: 'private' }] },
     });
@@ -225,7 +230,7 @@ describe('ConsoleClientStep', () => {
   });
 
   it('refuses a console answer that is not a key set', async () => {
-    vi.mocked(fetchConsoleKeySet).mockResolvedValue({ kind: 'ok', jwks: null });
+    loadKeySet.mockResolvedValue({ kind: 'ok', jwks: null });
     renderStep(undefined, { baseUrl: 'https://console.example.test' });
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
@@ -234,8 +239,8 @@ describe('ConsoleClientStep', () => {
   });
 
   it('fetches again when the button is pressed', async () => {
-    vi.mocked(fetchConsoleKeySet).mockResolvedValueOnce({ kind: 'unreachable' });
-    vi.mocked(fetchConsoleKeySet).mockResolvedValueOnce({ kind: 'ok', jwks: PUBLIC_JWKS });
+    loadKeySet.mockResolvedValueOnce({ kind: 'unreachable' });
+    loadKeySet.mockResolvedValueOnce({ kind: 'ok', jwks: PUBLIC_JWKS });
     renderStep(undefined, { baseUrl: 'https://console.example.test' });
     await screen.findByRole('alert');
 
@@ -249,8 +254,8 @@ describe('ConsoleClientStep', () => {
     expect(screen.getByLabelText(/^Public JWK Set/)).toHaveValue(
       JSON.stringify(PUBLIC_JWKS, null, 2),
     );
-    expect(fetchConsoleKeySet).toHaveBeenCalledTimes(2);
-    expect(fetchConsoleKeySet).toHaveBeenLastCalledWith(
+    expect(loadKeySet).toHaveBeenCalledTimes(2);
+    expect(loadKeySet).toHaveBeenLastCalledWith(
       'https://other.example.test',
       expect.any(AbortSignal),
     );

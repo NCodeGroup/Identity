@@ -12,7 +12,13 @@ import { DonePage } from './DonePage.js';
 import { RootAccountStep, type RootAccount } from './RootAccountStep.js';
 import { TokenStep } from './TokenStep.js';
 import { mergeConsoleHint, type ConsoleHint } from './consoleHint.js';
-import { checkToken, getStatus, type CreatedRoot, type SetupStatus } from './setupApi.js';
+import {
+  checkToken,
+  fetchConsoleKeySet,
+  getStatus,
+  type CreatedRoot,
+  type SetupStatus,
+} from './setupApi.js';
 import { takeSetupFragment } from './setupToken.js';
 
 type Load =
@@ -135,6 +141,7 @@ export function App() {
             token={token}
             account={step.account}
             consoleHint={step.consoleHint}
+            loadKeySet={fetchConsoleKeySet}
             onCreated={(root) => {
               setToken('');
               setStep({ name: 'done', root });

@@ -8,10 +8,12 @@ import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import type { RootAccount } from './RootAccountStep.js';
+import type { ConsoleHint } from './consoleHint.js';
 import {
+  consoleKeySetUrl,
   createRoot,
-  fetchConsoleKeySet,
   type CreatedRoot,
+  type FetchKeySetResult,
   type ManagementConsoleRegistration,
 } from './setupApi.js';
 
@@ -24,7 +26,9 @@ export type ConsoleClientStepProps = {
    * The console the deployment or the page's URL fragment names. When it has a URL, the step opens with the
    * registration checked, the fields filled and the console's key set fetched.
    */
-  readonly consoleHint?: { readonly baseUrl?: string; readonly clientId?: string };
+  readonly consoleHint?: ConsoleHint;
+  /** Loads the management console's public key set from the console at the given base URL. */
+  readonly loadKeySet: (baseUrl: string, signal?: AbortSignal) => Promise<FetchKeySetResult>;
   /** Called with the root administrator once the instance created it. */
   readonly onCreated: (root: CreatedRoot) => void;
   /** Called when the instance refuses the setup token. */
@@ -42,14 +46,6 @@ const JWKS_INVALID =
   'Paste the console’s public JWK Set: a JSON object with a non-empty keys array.';
 const JWKS_PRIVATE = 'Paste the console’s public keys only.';
 const PASTE_THE_SET = 'Paste the console’s public JWK Set.';
-
-function keySetUrl(baseUrl: string): string {
-  try {
-    return new URL('/bff/jwks', baseUrl).href;
-  } catch {
-    return baseUrl;
-  }
-}
 
 type JwksParse =
   | { readonly kind: 'ok'; readonly jwks: unknown }
@@ -81,6 +77,7 @@ export function ConsoleClientStep({
   token,
   account,
   consoleHint,
+  loadKeySet,
   onCreated,
   onTokenRejected,
   onNotFound,
@@ -97,46 +94,54 @@ export function ConsoleClientStep({
   const [fetchWarning, setFetchWarning] = useState<string | undefined>(undefined);
   const fetchControllerRef = useRef<AbortController | undefined>(undefined);
 
-  const fetchKeySet = useCallback(async (url: string): Promise<void> => {
-    fetchControllerRef.current?.abort();
-    const controller = new AbortController();
-    fetchControllerRef.current = controller;
+  const fetchKeySet = useCallback(
+    async (url: string): Promise<void> => {
+      fetchControllerRef.current?.abort();
+      const controller = new AbortController();
+      fetchControllerRef.current = controller;
 
-    const target = keySetUrl(url);
-    setFetching(true);
-    setFetchedFrom(undefined);
-    setFetchWarning(undefined);
-    const result = await fetchConsoleKeySet(url, controller.signal);
-    if (controller.signal.aborted) {
-      return;
-    }
-    setFetching(false);
-
-    switch (result.kind) {
-      case 'ok': {
-        const parsed = parsePublicJwks(JSON.stringify(result.jwks));
-        if (parsed.kind === 'refused') {
-          setFetchWarning(parsed.message);
-          return;
-        }
-        setJwksText(JSON.stringify(parsed.jwks, null, 2));
-        setFetchedFrom(target);
+      let target = url;
+      try {
+        target = consoleKeySetUrl(url);
+      } catch {
+        // The warning names the console URL itself when it cannot be turned into a key set address.
+      }
+      setFetching(true);
+      setFetchedFrom(undefined);
+      setFetchWarning(undefined);
+      const result = await loadKeySet(url, controller.signal);
+      if (controller.signal.aborted) {
         return;
       }
-      case 'status':
-        setFetchWarning(
-          `The console answered HTTP ${String(result.status)} for its key set at ${target}. ${PASTE_THE_SET}`,
-        );
-        return;
-      case 'unreachable':
-        setFetchWarning(
-          `This page could not read the console’s key set at ${target}. The browser refuses a console origin this deployment does not name, and a console that is not running or not reachable from this browser cannot answer. ${PASTE_THE_SET}`,
-        );
-        return;
-      case 'aborted':
-        return;
-    }
-  }, []);
+      setFetching(false);
+
+      switch (result.kind) {
+        case 'ok': {
+          const parsed = parsePublicJwks(JSON.stringify(result.jwks));
+          if (parsed.kind === 'refused') {
+            setFetchWarning(parsed.message);
+            return;
+          }
+          setJwksText(JSON.stringify(parsed.jwks, null, 2));
+          setFetchedFrom(target);
+          return;
+        }
+        case 'status':
+          setFetchWarning(
+            `The console answered HTTP ${String(result.status)} for its key set at ${target}. ${PASTE_THE_SET}`,
+          );
+          return;
+        case 'unreachable':
+          setFetchWarning(
+            `This page could not read the console’s key set at ${target}. The browser refuses a console origin this deployment does not name, and a console that is not running or not reachable from this browser cannot answer. ${PASTE_THE_SET}`,
+          );
+          return;
+        case 'aborted':
+          return;
+      }
+    },
+    [loadKeySet],
+  );
 
   useEffect(() => {
     if (hintedUrl) {

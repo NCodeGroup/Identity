@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 {
     [DbContext(typeof(OpenIdDbContext))]
-    [Migration("20261107062452_InitialCreate")]
+    [Migration("20261113004536_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -750,6 +750,46 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                     b.HasIndex("GrantType", "RevokedWhen", "ExpiresWhen");
 
                     b.ToTable("Grants", (string)null);
+                });
+
+            modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.InstanceSetupEntity", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("ConcurrencyToken")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTimeOffset?>("InitializedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("InitializedByPrincipalId")
+                        .HasMaxLength(300)
+                        .IsUnicode(false)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<bool>("IsInitialized")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTimeOffset?>("TokenExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<byte[]>("TokenHash")
+                        .HasMaxLength(32)
+                        .HasColumnType("bytea");
+
+                    b.Property<DateTimeOffset?>("TokenIssuedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("InstanceSetup", (string)null);
                 });
 
             modelBuilder.Entity("NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity", b =>

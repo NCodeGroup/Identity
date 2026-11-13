@@ -37,6 +37,24 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
                 });
 
             migrationBuilder.CreateTable(
+                name: "InstanceSetup",
+                columns: table => new
+                {
+                    Key = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: false),
+                    IsInitialized = table.Column<bool>(type: "boolean", nullable: false),
+                    TokenHash = table.Column<byte[]>(type: "bytea", maxLength: 32, nullable: true),
+                    TokenIssuedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    TokenExpiresAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    InitializedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true),
+                    InitializedByPrincipalId = table.Column<string>(type: "character varying(300)", unicode: false, maxLength: 300, nullable: true),
+                    ConcurrencyToken = table.Column<string>(type: "character varying(50)", unicode: false, maxLength: 50, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InstanceSetup", x => x.Key);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "LocalAccounts",
                 columns: table => new
                 {
@@ -1170,6 +1188,9 @@ namespace NCode.Identity.OpenId.Host.Database.Migrations.OpenId
 
             migrationBuilder.DropTable(
                 name: "Grants");
+
+            migrationBuilder.DropTable(
+                name: "InstanceSetup");
 
             migrationBuilder.DropTable(
                 name: "LocalAccountClaims");

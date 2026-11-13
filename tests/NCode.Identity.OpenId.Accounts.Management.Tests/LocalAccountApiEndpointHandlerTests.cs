@@ -76,18 +76,25 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
         MockPasswordPolicy = MockRepository.Create<IPasswordPolicy>();
         MockPostCommitSecurityEffects = MockRepository.Create<IPostCommitSecurityEffects>();
 
+        var localAccountPasswords = new LocalAccountPasswords(
+            MockEffectiveSettingsResolver.Object,
+            MockPasswordPolicy.Object
+        );
+
         Handler = new LocalAccountApiEndpointHandler(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
             MockCryptoService.Object,
             MockLocalAccountValidator.Object,
+            new DefaultLocalAccountCreator(
+                MockLocalAccountValidator.Object,
+                MockCryptoService.Object,
+                localAccountPasswords
+            ),
             MockManagementAuditRecorder.Object,
             MockSessionService.Object,
             MockOpenIdContextFactory.Object,
-            new LocalAccountPasswords(
-                MockEffectiveSettingsResolver.Object,
-                MockPasswordPolicy.Object
-            ),
+            localAccountPasswords,
             MockPostCommitSecurityEffects.Object
         );
     }

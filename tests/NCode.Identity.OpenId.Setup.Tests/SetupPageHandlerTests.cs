@@ -5,9 +5,7 @@ using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using NCode.Buffers;
-using HostEnvironments = Microsoft.Extensions.Hosting.Environments;
 
 namespace NCode.Identity.OpenId.Setup;
 
@@ -20,15 +18,13 @@ public sealed partial class SetupPageHandlerTests : IDisposable
     private static partial Regex NonceRegex();
 
     private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
-    private Mock<IInstanceSetupService> MockInstanceSetupService { get; }
-    private Mock<IHostEnvironment> MockHostEnvironment { get; }
+    private Mock<ISetupSurfaceGate> MockSurfaceGate { get; }
     private DirectoryInfo BundleRoot { get; } = Directory.CreateTempSubdirectory("setup-");
     private List<SetupPageHandler> Handlers { get; } = [];
 
     public SetupPageHandlerTests()
     {
-        MockInstanceSetupService = MockRepository.Create<IInstanceSetupService>();
-        MockHostEnvironment = MockRepository.Create<IHostEnvironment>();
+        MockSurfaceGate = MockRepository.Create<ISetupSurfaceGate>();
     }
 
     public void Dispose()
@@ -44,27 +40,21 @@ public sealed partial class SetupPageHandlerTests : IDisposable
 
     #region Helpers
 
-    private SetupPageHandler CreateHandler(string environmentName)
+    private SetupPageHandler CreateHandler()
     {
-        MockHostEnvironment.Setup(x => x.EnvironmentName).Returns(environmentName).Verifiable();
-
         var options = Microsoft.Extensions.Options.Options.Create(
             new SetupOptions { BundleRootPath = BundleRoot.FullName }
         );
-        var handler = new SetupPageHandler(
-            options,
-            MockInstanceSetupService.Object,
-            MockHostEnvironment.Object
-        );
+        var handler = new SetupPageHandler(options, MockSurfaceGate.Object);
         Handlers.Add(handler);
         return handler;
     }
 
-    private void SetupIsInitialized(bool isInitialized) =>
-        MockInstanceSetupService
-            .Setup(x => x.IsInitializedAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(isInitialized)
-            .Verifiable();
+    private void SetupIsServed(bool isServed, Times? times = null) =>
+        MockSurfaceGate
+            .Setup(x => x.IsServedAsync(It.IsAny<HttpContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(isServed)
+            .Verifiable(times ?? Times.Once());
 
     private async ValueTask WriteIndexAsync(CancellationToken cancellationToken) =>
         await File.WriteAllTextAsync(
@@ -85,14 +75,11 @@ public sealed partial class SetupPageHandlerTests : IDisposable
         );
     }
 
-    private static DefaultHttpContext CreateHttpContext(
-        bool isHttps = true,
-        string? assetPath = null
-    )
+    private static DefaultHttpContext CreateHttpContext(string? assetPath = null)
     {
         var serviceProvider = new ServiceCollection().AddLogging().BuildServiceProvider();
         var httpContext = new DefaultHttpContext { RequestServices = serviceProvider };
-        httpContext.Request.Scheme = isHttps ? Uri.UriSchemeHttps : Uri.UriSchemeHttp;
+        httpContext.Request.Scheme = Uri.UriSchemeHttps;
         httpContext.Response.Body = new MemoryStream();
         if (assetPath is not null)
         {
@@ -123,8 +110,8 @@ public sealed partial class SetupPageHandlerTests : IDisposable
     public async Task HandlePageAsync_WhenTheBundleExists_WritesThePageWithTheNonceOfThePolicy()
     {
         await WriteIndexAsync(CancellationToken.None);
-        SetupIsInitialized(false);
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(true);
+        var handler = CreateHandler();
         var httpContext = CreateHttpContext();
 
         var result = await handler.HandlePageAsync(httpContext, CancellationToken.None);
@@ -144,8 +131,8 @@ public sealed partial class SetupPageHandlerTests : IDisposable
     public async Task HandlePageAsync_WhenTheBundleExists_WritesTheNonceAndSameOriginBaseUriPolicy()
     {
         await WriteIndexAsync(CancellationToken.None);
-        SetupIsInitialized(false);
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(true);
+        var handler = CreateHandler();
         var httpContext = CreateHttpContext();
 
         await handler.HandlePageAsync(httpContext, CancellationToken.None);
@@ -162,8 +149,8 @@ public sealed partial class SetupPageHandlerTests : IDisposable
     public async Task HandlePageAsync_WhenTheBundleExists_DoesNotCacheThePage()
     {
         await WriteIndexAsync(CancellationToken.None);
-        SetupIsInitialized(false);
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(true);
+        var handler = CreateHandler();
         var httpContext = CreateHttpContext();
 
         await handler.HandlePageAsync(httpContext, CancellationToken.None);
@@ -178,8 +165,8 @@ public sealed partial class SetupPageHandlerTests : IDisposable
     public async Task HandlePageAsync_WhenTheRequestHasAPathBase_WritesABaseUnderIt()
     {
         await WriteIndexAsync(CancellationToken.None);
-        SetupIsInitialized(false);
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(true);
+        var handler = CreateHandler();
         var httpContext = CreateHttpContext();
         httpContext.Request.PathBase = "/op";
 
@@ -193,11 +180,8 @@ public sealed partial class SetupPageHandlerTests : IDisposable
     public async Task HandlePageAsync_Always_WritesAFreshNoncePerResponse()
     {
         await WriteIndexAsync(CancellationToken.None);
-        MockInstanceSetupService
-            .Setup(x => x.IsInitializedAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(false)
-            .Verifiable(Times.Exactly(2));
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(true, Times.Exactly(2));
+        var handler = CreateHandler();
         var first = CreateHttpContext();
         var second = CreateHttpContext();
 
@@ -217,11 +201,11 @@ public sealed partial class SetupPageHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task HandlePageAsync_WhenTheInstanceIsInitialized_Answers404()
+    public async Task HandlePageAsync_WhenTheSurfaceIsNotServed_Answers404()
     {
         await WriteIndexAsync(CancellationToken.None);
-        SetupIsInitialized(true);
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(false);
+        var handler = CreateHandler();
         var httpContext = CreateHttpContext();
 
         var result = await handler.HandlePageAsync(httpContext, CancellationToken.None);
@@ -231,37 +215,12 @@ public sealed partial class SetupPageHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task HandlePageAsync_WhenProductionAndTheRequestIsNotHttps_Answers404WithoutReadingTheInstance()
+    public async Task HandlePageAsync_WhenTheSurfaceIsServed_WritesThePage()
     {
         await WriteIndexAsync(CancellationToken.None);
-        var handler = CreateHandler(HostEnvironments.Production);
-        var httpContext = CreateHttpContext(isHttps: false);
-
-        var result = await handler.HandlePageAsync(httpContext, CancellationToken.None);
-
-        Assert.IsType<NotFound>(result);
-    }
-
-    [Fact]
-    public async Task HandlePageAsync_WhenProductionAndTheRequestIsHttps_WritesThePage()
-    {
-        await WriteIndexAsync(CancellationToken.None);
-        SetupIsInitialized(false);
-        var handler = CreateHandler(HostEnvironments.Production);
-        var httpContext = CreateHttpContext(isHttps: true);
-
-        var result = await handler.HandlePageAsync(httpContext, CancellationToken.None);
-
-        Assert.IsType<ContentHttpResult>(result);
-    }
-
-    [Fact]
-    public async Task HandlePageAsync_WhenDevelopmentAndTheRequestIsNotHttps_WritesThePage()
-    {
-        await WriteIndexAsync(CancellationToken.None);
-        SetupIsInitialized(false);
-        var handler = CreateHandler(HostEnvironments.Development);
-        var httpContext = CreateHttpContext(isHttps: false);
+        SetupIsServed(true);
+        var handler = CreateHandler();
+        var httpContext = CreateHttpContext();
 
         var result = await handler.HandlePageAsync(httpContext, CancellationToken.None);
 
@@ -271,8 +230,8 @@ public sealed partial class SetupPageHandlerTests : IDisposable
     [Fact]
     public async Task HandlePageAsync_WhenTheBundleIsMissing_Answers404()
     {
-        SetupIsInitialized(false);
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(true);
+        var handler = CreateHandler();
         var httpContext = CreateHttpContext();
 
         var result = await handler.HandlePageAsync(httpContext, CancellationToken.None);
@@ -288,8 +247,8 @@ public sealed partial class SetupPageHandlerTests : IDisposable
     public async Task HandleAssetAsync_WhenTheFileExists_ServesItWithAnImmutableCacheLifetime()
     {
         await WriteAssetAsync("index-ab12.js", CancellationToken.None);
-        SetupIsInitialized(false);
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(true);
+        var handler = CreateHandler();
         var httpContext = CreateHttpContext(assetPath: "index-ab12.js");
 
         var result = await handler.HandleAssetAsync(httpContext, CancellationToken.None);
@@ -306,8 +265,8 @@ public sealed partial class SetupPageHandlerTests : IDisposable
     public async Task HandleAssetAsync_WhenNoFileExists_Answers404()
     {
         await WriteAssetAsync("index-ab12.js", CancellationToken.None);
-        SetupIsInitialized(false);
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(true);
+        var handler = CreateHandler();
         var httpContext = CreateHttpContext(assetPath: "missing.js");
 
         var result = await handler.HandleAssetAsync(httpContext, CancellationToken.None);
@@ -319,8 +278,8 @@ public sealed partial class SetupPageHandlerTests : IDisposable
     public async Task HandleAssetAsync_WhenTheRouteHasNoPath_Answers404()
     {
         await WriteAssetAsync("index-ab12.js", CancellationToken.None);
-        SetupIsInitialized(false);
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(true);
+        var handler = CreateHandler();
         var httpContext = CreateHttpContext();
 
         var result = await handler.HandleAssetAsync(httpContext, CancellationToken.None);
@@ -333,8 +292,8 @@ public sealed partial class SetupPageHandlerTests : IDisposable
     {
         await WriteIndexAsync(CancellationToken.None);
         await WriteAssetAsync("index-ab12.js", CancellationToken.None);
-        SetupIsInitialized(false);
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(true);
+        var handler = CreateHandler();
         var httpContext = CreateHttpContext(assetPath: "../index.html");
 
         var result = await handler.HandleAssetAsync(httpContext, CancellationToken.None);
@@ -343,41 +302,16 @@ public sealed partial class SetupPageHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task HandleAssetAsync_WhenTheInstanceIsInitialized_Answers404EvenForAnExistingFile()
+    public async Task HandleAssetAsync_WhenTheSurfaceIsNotServed_Answers404EvenForAnExistingFile()
     {
         await WriteAssetAsync("index-ab12.js", CancellationToken.None);
-        SetupIsInitialized(true);
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(false);
+        var handler = CreateHandler();
         var httpContext = CreateHttpContext(assetPath: "index-ab12.js");
 
         var result = await handler.HandleAssetAsync(httpContext, CancellationToken.None);
 
         Assert.IsType<NotFound>(result);
-    }
-
-    [Fact]
-    public async Task HandleAssetAsync_WhenProductionAndTheRequestIsNotHttps_Answers404EvenForAnExistingFile()
-    {
-        await WriteAssetAsync("index-ab12.js", CancellationToken.None);
-        var handler = CreateHandler(HostEnvironments.Production);
-        var httpContext = CreateHttpContext(isHttps: false, assetPath: "index-ab12.js");
-
-        var result = await handler.HandleAssetAsync(httpContext, CancellationToken.None);
-
-        Assert.IsType<NotFound>(result);
-    }
-
-    [Fact]
-    public async Task HandleAssetAsync_WhenProductionAndTheRequestIsHttps_ServesTheFile()
-    {
-        await WriteAssetAsync("index-ab12.js", CancellationToken.None);
-        SetupIsInitialized(false);
-        var handler = CreateHandler(HostEnvironments.Production);
-        var httpContext = CreateHttpContext(isHttps: true, assetPath: "index-ab12.js");
-
-        var result = await handler.HandleAssetAsync(httpContext, CancellationToken.None);
-
-        Assert.IsType<PhysicalFileHttpResult>(result);
     }
 
     #endregion

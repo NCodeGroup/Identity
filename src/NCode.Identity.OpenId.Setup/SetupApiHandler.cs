@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
 using NCode.Identity.OpenId.Setup.Contracts;
 
 namespace NCode.Identity.OpenId.Setup;
@@ -18,7 +17,7 @@ internal sealed class SetupApiHandler(
     IInstanceSetupService instanceSetupService,
     ISetupTokenService setupTokenService,
     SetupRateLimiter rateLimiter,
-    IHostEnvironment hostEnvironment
+    ISetupSurfaceGate surfaceGate
 )
 {
     private IInstanceSetupService InstanceSetupService { get; } = instanceSetupService;
@@ -27,7 +26,7 @@ internal sealed class SetupApiHandler(
 
     private SetupRateLimiter RateLimiter { get; } = rateLimiter;
 
-    private IHostEnvironment HostEnvironment { get; } = hostEnvironment;
+    private ISetupSurfaceGate SurfaceGate { get; } = surfaceGate;
 
     /// <summary>
     /// Describes the setup an uninitialized instance expects: where its setup token comes from and the shortest root
@@ -41,7 +40,7 @@ internal sealed class SetupApiHandler(
         CancellationToken cancellationToken
     )
     {
-        if (!await IsServedAsync(httpContext, cancellationToken))
+        if (!await SurfaceGate.IsServedAsync(httpContext, cancellationToken))
         {
             return TypedResults.NotFound();
         }
@@ -73,7 +72,7 @@ internal sealed class SetupApiHandler(
         CancellationToken cancellationToken
     )
     {
-        if (!await IsServedAsync(httpContext, cancellationToken))
+        if (!await SurfaceGate.IsServedAsync(httpContext, cancellationToken))
         {
             return TypedResults.NotFound();
         }
@@ -185,18 +184,5 @@ internal sealed class SetupApiHandler(
         {
             return null;
         }
-    }
-
-    private async ValueTask<bool> IsServedAsync(
-        HttpContext httpContext,
-        CancellationToken cancellationToken
-    )
-    {
-        if (HostEnvironment.IsProduction() && !httpContext.Request.IsHttps)
-        {
-            return false;
-        }
-
-        return !await InstanceSetupService.IsInitializedAsync(cancellationToken);
     }
 }

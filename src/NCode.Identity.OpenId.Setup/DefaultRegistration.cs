@@ -84,6 +84,7 @@ public static class DefaultRegistration
             );
 
             serviceCollection.TryAddSingleton<SetupRateLimiter>();
+            serviceCollection.TryAddSingleton<ISetupSurfaceGate, DefaultSetupSurfaceGate>();
             serviceCollection.TryAddSingleton<SetupPageHandler>();
             serviceCollection.TryAddSingleton<SetupApiHandler>();
 

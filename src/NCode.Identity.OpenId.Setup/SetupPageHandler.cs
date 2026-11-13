@@ -3,7 +3,6 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Buffers;
 using NCode.Identity.AspNetCore;
@@ -18,8 +17,7 @@ namespace NCode.Identity.OpenId.Setup;
 /// </summary>
 internal sealed class SetupPageHandler(
     IOptions<SetupOptions> optionsAccessor,
-    IInstanceSetupService instanceSetupService,
-    IHostEnvironment hostEnvironment
+    ISetupSurfaceGate surfaceGate
 ) : IDisposable
 {
     /// <summary>
@@ -30,9 +28,7 @@ internal sealed class SetupPageHandler(
     private SinglePageBundle<SetupPage> Bundle { get; } =
         new(optionsAccessor.Value.BundleRootPath, static html => new SetupPage(html));
 
-    private IInstanceSetupService InstanceSetupService { get; } = instanceSetupService;
-
-    private IHostEnvironment HostEnvironment { get; } = hostEnvironment;
+    private ISetupSurfaceGate SurfaceGate { get; } = surfaceGate;
 
     /// <inheritdoc />
     public void Dispose() => Bundle.Dispose();
@@ -49,7 +45,7 @@ internal sealed class SetupPageHandler(
         CancellationToken cancellationToken
     )
     {
-        if (!await IsServedAsync(httpContext, cancellationToken))
+        if (!await SurfaceGate.IsServedAsync(httpContext, cancellationToken))
         {
             return TypedResults.NotFound();
         }
@@ -80,7 +76,7 @@ internal sealed class SetupPageHandler(
         CancellationToken cancellationToken
     )
     {
-        if (!await IsServedAsync(httpContext, cancellationToken))
+        if (!await SurfaceGate.IsServedAsync(httpContext, cancellationToken))
         {
             return TypedResults.NotFound();
         }
@@ -88,18 +84,5 @@ internal sealed class SetupPageHandler(
         var assetPath =
             httpContext.GetRouteValue(AssetRouteParameterName) as string ?? string.Empty;
         return Bundle.ServeAsset(httpContext.Response, assetPath);
-    }
-
-    private async ValueTask<bool> IsServedAsync(
-        HttpContext httpContext,
-        CancellationToken cancellationToken
-    )
-    {
-        if (HostEnvironment.IsProduction() && !httpContext.Request.IsHttps)
-        {
-            return false;
-        }
-
-        return !await InstanceSetupService.IsInitializedAsync(cancellationToken);
     }
 }

@@ -6,12 +6,10 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Setup.Contracts;
-using HostEnvironments = Microsoft.Extensions.Hosting.Environments;
 
 namespace NCode.Identity.OpenId.Setup;
 
@@ -25,14 +23,14 @@ public sealed class SetupApiHandlerTests : IDisposable
     private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
     private Mock<IInstanceSetupService> MockInstanceSetupService { get; }
     private Mock<ISetupTokenService> MockSetupTokenService { get; }
-    private Mock<IHostEnvironment> MockHostEnvironment { get; }
+    private Mock<ISetupSurfaceGate> MockSurfaceGate { get; }
     private SetupRateLimiter RateLimiter { get; } = new();
 
     public SetupApiHandlerTests()
     {
         MockInstanceSetupService = MockRepository.Create<IInstanceSetupService>();
         MockSetupTokenService = MockRepository.Create<ISetupTokenService>();
-        MockHostEnvironment = MockRepository.Create<IHostEnvironment>();
+        MockSurfaceGate = MockRepository.Create<ISetupSurfaceGate>();
     }
 
     public void Dispose()
@@ -43,22 +41,18 @@ public sealed class SetupApiHandlerTests : IDisposable
 
     #region Helpers
 
-    private SetupApiHandler CreateHandler(string environmentName)
-    {
-        MockHostEnvironment.Setup(x => x.EnvironmentName).Returns(environmentName).Verifiable();
-
-        return new SetupApiHandler(
+    private SetupApiHandler CreateHandler() =>
+        new(
             MockInstanceSetupService.Object,
             MockSetupTokenService.Object,
             RateLimiter,
-            MockHostEnvironment.Object
+            MockSurfaceGate.Object
         );
-    }
 
-    private void SetupIsInitialized(bool isInitialized, Times? times = null) =>
-        MockInstanceSetupService
-            .Setup(x => x.IsInitializedAsync(It.IsAny<CancellationToken>()))
-            .ReturnsAsync(isInitialized)
+    private void SetupIsServed(bool isServed, Times? times = null) =>
+        MockSurfaceGate
+            .Setup(x => x.IsServedAsync(It.IsAny<HttpContext>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(isServed)
             .Verifiable(times ?? Times.Once());
 
     private void SetupVerify(bool isValid, Times? times = null) =>
@@ -68,7 +62,6 @@ public sealed class SetupApiHandlerTests : IDisposable
             .Verifiable(times ?? Times.Once());
 
     private static DefaultHttpContext CreateHttpContext(
-        bool isHttps = true,
         string remoteAddress = "10.0.0.1",
         ILoggerProvider? loggerProvider = null,
         string? body = null,
@@ -88,7 +81,7 @@ public sealed class SetupApiHandlerTests : IDisposable
         {
             RequestServices = services.BuildServiceProvider(),
         };
-        httpContext.Request.Scheme = isHttps ? Uri.UriSchemeHttps : Uri.UriSchemeHttp;
+        httpContext.Request.Scheme = Uri.UriSchemeHttps;
         httpContext.Request.ContentType = contentType;
         httpContext.Request.Body = new MemoryStream(
             SecureEncoding.UTF8.GetBytes(body ?? CreateRequestJson())
@@ -153,14 +146,14 @@ public sealed class SetupApiHandlerTests : IDisposable
     #region GetStatusAsync Tests
 
     [Fact]
-    public async Task GetStatusAsync_WhenTheInstanceIsNotInitialized_AnswersTheTokenSourceAndMinimumPasswordLength()
+    public async Task GetStatusAsync_WhenTheSurfaceIsServed_AnswersTheTokenSourceAndMinimumPasswordLength()
     {
-        SetupIsInitialized(false);
+        SetupIsServed(true);
         MockSetupTokenService
             .Setup(x => x.TokenSource)
             .Returns(SetupTokenSources.Generated)
             .Verifiable();
-        var handler = CreateHandler(HostEnvironments.Development);
+        var handler = CreateHandler();
 
         var result = await handler.GetStatusAsync(CreateHttpContext(), CancellationToken.None);
 
@@ -171,45 +164,14 @@ public sealed class SetupApiHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetStatusAsync_WhenTheInstanceIsInitialized_Answers404()
+    public async Task GetStatusAsync_WhenTheSurfaceIsNotServed_Answers404()
     {
-        SetupIsInitialized(true);
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(false);
+        var handler = CreateHandler();
 
         var result = await handler.GetStatusAsync(CreateHttpContext(), CancellationToken.None);
 
         Assert.IsType<NotFound>(result);
-    }
-
-    [Fact]
-    public async Task GetStatusAsync_WhenProductionAndTheRequestIsNotHttps_Answers404WithoutReadingTheInstance()
-    {
-        var handler = CreateHandler(HostEnvironments.Production);
-
-        var result = await handler.GetStatusAsync(
-            CreateHttpContext(isHttps: false),
-            CancellationToken.None
-        );
-
-        Assert.IsType<NotFound>(result);
-    }
-
-    [Fact]
-    public async Task GetStatusAsync_WhenProductionAndTheRequestIsHttps_AnswersTheStatus()
-    {
-        SetupIsInitialized(false);
-        MockSetupTokenService
-            .Setup(x => x.TokenSource)
-            .Returns(SetupTokenSources.Configured)
-            .Verifiable();
-        var handler = CreateHandler(HostEnvironments.Production);
-
-        var result = await handler.GetStatusAsync(
-            CreateHttpContext(isHttps: true),
-            CancellationToken.None
-        );
-
-        Assert.IsType<Ok<SetupStatusResponse>>(result);
     }
 
     #endregion
@@ -217,10 +179,10 @@ public sealed class SetupApiHandlerTests : IDisposable
     #region CreateRootAsync Tests
 
     [Fact]
-    public async Task CreateRootAsync_WhenTheInstanceIsInitialized_Answers404WithoutVerifyingTheToken()
+    public async Task CreateRootAsync_WhenTheSurfaceIsNotServed_Answers404WithoutVerifyingTheToken()
     {
-        SetupIsInitialized(true);
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(false);
+        var handler = CreateHandler();
 
         var result = await handler.CreateRootAsync(CreateHttpContext(), CancellationToken.None);
 
@@ -228,10 +190,10 @@ public sealed class SetupApiHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateRootAsync_WhenTheInstanceIsInitializedAndTheBodyIsMalformed_Answers404()
+    public async Task CreateRootAsync_WhenTheSurfaceIsNotServedAndTheBodyIsMalformed_Answers404()
     {
-        SetupIsInitialized(true);
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(false);
+        var handler = CreateHandler();
 
         var result = await handler.CreateRootAsync(
             CreateHttpContext(body: "{ not json"),
@@ -242,23 +204,10 @@ public sealed class SetupApiHandlerTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateRootAsync_WhenProductionAndTheRequestIsNotHttps_Answers404WithoutReadingTheInstance()
-    {
-        var handler = CreateHandler(HostEnvironments.Production);
-
-        var result = await handler.CreateRootAsync(
-            CreateHttpContext(isHttps: false),
-            CancellationToken.None
-        );
-
-        Assert.IsType<NotFound>(result);
-    }
-
-    [Fact]
     public async Task CreateRootAsync_WhenTheContentTypeIsNotJson_Answers400WithoutVerifyingTheToken()
     {
-        SetupIsInitialized(false);
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(true);
+        var handler = CreateHandler();
 
         var result = await handler.CreateRootAsync(
             CreateHttpContext(contentType: "text/plain"),
@@ -272,8 +221,8 @@ public sealed class SetupApiHandlerTests : IDisposable
     [Fact]
     public async Task CreateRootAsync_WhenTheBodyIsMalformedJson_Answers400WithoutVerifyingTheToken()
     {
-        SetupIsInitialized(false);
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(true);
+        var handler = CreateHandler();
 
         var result = await handler.CreateRootAsync(
             CreateHttpContext(body: "{ not json"),
@@ -287,8 +236,8 @@ public sealed class SetupApiHandlerTests : IDisposable
     [Fact]
     public async Task CreateRootAsync_WhenTheBodyIsJsonNull_Answers400WithoutVerifyingTheToken()
     {
-        SetupIsInitialized(false);
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(true);
+        var handler = CreateHandler();
 
         var result = await handler.CreateRootAsync(
             CreateHttpContext(body: "null"),
@@ -306,8 +255,8 @@ public sealed class SetupApiHandlerTests : IDisposable
         string field
     )
     {
-        SetupIsInitialized(false);
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(true);
+        var handler = CreateHandler();
         var body = new Dictionary<string, string?>
         {
             ["token"] = Token,
@@ -333,8 +282,8 @@ public sealed class SetupApiHandlerTests : IDisposable
         string field
     )
     {
-        SetupIsInitialized(false);
-        var handler = CreateHandler(HostEnvironments.Development);
+        SetupIsServed(true);
+        var handler = CreateHandler();
         var body = new Dictionary<string, string?>
         {
             ["token"] = Token,
@@ -355,9 +304,9 @@ public sealed class SetupApiHandlerTests : IDisposable
     [Fact]
     public async Task CreateRootAsync_WhenTheTokenIsNotValid_Answers403WithoutCreatingTheRoot()
     {
-        SetupIsInitialized(false);
+        SetupIsServed(true);
         SetupVerify(false);
-        var handler = CreateHandler(HostEnvironments.Development);
+        var handler = CreateHandler();
 
         var result = await handler.CreateRootAsync(CreateHttpContext(), CancellationToken.None);
 
@@ -367,9 +316,9 @@ public sealed class SetupApiHandlerTests : IDisposable
     [Fact]
     public async Task CreateRootAsync_WhenTheClientHasUsedItsAttempts_Answers429WithoutVerifyingTheToken()
     {
-        SetupIsInitialized(false, Times.Exactly(SetupDefaults.RootAttemptsPerMinute + 1));
+        SetupIsServed(true, Times.Exactly(SetupDefaults.RootAttemptsPerMinute + 1));
         SetupVerify(false, Times.Exactly(SetupDefaults.RootAttemptsPerMinute));
-        var handler = CreateHandler(HostEnvironments.Development);
+        var handler = CreateHandler();
         for (var attempt = 0; attempt < SetupDefaults.RootAttemptsPerMinute; ++attempt)
         {
             await handler.CreateRootAsync(CreateHttpContext(), CancellationToken.None);
@@ -383,9 +332,9 @@ public sealed class SetupApiHandlerTests : IDisposable
     [Fact]
     public async Task CreateRootAsync_WhenAnotherClientHasUsedItsAttempts_StillVerifiesTheToken()
     {
-        SetupIsInitialized(false, Times.Exactly(SetupDefaults.RootAttemptsPerMinute + 1));
+        SetupIsServed(true, Times.Exactly(SetupDefaults.RootAttemptsPerMinute + 1));
         SetupVerify(false, Times.Exactly(SetupDefaults.RootAttemptsPerMinute + 1));
-        var handler = CreateHandler(HostEnvironments.Development);
+        var handler = CreateHandler();
         for (var attempt = 0; attempt < SetupDefaults.RootAttemptsPerMinute; ++attempt)
         {
             await handler.CreateRootAsync(
@@ -405,7 +354,7 @@ public sealed class SetupApiHandlerTests : IDisposable
     [Fact]
     public async Task CreateRootAsync_WhenTheSetupFails_AnswersItsErrorAsAProblem()
     {
-        SetupIsInitialized(false);
+        SetupIsServed(true);
         SetupVerify(true);
         MockInstanceSetupService
             .Setup(x =>
@@ -422,7 +371,7 @@ public sealed class SetupApiHandlerTests : IDisposable
                 }
             )
             .Verifiable();
-        var handler = CreateHandler(HostEnvironments.Development);
+        var handler = CreateHandler();
 
         var result = await handler.CreateRootAsync(CreateHttpContext(), CancellationToken.None);
 
@@ -433,7 +382,7 @@ public sealed class SetupApiHandlerTests : IDisposable
     [Fact]
     public async Task CreateRootAsync_WhenAConcurrentSetupWon_Answers404()
     {
-        SetupIsInitialized(false);
+        SetupIsServed(true);
         SetupVerify(true);
         MockInstanceSetupService
             .Setup(x =>
@@ -450,7 +399,7 @@ public sealed class SetupApiHandlerTests : IDisposable
                 }
             )
             .Verifiable();
-        var handler = CreateHandler(HostEnvironments.Development);
+        var handler = CreateHandler();
 
         var result = await handler.CreateRootAsync(CreateHttpContext(), CancellationToken.None);
 
@@ -461,7 +410,7 @@ public sealed class SetupApiHandlerTests : IDisposable
     public async Task CreateRootAsync_WhenTheSetupSucceeds_Answers201WithTheRootAndPassesTheRequestedAdministrator()
     {
         var success = CreateSuccess();
-        SetupIsInitialized(false);
+        SetupIsServed(true);
         SetupVerify(true);
         MockInstanceSetupService
             .Setup(x =>
@@ -477,7 +426,7 @@ public sealed class SetupApiHandlerTests : IDisposable
             )
             .ReturnsAsync(success)
             .Verifiable();
-        var handler = CreateHandler(HostEnvironments.Development);
+        var handler = CreateHandler();
 
         var result = await handler.CreateRootAsync(CreateHttpContext(), CancellationToken.None);
 
@@ -495,7 +444,7 @@ public sealed class SetupApiHandlerTests : IDisposable
     public async Task CreateRootAsync_WithManagementConsole_PassesConsoleAndReturnsClientId()
     {
         var success = CreateSuccess();
-        SetupIsInitialized(false);
+        SetupIsServed(true);
         SetupVerify(true);
         MockInstanceSetupService
             .Setup(x =>
@@ -522,7 +471,7 @@ public sealed class SetupApiHandlerTests : IDisposable
                 }
             )
             .Verifiable();
-        var handler = CreateHandler(HostEnvironments.Development);
+        var handler = CreateHandler();
 
         var result = await handler.CreateRootAsync(
             CreateHttpContext(body: CreateConsoleRequestJson(clientId: "console-1")),
@@ -540,7 +489,7 @@ public sealed class SetupApiHandlerTests : IDisposable
     [Fact]
     public async Task CreateRootAsync_WithManagementConsoleWithoutClientId_PassesTheDefaultClientId()
     {
-        SetupIsInitialized(false);
+        SetupIsServed(true);
         SetupVerify(true);
         MockInstanceSetupService
             .Setup(x =>
@@ -555,7 +504,7 @@ public sealed class SetupApiHandlerTests : IDisposable
             )
             .ReturnsAsync(CreateSuccess())
             .Verifiable();
-        var handler = CreateHandler(HostEnvironments.Development);
+        var handler = CreateHandler();
 
         var result = await handler.CreateRootAsync(
             CreateHttpContext(body: CreateConsoleRequestJson(clientId: null)),
@@ -568,9 +517,9 @@ public sealed class SetupApiHandlerTests : IDisposable
     [Fact]
     public async Task CreateRootAsync_ManagementConsoleInvalid_Returns400()
     {
-        SetupIsInitialized(false);
+        SetupIsServed(true);
         SetupVerify(true);
-        var handler = CreateHandler(HostEnvironments.Development);
+        var handler = CreateHandler();
 
         var result = await handler.CreateRootAsync(
             CreateHttpContext(
@@ -605,9 +554,9 @@ public sealed class SetupApiHandlerTests : IDisposable
         string expected
     )
     {
-        SetupIsInitialized(false);
+        SetupIsServed(true);
         SetupVerify(true);
-        var handler = CreateHandler(HostEnvironments.Development);
+        var handler = CreateHandler();
         var body = jwks is null
             ? CreateConsoleRequestJson(baseUrl: baseUrl)
             : CreateConsoleRequestJson(baseUrl: baseUrl, jwks: jwks);
@@ -625,7 +574,7 @@ public sealed class SetupApiHandlerTests : IDisposable
     [Fact]
     public async Task CreateRootAsync_ManagementConsoleRefused_ReturnsServiceStatus()
     {
-        SetupIsInitialized(false);
+        SetupIsServed(true);
         SetupVerify(true);
         MockInstanceSetupService
             .Setup(x =>
@@ -645,7 +594,7 @@ public sealed class SetupApiHandlerTests : IDisposable
                 }
             )
             .Verifiable();
-        var handler = CreateHandler(HostEnvironments.Development);
+        var handler = CreateHandler();
 
         var result = await handler.CreateRootAsync(
             CreateHttpContext(body: CreateConsoleRequestJson()),
@@ -660,7 +609,7 @@ public sealed class SetupApiHandlerTests : IDisposable
     public async Task CreateRootAsync_Always_NeverPassesTheTokenToALogger()
     {
         using var loggerProvider = new RecordingLoggerProvider();
-        SetupIsInitialized(false, Times.Exactly(3));
+        SetupIsServed(true, Times.Exactly(3));
         MockSetupTokenService
             .SetupSequence(x => x.VerifyAsync(Token, It.IsAny<CancellationToken>()))
             .ReturnsAsync(false)
@@ -681,7 +630,7 @@ public sealed class SetupApiHandlerTests : IDisposable
                     },
                 }
             );
-        var handler = CreateHandler(HostEnvironments.Development);
+        var handler = CreateHandler();
 
         for (var attempt = 0; attempt < 3; ++attempt)
         {

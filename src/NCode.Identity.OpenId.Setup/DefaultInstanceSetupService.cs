@@ -138,31 +138,17 @@ internal sealed class DefaultInstanceSetupService(
     // The addresses come from the control-plane tenant's issuer, never from the request, so a request's Host header
     // cannot choose where the done page sends the operator. The management API and the API reference sit at the host
     // root, outside any tenant path, so they hang off the issuer's origin.
-    private static CreateRootResponse CreateRootResult(
-        string tenantId,
-        string principalId,
-        string userName,
-        string issuer,
-        string? apiReferencePath,
-        string? consoleClientId,
-        string? consoleBaseUrl
-    )
-    {
-        var origin = new Uri(issuer).GetLeftPart(UriPartial.Authority);
+    private static string GetOrigin(string issuer) =>
+        new Uri(issuer).GetLeftPart(UriPartial.Authority);
 
-        return new CreateRootResponse
-        {
-            TenantId = tenantId,
-            PrincipalId = principalId,
-            UserName = userName,
-            ManagementConsoleClientId = consoleClientId,
-            ManagementConsoleBaseUrl = consoleBaseUrl,
-            Issuer = issuer,
-            DiscoveryUrl = $"{issuer.TrimEnd('/')}/.well-known/openid-configuration",
-            ManagementApiUrl = $"{origin}{ManagementApiDefaults.RoutePrefix}",
-            ApiReferenceUrl = apiReferencePath is null ? null : $"{origin}{apiReferencePath}",
-        };
-    }
+    private static string GetDiscoveryUrl(string issuer) =>
+        issuer.TrimEnd('/') + OpenIdConstants.EndpointPaths.Discovery;
+
+    private static string GetManagementApiUrl(string issuer) =>
+        GetOrigin(issuer) + ManagementApiDefaults.RoutePrefix;
+
+    private static string? GetApiReferenceUrl(string issuer, string? apiReferencePath) =>
+        apiReferencePath is null ? null : GetOrigin(issuer) + apiReferencePath;
 
     private static InstanceSetupResult CreateClientFailureResult(
         ClientCreation creation,
@@ -442,15 +428,18 @@ internal sealed class DefaultInstanceSetupService(
         return new InstanceSetupResult
         {
             AutomationClientId = automationClientId,
-            Root = CreateRootResult(
-                tenantId,
-                creation.PrincipalId,
-                root.UserName,
-                issuer,
-                InstanceLinksOptions.ApiReferencePath,
-                consoleClientId,
-                consoleRegistration?.BaseUrl
-            ),
+            Root = new CreateRootResponse
+            {
+                TenantId = tenantId,
+                PrincipalId = creation.PrincipalId,
+                UserName = root.UserName,
+                ManagementConsoleClientId = consoleClientId,
+                ManagementConsoleBaseUrl = consoleRegistration?.BaseUrl,
+                Issuer = issuer,
+                DiscoveryUrl = GetDiscoveryUrl(issuer),
+                ManagementApiUrl = GetManagementApiUrl(issuer),
+                ApiReferenceUrl = GetApiReferenceUrl(issuer, InstanceLinksOptions.ApiReferencePath),
+            },
         };
     }
 }

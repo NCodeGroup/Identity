@@ -3,6 +3,7 @@
 
 using System.Net;
 using System.Runtime.ExceptionServices;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NCode.Buffers;
@@ -19,7 +20,6 @@ using NCode.Identity.OpenId.Authentication.Settings;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
-using NCode.Identity.OpenId.Exceptions;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
 using NCode.Mediator;
@@ -362,14 +362,6 @@ internal class DefaultLoadAuthorizationRequestHandler(
                         "The 'request_uri' response exceeds the maximum allowed size."
                     )
                     .AsException();
-
-            using var lease = buffer.GetSpanLease(isSensitive: false);
-            return SecureEncoding.UTF8.GetString(lease.Span);
-        }
-        catch (OpenIdException)
-        {
-            // A specific validation failure (status / content-type / size) is surfaced as-is, not masked as a fetch error.
-            throw;
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
@@ -377,6 +369,7 @@ internal class DefaultLoadAuthorizationRequestHandler(
             throw;
         }
         catch (Exception exception)
+            when (exception is HttpRequestException or IOException or OperationCanceledException)
         {
             var timedOut =
                 timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested;
@@ -385,6 +378,19 @@ internal class DefaultLoadAuthorizationRequestHandler(
             Logger.FailedToFetchRequestUri(uriForLog, reason, exception);
             throw errorFactory
                 .InvalidRequestUri("Failed to fetch the request URI")
+                .WithException(exception)
+                .AsException();
+        }
+
+        using var lease = buffer.GetSpanLease(isSensitive: false);
+        try
+        {
+            return SecureEncoding.UTF8.GetString(lease.Span);
+        }
+        catch (DecoderFallbackException exception)
+        {
+            throw errorFactory
+                .InvalidRequestUri("The 'request_uri' response is not valid UTF-8.")
                 .WithException(exception)
                 .AsException();
         }

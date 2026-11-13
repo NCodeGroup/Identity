@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
+using System.Net.Http.Headers;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Primitives;
 using Moq;
@@ -195,6 +196,22 @@ public class DefaultLoadAuthorizationRequestHandlerTests : BaseTests
         ) => Task.FromException<HttpResponseMessage>(exception);
     }
 
+    private sealed class BodyHttpMessageHandler(byte[] body, string contentType)
+        : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        )
+        {
+            var content = new ByteArrayContent(body);
+            content.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+            return Task.FromResult(
+                new HttpResponseMessage(HttpStatusCode.OK) { Content = content }
+            );
+        }
+    }
+
     private sealed class DelayingHttpMessageHandler : HttpMessageHandler
     {
         protected override async Task<HttpResponseMessage> SendAsync(
@@ -217,6 +234,25 @@ public class DefaultLoadAuthorizationRequestHandlerTests : BaseTests
         var context = CreateContext();
         var client = CreateClient();
         SetupHttpClient(new HttpClient(new StubHttpMessageHandler(HttpStatusCode.NotFound)));
+
+        await Assert.ThrowsAsync<OpenIdException>(async () =>
+            await HandleAsync(context, client, RequestUri, CancellationToken.None)
+        );
+
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestUri, CapturedErrorCode);
+        AssertNoFetchFailedRecord();
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheResponseIsNotUtf8_ThrowsInvalidRequestUriWithoutAFetchLog()
+    {
+        var context = CreateContext();
+        var client = CreateClient();
+        SetupHttpClient(
+            new HttpClient(
+                new BodyHttpMessageHandler([0xC3, 0x28], "application/oauth-authz-req+jwt")
+            )
+        );
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await HandleAsync(context, client, RequestUri, CancellationToken.None)

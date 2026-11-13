@@ -40,13 +40,21 @@ internal sealed class DefaultSetupTokenService(
 
     private ILogger<DefaultSetupTokenService> Logger { get; } = logger;
 
-    private TimeSpan GeneratedTokenLifetime { get; } = options.Value.GeneratedTokenLifetime;
+    // The options are read on first use, so resolving the service never reads or validates them.
+    private Lazy<(TimeSpan GeneratedTokenLifetime, byte[]? ConfiguredTokenHash)> Resolved { get; } =
+        new(() => ResolveOptions(options.Value), LazyThreadSafetyMode.ExecutionAndPublication);
 
-    private byte[]? ConfiguredTokenHash { get; } = HashConfiguredToken(options.Value.Token);
+    private TimeSpan GeneratedTokenLifetime => Resolved.Value.GeneratedTokenLifetime;
+
+    private byte[]? ConfiguredTokenHash => Resolved.Value.ConfiguredTokenHash;
 
     /// <inheritdoc />
     public string TokenSource =>
         ConfiguredTokenHash is null ? SetupTokenSources.Generated : SetupTokenSources.Configured;
+
+    private static (TimeSpan GeneratedTokenLifetime, byte[]? ConfiguredTokenHash) ResolveOptions(
+        SetupOptions setupOptions
+    ) => (setupOptions.GeneratedTokenLifetime, HashConfiguredToken(setupOptions.Token));
 
     private static byte[]? HashConfiguredToken(string? token) =>
         string.IsNullOrWhiteSpace(token) ? null : HashToken(token);

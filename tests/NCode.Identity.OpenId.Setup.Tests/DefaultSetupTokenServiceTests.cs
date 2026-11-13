@@ -148,6 +148,24 @@ public sealed class DefaultSetupTokenServiceTests : IDisposable
 
     #endregion
 
+    #region Constructor Tests
+
+    [Fact]
+    public void Constructor_Always_DoesNotReadOptions()
+    {
+        var mockOptions = MockRepository.Create<IOptions<SetupOptions>>();
+
+        _ = new DefaultSetupTokenService(
+            MockStoreManagerFactory.Object,
+            mockOptions.Object,
+            TimeProvider,
+            ProcessClock,
+            MockLogger.Object
+        );
+    }
+
+    #endregion
+
     #region TokenSource Tests
 
     [Fact]

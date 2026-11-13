@@ -662,6 +662,10 @@ same configuration the pods it rewraps keys for read.
 - name: SecretProtection__Recovery__Disabled
   value: "true"
 {{- end }}
+{{- range $index, $grant := .Values.platform.grantTypesEnabled }}
+- name: OpenId__Platform__Settings__grant_types_enabled__{{ $index }}
+  value: {{ $grant | quote }}
+{{- end }}
 {{- with .Values.extraEnv }}
 {{- toYaml . | nindent 0 }}
 {{- end }}

@@ -194,13 +194,14 @@ the chart's [Management console](../charts/ncode-identity-host/README.md#managem
 
 The platform's baseline grants are `authorization_code`, `refresh_token`,
 `urn:ietf:params:oauth:grant-type:device_code` and `urn:openid:params:grant-type:ciba`, and omit `client_credentials`.
-The `grant_types_enabled` setting adds its grants to the baseline, so name only the grants to add, one environment
-variable per grant:
+The `grant_types_enabled` setting adds its grants to the baseline, so name only the grants to add. With the chart, set
+`platform.grantTypesEnabled`; it renders one environment variable per grant,
+`OpenId__Platform__Settings__grant_types_enabled__<index>`:
 
 ```yaml
-extraEnv:
-  - name: OpenId__Platform__Settings__grant_types_enabled__0
-    value: client_credentials
+platform:
+  grantTypesEnabled:
+    - client_credentials
 ```
 
 The `grant_types_enabled` setting applies at the platform only. A `grant_types_supported` setting at any index is the

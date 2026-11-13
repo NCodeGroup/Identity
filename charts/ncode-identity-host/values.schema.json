@@ -635,6 +635,20 @@
         }
       }
     },
+    "platform": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "grantTypesEnabled": {
+          "type": "array",
+          "default": [],
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
     "backendTls": {
       "type": "object",
       "additionalProperties": false,

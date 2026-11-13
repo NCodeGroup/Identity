@@ -258,6 +258,7 @@ exits 0 on an instance that is already initialized. The setup values:
 | `setup.managementConsole.jwks`           | The console's public JWK Set, required with `baseUrl`.                                      |
 | `setup.automation.clientId`              | The `client_id` of the automation client. Setting it registers the client; empty registers none. |
 | `setup.automation.jwks`                  | The automation client's public JWK Set, required with `automation.clientId`.                |
+| `platform.grantTypesEnabled`             | Grant types the platform adds to its baseline grants, such as `client_credentials` (`[]`).      |
 
 The Job registers the clients below in the same save as the root administrator, passing them as `Setup__ManagementConsole__*`
 and `Setup__Automation__*`; the chart emits each group only when `setup.managementConsole.baseUrl` or
@@ -271,9 +272,9 @@ created either. Setup imports each JWK Set by value, so neither client needs a `
 - **The automation client** is a platform-owned `client_credentials` machine client that holds `GlobalAdmin` and
   authenticates with `private_key_jwt`, so a GitOps install manages the instance without the development bootstrap
   client. Setting `setup.automation.clientId` and `setup.automation.jwks` registers it. The platform's
-  grant list must include `client_credentials`, or setup fails as a whole; the
-  [first-use guide](../../docs/first-production-instance.md#6-enable-grants) shows how to enable it with
-  `grant_types_enabled`.
+  grant list must include `client_credentials`, or setup fails as a whole; set
+  `platform.grantTypesEnabled` to `[client_credentials]`, which the chart passes to the host as the platform setting
+  `grant_types_enabled` (the [first-use guide](../../docs/first-production-instance.md#6-enable-grants) describes it).
 
 Delete both Secrets once the instance is initialized. The guide
 [The first use of a Production instance](../../docs/first-production-instance.md) walks through the whole first use.

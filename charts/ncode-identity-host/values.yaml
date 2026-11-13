@@ -256,6 +256,12 @@ setup:
     # The automation client's public JWK Set, a JSON object with a non-empty keys array. Never the private key.
     jwks: ""
 
+# Settings of the platform, the scope every tenant inherits from.
+platform:
+  # Grant type names the host adds to the baseline grant_types_supported (the platform setting grant_types_enabled), such
+  # as client_credentials for the setup Job's automation client. Empty adds none.
+  grantTypesEnabled: []
+
 # TLS between the ingress and the pods (ADR-1504). The pods serve HTTPS only, and the host refuses to start in
 # Production without a certificate it can serve. The chart mounts the certificate at /etc/ncode-identity/tls and points
 # the probes, the Service and the Ingress at the pods' HTTPS port.

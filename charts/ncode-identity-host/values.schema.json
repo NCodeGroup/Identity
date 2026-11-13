@@ -604,6 +604,34 @@
               "minimum": 1
             }
           }
+        },
+        "managementConsole": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "baseUrl": {
+              "type": "string",
+              "pattern": "^(|https://.+)$"
+            },
+            "jwks": {
+              "type": "string"
+            }
+          }
+        },
+        "automation": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "clientId": {
+              "type": "string"
+            },
+            "jwks": {
+              "type": "string"
+            }
+          }
         }
       }
     },

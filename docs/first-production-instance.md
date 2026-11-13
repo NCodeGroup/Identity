@@ -141,6 +141,26 @@ the chart's [Management console](../charts/ncode-identity-host/README.md#managem
 
 Derive the public JWK Set from the console's `mgmt-client.pem` key. Never put the private key in it.
 
+With the chart, the setup Job passes these values from `setup.managementConsole.clientId`, `baseUrl` and `jwks`, and
+emits them only when `baseUrl` is set.
+
+### The automation client
+
+The headless command can also register an automation client: a platform-owned `client_credentials` machine client that
+authenticates with `private_key_jwt` and holds the `GlobalAdmin` role at the platform node. A GitOps install manages the
+instance through it, without the development bootstrap client. It is registered in the same save as the root
+administrator, so a refused registration saves nothing. The wizard never registers it.
+
+| Setting                         | Meaning                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------- |
+| `Setup__Automation__ClientId`   | The client's `client_id`: 1 to 255 characters from `A-Z`, `a-z`, `0-9`, `.`, `_`, `~` and `-`, different from the console's. |
+| `Setup__Automation__Jwks`       | The client's public JWK Set, a JSON object with a non-empty `keys` array.       |
+
+Set both: setting either one registers the client, and both are then required. Setup imports the JWK Set by value. The
+control-plane tenant must allow `client_credentials`, which [section 6](#6-enable-grants) describes, or setup fails as a
+whole. With the chart, the setup Job passes these values from `setup.automation.clientId` and `setup.automation.jwks`,
+and emits them only when `clientId` is set.
+
 ## 5. Sign in and register the management console
 
 Sign in as the root administrator at the control-plane tenant's issuer. The management console is a confidential client

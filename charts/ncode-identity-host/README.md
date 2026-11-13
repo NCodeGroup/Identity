@@ -253,6 +253,25 @@ exits 0 on an instance that is already initialized. The setup values:
 | `setup.job.passwordKey`                  | The key of the password in that Secret (`password`); at least 15 characters.                |
 | `setup.job.backoffLimit`                 | How often the Job retries (`2`).                                                            |
 | `setup.job.activeDeadlineSeconds`        | How long the Job may run, in seconds (`300`).                                               |
+| `setup.managementConsole.clientId`       | The `client_id` of the management console's client (`mgmt-console`).                        |
+| `setup.managementConsole.baseUrl`        | The console's public https origin. Setting it registers the console's client; empty registers none. |
+| `setup.managementConsole.jwks`           | The console's public JWK Set, required with `baseUrl`.                                      |
+| `setup.automation.clientId`              | The `client_id` of the automation client. Setting it registers the client; empty registers none. |
+| `setup.automation.jwks`                  | The automation client's public JWK Set, required with `automation.clientId`.                |
+
+The Job registers the clients below in the same save as the root administrator, passing them as `Setup__ManagementConsole__*`
+and `Setup__Automation__*`; the chart emits each group only when `setup.managementConsole.baseUrl` or
+`setup.automation.clientId` is set. If a registration is refused, setup saves nothing, so the root administrator is not
+created either. Setup imports each JWK Set by value, so neither client needs a `jwks_uri` the server can reach.
+
+- **The management console's client** is a confidential client of the control-plane tenant, with the metadata that
+  [Management console](#management-console) lists, except `jwks_uri`. Set `setup.managementConsole.baseUrl` to the origin
+  of `managementConsole.host` and `setup.managementConsole.jwks` to the public JWK Set of the console's `mgmt-client.pem`.
+- **The automation client** is a platform-owned `client_credentials` machine client that holds `GlobalAdmin` and
+  authenticates with `private_key_jwt`, so a GitOps install manages the instance without the development bootstrap
+  client. Setting `setup.automation.clientId` and `setup.automation.jwks` registers it. The platform's
+  `grant_types_supported` must include `client_credentials`, or setup fails as a whole; the
+  [first-use guide](../../docs/first-production-instance.md#6-enable-grants) shows how to enable it.
 
 Delete both Secrets once the instance is initialized. The guide
 [The first use of a Production instance](../../docs/first-production-instance.md) walks through the whole first use.
@@ -733,6 +752,10 @@ decision 6: authentication method `private_key_jwt`, pushed authorization reques
 required, the grant types `authorization_code` and `refresh_token`, the redirect URI
 `https://<host>/bff/callback`, the post-logout redirect URI `https://<host>/`, the back-channel logout URI
 `https://<host>/bff/backchannel-logout`, and `jwks_uri` `https://<host>/bff/jwks`.
+
+The setup Job registers this client in the same save as the root administrator, with the metadata above except
+`jwks_uri`, from `setup.managementConsole.baseUrl` and `setup.managementConsole.jwks`; see
+[First use](#first-use). Without it, register the client through the management API.
 
 The console calls the server's management API at `/api` on the origin of the console's authority, the URL the server
 compares the console's DPoP proofs with, and the chart sets `ManagementConsole__ManagementApiUrl` to it:

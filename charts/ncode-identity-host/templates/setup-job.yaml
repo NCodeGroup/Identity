@@ -68,6 +68,28 @@ spec:
                 secretKeyRef:
                   name: {{ $job.existingSecret }}
                   key: {{ $job.passwordKey | quote }}
+            {{- with .Values.setup.managementConsole }}
+            {{- if .baseUrl }}
+            # The management console's client is registered in the same save as the root administrator. The JWK Set is
+            # public, and setup imports it by value.
+            - name: Setup__ManagementConsole__ClientId
+              value: {{ .clientId | quote }}
+            - name: Setup__ManagementConsole__BaseUrl
+              value: {{ .baseUrl | quote }}
+            - name: Setup__ManagementConsole__Jwks
+              value: {{ .jwks | quote }}
+            {{- end }}
+            {{- end }}
+            {{- with .Values.setup.automation }}
+            {{- if .clientId }}
+            # The automation client is a platform-owned client_credentials client holding GlobalAdmin, registered in the
+            # same save as the root administrator.
+            - name: Setup__Automation__ClientId
+              value: {{ .clientId | quote }}
+            - name: Setup__Automation__Jwks
+              value: {{ .jwks | quote }}
+            {{- end }}
+            {{- end }}
           {{- with .Values.extraEnvFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

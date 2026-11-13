@@ -73,6 +73,14 @@ administrator.**
    `jwks_uri` fetch, because a console on a private network cannot be fetched from. Setup stages the client through
    `IClientCreator`, the seam the management API's client creation uses, so it passes the same `IClientValidator`,
    settings and coherence validation, and a refused registration saves nothing, not even the root administrator.
+9. **The headless command can register an automation client.** `Setup:Automation` (`ClientId` and `Jwks`) makes the
+   `setup` command register a platform-owned `client_credentials` machine client that authenticates with
+   `private_key_jwt` and holds `GlobalAdmin` at the platform node, in the same save as the root administrator. A GitOps
+   install manages the instance through that client, without the development bootstrap client. Setup stages it through
+   `IClientCreator` like the console's client and imports its public JWK Set by value. The platform must enable
+   `client_credentials`, and setup fails as a whole, saving nothing, when the control-plane tenant does not allow it. The
+   chart's `setup.managementConsole` and `setup.automation` values pass the console's and the automation client's
+   settings to the Job as `Setup__ManagementConsole__*` and `Setup__Automation__*`, and only when they are set.
 
 The setup packages follow the package shape of
 [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md):

@@ -4,7 +4,6 @@
 using IdGen;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -13,8 +12,8 @@ using NCode.Identity.Secrets.Persistence.DataContracts;
 
 namespace NCode.Identity.OpenId.Persistence.EntityFramework.Stores;
 
-// Validates that a relational provider runs a query that includes several collections as split queries. The warning
-// EF raises for such a query as a single query is configured to throw, so a single-query read fails the test.
+// Validates that a relational provider runs a query that includes several collections as split queries. The shared test
+// setup makes the warning EF raises for such a query as a single query throw, so a single-query read fails the test.
 public sealed class ResourceServerStoreQuerySplittingTests : IDisposable
 {
     private const string TenantId = "tenant-1";
@@ -33,13 +32,7 @@ public sealed class ResourceServerStoreQuerySplittingTests : IDisposable
         Connection.Open();
 
         var serviceCollection = new ServiceCollection();
-        serviceCollection.AddTestOpenIdDbContext(options =>
-            options
-                .UseSqlite(Connection)
-                .ConfigureWarnings(warnings =>
-                    warnings.Throw(RelationalEventId.MultipleCollectionIncludeWarning)
-                )
-        );
+        serviceCollection.AddTestOpenIdDbContext(options => options.UseSqlite(Connection));
         Provider = serviceCollection.BuildServiceProvider();
 
         DbContext = Provider.GetRequiredService<OpenIdDbContext>();

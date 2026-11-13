@@ -3,6 +3,7 @@
 
 using IdGen;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Configuration;
@@ -13,7 +14,8 @@ namespace NCode.Identity.OpenId.Persistence.EntityFramework;
 /// <summary>
 /// Shared test setup for the <see cref="OpenIdDbContext"/>: registers the id generator, the id-generation convention,
 /// the core model contributor (so the <c>DbSet</c>-less context's model contains the core entities), and an unscoped
-/// ambient tenant accessor.
+/// ambient tenant accessor. On a relational provider, a query that loads several collections as one SQL query throws,
+/// so every store test checks that its reads run as split queries.
 /// </summary>
 internal static class TestOpenIdDbContextSetup
 {
@@ -32,9 +34,22 @@ internal static class TestOpenIdDbContextSetup
             IAmbientTenantAccessor,
             TestUnscopedAmbientTenantAccessor
         >();
-        serviceCollection.AddDbContext<OpenIdDbContext>(configureOptions);
+        serviceCollection.AddDbContext<OpenIdDbContext>(options =>
+            ConfigureOptions(options, configureOptions)
+        );
 
         return serviceCollection;
+    }
+
+    private static void ConfigureOptions(
+        DbContextOptionsBuilder options,
+        Action<DbContextOptionsBuilder> configureOptions
+    )
+    {
+        configureOptions(options);
+        options.ConfigureWarnings(warnings =>
+            warnings.Throw(RelationalEventId.MultipleCollectionIncludeWarning)
+        );
     }
 
     /// <summary>

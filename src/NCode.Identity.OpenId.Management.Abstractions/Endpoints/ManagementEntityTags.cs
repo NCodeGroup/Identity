@@ -56,7 +56,8 @@ public static class ManagementEntityTags
             return false;
         }
 
-        var current = new EntityTagHeaderValue(Format(concurrencyToken));
+        var currentTag = Format(concurrencyToken);
+        var current = new EntityTagHeaderValue(currentTag);
         return Matches(tags, current, useStrongComparison: false);
     }
 
@@ -103,25 +104,53 @@ public static class ManagementEntityTags
             return CreateError(MalformedDetail);
         }
 
-        var current = new EntityTagHeaderValue(Format(concurrencyToken));
+        var currentTag = Format(concurrencyToken);
+        var current = new EntityTagHeaderValue(currentTag);
         return Matches(tags, current, useStrongComparison: true)
             ? null
             : CreateMismatchError(resource);
     }
 
-    private static bool IsBareToken(string value) =>
-        !string.Equals(value, EntityTagHeaderValue.Any.Tag.ToString(), StringComparison.Ordinal)
-        && !value.StartsWith(WeakPrefix, StringComparison.Ordinal)
-        && !value.Any(character => character is '"' or ',' || char.IsWhiteSpace(character));
+    private static bool IsBareToken(string value)
+    {
+        var anyTag = EntityTagHeaderValue.Any.Tag.ToString();
+        if (string.Equals(value, anyTag, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        if (value.StartsWith(WeakPrefix, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        foreach (var character in value)
+        {
+            if (character is '"' or ',' || char.IsWhiteSpace(character))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     private static bool Matches(
         IList<EntityTagHeaderValue> tags,
         EntityTagHeaderValue current,
         bool useStrongComparison
-    ) =>
-        tags.Any(tag =>
-            tag.Equals(EntityTagHeaderValue.Any) || tag.Compare(current, useStrongComparison)
-        );
+    )
+    {
+        foreach (var tag in tags)
+        {
+            if (tag.Equals(EntityTagHeaderValue.Any) || tag.Compare(current, useStrongComparison))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static ManagementError CreateMismatchError(string resource) =>
         CreateError($"{MismatchDetailPrefix}{resource}.");

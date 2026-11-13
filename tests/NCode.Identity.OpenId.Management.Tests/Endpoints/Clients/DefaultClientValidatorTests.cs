@@ -600,6 +600,20 @@ public sealed class DefaultClientValidatorTests : IDisposable
     }
 
     [Fact]
+    public async Task ValidateUpdateAsync_WhenIfMatchIsTheQuotedEntityTag_ReturnsNull()
+    {
+        var error = await Validator.ValidateUpdateAsync(
+            CreateClient("client-ct"),
+            new UpdateClientRequest(),
+            ifMatch: "\"client-ct\"",
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
     public async Task ValidateUpdateAsync_WhenIfMatchNull_ReturnsNull()
     {
         var error = await Validator.ValidateUpdateAsync(

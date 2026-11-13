@@ -176,17 +176,15 @@ internal class DefaultClientValidator(IAuthorizationService authorizationService
     )
     {
         if (
-            !string.IsNullOrEmpty(ifMatch)
-            && !string.Equals(ifMatch, client.ConcurrencyToken, StringComparison.Ordinal)
+            ManagementEntityTags.GetIfMatchErrorOrDefault(
+                ifMatch,
+                client.ConcurrencyToken,
+                "client"
+            ) is
+            { } preconditionError
         )
         {
-            return ValueTask.FromResult<ManagementError?>(
-                new ManagementError
-                {
-                    StatusCode = StatusCodes.Status412PreconditionFailed,
-                    Detail = "The supplied If-Match token does not match the current client.",
-                }
-            );
+            return ValueTask.FromResult<ManagementError?>(preconditionError);
         }
 
         return ValueTask.FromResult<ManagementError?>(null);

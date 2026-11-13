@@ -36,6 +36,7 @@ internal static class DefaultRegistration
                 IOutboundHttpForgeryGuard,
                 DefaultOutboundHttpForgeryGuard
             >();
+            serviceCollection.TryAddSingleton<IOutboundHostChecker, DefaultOutboundHostChecker>();
             serviceCollection.TryAddSingleton<
                 IOutboundHttpContentReader,
                 DefaultOutboundHttpContentReader

@@ -2,8 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
-using System.Net.Sockets;
-using System.Security.Authentication;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -280,47 +278,11 @@ internal sealed class DefaultClientKeyResolver(
             Logger.ClientJwksFetchFailed(
                 openIdClient.ClientId,
                 uri.AbsoluteUri,
-                GetFetchFailureReason(exception, timedOut),
+                OutboundFetchFailureReasons.Classify(exception, timedOut),
                 exception
             );
             return [];
         }
-    }
-
-    // Names the cause of a failed fetch. The guard's refusal, a TLS failure and a name-resolution failure are found by
-    // walking the exception chain, because SocketsHttpHandler wraps whatever its connect callback throws.
-    private static string GetFetchFailureReason(Exception exception, bool timedOut)
-    {
-        for (var current = exception; current is not null; current = current.InnerException)
-        {
-            switch (current)
-            {
-                case OutboundAddressRefusedException:
-                    return ClientJwksFetchFailureReasons.BlockedAddress;
-
-                case AuthenticationException:
-                    return ClientJwksFetchFailureReasons.Tls;
-
-                case TimeoutException:
-                    return ClientJwksFetchFailureReasons.Timeout;
-
-                case SocketException
-                {
-                    SocketErrorCode: SocketError.HostNotFound
-                        or SocketError.NoData
-                        or SocketError.TryAgain
-                }:
-                case HttpRequestException { HttpRequestError: HttpRequestError.NameResolutionError }:
-                    return ClientJwksFetchFailureReasons.NameResolution;
-            }
-        }
-
-        if (timedOut)
-            return ClientJwksFetchFailureReasons.Timeout;
-
-        return exception is OperationCanceledException
-            ? ClientJwksFetchFailureReasons.Canceled
-            : ClientJwksFetchFailureReasons.Connection;
     }
 
     private List<SecretKey> ImportKeys(

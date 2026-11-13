@@ -1,6 +1,8 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using NCode.Identity.OpenId.Authentication.OutboundHttp;
+
 namespace NCode.Identity.OpenId.Authentication.Clients;
 
 /// <summary>
@@ -28,37 +30,37 @@ internal static class ClientJwksFetchFailureReasons
     /// <summary>
     /// The outbound guard refused every address the <c>jwks_uri</c> host resolves to.
     /// </summary>
-    public const string BlockedAddress = "blocked_address";
+    public const string BlockedAddress = OutboundFetchFailureReasons.BlockedAddress;
 
     /// <summary>
     /// The <c>jwks_uri</c> host name did not resolve.
     /// </summary>
-    public const string NameResolution = "name_resolution";
+    public const string NameResolution = OutboundFetchFailureReasons.NameResolution;
 
     /// <summary>
     /// The TLS handshake with the <c>jwks_uri</c> host failed.
     /// </summary>
-    public const string Tls = "tls";
+    public const string Tls = OutboundFetchFailureReasons.Tls;
 
     /// <summary>
     /// The fetch did not complete within <c>jwks_uri_fetch_timeout</c>.
     /// </summary>
-    public const string Timeout = "timeout";
+    public const string Timeout = OutboundFetchFailureReasons.Timeout;
 
     /// <summary>
     /// The fetch was canceled.
     /// </summary>
-    public const string Canceled = "canceled";
+    public const string Canceled = OutboundFetchFailureReasons.Canceled;
 
     /// <summary>
     /// The connection to the <c>jwks_uri</c> host failed for a cause that no other reason names.
     /// </summary>
-    public const string Connection = "connection";
+    public const string Connection = OutboundFetchFailureReasons.Connection;
 
     /// <summary>
     /// The <c>jwks_uri</c> answered with a status code that is not a success.
     /// </summary>
-    public const string HttpStatus = "http_status";
+    public const string HttpStatus = OutboundFetchFailureReasons.HttpStatus;
 
     /// <summary>
     /// The <c>jwks_uri</c> document exceeds <c>jwks_uri_max_size_bytes</c>.

@@ -53,6 +53,18 @@ public class CibaDeliveryJobHandlerTests : BaseTests
         }
     }
 
+    private sealed class DelayingHttpMessageHandler : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        )
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return new HttpResponseMessage(HttpStatusCode.OK);
+        }
+    }
+
     private void SetupHttpClient() =>
         MockHttpClientFactory
             .Setup(x => x.CreateClient(GuardedHttpClient.Name))
@@ -294,6 +306,26 @@ public class CibaDeliveryJobHandlerTests : BaseTests
         );
 
         AssertDeliveryFailedReason("blocked_address");
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheCallerCancels_ThrowsWithoutAFailureLog()
+    {
+        MockHttpClientFactory
+            .Setup(x => x.CreateClient(GuardedHttpClient.Name))
+            .Returns(new HttpClient(new DelayingHttpMessageHandler()))
+            .Verifiable();
+        using var cts = new CancellationTokenSource();
+        cts.CancelAfter(50);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            Subject.HandleAsync(CreatePingJob(), Context(), cts.Token).AsTask()
+        );
+
+        Assert.DoesNotContain(
+            Logger.Collector.GetSnapshot(),
+            r => r.Id.Id == EventIds.CibaDeliveryFailed
+        );
     }
 
     #endregion

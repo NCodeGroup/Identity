@@ -50,6 +50,18 @@ public class BackChannelLogoutDeliveryJobHandlerTests : BaseTests
         }
     }
 
+    private sealed class DelayingHttpMessageHandler : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        )
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return new HttpResponseMessage(HttpStatusCode.OK);
+        }
+    }
+
     private static DispatchContext Context() =>
         new()
         {
@@ -158,6 +170,26 @@ public class BackChannelLogoutDeliveryJobHandlerTests : BaseTests
         );
 
         AssertDeliveryFailedReason("blocked_address");
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheCallerCancels_ThrowsWithoutAFailureLog()
+    {
+        MockHttpClientFactory
+            .Setup(x => x.CreateClient(GuardedHttpClient.Name))
+            .Returns(new HttpClient(new DelayingHttpMessageHandler()))
+            .Verifiable();
+        using var cts = new CancellationTokenSource();
+        cts.CancelAfter(50);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            Subject.HandleAsync(CreateJob(), Context(), cts.Token).AsTask()
+        );
+
+        Assert.DoesNotContain(
+            Logger.Collector.GetSnapshot(),
+            r => r.Id.Id == EventIds.BackChannelLogoutDeliveryFailed
+        );
     }
 
     #endregion

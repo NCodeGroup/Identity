@@ -112,6 +112,12 @@ public static class ProductionSafetyRegistration
             "seeds the deterministic clients and test user that the public conformance suite drives."
         );
 
+        AddSectionViolationIfPresent(
+            BootstrapAdminOptions.DefaultSectionName,
+            "configures the bootstrap client, a development and test convenience whose secret confers GlobalAdmin; "
+                + "a Production instance's first administrator is the root that setup creates."
+        );
+
         return violations;
 
         void AddSectionViolationIfPresent(string sectionName, string problem)

@@ -28,7 +28,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   holds `SetupOptions` (the `Setup` section: `Token`, at least 32 characters or unset to have the host generate one;
   `GeneratedTokenLifetime`, 1 hour by default and between 1 minute and 24 hours; `BundleRootPath`, `/app/setup` in the
   host image; and `Root` with `UserName`, `Email` and `Password`, where `UserName` and `Password` are set both or
-  neither), the wire contracts, `IInstanceSetupService` and `ISetupTokenService`; `NCode.Identity.OpenId.Setup`
+  neither), the wire contracts, whose unknown members round-trip, `IInstanceSetupService` and `ISetupTokenService`;
+  `NCode.Identity.OpenId.Setup`
   implements them over the abstractions and registers through `AddInstanceSetup` on the management library builder. The
   root password is at least 15 characters and satisfies the control-plane tenant's password policy. Setup can also
   register the management console's confidential client, which authenticates with `private_key_jwt`: the wizard's
@@ -43,7 +44,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   button repeats the fetch; a fetch that fails (the console is unreachable or the browser refuses its origin, the console
   answers an HTTP status, or the set is invalid) says why and leaves the field for pasting. The host chart passes the
   hint as `Setup__Wizard__ManagementConsole__BaseUrl` and `Setup__Wizard__ManagementConsole__ClientId` when
-  `managementConsole.enabled` is true
+  `managementConsole.enabled` is true, and then refuses to render with an empty `setup.managementConsole.clientId`
   ([#777](https://github.com/NCodeGroup/identity/issues/777),
   [#829](https://github.com/NCodeGroup/identity/issues/829),
   [#830](https://github.com/NCodeGroup/identity/issues/830),
@@ -4307,8 +4308,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   one. Creating the root administrator marks the instance initialized in the same save, after which every `/setup`
   route answers 404 and the token is useless, and a concurrent second attempt loses on the row's concurrency token.
   `/setup` answers 404 to a request that is not HTTPS in Production, rate-limits `POST /setup/api/token` and
-  `POST /setup/api/root` together to 10 requests per minute per client address (429), serves its page with a nonce
-  Content-Security-Policy and `no-store` caching, and never writes its request or response bodies to HTTP logging. The
+  `POST /setup/api/root` together to 10 requests per minute per client address (a refused attempt answers `429` with
+  `Retry-After` and `Cache-Control: no-store`), serves its page with a nonce Content-Security-Policy and `no-store`
+  caching, and never writes its request or response bodies to HTTP logging. The
   page's `connect-src` is `'self'` plus only the origin of the console that the deployment hints through
   `Setup:Wizard:ManagementConsole`, so a console URL from a link or typed by the operator is refused by the browser and
   a link someone else wrote cannot make the wizard read keys from an origin the deployment does not name, and the

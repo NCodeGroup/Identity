@@ -3,10 +3,10 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { AppThemeProvider } from '@ncode/ui';
 import { App } from './App.js';
 import { createRoot, getStatus, type CreateRootResult, type GetStatusResult } from './setupApi.js';
-import { takeSetupToken } from './setupToken.js';
+import { takeSetupFragment } from './setupToken.js';
 
 vi.mock('./setupApi.js', () => ({ createRoot: vi.fn(), getStatus: vi.fn() }));
-vi.mock('./setupToken.js', () => ({ takeSetupToken: vi.fn() }));
+vi.mock('./setupToken.js', () => ({ takeSetupFragment: vi.fn() }));
 
 const READY: GetStatusResult = {
   kind: 'ok',
@@ -43,8 +43,8 @@ describe('App', () => {
   beforeEach(() => {
     vi.mocked(getStatus).mockReset();
     vi.mocked(createRoot).mockReset();
-    vi.mocked(takeSetupToken).mockReset();
-    vi.mocked(takeSetupToken).mockReturnValue(undefined);
+    vi.mocked(takeSetupFragment).mockReset();
+    vi.mocked(takeSetupFragment).mockReturnValue({});
   });
 
   it('shows progress while it loads the status', async () => {
@@ -64,7 +64,7 @@ describe('App', () => {
   });
 
   it('prefills the token step with the token from the URL fragment', async () => {
-    vi.mocked(takeSetupToken).mockReturnValue('from-fragment');
+    vi.mocked(takeSetupFragment).mockReturnValue({ token: 'from-fragment' });
     vi.mocked(getStatus).mockResolvedValue(READY);
     renderApp();
 
@@ -82,7 +82,7 @@ describe('App', () => {
       </AppThemeProvider>,
     );
 
-    expect(takeSetupToken).toHaveBeenCalledOnce();
+    expect(takeSetupFragment).toHaveBeenCalledOnce();
   });
 
   it('says the instance is already set up when the status is not found', async () => {

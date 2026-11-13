@@ -12,7 +12,7 @@ import { DonePage } from './DonePage.js';
 import { RootAccountStep, type RootAccount } from './RootAccountStep.js';
 import { TokenStep } from './TokenStep.js';
 import { getStatus, type SetupStatus } from './setupApi.js';
-import { takeSetupToken } from './setupToken.js';
+import { takeSetupFragment } from './setupToken.js';
 
 type Load =
   | { readonly kind: 'loading' }
@@ -40,7 +40,8 @@ const TOKEN_REJECTED = 'The instance did not accept the setup token. Check it an
 export function App() {
   const [load, setLoad] = useState<Load>({ kind: 'loading' });
   const [attempt, setAttempt] = useState(0);
-  const [token, setToken] = useState(() => takeSetupToken() ?? '');
+  const [fragment] = useState(() => takeSetupFragment());
+  const [token, setToken] = useState(fragment.token ?? '');
   const [step, setStep] = useState<Step>({ name: 'token' });
 
   useEffect(() => {

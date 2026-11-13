@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.Extensions.Options;
+using NCode.Identity.OpenId.Management;
 
 namespace NCode.Identity.OpenId.Setup;
 
@@ -16,8 +17,6 @@ namespace NCode.Identity.OpenId.Setup;
 /// </summary>
 internal sealed class SetupOptionsValidator : IValidateOptions<SetupOptions>
 {
-    private const int MaximumClientIdLength = 255;
-
     internal static TimeSpan MinimumGeneratedTokenLifetime { get; } = TimeSpan.FromMinutes(1);
     internal static TimeSpan MaximumGeneratedTokenLifetime { get; } = TimeSpan.FromHours(24);
 
@@ -100,10 +99,10 @@ internal sealed class SetupOptionsValidator : IValidateOptions<SetupOptions>
         {
             failures.Add($"'{section}:{nameof(SetupAutomationOptions.ClientId)}' is required.");
         }
-        else if (!IsClientId(automation.ClientId))
+        else if (!ClientIdRules.IsValid(automation.ClientId))
         {
             failures.Add(
-                $"'{section}:{nameof(SetupAutomationOptions.ClientId)}' must be 1 to {MaximumClientIdLength} "
+                $"'{section}:{nameof(SetupAutomationOptions.ClientId)}' must be 1 to {ClientIdRules.MaxLength} "
                     + "unreserved URI characters."
             );
         }
@@ -133,23 +132,5 @@ internal sealed class SetupOptionsValidator : IValidateOptions<SetupOptions>
                     + "'keys' array."
             );
         }
-    }
-
-    // The unreserved characters of RFC 3986 section 2.3, as a client_id of the management API admits.
-    private static bool IsClientId(string value)
-    {
-        if (value.Length > MaximumClientIdLength)
-            return false;
-
-        foreach (var character in value)
-        {
-            var isUnreserved =
-                character is (>= 'A' and <= 'Z') or (>= 'a' and <= 'z') or (>= '0' and <= '9')
-                || character is '-' or '.' or '_' or '~';
-            if (!isUnreserved)
-                return false;
-        }
-
-        return true;
     }
 }

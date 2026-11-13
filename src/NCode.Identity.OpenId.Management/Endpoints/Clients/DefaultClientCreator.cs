@@ -27,8 +27,6 @@ internal sealed class DefaultClientCreator(
     IOpenIdEnvironmentProvider openIdEnvironmentProvider
 ) : IClientCreator
 {
-    private const int MaxClientIdLength = 255;
-
     private IClientValidator ClientValidator { get; } = clientValidator;
     private IClientSettingsEvaluator ClientSettingsEvaluator { get; } = clientSettingsEvaluator;
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
@@ -47,10 +45,12 @@ internal sealed class DefaultClientCreator(
         CancellationToken cancellationToken
     )
     {
-        if (!IsValidClientId(request.ClientId))
+        if (!ClientIdRules.IsValid(request.ClientId))
         {
             return ClientCreation.Failed(
-                BadRequest("The client_id must be 1 to 255 unreserved URI characters.")
+                BadRequest(
+                    $"The client_id must be 1 to {ClientIdRules.MaxLength} unreserved URI characters."
+                )
             );
         }
 
@@ -189,29 +189,6 @@ internal sealed class DefaultClientCreator(
 
         return ClientCreation.Staged(client);
     }
-
-    private static bool IsValidClientId(string clientId)
-    {
-        if (clientId.Length is 0 or > MaxClientIdLength)
-        {
-            return false;
-        }
-
-        foreach (var character in clientId)
-        {
-            if (!IsUnreservedCharacter(character))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    // The unreserved characters of RFC 3986 section 2.3.
-    private static bool IsUnreservedCharacter(char character) =>
-        character is (>= 'A' and <= 'Z') or (>= 'a' and <= 'z') or (>= '0' and <= '9')
-        || character is '-' or '.' or '_' or '~';
 
     private static ManagementError BadRequest(string detail) =>
         new() { StatusCode = StatusCodes.Status400BadRequest, Detail = detail };

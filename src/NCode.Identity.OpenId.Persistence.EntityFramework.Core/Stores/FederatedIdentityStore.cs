@@ -163,6 +163,38 @@ internal class FederatedIdentityStore(
     }
 
     /// <inheritdoc />
+    public async ValueTask<IReadOnlyList<PersistedFederatedIdentity>> GetByIssuerSubjectsAsync(
+        string issuer,
+        IReadOnlyCollection<string> subjects,
+        CancellationToken cancellationToken
+    )
+    {
+        if (subjects.Count == 0)
+        {
+            return [];
+        }
+
+        var normalizedIssuer = Normalize(issuer);
+        var normalizedSubjects = subjects.Select(Normalize).ToList();
+        var entities = await DbContext
+            .FederatedIdentities.Include(entity => entity.FederatedPrincipal)
+            .Include(entity => entity.Tenant)
+            .Where(entity =>
+                entity.NormalizedIssuer == normalizedIssuer
+                && normalizedSubjects.Contains(entity.NormalizedSubject)
+            )
+            .ToListAsync(cancellationToken);
+
+        var result = new List<PersistedFederatedIdentity>(entities.Count);
+        foreach (var entity in entities)
+        {
+            result.Add(await MapFromEntityAsync(entity, cancellationToken));
+        }
+
+        return result;
+    }
+
+    /// <inheritdoc />
     public async ValueTask<IReadOnlyList<PersistedFederatedIdentity>> GetByPrincipalAsync(
         string principalId,
         CancellationToken cancellationToken

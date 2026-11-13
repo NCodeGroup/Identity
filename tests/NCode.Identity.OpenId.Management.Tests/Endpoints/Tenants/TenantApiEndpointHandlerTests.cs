@@ -746,7 +746,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         Assert.Equal("development", json.Value.Environment.Type);
         Assert.Equal("Dev EU", json.Value.Environment.Name);
         Assert.False(json.Value.Environment.IsProduction);
-        Assert.Equal("tenant-ct", httpContext.Response.Headers.ETag);
+        Assert.Equal("\"tenant-ct\"", httpContext.Response.Headers.ETag);
     }
 
     [Fact]
@@ -2214,7 +2214,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
 
         var created = Assert.IsType<Created<SecretResource>>(result);
         Assert.Equal("secret-1", created.Value?.SecretId);
-        Assert.Equal("secret-ct", httpContext.Response.Headers.ETag);
+        Assert.Equal("\"secret-ct\"", httpContext.Response.Headers.ETag);
         VerifyTenantChanged(settingsChanged: false);
     }
 
@@ -3846,7 +3846,7 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
         Assert.NotNull(created.Value);
         Assert.Equal("seeded-ct", created.Value.ConcurrencyToken);
         Assert.Equal("production", created.Value.Environment?.Type);
-        Assert.Equal("seeded-ct", httpContext.Response.Headers.ETag.ToString());
+        Assert.Equal("\"seeded-ct\"", httpContext.Response.Headers.ETag.ToString());
     }
 
     [Fact]

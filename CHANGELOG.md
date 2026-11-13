@@ -1638,9 +1638,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1106](docs/decisions/1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md)).
   A fetch that yields no key logs `ClientJwksFetchFailed` with a reason (`blocked_address`, `name_resolution`, `tls`,
   `timeout`, `connection`, `http_status`, `too_large`, `not_json`, `invalid_key_set`, `not_https`, `host_not_allowed`,
-  `canceled`), while the caller sees only `invalid_client`. The management API refuses a `jwks_uri` whose host resolves
-  only to addresses the outbound guard refuses, and names the key import endpoint as the alternative
-  ([#783](https://github.com/NCodeGroup/identity/issues/783)).
+  `canceled`), while the caller sees only `invalid_client`. A failed `request_uri` or `sector_identifier_uri` fetch,
+  and a failed back-channel logout or CIBA delivery, logs the same transport reasons. The management API refuses a
+  `jwks_uri` whose host resolves only to addresses the outbound guard refuses, and names the key import endpoint as
+  the alternative ([#783](https://github.com/NCodeGroup/identity/issues/783)).
 
 - **A `kid` is the client's own name for its key, unique among that client's keys.** Any number of clients, in any
   tenants, register keys with the same `kid`; the management import keeps a JSON Web Key's `kid`, so a client that signs

@@ -57,9 +57,14 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.FailedToFetchRequestUri,
         Level = LogLevel.Warning,
-        Message = "Failed to fetch the request URI"
+        Message = "Failed to fetch the request URI '{RequestUri}' ({Reason})"
     )]
-    internal static partial void FailedToFetchRequestUri(this ILogger logger, Exception exception);
+    internal static partial void FailedToFetchRequestUri(
+        this ILogger logger,
+        string requestUri,
+        string reason,
+        Exception exception
+    );
 
     [LoggerMessage(
         EventId = EventIds.EndUserSessionAuthenticationFailed,

@@ -378,7 +378,13 @@ internal class DefaultLoadAuthorizationRequestHandler(
         }
         catch (Exception exception)
         {
-            Logger.FailedToFetchRequestUri(exception);
+            var timedOut =
+                timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested;
+            Logger.FailedToFetchRequestUri(
+                requestUri.AbsoluteUri,
+                OutboundFetchFailureReasons.Classify(exception, timedOut),
+                exception
+            );
             throw errorFactory
                 .InvalidRequestUri("Failed to fetch the request URI")
                 .WithException(exception)

@@ -54,7 +54,10 @@ shared between concurrent callers, remembered when the fetch fails, and never se
 6. **The fetch is independent of its callers.** It runs without any caller's token, so a caller that gives up does not
    break the fetch for the others. It records the accepted set, or the failure, before it leaves the in-flight
    dictionary, and it checks both caches again before it fetches. The log entry of a failed fetch,
-   `ClientJwksFetchFailed`, names the client whose request started it.
+   `ClientJwksFetchFailed`, names the client whose request started it and a reason from the closed vocabulary
+   `ClientJwksFetchFailureReasons`: `not_https`, `host_not_allowed`, `blocked_address`, `name_resolution`, `tls`,
+   `timeout`, `canceled`, `connection`, `http_status`, `too_large`, `not_json` and `invalid_key_set`. The entry is
+   server-side only; the caller sees only `invalid_client`, so no internal address or cause reaches it.
 
 7. **A fetch that yields no key is remembered.** An unreachable `jwks_uri`, a non-2xx answer, an oversized or malformed
    document and a set the import policy refuses are remembered per replica, in its memory cache, for
@@ -73,8 +76,21 @@ shared between concurrent callers, remembered when the fetch fails, and never se
     merges by `Min`, so a tenant or a client could set it to zero and remove the protection. The fetch limits stay
     settings because lowering them is safe.
 
-## Options considered
+11. **The management API refuses a `jwks_uri` the fetch could never reach.** On create, and on a settings update only
+    when the `jwks_uri` value differs from the stored one, `ClientApiEndpointHandler` asks `IOutboundHostChecker`
+    (`IsRefusedAsync`, implemented by `DefaultOutboundHostChecker` over the same `IOutboundHttpForgeryGuard` the fetch
+    uses) whether the host resolves only to addresses the guard refuses. A literal IP is refused when the guard refuses
+    it, and a name is refused when it resolves and the guard refuses every address. A name that does not resolve is
+    accepted, because a `jwks_uri` may be registered before its DNS exists and the runtime log names `name_resolution`.
+    The refusal is the settings validation problem keyed by `jwks_uri`. It tells a caller already authorized to write
+    the client only that the host resolves to refused addresses, never which ones, and it names the key import endpoint,
+    `POST /api/tenants/{tenantId}/clients/{clientId}/secrets/import`, as the alternative for a client on a private
+    network. A warning on a successful write is not read, and a refused host can never be fetched, so storing it would
+    defer the same failure to every token request. Dynamic client registration does not run the check: its caller is
+    unauthenticated or holds only an initial access token, and would learn how the server's resolver answers for names
+    it chooses. The runtime log covers that path.
 
+## Options considered considered
 - **Key the shared fetch and the failure by the URI alone.** Rejected: a client with a one-second fetch timeout would
   make the fetch of another client's document fail, and the remembered failure would then suppress that client too.
 - **A per-scope setting for the failure duration.** Rejected: a tenant or a client could set it to zero and switch the
@@ -95,6 +111,8 @@ shared between concurrent callers, remembered when the fetch fails, and never se
 - The remembered failure is per replica and is not shared between replicas.
 - A fetch failure leaves the client without published public keys, so a client whose `jwks_uri` is down cannot
   authenticate with a key signature until the failure expires and a fetch succeeds.
+- A create or a `jwks_uri` change through the management API makes one DNS lookup for a host name, so the write waits
+  for the resolver and the lookup is made by the caller's request.
 
 ## References
 

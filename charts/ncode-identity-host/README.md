@@ -177,6 +177,36 @@ With Valkey, a new replica becomes ready before an old one stops. Without it, ea
 own process, so the chart never runs two at once: it uses the `Recreate` strategy, which starts the new replica only
 after the old one has terminated, so each update has a short outage.
 
+## First use
+
+An uninitialized instance is set up once, and the setup creates its root global administrator. A setup token guards the
+wizard. Create a Secret with a value of at least 32 characters under the key `setup.token.key` names (`token`) and
+name it in `setup.token.existingSecret`; the chart passes it to the host as `Setup__Token`. With
+`setup.token.existingSecret` empty, the host generates a single-use token at each process start and logs it once at
+Warning level, on the one replica that issued it. The generated token expires (after 1 hour by default), and the host stores only its hash.
+
+The wizard answers at `https://<host>/setup/#token=<token>`. It creates the root global administrator once, and every
+`/setup` route answers 404 after the instance is initialized.
+
+To create the root administrator without a browser, enable `setup.job`. It renders a Job per release revision that runs
+the host image's `setup` command, creates the root administrator from the Secret named in `setup.job.existingSecret`, and
+exits 0 on an instance that is already initialized. The setup values:
+
+| Value                                    | Meaning                                                                                     |
+|------------------------------------------|---------------------------------------------------------------------------------------------|
+| `setup.token.existingSecret`             | A Secret holding the setup token, the host's `Setup__Token`; empty makes the host generate one. |
+| `setup.token.key`                        | The key of the token in that Secret (`token`).                                              |
+| `setup.job.enabled`                      | Renders the Job (`false`).                                                                  |
+| `setup.job.existingSecret`               | A Secret holding the root administrator's credentials. Required when the Job is enabled.    |
+| `setup.job.userNameKey`                  | The key of the user name in that Secret (`userName`).                                       |
+| `setup.job.emailKey`                     | The key of the email address in that Secret (`email`); the Secret may omit it.              |
+| `setup.job.passwordKey`                  | The key of the password in that Secret (`password`); at least 15 characters.                |
+| `setup.job.backoffLimit`                 | How often the Job retries (`2`).                                                            |
+| `setup.job.activeDeadlineSeconds`        | How long the Job may run, in seconds (`300`).                                               |
+
+Delete both Secrets once the instance is initialized. The guide
+[The first use of a Production instance](../../docs/first-production-instance.md) walks through the whole first use.
+
 ## Secret protection
 
 The host encrypts every stored secret, and the Data Protection key ring, under a root key held outside the database, so

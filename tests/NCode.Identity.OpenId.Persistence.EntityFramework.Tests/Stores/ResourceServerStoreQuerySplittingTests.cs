@@ -108,6 +108,27 @@ public sealed class ResourceServerStoreQuerySplittingTests : IDisposable
         Assert.Equal(QuerySplittingBehavior.SplitQuery, relational.QuerySplittingBehavior);
     }
 
+    [Fact]
+    public void OnConfiguring_WhenTheHostChoseAQuerySplittingBehavior_KeepsIt()
+    {
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddTestOpenIdDbContext(options =>
+            options.UseSqlite(
+                Connection,
+                sqlite => sqlite.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery)
+            )
+        );
+
+        using var provider = serviceCollection.BuildServiceProvider();
+        using var dbContext = provider.GetRequiredService<OpenIdDbContext>();
+
+        var relational = RelationalOptionsExtension.Extract(
+            dbContext.GetService<IDbContextOptions>()
+        );
+
+        Assert.Equal(QuerySplittingBehavior.SingleQuery, relational.QuerySplittingBehavior);
+    }
+
     #endregion
 
     #region GetByIdentifierOrDefaultAsync Tests

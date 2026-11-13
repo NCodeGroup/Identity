@@ -192,11 +192,15 @@ internal class LocalAccountApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
     }
 
-    internal virtual LocalAccountResource ToLocalAccountResource(PersistedLocalAccount account) =>
+    internal virtual LocalAccountResource ToLocalAccountResource(
+        PersistedLocalAccount account,
+        string? principalId
+    ) =>
         new()
         {
             TenantId = account.TenantId,
             LocalAccountId = account.LocalAccountId,
+            PrincipalId = principalId,
             UserName = account.UserName,
             Email = account.Email,
             EmailVerified = account.EmailVerified,
@@ -251,7 +255,7 @@ internal class LocalAccountApiEndpointHandler(
         // record follows. See ADR-1237 and ADR-1351.
         await PostCommitSecurityEffects.ResetPasswordAttemptsAsync(tenantId, request.UserName);
 
-        var resource = ToLocalAccountResource(account);
+        var resource = ToLocalAccountResource(account, creation.PrincipalId);
 
         await ManagementAuditRecorder.RecordLocalAccountChangedAsync(
             httpContext,
@@ -291,12 +295,27 @@ internal class LocalAccountApiEndpointHandler(
                     cancellationToken
                 );
                 var store = storeManager.GetStore<ILocalAccountStore>();
-                return await store.GetPageAsync(
+                var page = await store.GetPageAsync(
                     new PageRequest { Cursor = cursor, Limit = effectiveLimit },
                     cancellationToken
                 );
+                var principalIds = await FindSelfIssuedPrincipalIdsAsync(
+                    storeManager,
+                    [.. page.Items.Select(account => account.LocalAccountId)],
+                    cancellationToken
+                );
+                return new PagedResult<(PersistedLocalAccount Account, string? PrincipalId)>
+                {
+                    Items =
+                    [
+                        .. page.Items.Select(account =>
+                            (account, principalIds.GetValueOrDefault(account.LocalAccountId))
+                        ),
+                    ],
+                    NextCursor = page.NextCursor,
+                };
             },
-            ToLocalAccountResource,
+            item => ToLocalAccountResource(item.Account, item.PrincipalId),
             cancellationToken
         );
     }
@@ -324,7 +343,16 @@ internal class LocalAccountApiEndpointHandler(
                     .GetStore<ILocalAccountStore>()
                     .GetByIdOrDefaultAsync(localAccountId, token);
             },
-            ToLocalAccountResource,
+            async (account, token) =>
+            {
+                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                var principalId = await FindSelfIssuedPrincipalIdAsync(
+                    storeManager,
+                    account.LocalAccountId,
+                    token
+                );
+                return ToLocalAccountResource(account, principalId);
+            },
             cancellationToken
         );
     }
@@ -362,6 +390,12 @@ internal class LocalAccountApiEndpointHandler(
             return ManagementProblems.ResourceNotFound();
         }
 
+        var principalId = await FindSelfIssuedPrincipalIdAsync(
+            storeManager,
+            localAccountId,
+            cancellationToken
+        );
+
         var ifMatch = httpContext.Request.Headers.IfMatch.ToString();
         var error = await LocalAccountValidator.ValidateUpdateAsync(
             localAccountId,
@@ -387,7 +421,7 @@ internal class LocalAccountApiEndpointHandler(
             tenantId,
             localAccountId,
             ResourceChangeTypes.Updated,
-            ToResourceValues(ToLocalAccountResource(account))
+            ToResourceValues(ToLocalAccountResource(account, principalId))
         );
 
         httpContext.Response.Headers.ETag = ManagementEntityTags.Format(account.ConcurrencyToken);
@@ -547,17 +581,21 @@ internal class LocalAccountApiEndpointHandler(
             return ManagementProblems.ResourceNotFound();
         }
 
-        // Disabling an account with a self-issued identity ends its principal's sessions, so the tenant's context is
-        // created before the account is written: a tenant that is not served refuses the request here, before anything
-        // is committed or audited. Enabling an account, or disabling one without a self-issued identity, ends no
-        // session and needs no context.
-        var principalId = isEnabled
-            ? null
-            : await FindSelfIssuedPrincipalIdAsync(storeManager, localAccountId, cancellationToken);
+        // The account's principal is resolved before the account is written, for the audit record and, when the account
+        // is disabled, to end its sessions. Disabling an account with a self-issued identity ends its principal's
+        // sessions, so the tenant's context is created before the account is written: a tenant that is not served
+        // refuses the request here, before anything is committed or audited. Enabling an account, or disabling one
+        // without a self-issued identity, ends no session and needs no context.
+        var principalId = await FindSelfIssuedPrincipalIdAsync(
+            storeManager,
+            localAccountId,
+            cancellationToken
+        );
 
-        await using var tenantContext = principalId is null
-            ? null
-            : await CreateTenantContextAsync(httpContext, tenantId, cancellationToken);
+        await using var tenantContext =
+            isEnabled || principalId is null
+                ? null
+                : await CreateTenantContextAsync(httpContext, tenantId, cancellationToken);
 
         account.IsEnabled = isEnabled;
         await store.UpdateAsync(account, cancellationToken);
@@ -580,7 +618,7 @@ internal class LocalAccountApiEndpointHandler(
             tenantId,
             localAccountId,
             ResourceChangeTypes.Updated,
-            ToResourceValues(ToLocalAccountResource(account))
+            ToResourceValues(ToLocalAccountResource(account, principalId))
         );
 
         httpContext.Response.Headers.ETag = ManagementEntityTags.Format(account.ConcurrencyToken);
@@ -946,5 +984,29 @@ internal class LocalAccountApiEndpointHandler(
                 cancellationToken
             );
         return identity?.PrincipalId;
+    }
+
+    // Resolves the principals behind the self-issued identities of a page of accounts in one store call, keyed by the
+    // local account id. An account with no self-issued identity has no entry.
+    private static async ValueTask<
+        IReadOnlyDictionary<string, string>
+    > FindSelfIssuedPrincipalIdsAsync(
+        IStoreManager storeManager,
+        IReadOnlyCollection<string> localAccountIds,
+        CancellationToken cancellationToken
+    )
+    {
+        var identities = await storeManager
+            .GetStore<IFederatedIdentityStore>()
+            .GetByIssuerSubjectsAsync(
+                AccountConstants.SelfIssuer,
+                localAccountIds,
+                cancellationToken
+            );
+        return identities.ToDictionary(
+            identity => identity.Subject,
+            identity => identity.PrincipalId,
+            StringComparer.OrdinalIgnoreCase
+        );
     }
 }

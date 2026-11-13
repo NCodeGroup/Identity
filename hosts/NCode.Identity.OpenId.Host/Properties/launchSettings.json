@@ -18,6 +18,7 @@
         "DeveloperKeys__PruneUnreadableKeys": "true",
         "BootstrapAdmin__ClientId": "bootstrap-admin",
         "InteractiveAuthentication__BundleRootPath": "../../frontend/apps/auth/dist",
+        "Setup__BundleRootPath": "../../frontend/apps/setup/dist",
         "BootstrapAdmin__TenantId": "default",
         "OpenId__TenantResolution__StaticSingle__Issuer": "https://localhost:44369"
       }
@@ -32,6 +33,7 @@
         "DeveloperKeys__PruneUnreadableKeys": "true",
         "BootstrapAdmin__ClientId": "bootstrap-admin",
         "InteractiveAuthentication__BundleRootPath": "../../frontend/apps/auth/dist",
+        "Setup__BundleRootPath": "../../frontend/apps/setup/dist",
         "BootstrapAdmin__TenantId": "default",
         "OpenId__TenantResolution__StaticSingle__Issuer": "https://localhost:5001"
       },
@@ -47,6 +49,7 @@
         "DeveloperKeys__PruneUnreadableKeys": "true",
         "BootstrapAdmin__ClientId": "bootstrap-admin",
         "InteractiveAuthentication__BundleRootPath": "../../frontend/apps/auth/dist",
+        "Setup__BundleRootPath": "../../frontend/apps/setup/dist",
         "BootstrapAdmin__TenantId": "conformance",
         "OpenId__TenantResolution__StaticSingle__Issuer": "https://host.docker.internal:5001"
       },
@@ -62,6 +65,7 @@
         "DeveloperKeys__PruneUnreadableKeys": "true",
         "BootstrapAdmin__ClientId": "bootstrap-admin",
         "InteractiveAuthentication__BundleRootPath": "../../frontend/apps/auth/dist",
+        "Setup__BundleRootPath": "../../frontend/apps/setup/dist",
         "BootstrapAdmin__TenantId": "conformance",
         "OpenId__TenantResolution__StaticSingle__Issuer": "https://localhost:5003"
       },

@@ -13,7 +13,8 @@
 # Every build stage runs on the build machine's own architecture and cross-publishes for the target, so a multi-arch
 # build needs no emulation: the only target-architecture stage copies files and runs nothing.
 
-# The interactive login and consent bundle (apps/auth). Its output is static files, identical on every architecture.
+# The interactive login and consent bundle (apps/auth) and the setup wizard bundle (apps/setup). Their output is static
+# files, identical on every architecture.
 FROM --platform=$BUILDPLATFORM node:26-trixie-slim@sha256:5adad64f9a1fca2d51972caa65983634c8a774eb300d72b20f7f2a0f60368072 AS frontend
 WORKDIR /source/frontend
 COPY frontend/ ./
@@ -21,7 +22,7 @@ COPY frontend/ ./
 RUN npm install --global --no-fund --no-audit "$(node --print "require('./package.json').packageManager")"
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
-RUN pnpm exec turbo run build --filter=@ncode/app-auth
+RUN pnpm exec turbo run build --filter=@ncode/app-auth --filter=@ncode/app-setup
 
 # The host and its migration worker, published framework-dependent for the target architecture. The worker ships in
 # the host's image so the schema a release migrates to is always the schema that release's host reads (ADR-1180).
@@ -73,6 +74,8 @@ COPY --from=build /app/publish ./
 COPY --from=build /app/migrations ./migrations/
 COPY --from=frontend /source/frontend/apps/auth/dist ./auth/
 ENV InteractiveAuthentication__BundleRootPath=/app/auth
+COPY --from=frontend /source/frontend/apps/setup/dist ./setup/
+ENV Setup__BundleRootPath=/app/setup
 # The console writes one JSON object per line with a UTC timestamp, so a container log collector keeps an entry and its
 # exception in one record (ADR-1248).
 ENV Logging__Console__FormatterName=json \

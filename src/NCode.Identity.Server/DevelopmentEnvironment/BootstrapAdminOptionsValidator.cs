@@ -1,9 +1,9 @@
-// Copyright © NCode Group
+﻿// Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.Extensions.Options;
 
-namespace NCode.Identity.Server;
+namespace NCode.Identity.Server.DevelopmentEnvironment;
 
 /// <summary>
 /// Validates <see cref="BootstrapAdminOptions"/> when the bootstrap administrator is configured: it must name the one

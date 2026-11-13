@@ -1,10 +1,10 @@
-// Copyright © NCode Group
+﻿// Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Management.Clients;
 
-namespace NCode.Identity.Server;
+namespace NCode.Identity.Server.DevelopmentEnvironment;
 
 /// <summary>
 /// A policy that names the configured bootstrap administrator client in the configured bootstrap tenant as host-managed.

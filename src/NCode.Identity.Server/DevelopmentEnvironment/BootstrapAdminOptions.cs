@@ -1,9 +1,9 @@
-// Copyright © NCode Group
+﻿// Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
 using JetBrains.Annotations;
 
-namespace NCode.Identity.Server;
+namespace NCode.Identity.Server.DevelopmentEnvironment;
 
 /// <summary>
 /// Contains the options for the bootstrap administrator credential: a cold-start client, supplied out of band through

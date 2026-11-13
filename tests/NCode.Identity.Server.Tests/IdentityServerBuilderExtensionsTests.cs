@@ -19,6 +19,7 @@ using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Identity.Server.Frontend;
 using Xunit;
 

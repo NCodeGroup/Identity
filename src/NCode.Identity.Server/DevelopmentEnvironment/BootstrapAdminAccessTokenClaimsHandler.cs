@@ -1,4 +1,4 @@
-// Copyright © NCode Group
+﻿// Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.Extensions.Options;
@@ -7,7 +7,7 @@ using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Management;
 using NCode.Mediator;
 
-namespace NCode.Identity.Server;
+namespace NCode.Identity.Server.DevelopmentEnvironment;
 
 /// <summary>
 /// A token-issuance handler that stamps the <c>GlobalAdmin</c> role claim onto the access tokens of the configured

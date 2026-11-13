@@ -1,4 +1,4 @@
-// Copyright © NCode Group
+﻿// Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers.Text;
@@ -19,7 +19,7 @@ using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.Logging;
 using NCode.Mediator;
 
-namespace NCode.Identity.Server;
+namespace NCode.Identity.Server.DevelopmentEnvironment;
 
 /// <summary>
 /// Seeds the configured bootstrap administrator client into the configured bootstrap tenant as part of the tenant seed

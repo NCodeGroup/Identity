@@ -40,16 +40,19 @@ public class SetupOptionsValidatorTests
     [Fact]
     public void Validate_WhenTokenIsShorterThanMinimum_FailsNamingTheKey()
     {
-        var options = new SetupOptions
-        {
-            Token = new string('a', SetupDefaults.MinimumTokenLength - 1),
-        };
+        var token = new string('a', SetupDefaults.MinimumTokenLength - 1);
+        var options = new SetupOptions { Token = token };
 
         var result = Validator.Validate(null, options);
 
         Assert.True(result.Failed);
         var failure = Assert.Single(result.Failures!);
-        Assert.Contains("'Setup:Token'", failure, StringComparison.Ordinal);
+        Assert.Equal(
+            $"'Setup:Token' must be at least {SetupDefaults.MinimumTokenLength} characters long, "
+                + $"or unset so that the host generates a token (was {token.Length} characters).",
+            failure
+        );
+        Assert.DoesNotContain(token, failure, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -84,7 +87,10 @@ public class SetupOptionsValidatorTests
 
         Assert.True(result.Failed);
         var failure = Assert.Single(result.Failures!);
-        Assert.Contains("'Setup:GeneratedTokenLifetime'", failure, StringComparison.Ordinal);
+        Assert.Equal(
+            "'Setup:GeneratedTokenLifetime' must be between 00:01:00 and 1.00:00:00 (was 00:00:59).",
+            failure
+        );
     }
 
     [Fact]
@@ -99,7 +105,10 @@ public class SetupOptionsValidatorTests
 
         Assert.True(result.Failed);
         var failure = Assert.Single(result.Failures!);
-        Assert.Contains("'Setup:GeneratedTokenLifetime'", failure, StringComparison.Ordinal);
+        Assert.Equal(
+            "'Setup:GeneratedTokenLifetime' must be between 00:01:00 and 1.00:00:00 (was 1.00:00:01).",
+            failure
+        );
     }
 
     [Fact]

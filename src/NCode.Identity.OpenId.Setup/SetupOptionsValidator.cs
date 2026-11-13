@@ -29,7 +29,8 @@ internal sealed class SetupOptionsValidator : IValidateOptions<SetupOptions>
         {
             failures.Add(
                 $"'{SetupOptions.SectionName}:{nameof(SetupOptions.Token)}' must be at least "
-                    + $"{SetupDefaults.MinimumTokenLength} characters long, or unset so that the host generates a token."
+                    + $"{SetupDefaults.MinimumTokenLength} characters long, or unset so that the host generates a token "
+                    + $"(was {options.Token.Length} characters)."
             );
         }
 
@@ -40,7 +41,8 @@ internal sealed class SetupOptionsValidator : IValidateOptions<SetupOptions>
         {
             failures.Add(
                 $"'{SetupOptions.SectionName}:{nameof(SetupOptions.GeneratedTokenLifetime)}' must be between "
-                    + $"{MinimumGeneratedTokenLifetime} and {MaximumGeneratedTokenLifetime}."
+                    + $"{MinimumGeneratedTokenLifetime} and {MaximumGeneratedTokenLifetime} "
+                    + $"(was {options.GeneratedTokenLifetime})."
             );
         }
 

@@ -34,6 +34,7 @@ const NCode.Identity.AspNetCore.ContentSecurityPolicySources.StrictDynamic = "'s
 static NCode.Identity.AspNetCore.ContentSecurityPolicySources.AddOrigin(System.Collections.Generic.ICollection<string!>! sources, System.Uri? uri) -> void
 static NCode.Identity.AspNetCore.ContentSecurityPolicySources.CreateNonce() -> string!
 static NCode.Identity.AspNetCore.ContentSecurityPolicySources.Nonce(string! nonce) -> string!
+static NCode.Identity.AspNetCore.RemoteAddressPartition.GetValue(System.Net.IPAddress! address) -> string!
 static NCode.Identity.AspNetCore.ContentSecurityPolicySources.Origin(System.Uri! uri) -> string!
 static NCode.Identity.AspNetCore.ContentSecurityPolicySources.Sha256(string! script) -> string!
 NCode.Identity.AspNetCore.ContentSecurityPolicyDirective
@@ -150,6 +151,7 @@ NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.ext
 NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithConfidentialBodies() -> TBuilder
 NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithRequestBodyLogging() -> TBuilder
 NCode.Identity.AspNetCore.HttpBodyLoggingEndpointConventionBuilderExtensions.extension<TBuilder>(TBuilder).WithResponseBodyLogging() -> TBuilder
+NCode.Identity.AspNetCore.RemoteAddressPartition
 NCode.Identity.AspNetCore.GuardedHttpLoggingRegistration
 NCode.Identity.AspNetCore.GuardedHttpLoggingRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.AspNetCore.GuardedHttpLoggingRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddGuardedHttpLogging() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using NCode.Identity.Server.DevelopmentEnvironment;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;

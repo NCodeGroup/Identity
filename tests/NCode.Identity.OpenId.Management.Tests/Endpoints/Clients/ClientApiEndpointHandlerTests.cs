@@ -122,8 +122,36 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     // The default handler has no host-managed client policy, so no client is host-managed.
     private ClientApiEndpointHandler CreateHandler(
         params IHostManagedClientPolicy[] hostManagedClientPolicies
-    ) =>
-        new(
+    )
+    {
+        // The real evaluator and creator run over the strict mocks, so each test sees the creation flow end to end.
+        var keySourceChecker = new DefaultClientKeySourceChecker(
+            ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>()
+        );
+        var jwksUriChecker = new DefaultClientJwksUriChecker(MockOutboundHostChecker.Object);
+        var clientSettingsEvaluator = new DefaultClientSettingsEvaluator(
+            MockEffectiveSettingsResolver.Object,
+            MockClientCoherenceValidator.Object,
+            MockClientSecretIssuer.Object
+        );
+        var openIdEnvironmentProvider = Mock.Of<IOpenIdEnvironmentProvider>(provider =>
+            provider.Get()
+            == Mock.Of<OpenIdEnvironment>(environment =>
+                environment.JsonSerializerOptions == JsonSerializerOptions.Default
+            )
+        );
+        var clientCreator = new DefaultClientCreator(
+            MockClientValidator.Object,
+            clientSettingsEvaluator,
+            MockSettingSerializer.Object,
+            MockClientKeyImporter.Object,
+            keySourceChecker,
+            jwksUriChecker,
+            TimeProvider.System,
+            openIdEnvironmentProvider
+        );
+
+        return new(
             MockStoreManagerFactory.Object,
             MockAuthorizationService.Object,
             MockClientValidator.Object,
@@ -136,20 +164,19 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             MockCryptoService.Object,
             MockSettingSerializer.Object,
             MockSettingScopeCollectionProvider.Object,
-            MockEffectiveSettingsResolver.Object,
-            MockClientCoherenceValidator.Object,
+            clientSettingsEvaluator,
+            clientCreator,
             MockClientCoherenceReporter.Object,
             MockClientSecretIssuer.Object,
             MockResourceOwnershipService.Object,
             MockManagementAuditRecorder.Object,
             new DefaultHostManagedClientChecker(hostManagedClientPolicies),
-            new DefaultClientKeySourceChecker(
-                ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>()
-            ),
-            new DefaultClientJwksUriChecker(MockOutboundHostChecker.Object),
+            keySourceChecker,
+            jwksUriChecker,
             NullLogger<ClientApiEndpointHandler>.Instance,
             MockAmbientTenantAccessor.Object
         );
+    }
 
     // Only a request that updates a secret validates the update.
     private void SetupSecretUpdateValidation()
@@ -323,19 +350,25 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     private static ManagementError Forbidden() =>
         new() { StatusCode = StatusCodes.Status403Forbidden, Detail = "forbidden" };
 
-    private void SetupStore()
+    // A request refused before it stages the client opens the store manager and never gets the client store.
+    private void SetupStoreManager()
     {
         MockStoreManagerFactory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(MockStoreManager.Object)
             .Verifiable();
 
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+    }
+
+    private void SetupStore()
+    {
+        SetupStoreManager();
+
         MockStoreManager
             .Setup(x => x.GetStore<IClientStore>())
             .Returns(MockClientStore.Object)
             .Verifiable();
-
-        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
     }
 
     // Only a request that changes one of a client's secrets, which the store reads by secret, reads the client too.
@@ -892,42 +925,6 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
     #endregion
 
-    #region IsClientCredentialsOnly Tests
-
-    [Fact]
-    public void IsClientCredentialsOnly_WhenTheGrantTypesAreClientCredentialsAlone_ReturnsTrue()
-    {
-        var settings = JsonElement.Parse("""{"grant_types_supported":["client_credentials"]}""");
-
-        var result = ClientApiEndpointHandler.IsClientCredentialsOnly(settings);
-
-        Assert.True(result);
-    }
-
-    [Fact]
-    public void IsClientCredentialsOnly_WhenAnotherGrantTypeIsListed_ReturnsFalse()
-    {
-        var settings = JsonElement.Parse(
-            """{"grant_types_supported":["client_credentials","refresh_token"]}"""
-        );
-
-        var result = ClientApiEndpointHandler.IsClientCredentialsOnly(settings);
-
-        Assert.False(result);
-    }
-
-    [Fact]
-    public void IsClientCredentialsOnly_WhenTheSettingIsAbsent_ReturnsFalse()
-    {
-        var settings = JsonElement.Parse("{}");
-
-        var result = ClientApiEndpointHandler.IsClientCredentialsOnly(settings);
-
-        Assert.False(result);
-    }
-
-    #endregion
-
     #region CreateClientAsync Tests
 
     [Fact]
@@ -1130,7 +1127,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     {
         SetupAuthorizeCreate(resourceServerId: null, error: null);
         SetupInvalidSettings();
-        SetupStore();
+        SetupStoreManager();
         SetupResourceId("generated-id");
         MockClientValidator
             .Setup(x =>
@@ -1162,7 +1159,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     {
         SetupAuthorizeCreate(resourceServerId: null, error: null);
         SetupValidSettings();
-        SetupStore();
+        SetupStoreManager();
         SetupResourceId("generated-id");
         MockClientValidator
             .Setup(x =>
@@ -1201,7 +1198,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     {
         SetupAuthorizeCreate(resourceServerId: null, error: null);
         SetupValidSettings();
-        SetupStore();
+        SetupStoreManager();
         SetupResourceId("generated-id");
         MockClientValidator
             .Setup(x =>
@@ -1284,7 +1281,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.Equal(ResourceNodeTypes.Team, captured.OwningNodeType);
         Assert.Equal("team-1", captured.OwningNodeId);
         Assert.Null(captured.ResourceServerId);
-        Assert.True(ClientApiEndpointHandler.IsClientCredentialsOnly(captured.Settings.Value));
+        Assert.True(
+            DefaultClientSettingsEvaluator.IsClientCredentialsOnly(captured.Settings.Value)
+        );
     }
 
     [Fact]
@@ -1336,7 +1335,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupAuthorizeCreateMachineClient(ResourceNodeTypes.Team, "team-1", error: null);
         SetupTeamLookup("team-1", CreateTeam("team-1"));
         SetupMachineClientScope();
-        SetupStore();
+        SetupStoreManager();
         SetupResourceId("generated-id");
         SetupMachineClientValidation(capture: null);
 
@@ -1415,7 +1414,9 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.Equal(TenantId, captured.TenantId);
         Assert.Equal(ResourceNodeTypes.Platform, captured.OwningNodeType);
         Assert.Equal(OpenIdConstants.PlatformResourceId, captured.OwningNodeId);
-        Assert.True(ClientApiEndpointHandler.IsClientCredentialsOnly(captured.Settings.Value));
+        Assert.True(
+            DefaultClientSettingsEvaluator.IsClientCredentialsOnly(captured.Settings.Value)
+        );
     }
 
     #endregion
@@ -3081,87 +3082,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
     #endregion
 
-    #region NameTokenEndpointAuthMethod Tests
-
-    [Fact]
-    public void NameTokenEndpointAuthMethod_WhenTheSettingsNameNone_NamesTheResolvedMethod()
-    {
-        var settings = JsonSerializer.SerializeToElement(
-            new JsonObject { [OpenIdSettingNames.ClientName] = "client" }
-        );
-
-        var named = Handler.NameTokenEndpointAuthMethod(
-            settings,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt
-        );
-
-        Assert.Equal(
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretJwt,
-            named.GetProperty(OpenIdSettingNames.TokenEndpointAuthMethod).GetString()
-        );
-        Assert.Equal("client", named.GetProperty(OpenIdSettingNames.ClientName).GetString());
-    }
-
-    [Fact]
-    public void NameTokenEndpointAuthMethod_WhenTheSettingsNameOne_KeepsIt()
-    {
-        var settings = JsonSerializer.SerializeToElement(
-            new JsonObject
-            {
-                [OpenIdSettingNames.TokenEndpointAuthMethod] = OpenIdProtocol
-                    .ClientAuthenticationMethods
-                    .PrivateKeyJwt,
-            }
-        );
-
-        var named = Handler.NameTokenEndpointAuthMethod(
-            settings,
-            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretBasic
-        );
-
-        Assert.Equal(
-            OpenIdProtocol.ClientAuthenticationMethods.PrivateKeyJwt,
-            named.GetProperty(OpenIdSettingNames.TokenEndpointAuthMethod).GetString()
-        );
-    }
-
-    [Fact]
-    public void NameTokenEndpointAuthMethod_WhenTheMethodCannotBeResolved_KeepsTheSettings()
-    {
-        var settings = EmptyObject();
-
-        var named = Handler.NameTokenEndpointAuthMethod(settings, null);
-
-        Assert.False(named.TryGetProperty(OpenIdSettingNames.TokenEndpointAuthMethod, out _));
-    }
-
-    #endregion
-
-    #region ValidateEffectiveSettingsAsync Tests
-
-    [Fact]
-    public async Task ValidateEffectiveSettingsAsync_WhenARuleFindsAViolation_KeysTheErrorByTheRegisteredSetting()
-    {
-        const string redirectUri = "myapp://callback";
-        SetupEffectiveSettings(
-            new ClientCoherenceViolation(
-                OpenIdSettingNames.RedirectUris,
-                redirectUri,
-                OpenIdSettingNames.RedirectUriKindsSupported
-            )
-        );
-
-        var errors = await Handler.ValidateEffectiveSettingsAsync(
-            TenantId,
-            EmptyObject(),
-            MockStoreManager.Object,
-            CancellationToken.None
-        );
-
-        var error = Assert.Single(errors);
-        Assert.Equal(OpenIdSettingNames.RedirectUris, error.SettingName);
-        Assert.Contains(redirectUri, error.Message, StringComparison.Ordinal);
-    }
+    #region Effective Settings Helpers
 
     private void SetupEffectiveSettings(params ClientCoherenceViolation[] violations)
     {

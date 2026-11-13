@@ -159,7 +159,35 @@ process. `--owner` limits the run to one owner such as `tenant:acme`, and `--dry
 without writing. The exit code is `0` when no key failed, `1` otherwise or when the configuration is invalid, and `2`
 for a usage error. A run is repeatable.
 
+### First administrator in Production
+
+A Production instance starts with no administrator. Its first one, the root global administrator, is created once
+through setup, a wizard at `/setup` guarded by a one-time setup token
+([ADR-1512](../../docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
+Set `Setup__Token` (at least 32 characters) to choose the token. Without it, an uninitialized instance generates a
+token, stores only its SHA-256 hash and logs it once at Warning level in one replica's log. `Setup__GeneratedTokenLifetime`
+sets how long a generated token lives (default one hour, between one minute and 24 hours), and a restart issues a fresh
+one. Browse to `https://<host>/setup/#token=<token>`: the fragment never reaches the server's logs or a `Referer`.
+`/setup` answers 404 to a request that is not HTTPS in Production, rate-limits its API to 10 requests per minute per
+client IP address, and answers 404 for good once the instance is initialized.
+
+The `setup` command runs the same setup with no browser and no token, so a Job can run it on every release. It reads
+`Setup__Root__UserName`, `Setup__Root__Email` and `Setup__Root__Password`, and exits `0` when it creates the root or the
+instance is already initialized, `2` for a usage error and `1` when the creation fails:
+
+```sh
+dotnet NCode.Identity.OpenId.Host.dll setup
+```
+
+The Helm chart's opt-in `setup.job` runs it. [First use of a Production instance](../../docs/first-production-instance.md)
+walks the whole sequence.
+
 ### Development credentials
+
+The `BootstrapAdmin` client and the seeded `admin` account below are for development only, and the host refuses
+`BootstrapAdmin` in Production
+([ADR-1044](../../docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)).
+Production creates its first administrator through `/setup`, above.
 
 No development credential is committed
 ([ADR-1370](../../docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
@@ -306,7 +334,8 @@ docker build --file hosts/NCode.Identity.OpenId.Host/Dockerfile --tag ncode-iden
 ```
 
 The image runs on a chiseled ASP.NET Core base with no shell. It runs as the non-root `app` user (UID 1654), listens on
-port **8443** over HTTPS only, and serves the `apps/auth` login bundle from `/app/auth`. It serves the PEM certificate
+port **8443** over HTTPS only, and serves the `apps/auth` login bundle from `/app/auth` and the `apps/setup` wizard
+bundle from `/app/setup`. It serves the PEM certificate
 and private key it finds at `/etc/ncode-identity/tls/tls.crt` and `/etc/ncode-identity/tls/tls.key`
 (`Kestrel__Certificates__Default__Path` and `__KeyPath`), so mount them there, as a Kubernetes `kubernetes.io/tls`
 Secret does; `Kestrel__Endpoints__<name>__…` settings replace the default endpoint and certificate. TLS ends at the pod:

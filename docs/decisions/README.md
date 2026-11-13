@@ -135,6 +135,7 @@ The records are grouped by area; within an area they are in number order.
 | [1509](./1509-the-host-chart-passes-a-postgres-operators-secret-as-the-connections-parts-and-the-host-assembles-the-npgsql-connection.md) | The host chart passes a Postgres operator's Secret as the connection's parts, and the host assembles the Npgsql connection | Accepted |
 | [1510](./1510-the-host-chart-passes-a-valkey-servers-address-and-password-as-parts-and-the-adapter-assembles-the-connection.md) | The host chart passes a Valkey server's address and password as parts, and the adapter assembles the connection | Accepted |
 | [1511](./1511-the-hosts-send-no-server-header.md) | The hosts send no Server header | Accepted |
+| [1512](./1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md) | An instance is set up once through a one-time setup token that creates a root global administrator | Accepted |
 
 ### Settings
 

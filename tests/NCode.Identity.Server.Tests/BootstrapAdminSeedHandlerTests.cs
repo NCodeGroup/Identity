@@ -19,6 +19,7 @@ using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Secrets.Persistence;
 using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Secrets.Persistence.Protection;
+using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Identity.Settings;
 using Xunit;
 

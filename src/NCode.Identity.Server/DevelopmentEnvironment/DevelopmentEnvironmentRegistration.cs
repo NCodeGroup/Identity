@@ -3,7 +3,15 @@
 
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
+using NCode.Identity.OpenId.Authentication.Tokens.Commands;
+using NCode.Identity.OpenId.Management.Clients;
+using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Registration;
+using NCode.Identity.Server.DevelopmentEnvironment;
+using NCode.Mediator;
 
 namespace NCode.Identity.Server;
 
@@ -11,10 +19,10 @@ namespace NCode.Identity.Server;
 /// Wires every development-only convenience behind a single call.
 /// </summary>
 /// <remarks>
-/// A host opts into the developer CORS policy, the developer and conformance seeders, and the developer key pruning
-/// with one call. Each convenience does nothing unless its configuration section is present, and
-/// <c>AddProductionSafety</c> is the one place that refuses each of those sections in Production, so this
-/// registration never decides the environment.
+/// A host opts into the developer CORS policy, the bootstrap administrator client, the developer and conformance
+/// seeders, and the developer key pruning with one call. Each convenience does nothing unless its configuration
+/// section is present, and <c>AddProductionSafety</c> is the one place that refuses each of those sections in
+/// Production, so this registration never decides the environment.
 /// </remarks>
 // See ADR-1370.
 [PublicAPI]
@@ -23,9 +31,9 @@ public static class DevelopmentEnvironmentRegistration
     extension(IServiceBuilder<IdentityServer> builder)
     {
         /// <summary>
-        /// Registers the development-only conveniences: the developer CORS policy, the developer and conformance
-        /// seeders, and the developer key pruning. Every one does nothing unless its section is configured, and
-        /// <c>AddProductionSafety</c> refuses each configured section in Production.
+        /// Registers the development-only conveniences: the developer CORS policy, the bootstrap administrator client,
+        /// the developer and conformance seeders, and the developer key pruning. Every one does nothing unless its
+        /// section is configured, and <c>AddProductionSafety</c> refuses each configured section in Production.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> each convenience reads its own section from.</param>
         /// <returns>The same <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
@@ -39,7 +47,53 @@ public static class DevelopmentEnvironmentRegistration
         {
             ArgumentNullException.ThrowIfNull(configuration);
 
-            builder.ServiceCollection.AddDeveloperCors(configuration);
+            var serviceCollection = builder.ServiceCollection;
+
+            serviceCollection.AddDeveloperCors(configuration);
+
+            // The bootstrap administrator client's management tokens are stamped with the GlobalAdmin role at issuance
+            // (ADR-1044); the handler is a no-op unless a bootstrap client id is configured.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<GetAccessTokenPayloadClaimsCommand>,
+                    BootstrapAdminAccessTokenClaimsHandler
+                >()
+            );
+
+            // The bootstrap administrator client's secret and authority come from host configuration, so the management
+            // API refuses every change to it (ADR-1417).
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IHostManagedClientPolicy,
+                    BootstrapAdminHostManagedClientPolicy
+                >()
+            );
+
+            // The bootstrap administrator client is seeded into the one tenant its options name, on the same tenant
+            // seed fan-out that seeds the system resource servers (ADR-1166); inert unless a bootstrap client is
+            // configured, and that configuration must name the tenant.
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    ICommandHandler<SeedTenantCommand>,
+                    BootstrapAdminSeedHandler
+                >()
+            );
+
+            // The bootstrap administrator credential is sourced from its own top-level section so it can be supplied
+            // out of band (for example, environment variables); absent it, the client stays inert (ADR-1044).
+            var bootstrapAdminSection = configuration.GetSection(
+                BootstrapAdminOptions.DefaultSectionName
+            );
+            serviceCollection
+                .AddOptions<BootstrapAdminOptions>()
+                .Configure(options => bootstrapAdminSection.BindStrictly(options))
+                .ValidateOnStart();
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<
+                    IValidateOptions<BootstrapAdminOptions>,
+                    BootstrapAdminOptionsValidator
+                >()
+            );
 
             // Seeds the public SPA clients and the development administrator its section declares, so the frontend
             // surfaces can sign in. Inert unless its section is configured (the reference host's Development overlay

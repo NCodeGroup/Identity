@@ -13,6 +13,63 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 ### Added
 
+- **A setup wizard at `/setup` creates an instance's first administrator.** The OP serves the `@ncode/app-setup` bundle
+  (`frontend/apps/setup`) under a per-response CSP nonce, and the wizard asks for the setup token, reads it from the URL
+  fragment (`#token=`) and strips it from the address bar, then creates the root administrator (`UserName`, optional
+  `Email`, `Password`) through `POST /setup/api/root` and lists the remaining configuration with a link to
+  `docs/first-production-instance.md`. The root administrator is a local account in the control-plane tenant holding
+  `GlobalAdmin` at the platform node; the account, its identity, that role assignment and the initialized mark of the
+  `InstanceSetup` row are saved together, so one setup creates one root. `NCode.Identity.OpenId.Setup.Abstractions`
+  holds `SetupOptions` (the `Setup` section: `Token`, at least 32 characters or unset to have the host generate one;
+  `GeneratedTokenLifetime`, 1 hour by default and between 1 minute and 24 hours; `BundleRootPath`, `/app/setup` in the
+  host image; and `Root` with `UserName`, `Email` and `Password`, where `UserName` and `Password` are set both or
+  neither), the wire contracts, `IInstanceSetupService` and `ISetupTokenService`; `NCode.Identity.OpenId.Setup`
+  implements them over the abstractions and registers through `AddInstanceSetup` on the management library builder. The
+  root password is at least 15 characters and satisfies the control-plane tenant's password policy. Setup can also
+  register the management console's confidential client, which authenticates with `private_key_jwt`: the wizard's
+  optional console step and the `Setup:ManagementConsole` section (`ClientId`, `mgmt-console` by default; `BaseUrl`, the
+  console's `https` origin; `Jwks`) give it a requested stable `client_id` and its public JWK Set, which setup imports
+  by value and never fetches, and the client is saved with the root administrator
+  ([#777](https://github.com/NCodeGroup/identity/issues/777),
+  [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
+
+- **The host's `setup` command creates the root administrator without a browser.** `NCode.Identity.OpenId.Host.dll
+  setup` reads `Setup:Root:UserName`, `Setup:Root:Email` and `Setup:Root:Password`, needs no setup token, creates the
+  root administrator through the same `IInstanceSetupService` as the wizard, and exits without starting the server. It
+  exits `0` when it creates the root administrator or the instance is already initialized, `1` when the creation fails
+  and `2` on a usage error or when the configuration lacks the username or the password, so a Job can run it on every
+  release. It also registers the console's client from `Setup:ManagementConsole` and, from `Setup:Automation`
+  (`ClientId`, `Jwks`), a platform-owned `client_credentials` automation client that authenticates with `private_key_jwt`
+  and holds `GlobalAdmin`, so an unattended install manages the instance without the development bootstrap client; both
+  clients are saved with the root administrator ([#777](https://github.com/NCodeGroup/identity/issues/777),
+  [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
+
+- **`ILocalAccountCreator` is the one seam that creates a local account.** `ILocalAccountCreator.StageAsync`
+  (`NCode.Identity.OpenId.Accounts.Management.Abstractions`) validates a `CreateLocalAccountRequest` (username, password
+  policy, claims and metadata) and stages the principal, its self-issued identity and the local account on an
+  `IStoreManager` without saving, returning a `LocalAccountCreation` that carries the staged account or the first error.
+  The management create endpoint and instance setup both create accounts through it, so a custom implementation
+  takes over the creation for both ([#777](https://github.com/NCodeGroup/identity/issues/777),
+  [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
+
+- **The host chart sets up an instance through `setup.token` and `setup.job`.** `setup.token.existingSecret` and
+  `setup.token.key` reference an operator Secret whose key the pods read as `Setup__Token`; the chart generates no token
+  Secret, and without one the host generates a token and logs it once. The opt-in `setup.job` runs the host image's
+  `setup` command once per release with `Setup__Root__UserName`, `Setup__Root__Email` and `Setup__Root__Password` from
+  an operator Secret (`setup.job.existingSecret`, `userNameKey`, `emailKey`, `passwordKey`), and passes
+  `setup.managementConsole` (`clientId`, `baseUrl`, `jwks`) and `setup.automation` (`clientId`, `jwks`) to the
+  command as `Setup__ManagementConsole__*` and `Setup__Automation__*`, so a GitOps install needs no browser
+  ([#776](https://github.com/NCodeGroup/identity/issues/776),
+  [#777](https://github.com/NCodeGroup/identity/issues/777),
+  [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
+
+- **The platform-only `grant_types_enabled` setting adds grants to the baseline `grant_types_supported`.** A host that
+  lists `client_credentials` or another registered grant in `OpenId:Platform:Settings:grant_types_enabled` keeps the
+  baseline list and names only the grants it adds, without restating the baseline. The setting applies to the platform
+  alone, its values are grant types, and platform values accumulate by union; a configured `grant_types_supported`
+  remains the whole list
+  ([ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)).
+
 - **Every OpenID protocol endpoint answers the `x-fapi-interaction-id` header.** A request that carries a UUID gets the
   same value back, and a request that carries none, or a value that is not a UUID, gets a new UUID, on success and
   error responses alike, as FAPI 1.0 Part 1 §6.2.1-11 requires
@@ -386,11 +443,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`httpRoute`, `ingress.controller`), so no router receives a pod's private key. The database connection (a finished
   connection string, or the parts of a Postgres operator's Secret), the Valkey connection (a finished connection string,
   or the parts of a Valkey operator's Secret) and the local root key are referenced as existing Secrets and the recovery
-  public key as a ConfigMap, never passed as values. Rendering fails for a release the host would refuse to start (an
-  empty or wildcard `allowedHosts`, a missing database Secret or one named in both forms, a `StaticSingle` issuer that
-  is not `https`, a missing or incomplete root key provider, `ephemeral` or a local provider without its Secret in
-  Production, a Production release with no recovery decision), for more than one replica without Valkey, and for
-  unknown values. Without Valkey the chart uses the `Recreate` deployment strategy, which waits for the old pod to
+  public key as a ConfigMap, never passed as values. The chart takes no bootstrap-administrator values: the setup token
+  is an existing Secret (`setup.token.existingSecret` and `setup.token.key`) that the pods read as `Setup__Token`, and
+  `setup.job` is an opt-in Job that runs the host's `setup` command once per release. Rendering fails for a release the
+  host would refuse to start (an empty or wildcard `allowedHosts`, a missing database Secret or one named in both
+  forms, a `StaticSingle` issuer that is not `https`, a missing or incomplete root key provider, `ephemeral` or a local
+  provider without its Secret in Production, a Production release with no recovery decision, a
+  `setup.token.existingSecret` without its key, an enabled `setup.job` without its Secret), for more than one replica
+  without Valkey, and for unknown values. Without Valkey the chart uses the `Recreate` deployment strategy, which waits for the old pod to
   terminate before starting the next, so it never runs two replicas at once. The `Host chart` CI workflow lints the
   chart, renders each example release, and checks that each unsafe release is refused; the workflow also installs the
   chart with the management console in a kind cluster, behind Traefik and behind an Envoy Gateway, and proves the pods
@@ -399,10 +459,13 @@ Until the first stable release, the [Unreleased] section describes the product a
   is refused
   ([ADR-1458](docs/decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md),
   [ADR-1506](docs/decisions/1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md),
-  [ADR-1507](docs/decisions/1507-the-host-chart-routes-to-its-https-only-pods-through-gateway-api-a-traefik-ingress-or-the-operators-own-ingress.md)
+  [ADR-1507](docs/decisions/1507-the-host-chart-routes-to-its-https-only-pods-through-gateway-api-a-traefik-ingress-or-the-operators-own-ingress.md),
+  [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)
   and issues [#792](https://github.com/NCodeGroup/identity/issues/792),
-  [#796](https://github.com/NCodeGroup/identity/issues/796) and
-  [#797](https://github.com/NCodeGroup/identity/issues/797)).
+  [#796](https://github.com/NCodeGroup/identity/issues/796),
+  [#797](https://github.com/NCodeGroup/identity/issues/797),
+  [#776](https://github.com/NCodeGroup/identity/issues/776) and
+  [#777](https://github.com/NCodeGroup/identity/issues/777)).
 
 - **The host chart deploys the management console on a host of its own.** With `managementConsole.enabled`,
   `charts/ncode-identity-host` runs the console host under the restricted Pod Security Standard with its own
@@ -3310,8 +3373,8 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 - **Configuration is bound strictly and checked before the host accepts traffic.** A key that maps to no option stops
   the host with an error naming the section, the options type and the key. This covers the whole OpenID section and the
-  `BootstrapAdmin`, `Frontend`, `ForwardedHeaders`, `ConformanceSeed` and `DeveloperInteractiveSeed` sections. Every
-  bound options type is validated on start, and a tenant-resolution configuration that cannot work (an unknown strategy,
+  `BootstrapAdmin`, `Frontend`, `ForwardedHeaders`, `ConformanceSeed`, `DeveloperInteractiveSeed` and `Setup` sections.
+  Every bound options type is validated on start, and a tenant-resolution configuration that cannot work (an unknown strategy,
   a path route without its tenant parameter, an invalid host pattern, a static issuer that does not end with the tenant
   path) stops the host before it reports ready. `AddConfiguration` owns the OpenID section's shape: `Platform` (including
   `Settings`, carried by `OpenIdPlatformOptions.Settings`), `Team` (team settings reconciliation), `Tenant` (tenant materialization and caching),
@@ -4216,6 +4279,39 @@ Until the first stable release, the [Unreleased] section describes the product a
 
 ### Security
 
+- **A single-use setup token guards the first administrator, and the setup surface disappears once it is used.** A
+  configured `Setup:Token` (at least 32 characters) is the token: only its SHA-256 hash is held, it is compared with
+  `CryptographicOperations.FixedTimeEquals`, it is never logged, and the host generates none. Without one, an
+  uninitialized instance generates a 256-bit base64url token when a process starts, stores only its SHA-256 hash with
+  its issue and expiry instants in the `InstanceSetup` row every replica reads, and logs the plaintext once at Warning
+  on the replica that stored it. The token expires after `Setup:GeneratedTokenLifetime` and a restart issues a fresh
+  one. Creating the root administrator marks the instance initialized in the same save, after which every `/setup`
+  route answers 404 and the token is useless, and a concurrent second attempt loses on the row's concurrency token.
+  `/setup` answers 404 to a request that is not HTTPS in Production, rate-limits `POST /setup/api/root` to 10 requests
+  per minute per client address (429), serves its page with a nonce Content-Security-Policy and `no-store` caching, and
+  never writes its request or response bodies to HTTP logging
+  ([#777](https://github.com/NCodeGroup/identity/issues/777),
+  [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
+
+- **`AddProductionSafety` refuses the `BootstrapAdmin` section in Production.** The bootstrap client, a development and
+  test convenience whose secret confers `GlobalAdmin`, is refused like the other development seeders, and only the
+  development environment (`AddDevelopmentEnvironment`) registers it, so a Production instance's first administrator is
+  the root that setup creates
+  ([#777](https://github.com/NCodeGroup/identity/issues/777),
+  [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md),
+  [ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)).
+
+- **A tenant identifier the host claims as a top-level path segment is refused.** `api`, `setup`, `bff`, `health`,
+  `openapi` and `scalar` are not valid tenant identifiers, so a path-strategy tenant cannot be shadowed by the
+  management API, the setup surface, the BFF, the health probes or the API reference
+  ([#777](https://github.com/NCodeGroup/identity/issues/777)).
+
+- **The host chart refuses an empty key name of a Secret it references.** Rendering fails when
+  `setup.token.existingSecret` is set without `setup.token.key`, when an enabled `setup.job` leaves its Secret or its
+  `userNameKey` or `passwordKey` empty, and for the same gap in a database or Valkey connection's Secret, so a release
+  never starts with a Secret reference that names no key
+  ([#777](https://github.com/NCodeGroup/identity/issues/777)).
+
 - **HTTP logging writes a body only for an endpoint that opts in, and never a credential.** `AddGuardedHttpLogging()`
   (`NCode.Identity.AspNetCore`) registers ASP.NET Core HTTP logging that writes the request and response properties, the
   allow-listed headers and the duration, and never a request or response body, a query string, a trailer, or the value
@@ -4241,13 +4337,16 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md),
   [ADR-1438](docs/decisions/1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)).
 
-- **Management authority comes from role assignments.** No role claim but the bootstrap administrator's `GlobalAdmin`
-  confers authority; a tenant administrator reaches nothing above its tenant, so the control-plane tenant's
-  administrators never reach the platform or a team. The host-managed bootstrap administrator client is changed by no
-  management caller, so authority over the root tenant's clients never yields a `GlobalAdmin` token
+- **Management authority comes from role assignments.** No role claim but the development bootstrap client's
+  `GlobalAdmin` stamp confers authority, and the root administrator that setup creates holds a `GlobalAdmin` assignment
+  at the platform node like every other administrator; a tenant administrator reaches nothing above its tenant, so the
+  control-plane tenant's administrators never reach the platform or a team. The host-managed bootstrap client is changed
+  by no management caller, so authority over the root tenant's clients never yields a `GlobalAdmin` token
   ([ADR-1417](docs/decisions/1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md),
   [ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md),
-  [#556](https://github.com/NCodeGroup/identity/issues/556)).
+  [#556](https://github.com/NCodeGroup/identity/issues/556),
+  [#777](https://github.com/NCodeGroup/identity/issues/777),
+  [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 
 - **A management route's caller is only the principal its management access token authenticates.** On every management
   route `HttpContext.User` is the principal a valid management access token authenticates, or an anonymous principal
@@ -4433,15 +4532,18 @@ Until the first stable release, the [Unreleased] section describes the product a
   antiforgery token against the authenticated user, and every interactive login passes antiforgery validation, not only
   the first. `InteractiveLoginAntiforgeryTests` verifies the middleware order.
 
-- **The bootstrap administrator, the development administrator, and the conformance clients are seeded into one named
-  tenant only.** `BootstrapAdmin:TenantId`, `DeveloperInteractiveSeed:TenantId`, and `ConformanceSeed:TenantId` are
-  required whenever their seeder has something to seed, and the host does not start without them; the named tenant may
-  be the root tenant. Tenants created at runtime are seeded through the same pipeline, so none of them receives a client
-  whose tokens carry `GlobalAdmin` or accounts with well-known passwords. `GlobalAdmin` is conferred only on the
-  bootstrap client in its tenant, not on a client that shares its identifier elsewhere
-  ([ADR-1166](docs/decisions/1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md)).
+- **The development bootstrap client, the development administrator, and the conformance clients are seeded into one
+  named tenant only.** `BootstrapAdmin:TenantId`, `DeveloperInteractiveSeed:TenantId`, and `ConformanceSeed:TenantId`
+  are required whenever their seeder has something to seed, and the host does not start without them; the named tenant
+  may be the root tenant. Tenants created at runtime are seeded through the same pipeline, so none of them receives a
+  client whose tokens carry `GlobalAdmin` or accounts with well-known passwords. The `GlobalAdmin` stamp is carried only
+  by the bootstrap client in its tenant, not by a client that shares its identifier elsewhere; a Production instance's
+  root administrator holds a role assignment instead
+  ([ADR-1166](docs/decisions/1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md),
+  [#777](https://github.com/NCodeGroup/identity/issues/777),
+  [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 
-- **No development or conformance credential is committed.** The bootstrap administrator's client secret
+- **No development or conformance credential is committed.** The development bootstrap client's secret
   (`BootstrapAdmin__ClientSecret`), the developer seed's administrator password
   (`DeveloperInteractiveSeed__AdminPassword`), the secrets of the `ConformanceSeed` clients `client`, `client2` and
   `client-secret-post` and the conformance test user's password are generated once per machine, beside the development
@@ -4454,7 +4556,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   administrator, and without the conformance credentials the seed skips those clients and the test user; the
   `Conformance` profile starts by hand after `Get-ConformanceSeedCredentials.ps1 -SetEnvironment`
   ([#496](https://github.com/NCodeGroup/identity/issues/496), [#514](https://github.com/NCodeGroup/identity/issues/514),
-  [ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
+  [ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md),
+  [#777](https://github.com/NCodeGroup/identity/issues/777),
+  [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 
 - **The host chart takes its root key by reference, and its README documents rotating it by hand.**
   `secretProtection.rootKeyProvider` selects `local`, `aws-kms`, `azure-key-vault` or `google-cloud-kms` (`ephemeral`

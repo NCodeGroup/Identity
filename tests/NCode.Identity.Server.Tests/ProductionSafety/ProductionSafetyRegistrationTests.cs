@@ -503,6 +503,21 @@ public class ProductionSafetyRegistrationTests
         Assert.Contains(violations, violation => violation.ConfigurationKey == sectionName);
     }
 
+    [Fact]
+    public void FindViolations_WhenBootstrapAdminSectionPresent_ReportsIt()
+    {
+        var violations = ProductionSafetyRegistration.FindViolations(
+            CreateProductionConfiguration(
+                ("AllowedHosts", "op.example.com"),
+                ("BootstrapAdmin:ClientSecret", "c2VjcmV0")
+            )
+        );
+
+        var violation = Assert.Single(violations);
+        Assert.Equal("BootstrapAdmin", violation.ConfigurationKey);
+        Assert.Contains("GlobalAdmin", violation.Problem);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("   ")]

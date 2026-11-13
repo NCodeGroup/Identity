@@ -5,10 +5,6 @@ const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.ResourceS
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Platform = "platform" -> string!
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Tenant = "tenant" -> string!
 const NCode.Identity.OpenId.Management.Authorization.ResourceNodeTypes.Team = "team" -> string!
-const NCode.Identity.OpenId.Management.BuiltInRoles.GlobalAdmin = "GlobalAdmin" -> string!
-const NCode.Identity.OpenId.Management.BuiltInRoles.Owner = "Owner" -> string!
-const NCode.Identity.OpenId.Management.BuiltInRoles.TeamAdmin = "TeamAdmin" -> string!
-const NCode.Identity.OpenId.Management.BuiltInRoles.TenantAdmin = "TenantAdmin" -> string!
 NCode.Identity.OpenId.Management.Authorization.IResourceNode
 NCode.Identity.OpenId.Management.Authorization.IResourceNode.ResourceId.get -> string!
 NCode.Identity.OpenId.Management.Authorization.IResourceNode.ResourceType.get -> string!
@@ -43,7 +39,6 @@ NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant.IsAdded.get -
 NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant.IsAdded.init -> void
 NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant.IsRefused.get -> bool
 NCode.Identity.OpenId.Management.Authorization.RoleAssignmentGrant.RoleAssignmentGrant() -> void
-NCode.Identity.OpenId.Management.BuiltInRoles
 NCode.Identity.OpenId.Management.DefaultRegistration
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.OpenId.OpenIdCoreLibrary>!)
 NCode.Identity.OpenId.Management.DefaultRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.OpenId.OpenIdCoreLibrary>!).AddOpenIdManagementLibrary() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.OpenId.Management.OpenIdManagementLibrary>!

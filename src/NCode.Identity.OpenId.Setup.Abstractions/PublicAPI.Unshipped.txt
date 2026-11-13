@@ -1,0 +1,111 @@
+#nullable enable
+NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole
+NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.BaseUrl.get -> string!
+NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.BaseUrl.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.ClientId.get -> string?
+NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.ClientId.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.CreateRootManagementConsole() -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.Jwks.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.Jwks.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest
+NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.CreateRootRequest() -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.Email.get -> string?
+NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.Email.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.ManagementConsole.get -> NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole?
+NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.ManagementConsole.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.Password.get -> string!
+NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.Password.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.Token.get -> string!
+NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.Token.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.UserName.get -> string!
+NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.UserName.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.CreateRootResponse() -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.ManagementConsoleClientId.get -> string?
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.ManagementConsoleClientId.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.PrincipalId.get -> string!
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.PrincipalId.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.TenantId.get -> string!
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.TenantId.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.UserName.get -> string!
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.UserName.init -> void
+NCode.Identity.OpenId.Setup.Contracts.SetupStatusResponse
+NCode.Identity.OpenId.Setup.Contracts.SetupStatusResponse.MinimumPasswordLength.get -> int
+NCode.Identity.OpenId.Setup.Contracts.SetupStatusResponse.MinimumPasswordLength.init -> void
+NCode.Identity.OpenId.Setup.Contracts.SetupStatusResponse.SetupStatusResponse() -> void
+NCode.Identity.OpenId.Setup.Contracts.SetupStatusResponse.TokenSource.get -> string!
+NCode.Identity.OpenId.Setup.Contracts.SetupStatusResponse.TokenSource.init -> void
+NCode.Identity.OpenId.Setup.IInstanceSetupService
+NCode.Identity.OpenId.Setup.IInstanceSetupService.IsInitializedAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.OpenId.Setup.IInstanceSetupService.SetUpAsync(NCode.Identity.OpenId.Setup.InstanceSetupRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Setup.InstanceSetupResult!>
+NCode.Identity.OpenId.Setup.InstanceSetupRequest
+NCode.Identity.OpenId.Setup.InstanceSetupRequest.Automation.get -> NCode.Identity.OpenId.Setup.SetupAutomationOptions?
+NCode.Identity.OpenId.Setup.InstanceSetupRequest.Automation.init -> void
+NCode.Identity.OpenId.Setup.InstanceSetupRequest.InstanceSetupRequest() -> void
+NCode.Identity.OpenId.Setup.InstanceSetupRequest.ManagementConsole.get -> NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions?
+NCode.Identity.OpenId.Setup.InstanceSetupRequest.ManagementConsole.init -> void
+NCode.Identity.OpenId.Setup.InstanceSetupRequest.Root.get -> NCode.Identity.OpenId.Setup.SetupRootOptions!
+NCode.Identity.OpenId.Setup.InstanceSetupRequest.Root.init -> void
+NCode.Identity.OpenId.Setup.InstanceSetupResult
+NCode.Identity.OpenId.Setup.InstanceSetupResult.AutomationClientId.get -> string?
+NCode.Identity.OpenId.Setup.InstanceSetupResult.AutomationClientId.init -> void
+NCode.Identity.OpenId.Setup.InstanceSetupResult.Error.get -> NCode.Identity.OpenId.Management.ManagementError?
+NCode.Identity.OpenId.Setup.InstanceSetupResult.Error.init -> void
+NCode.Identity.OpenId.Setup.InstanceSetupResult.InstanceSetupResult() -> void
+NCode.Identity.OpenId.Setup.InstanceSetupResult.ManagementConsoleClientId.get -> string?
+NCode.Identity.OpenId.Setup.InstanceSetupResult.ManagementConsoleClientId.init -> void
+NCode.Identity.OpenId.Setup.InstanceSetupResult.Root.get -> NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse?
+NCode.Identity.OpenId.Setup.InstanceSetupResult.Root.init -> void
+NCode.Identity.OpenId.Setup.InstanceSetupResult.Succeeded.get -> bool
+NCode.Identity.OpenId.Setup.ISetupTokenService
+NCode.Identity.OpenId.Setup.ISetupTokenService.EnsureTokenAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+NCode.Identity.OpenId.Setup.ISetupTokenService.TokenSource.get -> string!
+NCode.Identity.OpenId.Setup.ISetupTokenService.VerifyAsync(string! token, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.OpenId.Setup.SetupDefaults
+NCode.Identity.OpenId.Setup.SetupAutomationOptions
+NCode.Identity.OpenId.Setup.SetupAutomationOptions.ClientId.get -> string?
+NCode.Identity.OpenId.Setup.SetupAutomationOptions.ClientId.set -> void
+NCode.Identity.OpenId.Setup.SetupAutomationOptions.IsConfigured.get -> bool
+NCode.Identity.OpenId.Setup.SetupAutomationOptions.Jwks.get -> string?
+NCode.Identity.OpenId.Setup.SetupAutomationOptions.Jwks.set -> void
+NCode.Identity.OpenId.Setup.SetupAutomationOptions.SetupAutomationOptions() -> void
+NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions
+NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.BaseUrl.get -> string?
+NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.BaseUrl.set -> void
+NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.ClientId.get -> string!
+NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.ClientId.set -> void
+NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.IsConfigured.get -> bool
+NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.Jwks.get -> string?
+NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.Jwks.set -> void
+NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.SetupManagementConsoleOptions() -> void
+NCode.Identity.OpenId.Setup.SetupOptions
+NCode.Identity.OpenId.Setup.SetupOptions.Automation.get -> NCode.Identity.OpenId.Setup.SetupAutomationOptions!
+NCode.Identity.OpenId.Setup.SetupOptions.Automation.set -> void
+NCode.Identity.OpenId.Setup.SetupOptions.BundleRootPath.get -> string?
+NCode.Identity.OpenId.Setup.SetupOptions.BundleRootPath.set -> void
+NCode.Identity.OpenId.Setup.SetupOptions.GeneratedTokenLifetime.get -> System.TimeSpan
+NCode.Identity.OpenId.Setup.SetupOptions.GeneratedTokenLifetime.set -> void
+NCode.Identity.OpenId.Setup.SetupOptions.ManagementConsole.get -> NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions!
+NCode.Identity.OpenId.Setup.SetupOptions.ManagementConsole.set -> void
+NCode.Identity.OpenId.Setup.SetupOptions.Root.get -> NCode.Identity.OpenId.Setup.SetupRootOptions!
+NCode.Identity.OpenId.Setup.SetupOptions.Root.set -> void
+NCode.Identity.OpenId.Setup.SetupOptions.SetupOptions() -> void
+NCode.Identity.OpenId.Setup.SetupOptions.Token.get -> string?
+NCode.Identity.OpenId.Setup.SetupOptions.Token.set -> void
+NCode.Identity.OpenId.Setup.SetupRootOptions
+NCode.Identity.OpenId.Setup.SetupRootOptions.Email.get -> string?
+NCode.Identity.OpenId.Setup.SetupRootOptions.Email.set -> void
+NCode.Identity.OpenId.Setup.SetupRootOptions.Password.get -> string?
+NCode.Identity.OpenId.Setup.SetupRootOptions.Password.set -> void
+NCode.Identity.OpenId.Setup.SetupRootOptions.SetupRootOptions() -> void
+NCode.Identity.OpenId.Setup.SetupRootOptions.UserName.get -> string?
+NCode.Identity.OpenId.Setup.SetupRootOptions.UserName.set -> void
+NCode.Identity.OpenId.Setup.SetupTokenSources
+const NCode.Identity.OpenId.Setup.SetupDefaults.MinimumRootPasswordLength = 15 -> int
+const NCode.Identity.OpenId.Setup.SetupDefaults.MinimumTokenLength = 32 -> int
+const NCode.Identity.OpenId.Setup.SetupDefaults.PathPrefix = "/setup" -> string!
+const NCode.Identity.OpenId.Setup.SetupDefaults.RootAttemptsPerMinute = 10 -> int
+const NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.DefaultClientId = "mgmt-console" -> string!
+const NCode.Identity.OpenId.Setup.SetupOptions.SectionName = "Setup" -> string!
+const NCode.Identity.OpenId.Setup.SetupTokenSources.Configured = "configured" -> string!
+const NCode.Identity.OpenId.Setup.SetupTokenSources.Generated = "generated" -> string!

@@ -221,11 +221,30 @@ internal class RootSettingsCollectionDataSource : IDisposableCollectionDataSourc
 
         var configuredSettings = SettingCollectionFactory.Create();
         LoadFromConfiguration(configuredSettings);
+        AddEnabledGrantTypes(baselineSettings, configuredSettings);
 
         return SecurityProfileCatalog.Expand(
             configuredSettings,
             OpenIdSettingScopes.Platform,
             baselineSettings
+        );
+    }
+
+    // grant_types_enabled adds its grants to the baseline grant_types_supported, so the host names only the grants it
+    // adds. A configured grant_types_supported replaces the baseline and so stays the whole list (ADR-1044).
+    private static void AddEnabledGrantTypes(
+        ISettingCollection baselineSettings,
+        ISettingCollection configuredSettings
+    )
+    {
+        if (!configuredSettings.TryGetValue(OpenIdSettingKeys.GrantTypesEnabled, out var enabled))
+            return;
+
+        baselineSettings.TryGetValue(OpenIdSettingKeys.GrantTypesSupported, out var baseline);
+
+        baselineSettings.Set(
+            OpenIdSettingKeys.GrantTypesSupported,
+            SettingMerge.Union(baseline ?? [], enabled)
         );
     }
 

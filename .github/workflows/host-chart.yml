@@ -126,6 +126,9 @@ jobs:
           refuse --set tenantResolution.staticSingle.issuer=
           refuse --set tenantResolution.staticSingle.issuer=http://id.example.com
           refuse --set unknownSetting=true
+          # The setup Job reads the root administrator from a Secret, and a setup token Secret needs the key to read.
+          refuse --set setup.job.enabled=true
+          refuse --set setup.token.existingSecret=s --set setup.token.key=
           refuse --set apiReference.pageEnabled=true
           refuse --set apiReference.documentEnabled=yes
           # ingress.controller takes traefik or other alone: the chart has no ingress-nginx mode (ADR-1507).

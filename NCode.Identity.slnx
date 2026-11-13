@@ -74,6 +74,8 @@
         <Project Path="src/NCode.Identity.OpenId.Persistence.EntityFramework/NCode.Identity.OpenId.Persistence.EntityFramework.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Persistence/NCode.Identity.OpenId.Persistence.csproj" />
         <Project Path="src/NCode.Identity.OpenId.Protocol.Abstractions/NCode.Identity.OpenId.Protocol.Abstractions.csproj" />
+        <Project Path="src/NCode.Identity.OpenId.Setup.Abstractions/NCode.Identity.OpenId.Setup.Abstractions.csproj" />
+        <Project Path="src/NCode.Identity.OpenId.Setup/NCode.Identity.OpenId.Setup.csproj" />
         <Project Path="src/NCode.Identity.Persistence.Abstractions/NCode.Identity.Persistence.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Secrets.Abstractions/NCode.Identity.Secrets.Abstractions.csproj" />
         <Project Path="src/NCode.Identity.Secrets.Persistence.Abstractions/NCode.Identity.Secrets.Persistence.Abstractions.csproj" />
@@ -142,6 +144,7 @@
         <Project Path="tests/NCode.Identity.SharedState.Tests/NCode.Identity.SharedState.Tests.csproj" />
         <Project Path="tests/NCode.Identity.SharedState.Valkey.Tests/NCode.Identity.SharedState.Valkey.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Json.Tests/NCode.Identity.Json.Tests.csproj" />
+        <Project Path="tests/NCode.Identity.OpenId.Setup.Tests/NCode.Identity.OpenId.Setup.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Registration.Tests/NCode.Identity.Registration.Tests.csproj" />
         <Project Path="tests/NCode.Identity.Time.Tests/NCode.Identity.Time.Tests.csproj" />
     </Folder>

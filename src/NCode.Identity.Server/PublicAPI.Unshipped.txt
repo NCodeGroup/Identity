@@ -1,19 +1,10 @@
 #nullable enable
-const NCode.Identity.Server.BootstrapAdminOptions.DefaultSectionName = "BootstrapAdmin" -> string!
 const NCode.Identity.Server.ConformanceEnvironment.ConformanceSeedOptions.DefaultSectionName = "ConformanceSeed" -> string!
+const NCode.Identity.Server.DevelopmentEnvironment.BootstrapAdminOptions.DefaultSectionName = "BootstrapAdmin" -> string!
 const NCode.Identity.Server.DevelopmentEnvironment.DeveloperCorsOptions.DefaultSectionName = "Cors" -> string!
 const NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.DefaultSectionName = "DeveloperInteractiveSeed" -> string!
 const NCode.Identity.Server.DevelopmentEnvironment.DeveloperKeysOptions.DefaultSectionName = "DeveloperKeys" -> string!
 const NCode.Identity.Server.IdentityServerApiReferenceOptions.DefaultSectionName = "ApiReference" -> string!
-NCode.Identity.Server.BootstrapAdminOptions
-NCode.Identity.Server.BootstrapAdminOptions.BootstrapAdminOptions() -> void
-NCode.Identity.Server.BootstrapAdminOptions.ClientId.get -> string?
-NCode.Identity.Server.BootstrapAdminOptions.ClientId.set -> void
-NCode.Identity.Server.BootstrapAdminOptions.ClientSecret.get -> string?
-NCode.Identity.Server.BootstrapAdminOptions.ClientSecret.set -> void
-NCode.Identity.Server.BootstrapAdminOptions.IsEnabled.get -> bool
-NCode.Identity.Server.BootstrapAdminOptions.TenantId.get -> string?
-NCode.Identity.Server.BootstrapAdminOptions.TenantId.set -> void
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.ClientSecret.get -> string?
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.ClientSecret.set -> void
@@ -70,6 +61,15 @@ NCode.Identity.Server.DeveloperKeysConfiguration.extension(Microsoft.Extensions.
 NCode.Identity.Server.DeveloperKeysRegistration
 NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!)
 NCode.Identity.Server.DeveloperKeysRegistration.extension(NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!).AddDeveloperKeyPruning() -> NCode.Identity.Registration.IServiceBuilder<NCode.Identity.Server.IdentityServer>!
+NCode.Identity.Server.DevelopmentEnvironment.BootstrapAdminOptions
+NCode.Identity.Server.DevelopmentEnvironment.BootstrapAdminOptions.BootstrapAdminOptions() -> void
+NCode.Identity.Server.DevelopmentEnvironment.BootstrapAdminOptions.ClientId.get -> string?
+NCode.Identity.Server.DevelopmentEnvironment.BootstrapAdminOptions.ClientId.set -> void
+NCode.Identity.Server.DevelopmentEnvironment.BootstrapAdminOptions.ClientSecret.get -> string?
+NCode.Identity.Server.DevelopmentEnvironment.BootstrapAdminOptions.ClientSecret.set -> void
+NCode.Identity.Server.DevelopmentEnvironment.BootstrapAdminOptions.IsEnabled.get -> bool
+NCode.Identity.Server.DevelopmentEnvironment.BootstrapAdminOptions.TenantId.get -> string?
+NCode.Identity.Server.DevelopmentEnvironment.BootstrapAdminOptions.TenantId.set -> void
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed.BackchannelLogoutUri.get -> string?
 NCode.Identity.Server.DevelopmentEnvironment.DeveloperBffClientSeed.BackchannelLogoutUri.set -> void
@@ -224,3 +224,10 @@ NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.Verb.get -> s
 static NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.GetHostArguments(string![]! args) -> string![]!
 static NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.Parse(System.Collections.Generic.IReadOnlyList<string!>! args) -> NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine?
 static NCode.Identity.Server.SecretProtection.SecretProtectionCommandLine.Usage.get -> string!
+const NCode.Identity.Server.InstanceSetup.InstanceSetupCommandLine.CommandName = "setup" -> string!
+NCode.Identity.Server.InstanceSetup.InstanceSetupCommandLine
+NCode.Identity.Server.InstanceSetup.InstanceSetupCommandLine.Error.get -> string?
+NCode.Identity.Server.InstanceSetup.InstanceSetupCommandLine.RunAsync(System.IServiceProvider! services, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
+static NCode.Identity.Server.InstanceSetup.InstanceSetupCommandLine.GetHostArguments(string![]! args) -> string![]!
+static NCode.Identity.Server.InstanceSetup.InstanceSetupCommandLine.Parse(System.Collections.Generic.IReadOnlyList<string!>! args) -> NCode.Identity.Server.InstanceSetup.InstanceSetupCommandLine?
+static NCode.Identity.Server.InstanceSetup.InstanceSetupCommandLine.Usage.get -> string!

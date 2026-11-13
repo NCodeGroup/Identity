@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.Extensions.Options;
+using NCode.Identity.Server.DevelopmentEnvironment;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;

@@ -196,6 +196,14 @@ jobs:
           NCODE_MGMT_BUNDLE_INDEX: ${{ github.workspace }}/frontend/apps/mgmt/dist/index.html
         run: dotnet test tests/NCode.Identity.ManagementConsole.Tests/NCode.Identity.ManagementConsole.Tests.csproj --nologo --filter "FullyQualifiedName~ManagementConsolePageTests.Render_WhenGivenTheBuiltBundlesIndex" -- RunConfiguration.TreatNoTestsAsError=true
 
+      - name: Test the setup host against the built setup bundle
+        if: steps.build.outcome == 'success'
+        shell: pwsh
+        working-directory: .
+        env:
+          NCODE_SETUP_BUNDLE_INDEX: ${{ github.workspace }}/frontend/apps/setup/dist/index.html
+        run: dotnet test tests/NCode.Identity.OpenId.Setup.Tests/NCode.Identity.OpenId.Setup.Tests.csproj --nologo --filter "FullyQualifiedName~SetupPageTests.Render_WhenGivenTheBuiltBundlesIndex" -- RunConfiguration.TreatNoTestsAsError=true
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

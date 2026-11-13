@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Collections.Frozen;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Http;
@@ -21,7 +22,8 @@ internal static partial class TenantAddressRules
     /// Contains the requirement a tenant identifier must meet, phrased to complete a sentence such as "must be …".
     /// </summary>
     public const string TenantIdRequirement =
-        "1 to 63 lowercase letters, digits, or hyphens that starts and ends with a letter or digit";
+        "1 to 63 lowercase letters, digits, or hyphens that starts and ends with a letter or digit, and is not api, "
+        + "bff, health, openapi, scalar or setup";
 
     /// <summary>
     /// Gets the requirement an issuer must meet, phrased to complete a sentence such as "must be …".
@@ -57,13 +59,21 @@ internal static partial class TenantAddressRules
 
     private const int MaxHostLabelLength = 63;
 
+    // Top-level path segments the host maps, which a path-strategy tenant would be shadowed by: api (the management
+    // API root group prefix), setup (SetupDefaults.PathPrefix), bff (BffDefaults.EndpointPrefix), health (the health
+    // probes), openapi and scalar (the API reference).
+    private static FrozenSet<string> ReservedTenantIds { get; } =
+        new[] { "api", "setup", "bff", "health", "openapi", "scalar" }.ToFrozenSet(
+            StringComparer.Ordinal
+        );
+
     /// <summary>
     /// Determines whether the specified value is a valid tenant identifier: <see cref="TenantIdRequirement"/>.
     /// </summary>
     /// <param name="tenantId">The tenant identifier to check.</param>
     /// <returns><see langword="true"/> when the value is a valid tenant identifier; otherwise, <see langword="false"/>.</returns>
     public static bool IsValidTenantId([NotNullWhen(true)] string? tenantId) =>
-        TenantIdentifierRules.IsValidTenantId(tenantId);
+        TenantIdentifierRules.IsValidTenantId(tenantId) && !ReservedTenantIds.Contains(tenantId);
 
     /// <summary>
     /// Parses the specified issuer when it is <see cref="IssuerRequirement"/>, the form OpenID Connect Discovery and

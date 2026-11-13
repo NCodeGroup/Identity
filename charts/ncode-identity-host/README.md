@@ -31,6 +31,52 @@ The chart takes no secret values. It references Secrets you create in the releas
   with cert-manager whenever a route uses the ingress controller's Secret and no `ingressSecret` of yours names it.
 - A router that reaches the pods over HTTPS: a Gateway API implementation with `BackendTLSPolicy` (Gateway API v1.4 or
   later), Traefik, or another Ingress controller you configure; see [Routing to the pods](#routing-to-the-pods).
+- `setup.token.existingSecret`, optional: a Secret holding the setup token under the `token` key, and
+  `setup.job.existingSecret`, for the opt-in setup Job: a Secret holding the root administrator's credentials; see
+  [First use](#first-use).
+
+### Creating the Secrets
+
+Create each Secret in the release's namespace, and name it in the value that references it. The key names below are the
+chart's defaults; each is a value you can change.
+
+The database connection string, as `database.existingSecret` reads it. Use the Npgsql connection string of your
+database; the placeholders are yours:
+
+```bash
+kubectl create secret generic identity-database \
+  --from-literal=connection-string='Host=<host>;Database=<database>;Username=<user>;Password=<password>'
+```
+
+The Valkey connection string, as `valkey.existingSecret` reads it, for more than one replica. Use your server's
+StackExchange.Redis connection string:
+
+```bash
+kubectl create secret generic identity-valkey \
+  --from-literal=connection-string='<host>:6379,password=<password>,ssl=true'
+```
+
+The setup token, as `setup.token.existingSecret` reads it, at least 32 characters:
+
+```bash
+kubectl create secret generic identity-setup-token \
+  --from-literal=token="$(openssl rand -base64 32)"
+```
+
+The root administrator's credential for the setup Job, as `setup.job.existingSecret` reads it. The password has at
+least 15 characters:
+
+```bash
+kubectl create secret generic identity-setup-root \
+  --from-literal=userName=<user name> \
+  --from-literal=email=<email address> \
+  --from-literal=password=<password>
+```
+
+The local root key, the recovery key and the management console's keys have their own instructions:
+[Creating the local root key Secret](#creating-the-local-root-key-secret),
+[Creating the recovery key](#creating-the-recovery-key) and [Management console](#management-console). An External
+Secrets `ExternalSecret` that writes the same Secret with the same keys works the same way.
 
 ## Published artifacts
 
@@ -107,10 +153,14 @@ Rendering fails, before anything is applied, when:
   `managementConsole.backendTls.existingSecret`, and `managementConsole.backendTls.caConfigMap` is empty, because the
   console's CA ConfigMap would fall back to the one the publisher writes, which holds only the chart's private CA;
 - neither `database.existingSecret` nor `database.parts.existingSecret` is set, a connection (`database` or
-  `migrations.database`) sets both, or a parts Secret leaves `hostKey`, `databaseKey`, `usernameKey` or `passwordKey`
-  empty;
-- a Valkey connection (`valkey` or `managementConsole.valkey`) sets both `existingSecret` and `parts.existingSecret`, or
-  its parts Secret leaves `hostKey` empty;
+  `migrations.database`) sets both, a connection's `existingSecret` is set and the key of its connection string,
+  `connectionStringKey`, is empty (a `migrations.database` key falls back to the one under `database`), or a parts
+  Secret leaves `hostKey`, `databaseKey`, `usernameKey` or `passwordKey` empty;
+- a Valkey connection (`valkey` or `managementConsole.valkey`) sets both `existingSecret` and `parts.existingSecret`,
+  sets `existingSecret` and leaves `connectionStringKey` empty, or has a parts Secret that leaves `hostKey` empty. The
+  other `parts` keys may be empty, because an empty key leaves that part out;
+- `setup.token.existingSecret` is set and `setup.token.key` is empty, or `setup.job.enabled` is `true` and
+  `setup.job.existingSecret`, `setup.job.userNameKey` or `setup.job.passwordKey` is empty;
 - the `StaticSingle` strategy has no `https` issuer;
 - `secretProtection.rootKeyProvider` is empty, in any environment, because the host does not start without one;
 - `environment` is `Production` and `secretProtection.rootKeyProvider` is `ephemeral`, which would leave no root key
@@ -176,6 +226,58 @@ To apply migrations another way, such as with a generated idempotent script, set
 With Valkey, a new replica becomes ready before an old one stops. Without it, each replica keeps single-use state in its
 own process, so the chart never runs two at once: it uses the `Recreate` strategy, which starts the new replica only
 after the old one has terminated, so each update has a short outage.
+
+## First use
+
+An uninitialized instance is set up once, and the setup creates its root global administrator. A setup token guards the
+wizard. Create a Secret with a value of at least 32 characters under the key `setup.token.key` names (`token`) and
+name it in `setup.token.existingSecret`; the chart passes it to the host as `Setup__Token`. With
+`setup.token.existingSecret` empty, the host generates a single-use token at each process start and logs it once at
+Warning level, on the one replica that issued it. The generated token expires (after 1 hour by default), and the host stores only its hash.
+
+The wizard answers at `https://<host>/setup/#token=<token>`. It creates the root global administrator once, and every
+`/setup` route answers 404 after the instance is initialized.
+
+To create the root administrator without a browser, enable `setup.job`. It renders a Job per release revision that runs
+the host image's `setup` command, creates the root administrator from the Secret named in `setup.job.existingSecret`, and
+exits 0 on an instance that is already initialized. The setup values:
+
+| Value                                    | Meaning                                                                                     |
+|------------------------------------------|---------------------------------------------------------------------------------------------|
+| `setup.token.existingSecret`             | A Secret holding the setup token, the host's `Setup__Token`; empty makes the host generate one. |
+| `setup.token.key`                        | The key of the token in that Secret (`token`).                                              |
+| `setup.job.enabled`                      | Renders the Job (`false`).                                                                  |
+| `setup.job.existingSecret`               | A Secret holding the root administrator's credentials. Required when the Job is enabled.    |
+| `setup.job.userNameKey`                  | The key of the user name in that Secret (`userName`).                                       |
+| `setup.job.emailKey`                     | The key of the email address in that Secret (`email`); the Secret may omit it.              |
+| `setup.job.passwordKey`                  | The key of the password in that Secret (`password`); at least 15 characters.                |
+| `setup.job.backoffLimit`                 | How often the Job retries (`2`).                                                            |
+| `setup.job.activeDeadlineSeconds`        | How long the Job may run, in seconds (`300`).                                               |
+| `setup.managementConsole.clientId`       | The `client_id` of the management console's client (`mgmt-console`).                        |
+| `setup.managementConsole.baseUrl`        | The console's public https origin. Setting it registers the console's client; empty registers none. |
+| `setup.managementConsole.jwks`           | The console's public JWK Set, required with `baseUrl`.                                      |
+| `setup.automation.clientId`              | The `client_id` of the automation client. Setting it registers the client; empty registers none. |
+| `setup.automation.jwks`                  | The automation client's public JWK Set, required with `automation.clientId`.                |
+| `platform.grantTypesEnabled`             | Grant types the platform adds to its baseline grants, such as `client_credentials` (`[]`).      |
+
+The Job registers the clients below in the same save as the root administrator, passing them as `Setup__ManagementConsole__*`
+and `Setup__Automation__*`; the chart emits each group only when `setup.managementConsole.baseUrl` or
+`setup.automation.clientId` is set. If a registration is refused, setup saves nothing, so the root administrator is not
+created either. Setup imports each JWK Set by value, so neither client needs a `jwks_uri` the server can reach.
+
+- **The management console's client** is a confidential client of the control-plane tenant, with the metadata that
+  [Management console](#management-console) lists, except `jwks_uri`. Set `setup.managementConsole.baseUrl` to the origin
+  of `managementConsole.host` and `setup.managementConsole.jwks` to the public JWK Set of the console's `mgmt-client.pem`
+  ([how to derive it](../../docs/first-production-instance.md#the-management-consoles-client)).
+- **The automation client** is a platform-owned `client_credentials` machine client that holds `GlobalAdmin` and
+  authenticates with `private_key_jwt`, so a GitOps install manages the instance without the development bootstrap
+  client. Setting `setup.automation.clientId` and `setup.automation.jwks` registers it. The platform's
+  grant list must include `client_credentials`, or setup fails as a whole; set
+  `platform.grantTypesEnabled` to `[client_credentials]`, which the chart passes to the host as the platform setting
+  `grant_types_enabled` (the [first-use guide](../../docs/first-production-instance.md#6-enable-grants) describes it).
+
+Delete both Secrets once the instance is initialized. The guide
+[The first use of a Production instance](../../docs/first-production-instance.md) walks through the whole first use.
 
 ## Secret protection
 
@@ -660,6 +762,10 @@ imports the public half of its `mgmt-client` key through
 `POST /api/tenants/{tenantId}/clients/mgmt-console/secrets/import`. The client then authenticates against the stored
 key, so a rotation of `mgmt-client` imports the next key. A refused fetch logs `ClientJwksFetchFailed` with the reason
 `blocked_address`.
+
+The setup Job registers this client in the same save as the root administrator, with the metadata above except
+`jwks_uri`, from `setup.managementConsole.baseUrl` and `setup.managementConsole.jwks`; see
+[First use](#first-use). Without it, register the client through the management API.
 
 The console calls the server's management API at `/api` on the origin of the console's authority, the URL the server
 compares the console's DPoP proofs with, and the chart sets `ManagementConsole__ManagementApiUrl` to it:

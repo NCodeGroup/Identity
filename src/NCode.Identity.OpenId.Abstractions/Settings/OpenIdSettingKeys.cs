@@ -274,6 +274,12 @@ public static class OpenIdSettingKeys
         new(OpenIdSettingNames.DisplayValuesSupported);
 
     /// <summary>
+    /// Gets the <see cref="SettingKey{TValue}"/> for the 'grant_types_enabled' setting.
+    /// </summary>
+    public static SettingKey<IReadOnlyCollection<string>> GrantTypesEnabled =>
+        new(OpenIdSettingNames.GrantTypesEnabled);
+
+    /// <summary>
     /// Gets the <see cref="SettingKey{TValue}"/> for the 'grant_types_supported' setting.
     /// </summary>
     public static SettingKey<IReadOnlyCollection<string>> GrantTypesSupported =>

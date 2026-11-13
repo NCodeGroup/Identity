@@ -7,13 +7,11 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Buffers;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
 using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Management.Contracts;
 using NCode.Identity.OpenId.Accounts.Stores;
-using NCode.Identity.OpenId.Authentication.Passwords;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
@@ -24,7 +22,6 @@ using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Endpoints;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
-using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Persistence.Stores;
 using NCode.Identity.Registration.AspNetCore;
 using NCode.Mediator;
@@ -66,11 +63,11 @@ internal class LocalAccountApiEndpointHandler(
     IAuthorizationService authorizationService,
     ICryptoService cryptoService,
     ILocalAccountValidator localAccountValidator,
+    ILocalAccountCreator localAccountCreator,
     IManagementAuditRecorder managementAuditRecorder,
     ISessionService sessionService,
     IOpenIdContextFactory openIdContextFactory,
-    IEffectiveSettingsResolver effectiveSettingsResolver,
-    IPasswordPolicy passwordPolicy,
+    LocalAccountPasswords localAccountPasswords,
     IPostCommitSecurityEffects postCommitSecurityEffects
 ) : ManagementApiEndpointHandler, IEndpointProvider
 {
@@ -83,12 +80,11 @@ internal class LocalAccountApiEndpointHandler(
     protected override ICryptoService CryptoService { get; } = cryptoService;
 
     private ILocalAccountValidator LocalAccountValidator { get; } = localAccountValidator;
+    private ILocalAccountCreator LocalAccountCreator { get; } = localAccountCreator;
     private IManagementAuditRecorder ManagementAuditRecorder { get; } = managementAuditRecorder;
     private ISessionService SessionService { get; } = sessionService;
     private IOpenIdContextFactory OpenIdContextFactory { get; } = openIdContextFactory;
-    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
-        effectiveSettingsResolver;
-    private IPasswordPolicy PasswordPolicy { get; } = passwordPolicy;
+    private LocalAccountPasswords LocalAccountPasswords { get; } = localAccountPasswords;
     private IPostCommitSecurityEffects PostCommitSecurityEffects { get; } =
         postCommitSecurityEffects;
 
@@ -234,94 +230,19 @@ internal class LocalAccountApiEndpointHandler(
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
 
-        var error = await LocalAccountValidator.ValidateCreateAsync(
-            request.UserName,
-            storeManager,
-            cancellationToken
-        );
-        if (error is not null)
-        {
-            return ToErrorResult(error);
-        }
-
-        var localAccountId = CryptoService.GenerateResourceId();
-        var principalId = CryptoService.GenerateResourceId();
-
-        var account = new PersistedLocalAccount
-        {
-            TenantId = tenantId,
-            LocalAccountId = localAccountId,
-            UserName = request.UserName,
-            Email = request.Email,
-            EmailVerified = request.EmailVerified,
-            IsEnabled = request.IsEnabled,
-            Claims =
-                request
-                    .Claims?.Select(claim => new PersistedLocalAccountClaim
-                    {
-                        Type = claim.Type,
-                        Value = claim.Value,
-                    })
-                    .ToList()
-                ?? [],
-            ConcurrencyToken = string.Empty,
-        };
-
-        var passwordError = await ValidatePasswordAsync(
+        var creation = await LocalAccountCreator.StageAsync(
             storeManager,
             tenantId,
-            account,
-            request.Password,
+            request,
             cancellationToken
         );
-        if (passwordError is not null)
+        if (!creation.Succeeded)
         {
-            return ToErrorResult(passwordError);
+            return ToErrorResult(creation.Error);
         }
 
-        // Eagerly create the owning principal and the account's self-issued connection so the account resolves to a
-        // principal uniformly with any federated identity (ADR-1051/ADR-1057).
-        var principal = new PersistedFederatedPrincipal
-        {
-            TenantId = tenantId,
-            PrincipalId = principalId,
-            ConcurrencyToken = string.Empty,
-        };
-
-        // Set-when-present: a missing bag leaves the principal's default empty object (ADR-1055).
-        if (request.ProfileMetadata is { } profileMetadata)
-        {
-            principal.ProfileMetadata = profileMetadata;
-        }
-
-        if (request.SystemMetadata is { } systemMetadata)
-        {
-            principal.SystemMetadata = systemMetadata;
-        }
-
-        await storeManager
-            .GetStore<IFederatedPrincipalStore>()
-            .AddAsync(principal, cancellationToken);
-
-        var identity = new PersistedFederatedIdentity
-        {
-            TenantId = tenantId,
-            FederatedIdentityId = CryptoService.GenerateResourceId(),
-            PrincipalId = principalId,
-            Issuer = AccountConstants.SelfIssuer,
-            Subject = localAccountId,
-            JoinKey = null,
-            ConcurrencyToken = string.Empty,
-        };
-        await storeManager
-            .GetStore<IFederatedIdentityStore>()
-            .AddAsync(identity, cancellationToken);
-
-        await WithPasswordBytesAsync(
-            request.Password,
-            (bytes, ct) => storeManager.GetStore<ILocalAccountStore>().AddAsync(account, bytes, ct),
-            cancellationToken
-        );
+        var account = creation.Account;
+        var localAccountId = account.LocalAccountId;
 
         await storeManager.SaveChangesAsync(cancellationToken);
 
@@ -699,7 +620,7 @@ internal class LocalAccountApiEndpointHandler(
             return ManagementProblems.ResourceNotFound();
         }
 
-        var passwordError = await ValidatePasswordAsync(
+        var passwordError = await LocalAccountPasswords.ValidateAsync(
             storeManager,
             tenantId,
             account,
@@ -724,7 +645,7 @@ internal class LocalAccountApiEndpointHandler(
             ? null
             : await CreateTenantContextAsync(httpContext, tenantId, cancellationToken);
 
-        await WithPasswordBytesAsync(
+        await LocalAccountPasswords.WithPasswordBytesAsync(
             request.Password,
             (bytes, ct) => store.SetPasswordAsync(localAccountId, bytes, ct),
             cancellationToken
@@ -1025,76 +946,5 @@ internal class LocalAccountApiEndpointHandler(
                 cancellationToken
             );
         return identity?.PrincipalId;
-    }
-
-    // Judges a password an administrator sets by the addressed tenant's effective settings, resolved from its stored
-    // document so the tenant need not be served. A document that cannot be honored is answered 409 by the management
-    // route group. See ADR-1236 and ADR-1245.
-    private async ValueTask<ManagementError?> ValidatePasswordAsync(
-        IStoreManager storeManager,
-        string tenantId,
-        PersistedLocalAccount account,
-        string password,
-        CancellationToken cancellationToken
-    )
-    {
-        var tenant = await storeManager
-            .GetStore<ITenantStore>()
-            .GetOrDefaultAsync(tenantId, cancellationToken);
-        if (tenant is null)
-        {
-            return new ManagementError
-            {
-                StatusCode = StatusCodes.Status404NotFound,
-                Detail = "The tenant was not found.",
-            };
-        }
-
-        var teamSettings = await EffectiveSettingsResolver.ResolveTeamAsync(
-            tenant.TeamId,
-            cancellationToken
-        );
-        var tenantSettings = EffectiveSettingsResolver.ResolveStored(
-            teamSettings,
-            OpenIdSettingScopes.Tenant,
-            tenantId,
-            tenant.Settings.Value
-        );
-
-        var passwordMemory = password.AsMemory();
-        var policyContext = new PasswordPolicyContext
-        {
-            Settings = tenantSettings,
-            UserName = account.UserName,
-            Email = account.Email,
-        };
-        var result = await PasswordPolicy.ValidateAsync(
-            policyContext,
-            passwordMemory,
-            cancellationToken
-        );
-        if (!result.IsRejected)
-        {
-            return null;
-        }
-
-        return new ManagementError
-        {
-            StatusCode = StatusCodes.Status400BadRequest,
-            Detail = result.ErrorDescription,
-        };
-    }
-
-    // Encodes the password into a pinned, zeroed-on-return buffer so the plaintext never lingers on the GC heap.
-    private static async ValueTask WithPasswordBytesAsync(
-        string password,
-        Func<ReadOnlyMemory<byte>, CancellationToken, ValueTask> useAsync,
-        CancellationToken cancellationToken
-    )
-    {
-        var byteCount = SecureEncoding.UTF8.GetByteCount(password);
-        using var owner = BufferFactory.Rent(byteCount, isSensitive: true, out Memory<byte> buffer);
-        var written = SecureEncoding.UTF8.GetBytes(password, buffer.Span);
-        await useAsync(buffer[..written], cancellationToken);
     }
 }

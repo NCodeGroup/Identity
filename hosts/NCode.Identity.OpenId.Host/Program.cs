@@ -13,12 +13,14 @@ using NCode.Identity.OpenId.Host.Database;
 using NCode.Identity.OpenId.Persistence.EntityFramework;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Accounts;
 using NCode.Identity.OpenId.Persistence.EntityFramework.Core;
+using NCode.Identity.OpenId.Setup;
 using NCode.Identity.Registration;
 using NCode.Identity.Registration.AspNetCore;
 using NCode.Identity.Secrets.AwsKms;
 using NCode.Identity.Secrets.AzureKeyVault;
 using NCode.Identity.Secrets.GoogleCloudKms;
 using NCode.Identity.Server;
+using NCode.Identity.Server.InstanceSetup;
 using NCode.Identity.Server.SecretProtection;
 using NCode.Identity.SharedState.Valkey;
 
@@ -26,14 +28,18 @@ using NCode.Identity.SharedState.Valkey;
 // developer-only startup logic does NOT belong here — put it in the owning package as an extension
 // (dev helpers live in NCode.Identity.Server/DevelopmentEnvironment, e.g. AddDeveloperCors). If a step
 // needs an `if`, a `foreach`, a policy builder, or config parsing, move it to a package extension.
-// See csharp-production.instructions.md §4. The offline command's dispatch below is the one exception: only the entry
-// point can return its exit code.
+// See csharp-production.instructions.md §4. The offline commands' dispatch below is the one exception: only the entry
+// point can return an exit code.
 
-// OFFLINE COMMAND: 'secret-protection rewrap|rewrap-recovery' rewraps the master keys and exits without serving, for a
-// one-off Job that runs this image (ADR-1408). The host is built without the command's arguments, which a command-line
-// configuration provider would read as configuration.
+// OFFLINE COMMANDS: 'secret-protection rewrap|rewrap-recovery' rewraps the master keys (ADR-1408), and 'setup' creates
+// the root administrator of an uninitialized instance from the 'Setup:Root' configuration (ADR-1512). Each exits without
+// serving, for a one-off Job that runs this image. The host is built without a command's arguments, which a
+// command-line configuration provider would read as configuration.
 var secretProtectionCommand = SecretProtectionCommandLine.Parse(args);
-var builder = WebApplication.CreateBuilder(SecretProtectionCommandLine.GetHostArguments(args));
+var instanceSetupCommand = InstanceSetupCommandLine.Parse(args);
+var builder = WebApplication.CreateBuilder(
+    InstanceSetupCommandLine.GetHostArguments(SecretProtectionCommandLine.GetHostArguments(args))
+);
 
 var configuration = builder.Configuration;
 var hostEnvironment = builder.Environment;
@@ -154,6 +160,11 @@ identityServer
 // group). The account stack provides this capability; the Management slice itself does not depend on accounts.
 identityServer.OpenIdManagementLibraryBuilder.AddLocalAccountManagement(localAccountStore);
 
+// Enable the one-time instance setup: the '/setup' wizard and its API, and the 'setup' command, which create the root
+// administrator of an uninitialized instance guarded by the 'Setup:Token' configuration or a generated one-time token.
+// Every '/setup' route answers 404 once the instance is initialized (ADR-1512).
+identityServer.OpenIdManagementLibraryBuilder.AddInstanceSetup(configuration, hostEnvironment);
+
 // DEVELOPMENT CONVENIENCE: everything that is only correct on a developer's machine — the Vite CORS policy, the
 // developer and conformance seeders, and the developer key pruning — behind one call. Each piece stays inert unless
 // its own configuration section is present, and AddProductionSafety refuses each of those sections in Production.
@@ -200,10 +211,13 @@ else
 
 await using var app = builder.Build();
 
-// The command runs against the built services, never starts the hosted services or binds a port, and returns its exit
-// code. It is the one branch this file keeps, because only the entry point can return an exit code.
+// A command runs against the built services, never starts the hosted services or binds a port, and returns its exit
+// code. These are the only branches this file keeps, because only the entry point can return an exit code.
 if (secretProtectionCommand is not null)
     return await secretProtectionCommand.RunAsync(app.Services, CancellationToken.None);
+
+if (instanceSetupCommand is not null)
+    return await instanceSetupCommand.RunAsync(app.Services, CancellationToken.None);
 
 // MUST be the first middleware, before even the forwarded headers: it refuses a request whose connection does not carry
 // the reverse proxy's client certificate (except the liveness and readiness probes) before anything else reads it. A

@@ -451,6 +451,30 @@ public class DefaultSettingDescriptorDataSourceTests : BaseTests
         Assert.DoesNotContain(actual, descriptor => descriptor.IsLimit);
     }
 
+    [Fact]
+    public void GetDescriptors_GrantTypesEnabled_AppliesToPlatformOnlyAndUnions()
+    {
+        var descriptor = Assert.IsType<SettingDescriptor<IReadOnlyCollection<string>>>(
+            GetDescriptor(CreateDataSource(), OpenIdSettingNames.GrantTypesEnabled)
+        );
+
+        Assert.Equal([OpenIdSettingScopes.Platform], descriptor.AppliesTo.AsEnumerable());
+        Assert.False(descriptor.IsDiscoverable);
+        Assert.True(
+            descriptor.TryValidate((IReadOnlyCollection<string>)["client_credentials"], out _)
+        );
+        Assert.False(descriptor.TryValidate((IReadOnlyCollection<string>)["not_a_grant"], out _));
+        Assert.Equal(
+            ["authorization_code", "client_credentials"],
+            descriptor
+                .Merge(
+                    descriptor.Create(["authorization_code"]),
+                    descriptor.Create(["authorization_code", "client_credentials"])
+                )
+                .Value
+        );
+    }
+
     #endregion
 
     #region UI locale settings

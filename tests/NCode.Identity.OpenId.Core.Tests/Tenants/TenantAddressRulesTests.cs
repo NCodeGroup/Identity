@@ -51,6 +51,33 @@ public sealed class TenantAddressRulesTests
         Assert.False(TenantAddressRules.IsValidTenantId(tenantId));
     }
 
+    [Theory]
+    [InlineData("api")]
+    [InlineData("bff")]
+    [InlineData("health")]
+    [InlineData("openapi")]
+    [InlineData("scalar")]
+    [InlineData("setup")]
+    public void IsValidTenantId_WhenClaimedPathSegment_ReturnsFalse(string tenantId)
+    {
+        Assert.False(TenantAddressRules.IsValidTenantId(tenantId));
+    }
+
+    [Theory]
+    [InlineData("api1")]
+    [InlineData("setups")]
+    [InlineData("my-api")]
+    public void IsValidTenantId_WhenContainsClaimedPathSegment_ReturnsTrue(string tenantId)
+    {
+        Assert.True(TenantAddressRules.IsValidTenantId(tenantId));
+    }
+
+    [Fact]
+    public void TenantIdRequirement_NamesTheClaimedPathSegments()
+    {
+        Assert.Contains("setup", TenantAddressRules.TenantIdRequirement);
+    }
+
     #endregion
 
     #region TryParseMtlsEndpointAliasAuthority Tests

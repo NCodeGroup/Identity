@@ -617,3 +617,21 @@ NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.OwnerRootKeyEnti
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.OwnerRootKeyEntity.AccessIdentity.set -> void
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.RootKeyAccessIdentity.get -> string?
 NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.MasterKeyEntity.RootKeyAccessIdentity.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.InstanceSetupEntity
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.InstanceSetupEntity.InstanceSetupEntity() -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.InstanceSetupEntity.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.InstanceSetupEntity.ConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.InstanceSetupEntity.InitializedAt.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.InstanceSetupEntity.InitializedAt.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.InstanceSetupEntity.InitializedByPrincipalId.get -> string?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.InstanceSetupEntity.InitializedByPrincipalId.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.InstanceSetupEntity.IsInitialized.get -> bool
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.InstanceSetupEntity.IsInitialized.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.InstanceSetupEntity.Key.get -> string!
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.InstanceSetupEntity.Key.init -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.InstanceSetupEntity.TokenExpiresAt.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.InstanceSetupEntity.TokenExpiresAt.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.InstanceSetupEntity.TokenHash.get -> byte[]?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.InstanceSetupEntity.TokenHash.set -> void
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.InstanceSetupEntity.TokenIssuedAt.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Persistence.EntityFramework.Core.Entities.InstanceSetupEntity.TokenIssuedAt.set -> void

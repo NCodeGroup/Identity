@@ -45,6 +45,7 @@ internal class DefaultSettingDescriptorDataSource(
     private const bool IsNonStdDiscoverable = false;
 
     private static ImmutableArray<string> Tenants { get; } = [OpenIdSettingScopes.Tenant];
+    private static ImmutableArray<string> PlatformOnly { get; } = [OpenIdSettingScopes.Platform];
     private static ImmutableArray<string> Clients { get; } = [OpenIdSettingScopes.Client];
     private static ImmutableArray<string> ResourceServers { get; } =
     [OpenIdSettingScopes.ResourceServer];
@@ -631,6 +632,19 @@ internal class DefaultSettingDescriptorDataSource(
 
                 IsDiscoverable = IsStdDiscoverable,
                 OnMerge = Intersect,
+            };
+
+            // grant_types_enabled: grants the host adds to the baseline grant_types_supported without restating it; a
+            // configured grant_types_supported stays the whole list (ADR-1044). Platform scope, not advertised.
+            // Floor (Union): the enabled grants accumulate.
+            yield return new SettingDescriptor<IReadOnlyCollection<string>>
+            {
+                Name = OpenIdSettingNames.GrantTypesEnabled,
+                AppliesTo = PlatformOnly,
+                Rule = SettingRules.Each(OpenIdSettingRules.GrantType()),
+
+                IsDiscoverable = IsNonStdDiscoverable,
+                OnMerge = Union,
             };
 
             // grant_types_supported: OAuth grant types the server permits (default supplied by the baseline provider).

@@ -182,4 +182,4 @@ limit until its window ends, the way a rate limit refuses.**
   `NCode.Identity.OpenId.Authentication.Clients.DefaultClientAuthenticationAttemptSettingDescriptorDataSource`,
   `NCode.Identity.OpenId.Authentication.Clients.Handlers.CommonClientAuthenticationHandler`,
   `NCode.Identity.OpenId.Authentication.RateLimiting.RateLimitErrors`,
-  `NCode.Identity.OpenId.Authentication.RateLimiting.RemoteAddressPartition`.
+  `NCode.Identity.AspNetCore.RemoteAddressPartition`.

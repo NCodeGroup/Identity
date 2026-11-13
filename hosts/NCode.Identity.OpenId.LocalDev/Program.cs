@@ -148,6 +148,11 @@ builder.AddJavaScriptApp("auth", "../../frontend/apps/auth").WithPnpm(install: f
 // whatever `dist` exists; on a cold start give the first build a moment to finish.
 builder.AddJavaScriptApp("mgmt", "../../frontend/apps/mgmt").WithPnpm(install: false);
 
+// The setup wizard bundle (apps/setup) is a BACKEND-SERVED bundle, like `auth`: its `dev` script is `vite build
+// --watch`, which continuously rebuilds `dist` for the host to serve under /setup (ADR-1512). It is a build-watcher with
+// no HTTP endpoint of its own, so it is a plain JavaScript app resource.
+builder.AddJavaScriptApp("setup", "../../frontend/apps/setup").WithPnpm(install: false);
+
 // The management console's BFF host (`console`) is a confidential client of the `api` on https://localhost:5005 (the
 // origin the developer seed's `mgmt-console` redirect URIs assume). It serves the `mgmt` bundle, its own /bff/*
 // endpoints and the forwarded management API on one origin, and holds the browser's tokens. Its private_key_jwt and

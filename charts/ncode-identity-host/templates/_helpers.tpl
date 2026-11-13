@@ -23,6 +23,15 @@ into (batch.kubernetes.io/job-name).
 {{- end }}
 
 {{/*
+The name of the setup Job, which carries the release revision so each upgrade can run its own. The fully qualified name
+is shortened first so the name, with its suffix, fits the 63-character label value Kubernetes copies it into
+(batch.kubernetes.io/job-name).
+*/}}
+{{- define "identity-host.setupJobName" -}}
+{{- printf "%s-setup-%d" (include "identity-host.fullname" . | trunc 49 | trimSuffix "-") (int .Release.Revision) }}
+{{- end }}
+
+{{/*
 The fully qualified name of the release's resources.
 */}}
 {{- define "identity-host.fullname" -}}
@@ -131,13 +140,16 @@ defaults, which are the values of the Valkey the host itself uses (ADR-1510).
 {{- end }}
 
 {{/*
-Refuses a Valkey connection that names both of its forms, or a parts Secret without a host key. Rendered for its side
-effect only.
+Refuses a Valkey connection that names both of its forms, a finished connection string without its key, or a parts Secret
+without a host key. Rendered for its side effect only.
 */}}
 {{- define "identity-host.valkeyValidate" -}}
 {{- $scope := .scope }}
 {{- if and $scope.existingSecret $scope.parts.existingSecret }}
 {{- fail (printf "%s.existingSecret and %s.parts.existingSecret are both set: name the Secret that holds the finished connection string or the Secret that holds the server's address and password, not both." .path .path) }}
+{{- end }}
+{{- if and $scope.existingSecret (not ($scope.connectionStringKey | default .defaults.connectionStringKey)) }}
+{{- fail (printf "%s.connectionStringKey must name the key that holds the connection string in %s.existingSecret." .path .path) }}
 {{- end }}
 {{- if and $scope.parts.existingSecret (not ($scope.parts.hostKey | default .defaults.parts.hostKey)) }}
 {{- fail (printf "%s.parts.hostKey must name the key that holds the host in the Secret." .path) }}
@@ -173,8 +185,8 @@ the defaults, which are the values of the database the host itself uses (ADR-150
 {{- end }}
 
 {{/*
-Refuses a database connection that names both of its forms, or none when it is required, or a parts Secret whose
-required key is empty. Rendered for its side effect only.
+Refuses a database connection that names both of its forms, or none when it is required, a finished connection string
+without its key, or a parts Secret whose required key is empty. Rendered for its side effect only.
 */}}
 {{- define "identity-host.databaseValidate" -}}
 {{- $scope := .scope }}
@@ -183,6 +195,9 @@ required key is empty. Rendered for its side effect only.
 {{- end }}
 {{- if and .required (not $scope.existingSecret) (not $scope.parts.existingSecret) }}
 {{- fail "database.existingSecret must name the Secret holding the openiddb connection string, or database.parts.existingSecret the Secret holding its host, database, user and password." }}
+{{- end }}
+{{- if and $scope.existingSecret (not ($scope.connectionStringKey | default .defaults.connectionStringKey)) }}
+{{- fail (printf "%s.connectionStringKey must name the key that holds the connection string in %s.existingSecret." .path .path) }}
 {{- end }}
 {{- if $scope.parts.existingSecret }}
 {{- range $part := list (list "host" "hostKey") (list "database" "databaseKey") (list "user" "usernameKey") (list "password" "passwordKey") }}
@@ -251,6 +266,27 @@ applied. Rendered for its side effect only.
 {{- if and (eq .Values.secretProtection.rewrapJob.command "rewrap-recovery") (not .Values.secretProtection.recovery.publicKeyConfigMap) }}
 {{- fail "secretProtection.rewrapJob.command rewrap-recovery replaces the recovery copies, so secretProtection.recovery.publicKeyConfigMap must name the recovery public key ConfigMap." }}
 {{- end }}
+{{- end }}
+{{- if and .Values.setup.token.existingSecret (not .Values.setup.token.key) }}
+{{- fail "setup.token.key must name the key that holds the setup token in setup.token.existingSecret." }}
+{{- end }}
+{{- if and .Values.setup.job.enabled (not .Values.setup.job.existingSecret) }}
+{{- fail "setup.job.existingSecret must name the Secret holding the root administrator's user name and password when setup.job.enabled is true." }}
+{{- end }}
+{{- if and .Values.setup.job.enabled (not .Values.setup.job.userNameKey) }}
+{{- fail "setup.job.userNameKey must name the key that holds the root administrator's user name in setup.job.existingSecret." }}
+{{- end }}
+{{- if and .Values.setup.job.enabled (not .Values.setup.job.passwordKey) }}
+{{- fail "setup.job.passwordKey must name the key that holds the root administrator's password in setup.job.existingSecret." }}
+{{- end }}
+{{- if and .Values.setup.job.enabled .Values.setup.managementConsole.baseUrl (not .Values.setup.managementConsole.jwks) }}
+{{- fail "setup.managementConsole.jwks must hold the console's public JWK Set when setup.managementConsole.baseUrl is set and setup.job.enabled is true." }}
+{{- end }}
+{{- if and .Values.setup.job.enabled .Values.setup.managementConsole.baseUrl (not .Values.setup.managementConsole.clientId) }}
+{{- fail "setup.managementConsole.clientId must name the console's client_id when setup.managementConsole.baseUrl is set and setup.job.enabled is true." }}
+{{- end }}
+{{- if and .Values.setup.job.enabled .Values.setup.automation.clientId (not .Values.setup.automation.jwks) }}
+{{- fail "setup.automation.jwks must hold the automation client's public JWK Set when setup.automation.clientId is set and setup.job.enabled is true." }}
 {{- end }}
 {{- if not .Values.secretProtection.rootKeyProvider }}
 {{- fail "secretProtection.rootKeyProvider is required: local, aws-kms, azure-key-vault or google-cloud-kms, or ephemeral outside Production." }}
@@ -625,6 +661,10 @@ same configuration the pods it rewraps keys for read.
 {{- if .Values.secretProtection.recovery.disabled }}
 - name: SecretProtection__Recovery__Disabled
   value: "true"
+{{- end }}
+{{- range $index, $grant := .Values.platform.grantTypesEnabled }}
+- name: OpenId__Platform__Settings__grant_types_enabled__{{ $index }}
+  value: {{ $grant | quote }}
 {{- end }}
 {{- with .Values.extraEnv }}
 {{- toYaml . | nindent 0 }}

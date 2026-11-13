@@ -4,6 +4,7 @@
 using Microsoft.AspNetCore.Cors.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using NCode.Identity.Registration;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using Xunit;
@@ -77,6 +78,43 @@ public sealed class DevelopmentEnvironmentRegistrationTests
             serviceCollection,
             descriptor => descriptor.ServiceType == typeof(ICorsService)
         );
+    }
+
+    [Fact]
+    public void AddDevelopmentEnvironment_WhenBootstrapAdminConfigured_BindsIt()
+    {
+        var serviceCollection = AddDevelopmentEnvironment(
+            CreateConfiguration(
+                ("BootstrapAdmin:ClientId", "bootstrap"),
+                ("BootstrapAdmin:ClientSecret", "c2VjcmV0"),
+                ("BootstrapAdmin:TenantId", "control")
+            )
+        );
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var options = serviceProvider.GetRequiredService<IOptions<BootstrapAdminOptions>>().Value;
+
+        Assert.Equal("bootstrap", options.ClientId);
+        Assert.True(options.IsEnabled);
+        Assert.Contains(
+            serviceCollection,
+            descriptor => descriptor.ImplementationType == typeof(BootstrapAdminSeedHandler)
+        );
+    }
+
+    [Fact]
+    public void AddDevelopmentEnvironment_WhenBootstrapAdminHasUnknownKey_Throws()
+    {
+        var serviceCollection = AddDevelopmentEnvironment(
+            CreateConfiguration(("BootstrapAdmin:Secret", "c2VjcmV0"))
+        );
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            serviceProvider.GetRequiredService<IOptions<BootstrapAdminOptions>>().Value
+        );
+
+        Assert.Contains("'BootstrapAdmin'", exception.Message, StringComparison.Ordinal);
     }
 
     #endregion

@@ -182,4 +182,74 @@ internal static partial class Log
         string clientId,
         string missingKeys
     );
+
+    [LoggerMessage(
+        EventId = EventIds.InstanceSetupCommandUsageInvalid,
+        Level = LogLevel.Error,
+        Message = "The setup command line is invalid: {Error} {Usage}"
+    )]
+    internal static partial void InstanceSetupCommandUsageInvalid(
+        this ILogger logger,
+        string error,
+        string usage
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.InstanceSetupCommandAlreadyInitialized,
+        Level = LogLevel.Information,
+        Message = "The instance is already initialized; setup already ran and creates nothing."
+    )]
+    internal static partial void InstanceSetupCommandAlreadyInitialized(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = EventIds.InstanceSetupCommandRootUserNameMissing,
+        Level = LogLevel.Error,
+        Message = "The setup command needs the root administrator's Setup:Root:UserName."
+    )]
+    internal static partial void InstanceSetupCommandRootUserNameMissing(this ILogger logger);
+
+    [LoggerMessage(
+        EventId = EventIds.InstanceSetupCommandFailed,
+        Level = LogLevel.Error,
+        Message = "The setup command was refused with status code {StatusCode}; the host's options validation names each configuration rule at start."
+    )]
+    internal static partial void InstanceSetupCommandFailed(this ILogger logger, int statusCode);
+
+    [LoggerMessage(
+        EventId = EventIds.InstanceSetupCommandRootCreated,
+        Level = LogLevel.Information,
+        Message = "Created the root administrator '{UserName}' in the control-plane tenant '{TenantId}'."
+    )]
+    internal static partial void InstanceSetupCommandRootCreated(
+        this ILogger logger,
+        string userName,
+        string tenantId
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.InstanceSetupCommandManagementConsoleRegistered,
+        Level = LogLevel.Information,
+        Message = "Registered the management console's client '{ClientId}' in the control-plane tenant."
+    )]
+    internal static partial void InstanceSetupCommandManagementConsoleRegistered(
+        this ILogger logger,
+        string clientId
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.InstanceSetupCommandAutomationClientCreated,
+        Level = LogLevel.Information,
+        Message = "Registered the automation client '{ClientId}' in the control-plane tenant."
+    )]
+    internal static partial void InstanceSetupCommandAutomationClientCreated(
+        this ILogger logger,
+        string clientId
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.InstanceSetupCommandRootPasswordMissing,
+        Level = LogLevel.Error,
+        Message = "The setup command needs the root administrator's Setup:Root:Password."
+    )]
+    internal static partial void InstanceSetupCommandRootPasswordMissing(this ILogger logger);
 }

@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Diagnostics.CodeAnalysis;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
@@ -79,8 +78,8 @@ internal class ClientApiEndpointHandler(
     ICryptoService cryptoService,
     ISettingSerializer settingSerializer,
     ISettingScopeCollectionProvider settingScopeCollectionProvider,
-    IEffectiveSettingsResolver effectiveSettingsResolver,
-    IClientCoherenceValidator clientCoherenceValidator,
+    IClientSettingsEvaluator clientSettingsEvaluator,
+    IClientCreator clientCreator,
     IClientCoherenceReporter clientCoherenceReporter,
     IClientSecretIssuer clientSecretIssuer,
     IResourceOwnershipService resourceOwnershipService,
@@ -92,10 +91,6 @@ internal class ClientApiEndpointHandler(
     IAmbientTenantAccessor ambientTenantAccessor
 ) : BaseOwnableApiEndpointHandler, IEndpointProvider
 {
-    // See ADR-1466.
-    private const string MachineClientGrantTypesDetail =
-        "A machine client obtains tokens only for itself: its 'grant_types_supported' is 'client_credentials' alone.";
-
     /// <summary>
     /// Gets the entropy, in bits, of the secret that replaces a rotated shared secret.
     /// </summary>
@@ -124,34 +119,20 @@ internal class ClientApiEndpointHandler(
             : ResourceNode.For(client.TenantId, ResourceNodeTypes.Tenant, client.TenantId);
 
     /// <summary>
-    /// Determines whether a client settings document limits the client to the <c>client_credentials</c> grant alone.
+    /// Flattens the per-setting errors of a <see cref="ClientCreation"/> into <see cref="SettingError"/> values, in
+    /// the order the settings and their messages appear.
     /// </summary>
-    /// <param name="settings">The client's settings document.</param>
-    /// <returns>
-    /// <see langword="true"/> when <c>grant_types_supported</c> is an array holding exactly the one string
-    /// <c>client_credentials</c>; otherwise, <see langword="false"/>.
-    /// </returns>
-    // See ADR-1466.
-    internal static bool IsClientCredentialsOnly(JsonElement settings)
-    {
-        if (settings.ValueKind != JsonValueKind.Object)
-        {
-            return false;
-        }
-
-        if (
-            !settings.TryGetProperty(OpenIdSettingNames.GrantTypesSupported, out var grantTypes)
-            || grantTypes.ValueKind != JsonValueKind.Array
-            || grantTypes.GetArrayLength() != 1
-        )
-        {
-            return false;
-        }
-
-        var grantType = grantTypes[0];
-        return grantType.ValueKind == JsonValueKind.String
-            && grantType.GetString() == OpenIdProtocol.GrantTypes.ClientCredentials;
-    }
+    private static IReadOnlyList<SettingError> FlattenSettingErrors(
+        IReadOnlyDictionary<string, string[]>? settingErrors
+    ) =>
+        settingErrors is null
+            ? []
+            :
+            [
+                .. settingErrors.SelectMany(pair =>
+                    pair.Value.Select(message => new SettingError(pair.Key, message))
+                ),
+            ];
 
     /// <summary>
     /// Returns the earlier of two instants.
@@ -191,9 +172,8 @@ internal class ClientApiEndpointHandler(
 
     private ISettingScopeCollectionProvider SettingScopeCollectionProvider { get; } =
         settingScopeCollectionProvider;
-    private IEffectiveSettingsResolver EffectiveSettingsResolver { get; } =
-        effectiveSettingsResolver;
-    private IClientCoherenceValidator ClientCoherenceValidator { get; } = clientCoherenceValidator;
+    private IClientSettingsEvaluator ClientSettingsEvaluator { get; } = clientSettingsEvaluator;
+    private IClientCreator ClientCreator { get; } = clientCreator;
     private IClientCoherenceReporter ClientCoherenceReporter { get; } = clientCoherenceReporter;
     private IClientSecretIssuer ClientSecretIssuer { get; } = clientSecretIssuer;
 
@@ -440,191 +420,6 @@ internal class ClientApiEndpointHandler(
             ConcurrencyToken = settings.ConcurrencyToken,
             Settings = settings.Value,
         };
-    }
-
-    /// <summary>
-    /// Resolves the addressed tenant's effective settings: the team's effective settings merged with the tenant's
-    /// persisted overrides. The tenant's effective view is reconstructed by id, so it is independent of the request's
-    /// resolved tenant. Both the team's and the tenant's settings are resolved through the
-    /// <see cref="IEffectiveSettingsResolver"/>, so each is expanded with the ceilings of the security profiles it
-    /// selects, as it is at runtime.
-    /// </summary>
-    /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
-    /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The tenant's effective <see cref="IReadOnlySettingCollection"/>, or <c>null</c> when the tenant's
-    /// settings are absent.</returns>
-    /// <exception cref="UnreadableSettingsException">The tenant's document or its team's cannot be honored.</exception>
-    // See ADR-1204 and ADR-1245.
-    internal virtual async ValueTask<IReadOnlySettingCollection?> MergeTenantSettingsAsync(
-        string tenantId,
-        IStoreManager storeManager,
-        CancellationToken cancellationToken
-    )
-    {
-        var tenant = await storeManager
-            .GetStore<ITenantStore>()
-            .GetOrDefaultAsync(tenantId, cancellationToken);
-        if (tenant is null)
-        {
-            return null;
-        }
-
-        var teamEffective = await EffectiveSettingsResolver.ResolveTeamAsync(
-            tenant.TeamId,
-            cancellationToken
-        );
-        return EffectiveSettingsResolver.ResolveStored(
-            teamEffective,
-            OpenIdSettingScopes.Tenant,
-            tenantId,
-            tenant.Settings.Value
-        );
-    }
-
-    /// <summary>
-    /// Merges an OpenID Client's persisted settings onto the addressed tenant's effective settings, producing the same
-    /// effective <see cref="IReadOnlySettingCollection"/> the authorization server resolves for the client at runtime.
-    /// The tenant's effective view is reconstructed by id (see <see cref="MergeTenantSettingsAsync"/>), so the preview
-    /// is independent of the request's resolved tenant. The client's settings are resolved through the
-    /// <see cref="IEffectiveSettingsResolver"/>, so they are expanded with the ceilings of the security profiles they
-    /// select, as they are at runtime. A document that cannot be honored fails naming its owner.
-    /// </summary>
-    /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
-    /// <param name="clientId">The identifier of the OpenID Client that owns the settings document.</param>
-    /// <param name="clientSettings">The client's settings document to merge.</param>
-    /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The client's effective <see cref="IReadOnlySettingCollection"/>, or <c>null</c> when the owning
-    /// tenant's settings are absent.</returns>
-    /// <exception cref="UnreadableSettingsException">The client's document, the tenant's or its team's cannot be
-    /// honored.</exception>
-    // See ADR-1204 and ADR-1245.
-    internal virtual async ValueTask<IReadOnlySettingCollection?> MergeClientSettingsAsync(
-        string tenantId,
-        string clientId,
-        JsonElement clientSettings,
-        IStoreManager storeManager,
-        CancellationToken cancellationToken
-    )
-    {
-        var tenantEffective = await MergeTenantSettingsAsync(
-            tenantId,
-            storeManager,
-            cancellationToken
-        );
-        return tenantEffective is null
-            ? null
-            : EffectiveSettingsResolver.ResolveStored(
-                tenantEffective,
-                OpenIdSettingScopes.Client,
-                clientId,
-                clientSettings
-            );
-    }
-
-    /// <summary>
-    /// Verifies that a client's settings document, resolved onto its tenant's effective settings as the runtime
-    /// resolves it, satisfies every registered <see cref="IClientCoherenceRule"/> (the algorithms the client registers
-    /// for the JWTs addressed to it, the kinds of its redirect URIs, and its token endpoint authentication method). A
-    /// mismatch is rejected when the settings are written instead of failing every issuance with
-    /// <c>server_error</c> or every authorization request with <c>invalid_request</c>.
-    /// </summary>
-    /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
-    /// <param name="clientSettings">The client's settings document to verify.</param>
-    /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The <see cref="SettingError"/> instances naming each registered setting whose value is not permitted,
-    /// or an empty list.</returns>
-    // See ADR-1206.
-    internal virtual async ValueTask<IReadOnlyList<SettingError>> ValidateEffectiveSettingsAsync(
-        string tenantId,
-        JsonElement clientSettings,
-        IStoreManager storeManager,
-        CancellationToken cancellationToken
-    )
-    {
-        var tenantSettings = await MergeTenantSettingsAsync(
-            tenantId,
-            storeManager,
-            cancellationToken
-        );
-
-        return tenantSettings is null
-            ? []
-            : ClientCoherenceValidator
-                .Validate(tenantSettings, clientSettings)
-                .Select(violation => new SettingError(violation.SettingName, violation.Description))
-                .ToList();
-    }
-
-    /// <summary>
-    /// Resolves the client-authentication method a client with the specified settings document is registered for,
-    /// through the <see cref="IClientSecretIssuer"/>, which stores the client's shared secrets in the form that method
-    /// needs.
-    /// </summary>
-    /// <param name="tenantId">The identifier of the OpenID Tenant that owns the client.</param>
-    /// <param name="clientId">The identifier of the OpenID Client.</param>
-    /// <param name="clientSettings">The client's settings document.</param>
-    /// <param name="storeManager">The <see cref="IStoreManager"/> used to load the tenant's persisted settings.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
-    /// <returns>The client's effective <c>token_endpoint_auth_method</c>, or <see langword="null"/> when the settings
-    /// cannot be merged.</returns>
-    // See ADR-1391.
-    private async ValueTask<string?> GetTokenEndpointAuthMethodAsync(
-        string tenantId,
-        string clientId,
-        JsonElement clientSettings,
-        IStoreManager storeManager,
-        CancellationToken cancellationToken
-    )
-    {
-        var tenant = await storeManager
-            .GetStore<ITenantStore>()
-            .GetOrDefaultAsync(tenantId, cancellationToken);
-        if (tenant is null)
-        {
-            return null;
-        }
-
-        return await ClientSecretIssuer.GetTokenEndpointAuthMethodAsync(
-            tenant.TeamId,
-            tenantId,
-            tenant.Settings.Value,
-            clientId,
-            clientSettings,
-            cancellationToken
-        );
-    }
-
-    /// <summary>
-    /// Writes the client-authentication method a client is registered for into its settings document when the document
-    /// names none, so every stored client names its method and a change to its platform's, team's or tenant's
-    /// <c>token_endpoint_auth_method</c> never moves the method its shared secrets are stored for.
-    /// </summary>
-    /// <param name="clientSettings">The client's settings document.</param>
-    /// <param name="tokenEndpointAuthMethod">The client's effective <c>token_endpoint_auth_method</c>, or
-    /// <see langword="null"/> when it cannot be resolved.</param>
-    /// <returns>The settings document that names the client's method.</returns>
-    // See ADR-1391.
-    internal virtual JsonElement NameTokenEndpointAuthMethod(
-        JsonElement clientSettings,
-        string? tokenEndpointAuthMethod
-    )
-    {
-        if (tokenEndpointAuthMethod is null)
-        {
-            return clientSettings;
-        }
-
-        var settings = ToJsonObject(clientSettings);
-        if (settings.ContainsKey(OpenIdSettingNames.TokenEndpointAuthMethod))
-        {
-            return clientSettings;
-        }
-
-        settings[OpenIdSettingNames.TokenEndpointAuthMethod] = tokenEndpointAuthMethod;
-        return SerializeToElement(settings);
     }
 
     /// <summary>
@@ -877,7 +672,7 @@ internal class ClientApiEndpointHandler(
                 await using var storeManager = await StoreManagerFactory.CreateAsync(
                     cancellationToken
                 );
-                var tenantSettings = await MergeTenantSettingsAsync(
+                var tenantSettings = await ClientSettingsEvaluator.MergeTenantSettingsAsync(
                     tenantId,
                     storeManager,
                     cancellationToken
@@ -973,30 +768,16 @@ internal class ClientApiEndpointHandler(
 
         var clientId = CryptoService.GenerateResourceId();
 
-        var client = new PersistedClient
+        var creationRequest = new ClientCreationRequest
         {
             TenantId = tenantId,
             ClientId = clientId,
-            ConcurrencyToken = string.Empty,
             IsDisabled = request.IsDisabled,
             ResourceServerId = resourceServerId,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = tenantId,
-                ClientId = clientId,
-                ConcurrencyToken = string.Empty,
-                Value = SerializeToElement(ToJsonObject(request.Settings)),
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = tenantId,
-                ClientId = clientId,
-                ConcurrencyToken = string.Empty,
-                Value = [],
-            },
+            Settings = request.Settings,
         };
 
-        return await AddClientAsync(httpContext, storeManager, client, request, cancellationToken);
+        return await AddClientAsync(httpContext, storeManager, creationRequest, cancellationToken);
     }
 
     /// <summary>
@@ -1106,7 +887,7 @@ internal class ClientApiEndpointHandler(
 
         var clientId = CryptoService.GenerateResourceId();
 
-        var settings = ToJsonObject(request.Settings);
+        var settings = ClientSettingsJson.ToJsonObject(request.Settings);
         if (!settings.ContainsKey(OpenIdSettingNames.GrantTypesSupported))
         {
             settings[OpenIdSettingNames.GrantTypesSupported] = new JsonArray(
@@ -1116,126 +897,54 @@ internal class ClientApiEndpointHandler(
 
         var settingsValue = SerializeToElement(settings);
 
-        var client = new PersistedClient
+        var creationRequest = new ClientCreationRequest
         {
             TenantId = tenantId,
             ClientId = clientId,
-            ConcurrencyToken = string.Empty,
             IsDisabled = request.IsDisabled,
             ResourceServerId = null,
             OwningNodeType = owningNode.ResourceType,
             OwningNodeId = owningNode.ResourceId,
-            Settings = new PersistedClientSettings
-            {
-                TenantId = tenantId,
-                ClientId = clientId,
-                ConcurrencyToken = string.Empty,
-                Value = settingsValue,
-            },
-            Secrets = new PersistedClientSecrets
-            {
-                TenantId = tenantId,
-                ClientId = clientId,
-                ConcurrencyToken = string.Empty,
-                Value = [],
-            },
+            Settings = settingsValue,
         };
 
-        return await AddClientAsync(httpContext, storeManager, client, request, cancellationToken);
+        return await AddClientAsync(httpContext, storeManager, creationRequest, cancellationToken);
     }
 
     /// <summary>
-    /// Validates and stores a client, and answers the created client. A machine client, which names its owning node,
-    /// must be limited to the <c>client_credentials</c> grant and has no creator assignment.
+    /// Validates and stages a client through the <see cref="IClientCreator"/>, saves it, and answers the created
+    /// client. A machine client, which names its owning node, must be limited to the <c>client_credentials</c> grant
+    /// and has no creator assignment.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="storeManager">The <see cref="IStoreManager"/> that stores the client.</param>
-    /// <param name="client">The client to store.</param>
-    /// <param name="request">The <see cref="CreateClientRequest"/> describing the client.</param>
+    /// <param name="creationRequest">The <see cref="ClientCreationRequest"/> describing the client.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <returns>The <c>201</c> result carrying the created client, or the error that refused it.</returns>
     private async ValueTask<IResult> AddClientAsync(
         HttpContext httpContext,
         IStoreManager storeManager,
-        PersistedClient client,
-        CreateClientRequest request,
+        ClientCreationRequest creationRequest,
         CancellationToken cancellationToken
     )
     {
         var openIdContext = httpContext.GetOpenIdContext();
-        var store = storeManager.GetStore<IClientStore>();
 
-        // Core preconditions (uniqueness, the resource server) are asserted by the validator (ADR-1014).
-        var error = await ClientValidator.ValidateCreateAsync(
-            client,
+        var creation = await ClientCreator.StageAsync(
             storeManager,
+            creationRequest,
             cancellationToken
         );
 
-        if (error is not null)
+        if (!creation.Succeeded)
         {
-            return ToErrorResult(error);
+            return creation.Error is { } creationError
+                ? ToErrorResult(creationError)
+                : SettingsValidationProblem(FlattenSettingErrors(creation.SettingErrors));
         }
 
+        var client = creation.Client;
         var isMachineClient = client.OwningNodeType is not null;
-
-        // See ADR-1466.
-        if (isMachineClient && !IsClientCredentialsOnly(client.Settings.Value))
-        {
-            var grantTypesError = new SettingError(
-                OpenIdSettingNames.GrantTypesSupported,
-                MachineClientGrantTypesDetail
-            );
-            return SettingsValidationProblem([grantTypesError]);
-        }
-
-        // Setting names are a closed vocabulary (ADR-1139), and a client carries only the settings that apply within it
-        // (ADR-1149): a settings document that cannot be honored is rejected here rather than stored and failed on
-        // every request that resolves the client.
-        var settingErrors = SettingSerializer.ValidateSettings(
-            request.Settings,
-            OpenIdSettingScopes.Client,
-            openIdContext.Environment.JsonSerializerOptions
-        );
-        if (settingErrors.Count > 0)
-        {
-            return SettingsValidationProblem(settingErrors);
-        }
-
-        var effectiveSettingErrors = await ValidateEffectiveSettingsAsync(
-            client.TenantId,
-            client.Settings.Value,
-            storeManager,
-            cancellationToken
-        );
-        if (effectiveSettingErrors.Count > 0)
-        {
-            return SettingsValidationProblem(effectiveSettingErrors);
-        }
-
-        var jwksUriRefusal = await ClientJwksUriChecker.GetRefusalAsync(
-            client.Settings.Value,
-            null,
-            cancellationToken
-        );
-        if (jwksUriRefusal is not null)
-        {
-            return SettingsValidationProblem([jwksUriRefusal.Value]);
-        }
-
-        var tokenEndpointAuthMethod = await GetTokenEndpointAuthMethodAsync(
-            client.TenantId,
-            client.ClientId,
-            client.Settings.Value,
-            storeManager,
-            cancellationToken
-        );
-        client.Settings.Value = NameTokenEndpointAuthMethod(
-            client.Settings.Value,
-            tokenEndpointAuthMethod
-        );
-
-        await store.AddAsync(client, cancellationToken);
 
         PersistedRoleAssignment? creatorAssignment = null;
         if (!isMachineClient)
@@ -1567,7 +1276,7 @@ internal class ClientApiEndpointHandler(
                     return null;
                 }
 
-                var effectiveSettings = await MergeClientSettingsAsync(
+                var effectiveSettings = await ClientSettingsEvaluator.MergeClientSettingsAsync(
                     tenantId,
                     clientId,
                     client.Settings.Value,
@@ -1655,7 +1364,7 @@ internal class ClientApiEndpointHandler(
             return ManagementProblems.PreconditionFailed("settings");
         }
 
-        var jsonObject = ToJsonObject(clientSettings.Value);
+        var jsonObject = ClientSettingsJson.ToJsonObject(clientSettings.Value);
 
         try
         {
@@ -1673,11 +1382,14 @@ internal class ClientApiEndpointHandler(
         var settingsValue = SerializeToElement(jsonObject);
 
         // See ADR-1466.
-        if (client.OwningNodeType is not null && !IsClientCredentialsOnly(settingsValue))
+        if (
+            client.OwningNodeType is not null
+            && !DefaultClientSettingsEvaluator.IsClientCredentialsOnly(settingsValue)
+        )
         {
             var grantTypesError = new SettingError(
                 OpenIdSettingNames.GrantTypesSupported,
-                MachineClientGrantTypesDetail
+                DefaultClientSettingsEvaluator.MachineClientGrantTypesDetail
             );
             return SettingsValidationProblem([grantTypesError]);
         }
@@ -1714,7 +1426,7 @@ internal class ClientApiEndpointHandler(
             return KeySourceConflict();
         }
 
-        var effectiveSettingErrors = await ValidateEffectiveSettingsAsync(
+        var effectiveSettingErrors = await ClientSettingsEvaluator.ValidateEffectiveSettingsAsync(
             client.TenantId,
             settingsValue,
             storeManager,
@@ -1738,21 +1450,25 @@ internal class ClientApiEndpointHandler(
         // The client's shared secrets follow the method the settings register when they change it, through the rule
         // dynamic client registration applies to an update. Settings that leave the method as it is leave the secrets
         // as they are, so an edit never issues a secret to a client that holds none. See ADR-1391.
-        var storedTokenEndpointAuthMethod = await GetTokenEndpointAuthMethodAsync(
-            client.TenantId,
-            client.ClientId,
-            clientSettings.Value,
-            storeManager,
-            cancellationToken
-        );
-        var tokenEndpointAuthMethod = await GetTokenEndpointAuthMethodAsync(
+        var storedTokenEndpointAuthMethod =
+            await ClientSettingsEvaluator.GetTokenEndpointAuthMethodAsync(
+                client.TenantId,
+                client.ClientId,
+                clientSettings.Value,
+                storeManager,
+                cancellationToken
+            );
+        var tokenEndpointAuthMethod = await ClientSettingsEvaluator.GetTokenEndpointAuthMethodAsync(
             client.TenantId,
             client.ClientId,
             settingsValue,
             storeManager,
             cancellationToken
         );
-        settingsValue = NameTokenEndpointAuthMethod(settingsValue, tokenEndpointAuthMethod);
+        settingsValue = ClientSettingsEvaluator.NameTokenEndpointAuthMethod(
+            settingsValue,
+            tokenEndpointAuthMethod
+        );
 
         var reconciliation = string.Equals(
             storedTokenEndpointAuthMethod,
@@ -1980,7 +1696,7 @@ internal class ClientApiEndpointHandler(
         }
 
         var tokenEndpointAuthMethod = isSharedSecret
-            ? await GetTokenEndpointAuthMethodAsync(
+            ? await ClientSettingsEvaluator.GetTokenEndpointAuthMethodAsync(
                 client.TenantId,
                 client.ClientId,
                 client.Settings.Value,
@@ -2566,7 +2282,7 @@ internal class ClientApiEndpointHandler(
         }
 
         // The replacement's form follows the method the client is registered for, whatever the rotated secret's form.
-        var tokenEndpointAuthMethod = await GetTokenEndpointAuthMethodAsync(
+        var tokenEndpointAuthMethod = await ClientSettingsEvaluator.GetTokenEndpointAuthMethodAsync(
             client.TenantId,
             client.ClientId,
             client.Settings.Value,

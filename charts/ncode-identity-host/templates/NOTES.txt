@@ -8,6 +8,18 @@ The {{ include "identity-host.migrationsJobName" . }} Job applied the database m
 {{- else }}
 Apply the database migrations before a new version starts: the host does not migrate on boot.
 {{- end }}
+
+An uninitialized instance is set up once at https://{{ first .Values.allowedHosts }}/setup/#token=<token>.
+{{- if .Values.setup.token.existingSecret }}
+The token is the {{ .Values.setup.token.key }} key of the {{ .Values.setup.token.existingSecret }} Secret.
+{{- else }}
+With no setup.token.existingSecret, the token is the one that a single replica logs once as a Warning, and it expires.
+{{- end }}
+{{- if .Values.setup.job.enabled }}
+The {{ include "identity-host.setupJobName" . }} Job creates the root administrator from the
+{{ .Values.setup.job.existingSecret }} Secret without a browser and exits 0 on an instance that is already initialized.
+{{- end }}
+Delete the setup Secrets once the instance is initialized.
 {{- if not (include "identity-host.valkeyEnabled" .) }}
 
 Without Valkey the release runs one replica and replaces it with downtime on every update. Set valkey.existingSecret or

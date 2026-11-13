@@ -52,6 +52,8 @@ public static class DefaultRegistration
                 ILocalAccountValidator,
                 DefaultLocalAccountValidator
             >();
+            serviceCollection.TryAddSingleton<LocalAccountPasswords>();
+            serviceCollection.TryAddSingleton<ILocalAccountCreator, DefaultLocalAccountCreator>();
 
             return builder;
         }

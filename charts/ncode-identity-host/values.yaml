@@ -212,6 +212,56 @@ secretProtection:
     backoffLimit: 0
     activeDeadlineSeconds: 3600
 
+# The first-run setup of a Production instance (ADR-1512): the one-time setup token that guards the /setup wizard, and an
+# opt-in Job that creates the root administrator without a browser. The chart never creates these Secrets; the operator
+# does, and removes them once the instance is initialized.
+setup:
+  token:
+    # Secret holding the setup token (Setup:Token), at least 32 characters, under key. The host then guards /setup with it
+    # and generates no token of its own. Empty makes the host generate a token and log it once on one replica.
+    existingSecret: ""
+    # The key of the setup token in existingSecret. Required when existingSecret is set.
+    key: token
+  # A Job from the host image that runs the 'setup' command, which creates the root administrator once and exits 0 on an
+  # instance that is already initialized, so it can run on every release. It needs no setup token.
+  job:
+    enabled: false
+    # Secret holding the root administrator's user name, email and password under the keys below. Required when the Job is
+    # enabled.
+    existingSecret: ""
+    # The key of the root administrator's user name in existingSecret.
+    userNameKey: userName
+    # The key of the root administrator's email address in existingSecret. The key may be absent from the Secret.
+    emailKey: email
+    # The key of the root administrator's password in existingSecret.
+    passwordKey: password
+    backoffLimit: 2
+    activeDeadlineSeconds: 300
+  # The management console's confidential client, which the setup Job registers in the control-plane tenant in the same
+  # save as the root administrator (Setup__ManagementConsole__*). Setting baseUrl registers it; the Job then needs jwks
+  # too. Setup imports the JWK Set by value and never fetches a jwks_uri.
+  managementConsole:
+    # The console's client_id.
+    clientId: mgmt-console
+    # The console's public https origin without a path, such as https://console.example.com. Empty registers no console.
+    baseUrl: ""
+    # The console's public JWK Set, a JSON object with a non-empty keys array. Never the private key.
+    jwks: ""
+  # A platform-owned client_credentials machine client with the GlobalAdmin role, which the setup Job registers in the same
+  # save as the root administrator (Setup__Automation__*), so a GitOps install manages the instance without the
+  # development bootstrap client. The platform must enable client_credentials (first-production-instance.md, section 6).
+  automation:
+    # The automation client's client_id. Setting it registers the client; the Job then needs jwks too.
+    clientId: ""
+    # The automation client's public JWK Set, a JSON object with a non-empty keys array. Never the private key.
+    jwks: ""
+
+# Settings of the platform, the scope every tenant inherits from.
+platform:
+  # Grant type names the host adds to the baseline grant_types_supported (the platform setting grant_types_enabled), such
+  # as client_credentials for the setup Job's automation client. Empty adds none.
+  grantTypesEnabled: []
+
 # TLS between the ingress and the pods (ADR-1504). The pods serve HTTPS only, and the host refuses to start in
 # Production without a certificate it can serve. The chart mounts the certificate at /etc/ncode-identity/tls and points
 # the probes, the Service and the Ingress at the pods' HTTPS port.

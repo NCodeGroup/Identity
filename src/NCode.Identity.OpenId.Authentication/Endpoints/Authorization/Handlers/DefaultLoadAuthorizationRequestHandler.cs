@@ -369,10 +369,9 @@ internal class DefaultLoadAuthorizationRequestHandler(
             throw;
         }
         catch (Exception exception)
-            when (exception is HttpRequestException or IOException or OperationCanceledException)
+            when (OutboundFetchFailureReasons.IsFetchFailure(exception, cancellationToken))
         {
-            var timedOut =
-                timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested;
+            var timedOut = OutboundFetchFailureReasons.IsTimedOut(timeoutCts, cancellationToken);
             var uriForLog = OutboundUriRedaction.ForLog(requestUri);
             var reason = OutboundFetchFailureReasons.Classify(exception, timedOut);
             Logger.FailedToFetchRequestUri(uriForLog, reason, exception);

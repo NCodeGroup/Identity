@@ -15,6 +15,7 @@ using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Clients;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
+using NCode.Identity.OpenId.Core.Tests.OutboundHttp;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Collections;
@@ -341,6 +342,25 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
 
         AssertOnlySharedSecret(keys);
         AssertFetchFailedReason(logger, ClientJwksFetchFailureReasons.TooLarge);
+    }
+
+    [Fact]
+    public async Task ResolveSecretKeysAsync_WhenTheBodyIsCorrupt_LogsConnection()
+    {
+        var logger = new FakeLogger<DefaultClientKeyResolver>();
+        using var handler = new FailingBodyHttpMessageHandler(new InvalidDataException("x"));
+        var collaborators = new FetchCollaborators(
+            new OutboundHttpOptions(),
+            new DefaultOutboundHttpContentReader(),
+            CreateStrictMock<IClientKeyImporter>().Object
+        );
+        var resolver = CreateFetchingResolver(handler, collaborators, logger);
+        var client = CreateClient(FetchSettings(TimeSpan.FromSeconds(10)), readsClientId: true);
+
+        var keys = await resolver.ResolveSecretKeysAsync(client, CancellationToken.None);
+
+        AssertOnlySharedSecret(keys);
+        AssertFetchFailedReason(logger, ClientJwksFetchFailureReasons.Connection);
     }
 
     [Fact]

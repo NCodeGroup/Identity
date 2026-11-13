@@ -17,6 +17,7 @@ using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.Messages;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Core.Tests.OutboundHttp;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Exceptions;
@@ -251,58 +252,6 @@ public class DefaultLoadAuthorizationRequestHandlerTests : BaseTests
         }
     }
 
-    private sealed class FailingReadStream : Stream
-    {
-        public override bool CanRead => true;
-
-        public override bool CanSeek => false;
-
-        public override bool CanWrite => false;
-
-        public override long Length => throw new NotSupportedException();
-
-        public override long Position
-        {
-            get => throw new NotSupportedException();
-            set => throw new NotSupportedException();
-        }
-
-        public override ValueTask<int> ReadAsync(
-            Memory<byte> buffer,
-            CancellationToken cancellationToken = default
-        ) => ValueTask.FromException<int>(new IOException("x"));
-
-        public override int Read(byte[] buffer, int offset, int count) =>
-            throw new IOException("x");
-
-        public override void Flush() { }
-
-        public override long Seek(long offset, SeekOrigin origin) =>
-            throw new NotSupportedException();
-
-        public override void SetLength(long value) => throw new NotSupportedException();
-
-        public override void Write(byte[] buffer, int offset, int count) =>
-            throw new NotSupportedException();
-    }
-
-    private sealed class FailingBodyHttpMessageHandler : HttpMessageHandler
-    {
-        protected override Task<HttpResponseMessage> SendAsync(
-            HttpRequestMessage request,
-            CancellationToken cancellationToken
-        )
-        {
-            var content = new StreamContent(new FailingReadStream());
-            content.Headers.ContentType = new MediaTypeHeaderValue(
-                "application/oauth-authz-req+jwt"
-            );
-            return Task.FromResult(
-                new HttpResponseMessage(HttpStatusCode.OK) { Content = content }
-            );
-        }
-    }
-
     private sealed class DelayingHttpMessageHandler : HttpMessageHandler
     {
         protected override async Task<HttpResponseMessage> SendAsync(
@@ -399,7 +348,7 @@ public class DefaultLoadAuthorizationRequestHandlerTests : BaseTests
     {
         var context = CreateContext();
         var client = CreateClient(readsResponseSettings: true);
-        SetupHttpClient(new HttpClient(new FailingBodyHttpMessageHandler()));
+        SetupHttpClient(new HttpClient(new FailingBodyHttpMessageHandler(new IOException("x"))));
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await HandleAsync(context, client, RequestUri, CancellationToken.None)
@@ -408,6 +357,25 @@ public class DefaultLoadAuthorizationRequestHandlerTests : BaseTests
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestUri, CapturedErrorCode);
         AssertFetchFailedReason("connection");
     }
+
+    [Theory]
+    [MemberData(nameof(CorruptBodyExceptions))]
+    public async Task HandleAsync_WhenTheResponseBodyIsCorrupt_LogsConnection(Exception exception)
+    {
+        var context = CreateContext();
+        var client = CreateClient(readsResponseSettings: true);
+        SetupHttpClient(new HttpClient(new FailingBodyHttpMessageHandler(exception)));
+
+        await Assert.ThrowsAsync<OpenIdException>(async () =>
+            await HandleAsync(context, client, RequestUri, CancellationToken.None)
+        );
+
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestUri, CapturedErrorCode);
+        AssertFetchFailedReason("connection");
+    }
+
+    public static TheoryData<Exception> CorruptBodyExceptions =>
+        [new InvalidDataException("x"), new InvalidOperationException("x")];
 
     [Fact]
     public async Task HandleAsync_WhenTheFetchTimesOut_LogsTimeout()

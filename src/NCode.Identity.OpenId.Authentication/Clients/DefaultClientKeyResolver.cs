@@ -275,10 +275,9 @@ internal sealed class DefaultClientKeyResolver(
             return ImportKeys(openIdClient, uri, buffer.AsReadOnlySequence);
         }
         catch (Exception exception)
-            when (exception is HttpRequestException or OperationCanceledException)
+            when (OutboundFetchFailureReasons.IsFetchFailure(exception, cancellationToken))
         {
-            var timedOut =
-                timeoutSource.IsCancellationRequested && !cancellationToken.IsCancellationRequested;
+            var timedOut = OutboundFetchFailureReasons.IsTimedOut(timeoutSource, cancellationToken);
             var reason = OutboundFetchFailureReasons.Classify(exception, timedOut);
             Logger.ClientJwksFetchFailed(openIdClient.ClientId, uriForLog, reason, exception);
             return [];

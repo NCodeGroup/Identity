@@ -127,10 +127,10 @@ internal class DefaultSectorIdentifierValidator(
                 "The 'sector_identifier_uri' document could not be fetched within the allotted time."
             );
         }
-        catch (HttpRequestException exception)
+        catch (Exception exception)
+            when (OutboundFetchFailureReasons.IsFetchFailure(exception, cancellationToken))
         {
-            var timedOut =
-                timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested;
+            var timedOut = OutboundFetchFailureReasons.IsTimedOut(timeoutCts, cancellationToken);
             var uriForLog = OutboundUriRedaction.ForLog(uri);
             var reason = OutboundFetchFailureReasons.Classify(exception, timedOut);
             Logger.SectorIdentifierUriFetchFailed(uriForLog, reason, exception);

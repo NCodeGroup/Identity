@@ -9,6 +9,7 @@ using NCode.Identity.OpenId.Authentication.Endpoints.Registration;
 using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Contexts;
+using NCode.Identity.OpenId.Core.Tests.OutboundHttp;
 using NCode.Identity.OpenId.Errors;
 using NCode.Identity.OpenId.Messages;
 using NCode.Identity.OpenId.Settings;
@@ -322,6 +323,28 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
         var context = CreateContext(factory);
         SetupHttpClient(
             new HttpClient(new ThrowingHttpMessageHandler(new HttpRequestException("x")))
+        );
+
+        var error = await validator.ValidateAsync(
+            context,
+            "https://sector.example.com/uris.json",
+            ["https://a.example.com/cb"],
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
+        AssertFetchFailedReason("connection");
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenTheResponseBodyIsCorrupt_LogsConnection()
+    {
+        var validator = CreateValidator();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var context = CreateContext(factory);
+        SetupHttpClient(
+            new HttpClient(new FailingBodyHttpMessageHandler(new InvalidDataException("x")))
         );
 
         var error = await validator.ValidateAsync(

@@ -86,6 +86,9 @@ compiles it and no gate tests it
   sign-in, consent and account surface that the OP serves from the `apps/auth` bundle, with a pluggable credential
   verifier
   ([ADR-1062](docs/decisions/1062-the-op-serves-an-opt-in-interactive-sign-in-and-consent-surface-with-a-pluggable-credential-verifier.md))
+- **Instance setup** — `NCode.Identity.OpenId.Setup(.Abstractions)`: the one-time `/setup` wizard and `setup` command
+  that create the root administrator
+  ([ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md))
 - **OpenID protocol client** — `NCode.Identity.OpenId.Client(.Abstractions)`: an OAuth 2.0 / OIDC client for server-side
   callers (discovery, JWKS, client authentication, token and revocation requests) built on the family's JOSE stack
   ([ADR-1285](docs/decisions/1285-the-protocol-client-is-a-framework-free-library-over-the-familys-jose-stack-and-named-key-rings.md))

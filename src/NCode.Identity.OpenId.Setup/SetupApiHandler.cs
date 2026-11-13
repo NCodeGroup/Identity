@@ -228,7 +228,10 @@ internal sealed class SetupApiHandler(
         httpContext.Response.Headers.CacheControl = "no-store";
 
         return TypedResults.Problem(
-            detail: "Too many setup attempts. Try again in a minute.",
+            detail: string.Create(
+                CultureInfo.InvariantCulture,
+                $"Too many setup attempts. Try again in {seconds} seconds."
+            ),
             statusCode: StatusCodes.Status429TooManyRequests
         );
     }

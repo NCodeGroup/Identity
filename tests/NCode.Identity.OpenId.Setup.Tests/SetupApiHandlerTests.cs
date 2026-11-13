@@ -765,8 +765,9 @@ public sealed class SetupApiHandlerTests : IDisposable
         var result = await handler.CheckTokenAsync(limitedContext, CancellationToken.None);
 
         var problem = AssertProblem(result, StatusCodes.Status429TooManyRequests);
+        var retryAfter = Assert.Single(limitedContext.Response.Headers.RetryAfter);
         Assert.Equal(
-            "Too many setup attempts. Try again in a minute.",
+            $"Too many setup attempts. Try again in {retryAfter} seconds.",
             problem.ProblemDetails.Detail
         );
         AssertRetryAfter(limitedContext);

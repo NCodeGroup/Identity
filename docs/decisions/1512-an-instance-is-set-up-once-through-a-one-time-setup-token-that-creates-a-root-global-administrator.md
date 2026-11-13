@@ -45,7 +45,8 @@ administrator.**
    the concurrency token and answers 404.
 4. **The setup surface is hardened.** `/setup` answers 404 to a request that is not HTTPS in Production. It rate-limits
    `POST /setup/api/token` and `POST /setup/api/root` to 10 requests per minute per client address and answers 429
-   beyond that. It serves its page with a nonce Content-Security-Policy (`script-src 'nonce-…' 'strict-dynamic'`,
+   beyond that, with `Retry-After` giving the seconds until the next attempt and `Cache-Control: no-store`. It serves
+   its page with a nonce Content-Security-Policy (`script-src 'nonce-…' 'strict-dynamic'`,
    `style-src 'nonce-…'`, `img-src 'self'`, `connect-src 'self'` plus the hinted console's origin, if any,
    `form-action 'none'`)
    ([ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md))

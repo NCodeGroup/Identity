@@ -474,6 +474,20 @@ public sealed class DefaultTenantValidatorTests : IDisposable
     }
 
     [Fact]
+    public async Task ValidateUpdateAsync_WhenIfMatchIsTheQuotedEntityTag_ReturnsNull()
+    {
+        var error = await Validator.ValidateUpdateAsync(
+            CreateTenant(concurrencyToken: "tenant-ct", issuer: Issuer),
+            new UpdateTenantRequest { DisplayName = "New Name", Issuer = Issuer },
+            ifMatch: "\"tenant-ct\"",
+            MockStoreManager.Object,
+            CancellationToken.None
+        );
+
+        Assert.Null(error);
+    }
+
+    [Fact]
     public async Task ValidateUpdateAsync_WhenTheDisplayNameIsWhitespace_ReturnsBadRequest()
     {
         var error = await Validator.ValidateUpdateAsync(

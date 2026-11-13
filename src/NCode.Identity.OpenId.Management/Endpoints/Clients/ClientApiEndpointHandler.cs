@@ -87,6 +87,7 @@ internal class ClientApiEndpointHandler(
     IManagementAuditRecorder managementAuditRecorder,
     IHostManagedClientChecker hostManagedClientChecker,
     IClientKeySourceChecker clientKeySourceChecker,
+    IClientJwksUriChecker clientJwksUriChecker,
     ILogger<ClientApiEndpointHandler> logger,
     IAmbientTenantAccessor ambientTenantAccessor
 ) : BaseOwnableApiEndpointHandler, IEndpointProvider
@@ -201,6 +202,7 @@ internal class ClientApiEndpointHandler(
         managementAuditRecorder;
     private IHostManagedClientChecker HostManagedClientChecker { get; } = hostManagedClientChecker;
     private IClientKeySourceChecker ClientKeySourceChecker { get; } = clientKeySourceChecker;
+    private IClientJwksUriChecker ClientJwksUriChecker { get; } = clientJwksUriChecker;
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =
@@ -1211,6 +1213,16 @@ internal class ClientApiEndpointHandler(
             return SettingsValidationProblem(effectiveSettingErrors);
         }
 
+        var jwksUriRefusal = await ClientJwksUriChecker.GetRefusalAsync(
+            client.Settings.Value,
+            null,
+            cancellationToken
+        );
+        if (jwksUriRefusal is not null)
+        {
+            return SettingsValidationProblem([jwksUriRefusal.Value]);
+        }
+
         var tokenEndpointAuthMethod = await GetTokenEndpointAuthMethodAsync(
             client.TenantId,
             client.ClientId,
@@ -1711,6 +1723,16 @@ internal class ClientApiEndpointHandler(
         if (effectiveSettingErrors.Count > 0)
         {
             return SettingsValidationProblem(effectiveSettingErrors);
+        }
+
+        var jwksUriRefusal = await ClientJwksUriChecker.GetRefusalAsync(
+            settingsValue,
+            clientSettings.Value,
+            cancellationToken
+        );
+        if (jwksUriRefusal is not null)
+        {
+            return SettingsValidationProblem([jwksUriRefusal.Value]);
         }
 
         // The client's shared secrets follow the method the settings register when they change it, through the rule

@@ -70,8 +70,8 @@ internal sealed class DefaultOutboundHttpForgeryGuard(
 
         throw anyAllowed
             ? new HttpRequestException("Failed to connect to the requested host.", lastError)
-            : new HttpRequestException(
-                "The requested host did not resolve to a permitted public network address."
+            : new OutboundAddressRefusedException(
+                $"The host '{endPoint.Host}' resolves only to addresses that the outbound network floor or a registered address filter refuses."
             );
     }
 

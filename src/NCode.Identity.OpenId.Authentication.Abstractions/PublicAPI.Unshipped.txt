@@ -1146,6 +1146,8 @@ NCode.Identity.OpenId.Authentication.ResourceServers.IClientScopeService.GetEnab
 NCode.Identity.OpenId.Authentication.ResourceServers.IClientScopeService.ResolveAudiencesAsync(string! tenantId, System.Collections.Generic.IReadOnlyCollection<string!>! scopes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyCollection<string!>!>
 NCode.Identity.OpenId.Authentication.OutboundHttp.IOutboundAddressFilter
 NCode.Identity.OpenId.Authentication.OutboundHttp.IOutboundAddressFilter.IsDisallowed(System.Net.IPAddress! address) -> bool
+NCode.Identity.OpenId.Authentication.OutboundHttp.IOutboundHostChecker
+NCode.Identity.OpenId.Authentication.OutboundHttp.IOutboundHostChecker.IsRefusedAsync(string! host, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.OpenId.Authentication.OutboundHttp.IOutboundHttpContentReader
 NCode.Identity.OpenId.Authentication.OutboundHttp.IOutboundHttpContentReader.ReadCappedAsync(System.Net.Http.HttpResponseMessage! response, System.Buffers.IBufferWriter<byte>! destination, int maxSizeBytes, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpReadResult>
 NCode.Identity.OpenId.Authentication.OutboundHttp.OutboundHttpReadResult

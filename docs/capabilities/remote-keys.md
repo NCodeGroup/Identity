@@ -365,6 +365,10 @@ rows as a tenant's keys.
   ring's PEM Secret and remote keys, the chart registers each vendor a remote key names, and the console reaches it
   through its own workload identity under `managementConsole.secretProtection`; see
   [The console's keys in a key management service](../../charts/ncode-identity-host/README.md#the-consoles-keys-in-a-key-management-service).
+- **A BFF the server can't reach imports its keys.** When the server can't fetch the BFF's `/bff/jwks`, as when the
+  BFF is reachable only on a private network that the outbound guard refuses, register the client without a
+  `jwks_uri` and import each key's public half through `POST /api/tenants/{tenantId}/clients/{clientId}/secrets/import`;
+  import the next key when the ring rotates.
 
 > [!TIP]
 > [ADR-1479](../decisions/1479-a-protocol-clients-and-a-bffs-keys-can-be-held-in-a-key-management-service.md),

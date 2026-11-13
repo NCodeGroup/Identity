@@ -654,6 +654,13 @@ required, the grant types `authorization_code` and `refresh_token`, the redirect
 `https://<host>/bff/callback`, the post-logout redirect URI `https://<host>/`, the back-channel logout URI
 `https://<host>/bff/backchannel-logout`, and `jwks_uri` `https://<host>/bff/jwks`.
 
+The server never fetches a `jwks_uri` whose host resolves to a loopback, private or other special-use address, and the
+management API refuses to store one. A console reachable only on a private network registers without `jwks_uri` and
+imports the public half of its `mgmt-client` key through
+`POST /api/tenants/{tenantId}/clients/mgmt-console/secrets/import`. The client then authenticates against the stored
+key, so a rotation of `mgmt-client` imports the next key. A refused fetch logs `ClientJwksFetchFailed` with the reason
+`blocked_address`.
+
 The console calls the server's management API at `/api` on the origin of the console's authority, the URL the server
 compares the console's DPoP proofs with, and the chart sets `ManagementConsole__ManagementApiUrl` to it:
 `https://id.example.com/api` for the authority `https://id.example.com`. The console's host serves only the console, so

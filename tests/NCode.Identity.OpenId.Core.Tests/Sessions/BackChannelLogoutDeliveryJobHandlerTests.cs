@@ -2,8 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
+using Microsoft.Extensions.Logging.Testing;
 using Moq;
 using NCode.Identity.Dispatch;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Core.Tests.OutboundHttp;
@@ -19,13 +21,14 @@ public class BackChannelLogoutDeliveryJobHandlerTests : BaseTests
 
     private Mock<IHttpClientFactory> MockHttpClientFactory { get; }
     private RecordingHttpMessageHandler Handler { get; }
+    private FakeLogger<BackChannelLogoutDeliveryJobHandler> Logger { get; } = new();
     private BackChannelLogoutDeliveryJobHandler Subject { get; }
 
     public BackChannelLogoutDeliveryJobHandlerTests()
     {
         MockHttpClientFactory = CreateStrictMock<IHttpClientFactory>();
         Handler = new RecordingHttpMessageHandler();
-        Subject = new BackChannelLogoutDeliveryJobHandler(MockHttpClientFactory.Object);
+        Subject = new BackChannelLogoutDeliveryJobHandler(MockHttpClientFactory.Object, Logger);
     }
 
     private sealed class RecordingHttpMessageHandler(HttpStatusCode statusCode = HttpStatusCode.OK)
@@ -47,6 +50,26 @@ public class BackChannelLogoutDeliveryJobHandlerTests : BaseTests
         }
     }
 
+    private sealed class DelayingHttpMessageHandler : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        )
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return new HttpResponseMessage(HttpStatusCode.OK);
+        }
+    }
+
+    private sealed class ThrowingHttpMessageHandler(Exception exception) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        ) => Task.FromException<HttpResponseMessage>(exception);
+    }
+
     private static DispatchContext Context() =>
         new()
         {
@@ -55,13 +78,23 @@ public class BackChannelLogoutDeliveryJobHandlerTests : BaseTests
             MaxAttempts = 5,
         };
 
-    private static BackChannelLogoutDeliveryJob CreateJob() =>
+    private static BackChannelLogoutDeliveryJob CreateJob(string logoutUri = LogoutUri) =>
         new()
         {
             ClientId = ClientId,
-            LogoutUri = LogoutUri,
+            LogoutUri = logoutUri,
             LogoutToken = LogoutToken,
         };
+
+    private void AssertDeliveryFailedReason(string reason)
+    {
+        var record = Assert.Single(
+            Logger.Collector.GetSnapshot(),
+            r => r.Id.Id == EventIds.BackChannelLogoutDeliveryFailed
+        );
+        Assert.Equal(reason, record.GetStructuredStateValue("Reason"));
+        Assert.DoesNotContain(LogoutToken, record.Message);
+    }
 
     #region HandleAsync Tests
 
@@ -103,6 +136,84 @@ public class BackChannelLogoutDeliveryJobHandlerTests : BaseTests
 
         await Assert.ThrowsAsync<HttpRequestException>(() =>
             Subject.HandleAsync(CreateJob(), Context(), CancellationToken.None).AsTask()
+        );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenEndpointReturnsError_LogsHttpStatus()
+    {
+        var errorHandler = new RecordingHttpMessageHandler(HttpStatusCode.ServiceUnavailable);
+        MockHttpClientFactory
+            .Setup(x => x.CreateClient(GuardedHttpClient.Name))
+            .Returns(new HttpClient(errorHandler))
+            .Verifiable();
+
+        await Assert.ThrowsAsync<HttpRequestException>(() =>
+            Subject.HandleAsync(CreateJob(), Context(), CancellationToken.None).AsTask()
+        );
+
+        AssertDeliveryFailedReason("http_status");
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheSendFailsWithAnIOException_LogsConnectionAndRethrows()
+    {
+        var failure = new IOException("The connection was reset.");
+        MockHttpClientFactory
+            .Setup(x => x.CreateClient(GuardedHttpClient.Name))
+            .Returns(new HttpClient(new ThrowingHttpMessageHandler(failure)))
+            .Verifiable();
+
+        var thrown = await Assert.ThrowsAsync<IOException>(() =>
+            Subject.HandleAsync(CreateJob(), Context(), CancellationToken.None).AsTask()
+        );
+
+        Assert.Same(failure, thrown);
+        AssertDeliveryFailedReason("connection");
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheHostResolvesToARefusedAddress_LogsBlockedAddress()
+    {
+        using var handler = new SocketsHttpHandler
+        {
+            ConnectCallback = new DefaultOutboundHttpForgeryGuard([]).ConnectAsync,
+        };
+        MockHttpClientFactory
+            .Setup(x => x.CreateClient(GuardedHttpClient.Name))
+            .Returns(new HttpClient(handler, disposeHandler: false))
+            .Verifiable();
+
+        await Assert.ThrowsAsync<HttpRequestException>(() =>
+            Subject
+                .HandleAsync(
+                    CreateJob("https://10.0.0.5/backchannel-logout"),
+                    Context(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        AssertDeliveryFailedReason("blocked_address");
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheCallerCancels_ThrowsWithoutAFailureLog()
+    {
+        MockHttpClientFactory
+            .Setup(x => x.CreateClient(GuardedHttpClient.Name))
+            .Returns(new HttpClient(new DelayingHttpMessageHandler()))
+            .Verifiable();
+        using var cts = new CancellationTokenSource();
+        cts.CancelAfter(50);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            Subject.HandleAsync(CreateJob(), Context(), cts.Token).AsTask()
+        );
+
+        Assert.DoesNotContain(
+            Logger.Collector.GetSnapshot(),
+            r => r.Id.Id == EventIds.BackChannelLogoutDeliveryFailed
         );
     }
 

@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Authentication.Metrics;
+using NCode.Identity.OpenId.Authentication.OutboundHttp.Facades;
 using NCode.Identity.Registration;
 
 namespace NCode.Identity.OpenId.Authentication.OutboundHttp;
@@ -36,6 +37,8 @@ internal static class DefaultRegistration
                 IOutboundHttpForgeryGuard,
                 DefaultOutboundHttpForgeryGuard
             >();
+            serviceCollection.TryAddSingleton<IOutboundHostResolver, DefaultOutboundHostResolver>();
+            serviceCollection.TryAddSingleton<IOutboundHostChecker, DefaultOutboundHostChecker>();
             serviceCollection.TryAddSingleton<
                 IOutboundHttpContentReader,
                 DefaultOutboundHttpContentReader

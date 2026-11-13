@@ -140,18 +140,19 @@ internal sealed class RevocationDataFetcher(
 
             return buffer.AsReadOnlySequence.ToArray();
         }
-        catch (HttpRequestException exception)
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            Logger.RevocationInformationUnavailable(location, subject, "The fetch timed out.");
+            return null;
+        }
+        catch (Exception exception)
+            when (OutboundFetchFailureReasons.IsFetchFailure(exception, cancellationToken))
         {
             Logger.RevocationInformationUnavailable(
                 location,
                 subject,
                 $"The response could not be fetched: {exception.Message}"
             );
-            return null;
-        }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-        {
-            Logger.RevocationInformationUnavailable(location, subject, "The fetch timed out.");
             return null;
         }
     }

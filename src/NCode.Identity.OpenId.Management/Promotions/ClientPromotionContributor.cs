@@ -30,7 +30,8 @@ internal class ClientPromotionContributor(
     IClientCoherenceValidator clientCoherenceValidator,
     ITenantClientCoherenceChecker tenantClientCoherenceChecker,
     IClientKeySourceChecker clientKeySourceChecker,
-    IHostManagedClientChecker hostManagedClientChecker
+    IHostManagedClientChecker hostManagedClientChecker,
+    IClientJwksUriChecker clientJwksUriChecker
 ) : ITenantPromotionContributor
 {
     private const int PageLimit = 100;
@@ -50,6 +51,8 @@ internal class ClientPromotionContributor(
     private IClientKeySourceChecker ClientKeySourceChecker { get; } = clientKeySourceChecker;
 
     private IHostManagedClientChecker HostManagedClientChecker { get; } = hostManagedClientChecker;
+
+    private IClientJwksUriChecker ClientJwksUriChecker { get; } = clientJwksUriChecker;
 
     /// <inheritdoc />
     public int Order => TenantPromotionOrders.Clients;
@@ -533,6 +536,18 @@ internal class ClientPromotionContributor(
                 errors.Add(
                     "A client's public keys come from one source: the keys registered for it or the keys it publishes at its 'jwks_uri', never both."
                 );
+            }
+
+            if (
+                await ClientJwksUriChecker.GetRefusalAsync(
+                    promoted.Document,
+                    target?.Settings.Value,
+                    cancellationToken
+                ) is
+                { } refusal
+            )
+            {
+                errors.Add(refusal.Message);
             }
 
             var isSettingsChanged =

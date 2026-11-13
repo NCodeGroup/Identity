@@ -1,0 +1,480 @@
+// Copyright © NCode Group
+// SPDX-License-Identifier: Apache-2.0
+
+using System.Net;
+using System.Text.Json;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using NCode.Buffers;
+using NCode.Identity.OpenId.Management;
+using NCode.Identity.OpenId.Setup.Contracts;
+using HostEnvironments = Microsoft.Extensions.Hosting.Environments;
+
+namespace NCode.Identity.OpenId.Setup;
+
+public sealed class SetupApiHandlerTests : IDisposable
+{
+    private const string Token = "a-setup-token-that-must-never-be-logged";
+    private const string UserName = "root";
+    private const string Password = "a-long-root-password";
+
+    private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
+    private Mock<IInstanceSetupService> MockInstanceSetupService { get; }
+    private Mock<ISetupTokenService> MockSetupTokenService { get; }
+    private Mock<IHostEnvironment> MockHostEnvironment { get; }
+    private SetupRateLimiter RateLimiter { get; } = new();
+
+    public SetupApiHandlerTests()
+    {
+        MockInstanceSetupService = MockRepository.Create<IInstanceSetupService>();
+        MockSetupTokenService = MockRepository.Create<ISetupTokenService>();
+        MockHostEnvironment = MockRepository.Create<IHostEnvironment>();
+    }
+
+    public void Dispose()
+    {
+        RateLimiter.Dispose();
+        MockRepository.Verify();
+    }
+
+    #region Helpers
+
+    private SetupApiHandler CreateHandler(string environmentName)
+    {
+        MockHostEnvironment.Setup(x => x.EnvironmentName).Returns(environmentName).Verifiable();
+
+        return new SetupApiHandler(
+            MockInstanceSetupService.Object,
+            MockSetupTokenService.Object,
+            RateLimiter,
+            MockHostEnvironment.Object
+        );
+    }
+
+    private void SetupIsInitialized(bool isInitialized, Times? times = null) =>
+        MockInstanceSetupService
+            .Setup(x => x.IsInitializedAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(isInitialized)
+            .Verifiable(times ?? Times.Once());
+
+    private void SetupVerify(bool isValid, Times? times = null) =>
+        MockSetupTokenService
+            .Setup(x => x.VerifyAsync(Token, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(isValid)
+            .Verifiable(times ?? Times.Once());
+
+    private static DefaultHttpContext CreateHttpContext(
+        bool isHttps = true,
+        string remoteAddress = "10.0.0.1",
+        ILoggerProvider? loggerProvider = null,
+        string? body = null,
+        string? contentType = "application/json"
+    )
+    {
+        var services = new ServiceCollection();
+        services.AddLogging(builder =>
+        {
+            if (loggerProvider is not null)
+            {
+                builder.AddProvider(loggerProvider);
+            }
+        });
+
+        var httpContext = new DefaultHttpContext
+        {
+            RequestServices = services.BuildServiceProvider(),
+        };
+        httpContext.Request.Scheme = isHttps ? Uri.UriSchemeHttps : Uri.UriSchemeHttp;
+        httpContext.Request.ContentType = contentType;
+        httpContext.Request.Body = new MemoryStream(
+            SecureEncoding.UTF8.GetBytes(body ?? CreateRequestJson())
+        );
+        httpContext.Connection.RemoteIpAddress = IPAddress.Parse(remoteAddress);
+        return httpContext;
+    }
+
+    private static string CreateRequestJson() =>
+        JsonSerializer.Serialize(
+            new CreateRootRequest
+            {
+                Token = Token,
+                UserName = UserName,
+                Email = "root@example.com",
+                Password = Password,
+            },
+            JsonSerializerOptions.Web
+        );
+
+    private static InstanceSetupResult CreateSuccess() =>
+        new()
+        {
+            Root = new CreateRootResponse
+            {
+                TenantId = "control-plane",
+                PrincipalId = "principal-1",
+                UserName = UserName,
+            },
+        };
+
+    private static ProblemHttpResult AssertProblem(IResult result, int statusCode)
+    {
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(statusCode, problem.StatusCode);
+        return problem;
+    }
+
+    #endregion
+
+    #region GetStatusAsync Tests
+
+    [Fact]
+    public async Task GetStatusAsync_WhenTheInstanceIsNotInitialized_AnswersTheTokenSourceAndMinimumPasswordLength()
+    {
+        SetupIsInitialized(false);
+        MockSetupTokenService
+            .Setup(x => x.TokenSource)
+            .Returns(SetupTokenSources.Generated)
+            .Verifiable();
+        var handler = CreateHandler(HostEnvironments.Development);
+
+        var result = await handler.GetStatusAsync(CreateHttpContext(), CancellationToken.None);
+
+        var ok = Assert.IsType<Ok<SetupStatusResponse>>(result);
+        Assert.NotNull(ok.Value);
+        Assert.Equal(SetupTokenSources.Generated, ok.Value.TokenSource);
+        Assert.Equal(SetupDefaults.MinimumRootPasswordLength, ok.Value.MinimumPasswordLength);
+    }
+
+    [Fact]
+    public async Task GetStatusAsync_WhenTheInstanceIsInitialized_Answers404()
+    {
+        SetupIsInitialized(true);
+        var handler = CreateHandler(HostEnvironments.Development);
+
+        var result = await handler.GetStatusAsync(CreateHttpContext(), CancellationToken.None);
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetStatusAsync_WhenProductionAndTheRequestIsNotHttps_Answers404WithoutReadingTheInstance()
+    {
+        var handler = CreateHandler(HostEnvironments.Production);
+
+        var result = await handler.GetStatusAsync(
+            CreateHttpContext(isHttps: false),
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task GetStatusAsync_WhenProductionAndTheRequestIsHttps_AnswersTheStatus()
+    {
+        SetupIsInitialized(false);
+        MockSetupTokenService
+            .Setup(x => x.TokenSource)
+            .Returns(SetupTokenSources.Configured)
+            .Verifiable();
+        var handler = CreateHandler(HostEnvironments.Production);
+
+        var result = await handler.GetStatusAsync(
+            CreateHttpContext(isHttps: true),
+            CancellationToken.None
+        );
+
+        Assert.IsType<Ok<SetupStatusResponse>>(result);
+    }
+
+    #endregion
+
+    #region CreateRootAsync Tests
+
+    [Fact]
+    public async Task CreateRootAsync_WhenTheInstanceIsInitialized_Answers404WithoutVerifyingTheToken()
+    {
+        SetupIsInitialized(true);
+        var handler = CreateHandler(HostEnvironments.Development);
+
+        var result = await handler.CreateRootAsync(CreateHttpContext(), CancellationToken.None);
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task CreateRootAsync_WhenTheInstanceIsInitializedAndTheBodyIsMalformed_Answers404()
+    {
+        SetupIsInitialized(true);
+        var handler = CreateHandler(HostEnvironments.Development);
+
+        var result = await handler.CreateRootAsync(
+            CreateHttpContext(body: "{ not json"),
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task CreateRootAsync_WhenProductionAndTheRequestIsNotHttps_Answers404WithoutReadingTheInstance()
+    {
+        var handler = CreateHandler(HostEnvironments.Production);
+
+        var result = await handler.CreateRootAsync(
+            CreateHttpContext(isHttps: false),
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task CreateRootAsync_WhenTheContentTypeIsNotJson_Answers400WithoutVerifyingTheToken()
+    {
+        SetupIsInitialized(false);
+        var handler = CreateHandler(HostEnvironments.Development);
+
+        var result = await handler.CreateRootAsync(
+            CreateHttpContext(contentType: "text/plain"),
+            CancellationToken.None
+        );
+
+        var problem = AssertProblem(result, StatusCodes.Status400BadRequest);
+        Assert.Equal("The setup request is not valid.", problem.ProblemDetails.Detail);
+    }
+
+    [Fact]
+    public async Task CreateRootAsync_WhenTheBodyIsMalformedJson_Answers400WithoutVerifyingTheToken()
+    {
+        SetupIsInitialized(false);
+        var handler = CreateHandler(HostEnvironments.Development);
+
+        var result = await handler.CreateRootAsync(
+            CreateHttpContext(body: "{ not json"),
+            CancellationToken.None
+        );
+
+        var problem = AssertProblem(result, StatusCodes.Status400BadRequest);
+        Assert.Equal("The setup request is not valid.", problem.ProblemDetails.Detail);
+    }
+
+    [Fact]
+    public async Task CreateRootAsync_WhenTheBodyIsJsonNull_Answers400WithoutVerifyingTheToken()
+    {
+        SetupIsInitialized(false);
+        var handler = CreateHandler(HostEnvironments.Development);
+
+        var result = await handler.CreateRootAsync(
+            CreateHttpContext(body: "null"),
+            CancellationToken.None
+        );
+
+        AssertProblem(result, StatusCodes.Status400BadRequest);
+    }
+
+    [Fact]
+    public async Task CreateRootAsync_WhenTheTokenIsNotValid_Answers403WithoutCreatingTheRoot()
+    {
+        SetupIsInitialized(false);
+        SetupVerify(false);
+        var handler = CreateHandler(HostEnvironments.Development);
+
+        var result = await handler.CreateRootAsync(CreateHttpContext(), CancellationToken.None);
+
+        AssertProblem(result, StatusCodes.Status403Forbidden);
+    }
+
+    [Fact]
+    public async Task CreateRootAsync_WhenTheClientHasUsedItsAttempts_Answers429WithoutVerifyingTheToken()
+    {
+        SetupIsInitialized(false, Times.Exactly(SetupDefaults.RootAttemptsPerMinute + 1));
+        SetupVerify(false, Times.Exactly(SetupDefaults.RootAttemptsPerMinute));
+        var handler = CreateHandler(HostEnvironments.Development);
+        for (var attempt = 0; attempt < SetupDefaults.RootAttemptsPerMinute; ++attempt)
+        {
+            await handler.CreateRootAsync(CreateHttpContext(), CancellationToken.None);
+        }
+
+        var result = await handler.CreateRootAsync(CreateHttpContext(), CancellationToken.None);
+
+        AssertProblem(result, StatusCodes.Status429TooManyRequests);
+    }
+
+    [Fact]
+    public async Task CreateRootAsync_WhenAnotherClientHasUsedItsAttempts_StillVerifiesTheToken()
+    {
+        SetupIsInitialized(false, Times.Exactly(SetupDefaults.RootAttemptsPerMinute + 1));
+        SetupVerify(false, Times.Exactly(SetupDefaults.RootAttemptsPerMinute + 1));
+        var handler = CreateHandler(HostEnvironments.Development);
+        for (var attempt = 0; attempt < SetupDefaults.RootAttemptsPerMinute; ++attempt)
+        {
+            await handler.CreateRootAsync(
+                CreateHttpContext(remoteAddress: "10.0.0.1"),
+                CancellationToken.None
+            );
+        }
+
+        var result = await handler.CreateRootAsync(
+            CreateHttpContext(remoteAddress: "10.0.0.2"),
+            CancellationToken.None
+        );
+
+        AssertProblem(result, StatusCodes.Status403Forbidden);
+    }
+
+    [Fact]
+    public async Task CreateRootAsync_WhenTheSetupFails_AnswersItsErrorAsAProblem()
+    {
+        SetupIsInitialized(false);
+        SetupVerify(true);
+        MockInstanceSetupService
+            .Setup(x =>
+                x.CreateRootAsync(It.IsAny<SetupRootOptions>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(
+                new InstanceSetupResult
+                {
+                    Error = new ManagementError
+                    {
+                        StatusCode = StatusCodes.Status400BadRequest,
+                        Detail = "The password is too weak.",
+                    },
+                }
+            )
+            .Verifiable();
+        var handler = CreateHandler(HostEnvironments.Development);
+
+        var result = await handler.CreateRootAsync(CreateHttpContext(), CancellationToken.None);
+
+        var problem = AssertProblem(result, StatusCodes.Status400BadRequest);
+        Assert.Equal("The password is too weak.", problem.ProblemDetails.Detail);
+    }
+
+    [Fact]
+    public async Task CreateRootAsync_WhenAConcurrentSetupWon_Answers404()
+    {
+        SetupIsInitialized(false);
+        SetupVerify(true);
+        MockInstanceSetupService
+            .Setup(x =>
+                x.CreateRootAsync(It.IsAny<SetupRootOptions>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(
+                new InstanceSetupResult
+                {
+                    Error = new ManagementError
+                    {
+                        StatusCode = StatusCodes.Status404NotFound,
+                        Detail = "The instance is already set up.",
+                    },
+                }
+            )
+            .Verifiable();
+        var handler = CreateHandler(HostEnvironments.Development);
+
+        var result = await handler.CreateRootAsync(CreateHttpContext(), CancellationToken.None);
+
+        AssertProblem(result, StatusCodes.Status404NotFound);
+    }
+
+    [Fact]
+    public async Task CreateRootAsync_WhenTheSetupSucceeds_Answers201WithTheRootAndPassesTheRequestedAdministrator()
+    {
+        var success = CreateSuccess();
+        SetupIsInitialized(false);
+        SetupVerify(true);
+        MockInstanceSetupService
+            .Setup(x =>
+                x.CreateRootAsync(
+                    It.Is<SetupRootOptions>(root =>
+                        root.UserName == UserName
+                        && root.Email == "root@example.com"
+                        && root.Password == Password
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(success)
+            .Verifiable();
+        var handler = CreateHandler(HostEnvironments.Development);
+
+        var result = await handler.CreateRootAsync(CreateHttpContext(), CancellationToken.None);
+
+        var json = Assert.IsType<JsonHttpResult<CreateRootResponse>>(result);
+        Assert.Equal(StatusCodes.Status201Created, json.StatusCode);
+        Assert.Same(success.Root, json.Value);
+    }
+
+    [Fact]
+    public async Task CreateRootAsync_Always_NeverPassesTheTokenToALogger()
+    {
+        using var loggerProvider = new RecordingLoggerProvider();
+        SetupIsInitialized(false, Times.Exactly(3));
+        MockSetupTokenService
+            .SetupSequence(x => x.VerifyAsync(Token, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(false)
+            .ReturnsAsync(true)
+            .ReturnsAsync(true);
+        MockInstanceSetupService
+            .SetupSequence(x =>
+                x.CreateRootAsync(It.IsAny<SetupRootOptions>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(CreateSuccess())
+            .ReturnsAsync(
+                new InstanceSetupResult
+                {
+                    Error = new ManagementError
+                    {
+                        StatusCode = StatusCodes.Status400BadRequest,
+                        Detail = "The password is too weak.",
+                    },
+                }
+            );
+        var handler = CreateHandler(HostEnvironments.Development);
+
+        for (var attempt = 0; attempt < 3; ++attempt)
+        {
+            await handler.CreateRootAsync(
+                CreateHttpContext(loggerProvider: loggerProvider),
+                CancellationToken.None
+            );
+        }
+
+        Assert.DoesNotContain(
+            loggerProvider.Messages,
+            message => message.Contains(Token, StringComparison.Ordinal)
+        );
+        Assert.DoesNotContain(
+            loggerProvider.Messages,
+            message => message.Contains(Password, StringComparison.Ordinal)
+        );
+    }
+
+    #endregion
+
+    private sealed class RecordingLoggerProvider : ILoggerProvider, ILogger
+    {
+        public List<string> Messages { get; } = [];
+
+        public ILogger CreateLogger(string categoryName) => this;
+
+        public void Dispose() { }
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            LogLevel logLevel,
+            EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter
+        ) => Messages.Add(formatter(state, exception));
+    }
+}

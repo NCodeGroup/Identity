@@ -9,6 +9,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.Registration;
+using NCode.Identity.Registration.AspNetCore;
 
 namespace NCode.Identity.OpenId.Setup;
 
@@ -28,8 +29,9 @@ public static class DefaultRegistration
     extension(IServiceBuilder<OpenIdManagementLibrary> builder)
     {
         /// <summary>
-        /// Registers the one-time instance setup. <see cref="SetupOptions"/> is bound from the <c>Setup</c>
-        /// configuration section, and a relative bundle path is resolved against the content root.
+        /// Registers the one-time instance setup and maps its <c>/setup</c> routes. <see cref="SetupOptions"/> is
+        /// bound from the <c>Setup</c> configuration section, and a relative bundle path is resolved against the
+        /// content root.
         /// </summary>
         /// <remarks>
         /// The section is bound strictly and checked when the host starts: a key that maps to no option, a configured
@@ -80,6 +82,12 @@ public static class DefaultRegistration
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IHostedService, InstanceSetupHostedService>()
             );
+
+            serviceCollection.TryAddSingleton<SetupRateLimiter>();
+            serviceCollection.TryAddSingleton<SetupPageHandler>();
+            serviceCollection.TryAddSingleton<SetupApiHandler>();
+
+            builder.AddEndpointGroup<SetupEndpointGroup>();
 
             return builder;
         }

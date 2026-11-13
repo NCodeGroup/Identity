@@ -33,8 +33,8 @@ The management API under `/api` is a resource server for its own issuer. The for
 ## Decision
 
 **The management API authenticates the access tokens its own issuer mints, inside the request environment, and the
-authentication filter is the only source of a route's caller. The first `GlobalAdmin` is a client that configuration
-seeds.**
+authentication filter is the only source of a route's caller. In development and test, the first `GlobalAdmin` is a
+client that configuration seeds.**
 
 ### Inbound authentication
 
@@ -67,9 +67,12 @@ seeds.**
 
 ### The bootstrap administrator
 
-7. **It is opt-in through `BootstrapAdminOptions`.** `BootstrapAdmin:ClientId`, `BootstrapAdmin:ClientSecret`
-   (Base64Url-encoded) and `BootstrapAdmin:TenantId` are required once configured, and `TenantId` names a host's static
-   tenant or the root tenant. Without an id and a secret nothing is seeded or conferred.
+7. **It is a development and test convenience, opt-in through `BootstrapAdminOptions`.** `BootstrapAdmin:ClientId`,
+   `BootstrapAdmin:ClientSecret` (Base64Url-encoded) and `BootstrapAdmin:TenantId` are required once configured, and
+   `TenantId` names a host's static tenant or the root tenant. Without an id and a secret nothing is seeded or
+   conferred. `AddProductionSafety` refuses a configured bootstrap client in Production, where the first
+   administrator is the root that instance setup creates
+   ([ADR-1512](1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 8. **`BootstrapAdminSeedHandler` seeds the client.** It is an `ICommandHandler<SeedTenantCommand>`
    ([ADR-1166](1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md)) that
    seeds the client into exactly the tenant `BootstrapAdmin:TenantId` names, for `client_secret_basic`, checked against
@@ -85,12 +88,18 @@ seeds.**
     administrator obtains a `GlobalAdmin` token through it
     ([ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md): a route answers `409`
     from what it read and declares it).
-12. **A host enables `client_credentials` at the platform**, under `OpenId:Platform:Settings:grant_types_supported`
+12. **A host enables `client_credentials` at the platform**, under the configuration path
+    `OpenId:Platform:Settings:grant_types_supported`, which an environment variable spells
+    `OpenId__Platform__Settings__grant_types_supported__0`, `__1` and so on, one index per grant
     ([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)),
-    because the baseline omits it and the setting is an intersect-merged ceiling. Until then the token request is
-    refused `unauthorized_client`.
+    because the baseline omits it and the setting is an intersect-merged ceiling. The configured array is the
+    platform's whole list, so it repeats every grant the platform keeps (the baseline is `authorization_code`,
+    `refresh_token`, `urn:ietf:params:oauth:grant-type:device_code` and `urn:openid:params:grant-type:ciba`) and adds
+    `client_credentials`. Until the list holds `client_credentials`, the token request is refused
+    `unauthorized_client`.
 13. **The bootstrap client provisions durable administrators**, human or machine, as role assignments. A lost
-    credential is recovered by seeding again from configuration.
+    credential is recovered by seeding again from configuration. A Production instance does not use it: its
+    administrators descend from the root that setup creates.
 
 ## Options considered
 
@@ -107,11 +116,14 @@ seeds.**
 - **A persisted `GlobalAdmin` assignment or a human as the first administrator.** Rejected: operators automate cold
   start with a machine credential, and on a fresh deployment no administrator exists to write the assignment. A
   durable `GlobalAdmin` is a role assignment at the platform node, which the bootstrap client grants.
+- **A configured bootstrap client in Production.** Rejected: a long-lived credential that holds `GlobalAdmin` and
+  sits in configuration is a development and test convenience. A Production instance creates its first administrator
+  once, through instance setup ([ADR-1512](1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 - **An empty `200` for an anonymous who-am-I request.** Rejected: the answer describes nobody and hides a missing or
   expired token from a client that would sign in again.
 - **Chosen: the filter authenticates the issuer's own tokens in the environment, is the only source of the caller, and a
-  configured client carries the `GlobalAdmin` claim.** One issuer mints and validates, reuses the tenant's signing keys,
-  and needs no second trust configuration.
+  configured client carries the `GlobalAdmin` claim in development and test.** One issuer mints and validates, reuses
+  the tenant's signing keys, and needs no second trust configuration.
 
 ## Consequences
 
@@ -120,9 +132,13 @@ seeds.**
   list `401` and no `403`. `ManagementRouteProblemDeclarationTests` names them as the authenticated-caller routes.
 - A management client with a valid token is the caller of every route it requests, and each route authorizes it from
   its role assignments.
-- A deployment reaches the control plane from configuration alone: the bootstrap credential is durable, rotatable and
-  idempotent across restarts and replicas, and never logged. Scope it to cold start and provision durable
-  administrators promptly.
+- A development or test deployment reaches the control plane from configuration alone: the bootstrap credential is
+  durable, rotatable and idempotent across restarts and replicas, and never logged. Scope it to cold start and
+  provision durable administrators promptly.
+- A Production instance refuses the bootstrap client, and its first administrator is the root that instance setup
+  creates ([ADR-1512](1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
+- The platform's `grant_types_supported` array is the platform's whole list, so a host that adds `client_credentials`
+  repeats the grants the platform keeps.
 - `GlobalAdmin` authority is carried by the token's role claim, not its scope, because its authority is cross-plane and
   no single requestable scope represents it.
 - A smell: a route that reads `HttpContext.User.Identity.IsAuthenticated` to decide an authentication-only answer
@@ -145,6 +161,8 @@ seeds.**
   [ADR-1067](1067-secret-key-types-form-one-catalog-and-authenticated-management-callers-discover-the-deployments-capabilities.md),
   [ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md): the
   authenticated-caller routes.
+- [ADR-1512](1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md):
+  the root administrator of a Production instance.
 - RFC 6750 section 3.
 - [#715](https://github.com/NCodeGroup/identity/issues/715),
   [#716](https://github.com/NCodeGroup/identity/issues/716)

@@ -26,6 +26,8 @@ public sealed class SetupApiHandlerTests : IDisposable
     private Mock<ISetupSurfaceGate> MockSurfaceGate { get; }
     private SetupRateLimiter RateLimiter { get; } = new();
 
+    private SetupOptions HandlerOptions { get; } = new();
+
     public SetupApiHandlerTests()
     {
         MockInstanceSetupService = MockRepository.Create<IInstanceSetupService>();
@@ -46,7 +48,8 @@ public sealed class SetupApiHandlerTests : IDisposable
             MockInstanceSetupService.Object,
             MockSetupTokenService.Object,
             RateLimiter,
-            MockSurfaceGate.Object
+            MockSurfaceGate.Object,
+            Microsoft.Extensions.Options.Options.Create(HandlerOptions)
         );
 
     private void SetupIsServed(bool isServed, Times? times = null) =>
@@ -89,6 +92,12 @@ public sealed class SetupApiHandlerTests : IDisposable
         httpContext.Connection.RemoteIpAddress = IPAddress.Parse(remoteAddress);
         return httpContext;
     }
+
+    private static string CreateCheckTokenJson() =>
+        JsonSerializer.Serialize(
+            new CheckSetupTokenRequest { Token = Token },
+            JsonSerializerOptions.Web
+        );
 
     private static string CreateRequestJson() =>
         JsonSerializer.Serialize(
@@ -657,6 +666,124 @@ public sealed class SetupApiHandlerTests : IDisposable
             loggerProvider.Messages,
             message => message.Contains(Password, StringComparison.Ordinal)
         );
+    }
+
+    #endregion
+
+    #region CheckTokenAsync Tests
+
+    [Fact]
+    public async Task CheckTokenAsync_WhenTheSurfaceIsNotServed_Answers404()
+    {
+        SetupIsServed(false);
+        var handler = CreateHandler();
+
+        var result = await handler.CheckTokenAsync(
+            CreateHttpContext(body: CreateCheckTokenJson()),
+            CancellationToken.None
+        );
+
+        Assert.IsType<NotFound>(result);
+    }
+
+    [Fact]
+    public async Task CheckTokenAsync_WhenRateLimited_Answers429()
+    {
+        SetupIsServed(true, Times.Exactly(SetupDefaults.RootAttemptsPerMinute + 1));
+        SetupVerify(false, Times.Exactly(SetupDefaults.RootAttemptsPerMinute));
+        var handler = CreateHandler();
+        for (var attempt = 0; attempt < SetupDefaults.RootAttemptsPerMinute; ++attempt)
+        {
+            await handler.CheckTokenAsync(
+                CreateHttpContext(body: CreateCheckTokenJson()),
+                CancellationToken.None
+            );
+        }
+
+        var result = await handler.CheckTokenAsync(
+            CreateHttpContext(body: CreateCheckTokenJson()),
+            CancellationToken.None
+        );
+
+        var problem = AssertProblem(result, StatusCodes.Status429TooManyRequests);
+        Assert.Equal("Too many setup attempts. Try again in a minute.", problem.ProblemDetails.Detail);
+    }
+
+    [Theory]
+    [InlineData("{ not json", "application/json")]
+    [InlineData("null", "application/json")]
+    [InlineData("{}", "application/json")]
+    [InlineData("""{ "token": null }""", "application/json")]
+    [InlineData("""{ "token": "a-token" }""", "text/plain")]
+    public async Task CheckTokenAsync_WhenTheBodyIsNotValid_Answers400(
+        string body,
+        string contentType
+    )
+    {
+        SetupIsServed(true);
+        var handler = CreateHandler();
+
+        var result = await handler.CheckTokenAsync(
+            CreateHttpContext(body: body, contentType: contentType),
+            CancellationToken.None
+        );
+
+        var problem = AssertProblem(result, StatusCodes.Status400BadRequest);
+        Assert.Equal("The setup request is not valid.", problem.ProblemDetails.Detail);
+    }
+
+    [Fact]
+    public async Task CheckTokenAsync_WhenTheTokenIsNotValid_Answers403()
+    {
+        SetupIsServed(true);
+        SetupVerify(false);
+        var handler = CreateHandler();
+
+        var result = await handler.CheckTokenAsync(
+            CreateHttpContext(body: CreateCheckTokenJson()),
+            CancellationToken.None
+        );
+
+        var problem = AssertProblem(result, StatusCodes.Status403Forbidden);
+        Assert.Equal("The setup token is not valid.", problem.ProblemDetails.Detail);
+    }
+
+    [Fact]
+    public async Task CheckTokenAsync_WhenAConsoleIsHinted_AnswersTheHint()
+    {
+        SetupIsServed(true);
+        SetupVerify(true);
+        HandlerOptions.Wizard.ManagementConsole.BaseUrl = ConsoleBaseUrl;
+        HandlerOptions.Wizard.ManagementConsole.ClientId = "console-1";
+        var handler = CreateHandler();
+
+        var result = await handler.CheckTokenAsync(
+            CreateHttpContext(body: CreateCheckTokenJson()),
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<CheckSetupTokenResponse>>(result);
+        Assert.NotNull(ok.Value);
+        Assert.NotNull(ok.Value.ManagementConsole);
+        Assert.Equal(ConsoleBaseUrl, ok.Value.ManagementConsole.BaseUrl);
+        Assert.Equal("console-1", ok.Value.ManagementConsole.ClientId);
+    }
+
+    [Fact]
+    public async Task CheckTokenAsync_WhenNoConsoleIsHinted_AnswersNoHint()
+    {
+        SetupIsServed(true);
+        SetupVerify(true);
+        var handler = CreateHandler();
+
+        var result = await handler.CheckTokenAsync(
+            CreateHttpContext(body: CreateCheckTokenJson()),
+            CancellationToken.None
+        );
+
+        var ok = Assert.IsType<Ok<CheckSetupTokenResponse>>(result);
+        Assert.NotNull(ok.Value);
+        Assert.Null(ok.Value.ManagementConsole);
     }
 
     #endregion

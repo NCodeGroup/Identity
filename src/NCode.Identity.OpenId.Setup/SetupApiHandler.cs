@@ -3,21 +3,24 @@
 
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Setup.Contracts;
 
 namespace NCode.Identity.OpenId.Setup;
 
 /// <summary>
-/// Answers the setup page's two API calls: the status of an uninitialized instance and the creation of its root
-/// administrator. Both answer <c>404</c> once the instance is initialized, and in Production when the request is not
-/// HTTPS, so the surface does not exist for either. Creating the root is limited per client address, needs the setup
-/// token, and never writes the token, the password or any other part of the request to a log.
+/// Answers the setup page's three API calls: the status of an uninitialized instance, the check of the setup token
+/// and the creation of its root administrator. All answer <c>404</c> once the instance is initialized, and in
+/// Production when the request is not HTTPS, so the surface does not exist for any. Checking the token and creating
+/// the root are limited per client address, need the setup token, and never write the token, the password or any
+/// other part of the request to a log.
 /// </summary>
 internal sealed class SetupApiHandler(
     IInstanceSetupService instanceSetupService,
     ISetupTokenService setupTokenService,
     SetupRateLimiter rateLimiter,
-    ISetupSurfaceGate surfaceGate
+    ISetupSurfaceGate surfaceGate,
+    IOptions<SetupOptions> optionsAccessor
 )
 {
     private IInstanceSetupService InstanceSetupService { get; } = instanceSetupService;
@@ -27,6 +30,8 @@ internal sealed class SetupApiHandler(
     private SetupRateLimiter RateLimiter { get; } = rateLimiter;
 
     private ISetupSurfaceGate SurfaceGate { get; } = surfaceGate;
+
+    private IOptions<SetupOptions> OptionsAccessor { get; } = optionsAccessor;
 
     /// <summary>
     /// Describes the setup an uninitialized instance expects: where its setup token comes from and the shortest root
@@ -50,6 +55,74 @@ internal sealed class SetupApiHandler(
             {
                 TokenSource = SetupTokenService.TokenSource,
                 MinimumPasswordLength = SetupDefaults.MinimumRootPasswordLength,
+            }
+        );
+    }
+
+    /// <summary>
+    /// Checks the setup token and answers the management console that the deployment names for the wizard's console
+    /// step. The handler reads the <see cref="CheckSetupTokenRequest"/> from the request body only after it checks
+    /// that the surface is served, so the request is refused with <c>404</c> when the surface is not served whatever
+    /// the body, <c>429</c> when the client address has used its attempts of the current minute, <c>400</c> when the
+    /// body is not a JSON <see cref="CheckSetupTokenRequest"/>, and <c>403</c> when the setup token is not the
+    /// current one. The hint is shown only to a holder of the token, so the deployment's layout is shown only to the
+    /// operator.
+    /// </summary>
+    /// <param name="httpContext">The <see cref="HttpContext"/> for the current request, whose body carries the
+    /// setup token.</param>
+    /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
+    /// <returns><c>200</c> with the <see cref="CheckSetupTokenResponse"/>, or the problem that refuses the
+    /// request.</returns>
+    public async ValueTask<IResult> CheckTokenAsync(
+        HttpContext httpContext,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!await SurfaceGate.IsServedAsync(httpContext, cancellationToken))
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (!await RateLimiter.TryAcquireAsync(httpContext, cancellationToken))
+        {
+            return TypedResults.Problem(
+                detail: "Too many setup attempts. Try again in a minute.",
+                statusCode: StatusCodes.Status429TooManyRequests
+            );
+        }
+
+        var request = await ReadRequestOrDefaultAsync<CheckSetupTokenRequest>(
+            httpContext,
+            static request => request.Token is not null,
+            cancellationToken
+        );
+        if (request is null)
+        {
+            return TypedResults.Problem(
+                detail: "The setup request is not valid.",
+                statusCode: StatusCodes.Status400BadRequest
+            );
+        }
+
+        if (!await SetupTokenService.VerifyAsync(request.Token, cancellationToken))
+        {
+            return TypedResults.Problem(
+                detail: "The setup token is not valid.",
+                statusCode: StatusCodes.Status403Forbidden
+            );
+        }
+
+        var console = OptionsAccessor.Value.Wizard.ManagementConsole;
+        return TypedResults.Ok(
+            new CheckSetupTokenResponse
+            {
+                ManagementConsole = console is { IsConfigured: true, BaseUrl: { } baseUrl }
+                    ? new SetupManagementConsoleHint
+                    {
+                        BaseUrl = baseUrl,
+                        ClientId = console.ClientId,
+                    }
+                    : null,
             }
         );
     }
@@ -85,7 +158,12 @@ internal sealed class SetupApiHandler(
             );
         }
 
-        var request = await ReadRequestOrDefaultAsync(httpContext, cancellationToken);
+        var request = await ReadRequestOrDefaultAsync<CreateRootRequest>(
+            httpContext,
+            // a body that names a required field as JSON null leaves it null despite the non-nullable type
+            static request => request is { Token: not null, UserName: not null, Password: not null },
+            cancellationToken
+        );
         if (request is null)
         {
             return TypedResults.Problem(
@@ -159,10 +237,12 @@ internal sealed class SetupApiHandler(
             Jwks = console.Jwks.GetRawText(),
         };
 
-    private static async ValueTask<CreateRootRequest?> ReadRequestOrDefaultAsync(
+    private static async ValueTask<TRequest?> ReadRequestOrDefaultAsync<TRequest>(
         HttpContext httpContext,
+        Func<TRequest, bool> isComplete,
         CancellationToken cancellationToken
     )
+        where TRequest : class
     {
         if (!httpContext.Request.HasJsonContentType())
         {
@@ -171,14 +251,9 @@ internal sealed class SetupApiHandler(
 
         try
         {
-            var request = await httpContext.Request.ReadFromJsonAsync<CreateRootRequest>(
-                cancellationToken
-            );
+            var request = await httpContext.Request.ReadFromJsonAsync<TRequest>(cancellationToken);
 
-            // a body that names a required field as JSON null leaves it null despite the non-nullable type
-            return request is { Token: not null, UserName: not null, Password: not null }
-                ? request
-                : null;
+            return request is not null && isComplete(request) ? request : null;
         }
         catch (JsonException)
         {

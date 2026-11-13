@@ -1,4 +1,12 @@
 #nullable enable
+NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenRequest
+NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenRequest.CheckSetupTokenRequest() -> void
+NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenRequest.Token.get -> string!
+NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenRequest.Token.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenResponse
+NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenResponse.CheckSetupTokenResponse() -> void
+NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenResponse.ManagementConsole.get -> NCode.Identity.OpenId.Setup.Contracts.SetupManagementConsoleHint?
+NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenResponse.ManagementConsole.init -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole
 NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.BaseUrl.get -> string!
 NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.BaseUrl.init -> void
@@ -29,6 +37,12 @@ NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.TenantId.get -> string!
 NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.TenantId.init -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.UserName.get -> string!
 NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.UserName.init -> void
+NCode.Identity.OpenId.Setup.Contracts.SetupManagementConsoleHint
+NCode.Identity.OpenId.Setup.Contracts.SetupManagementConsoleHint.BaseUrl.get -> string!
+NCode.Identity.OpenId.Setup.Contracts.SetupManagementConsoleHint.BaseUrl.init -> void
+NCode.Identity.OpenId.Setup.Contracts.SetupManagementConsoleHint.ClientId.get -> string!
+NCode.Identity.OpenId.Setup.Contracts.SetupManagementConsoleHint.ClientId.init -> void
+NCode.Identity.OpenId.Setup.Contracts.SetupManagementConsoleHint.SetupManagementConsoleHint() -> void
 NCode.Identity.OpenId.Setup.Contracts.SetupStatusResponse
 NCode.Identity.OpenId.Setup.Contracts.SetupStatusResponse.MinimumPasswordLength.get -> int
 NCode.Identity.OpenId.Setup.Contracts.SetupStatusResponse.MinimumPasswordLength.init -> void

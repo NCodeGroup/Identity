@@ -782,6 +782,10 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
+            .Callback(
+                (PersistedLocalAccount account, ReadOnlyMemory<byte>? _, CancellationToken _) =>
+                    account.ConcurrencyToken = "account-ct"
+            )
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
         MockStoreManager
@@ -803,7 +807,9 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
             CancellationToken.None
         );
 
-        Assert.IsType<Created<LocalAccountResource>>(result);
+        var created = Assert.IsType<Created<LocalAccountResource>>(result);
+        Assert.Equal("account-ct", created.Value?.ConcurrencyToken);
+        Assert.Equal("\"account-ct\"", httpContext.Response.Headers.ETag);
         Assert.Equal(["attempts", "audit"], Calls);
     }
 

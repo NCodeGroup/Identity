@@ -2045,6 +2045,41 @@ public sealed class TenantApiEndpointHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task UpdateSettingsAsync_WhenIfMatchIsTheQuotedEntityTag_ReturnsNoContent()
+    {
+        SetupTenantChangedAnnouncement();
+        SetupTenantChangedAudit();
+        SetupValidSettings();
+        SetupNoChangedLimits();
+        SetupStore();
+        var settings = CreateSettings("settings-ct");
+        MockTenantStore
+            .Setup(x => x.GetSettingsOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(settings)
+            .Verifiable();
+        MockTenantStore
+            .Setup(x => x.GetOrDefaultAsync(TenantId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateTenant("tenant-ct"))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupClientCoherenceCheck();
+        SetupSettingsWrite(settings);
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            TenantId,
+            CreateAddPatch("foo", "bar"),
+            ifMatch: "\"settings-ct\"",
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+        VerifyTenantChanged(settingsChanged: true);
+    }
+
+    [Fact]
     public async Task UpdateSettingsAsync_WhenForbidden_ReturnsForbiddenWithoutReadingTheTenant()
     {
         SetupAuthorization(AuthorizationResult.Failed());

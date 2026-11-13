@@ -28,7 +28,17 @@ NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.Token.init -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.UserName.get -> string!
 NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.UserName.init -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.ApiReferenceUrl.get -> string?
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.ApiReferenceUrl.init -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.CreateRootResponse() -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.DiscoveryUrl.get -> string!
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.DiscoveryUrl.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.Issuer.get -> string!
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.Issuer.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.ManagementApiUrl.get -> string!
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.ManagementApiUrl.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.ManagementConsoleBaseUrl.get -> string?
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.ManagementConsoleBaseUrl.init -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.ManagementConsoleClientId.get -> string?
 NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.ManagementConsoleClientId.init -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.PrincipalId.get -> string!
@@ -66,8 +76,6 @@ NCode.Identity.OpenId.Setup.InstanceSetupResult.AutomationClientId.init -> void
 NCode.Identity.OpenId.Setup.InstanceSetupResult.Error.get -> NCode.Identity.OpenId.Management.ManagementError?
 NCode.Identity.OpenId.Setup.InstanceSetupResult.Error.init -> void
 NCode.Identity.OpenId.Setup.InstanceSetupResult.InstanceSetupResult() -> void
-NCode.Identity.OpenId.Setup.InstanceSetupResult.ManagementConsoleClientId.get -> string?
-NCode.Identity.OpenId.Setup.InstanceSetupResult.ManagementConsoleClientId.init -> void
 NCode.Identity.OpenId.Setup.InstanceSetupResult.Root.get -> NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse?
 NCode.Identity.OpenId.Setup.InstanceSetupResult.Root.init -> void
 NCode.Identity.OpenId.Setup.InstanceSetupResult.Succeeded.get -> bool

@@ -21,12 +21,6 @@ public sealed class InstanceSetupResult
     public CreateRootResponse? Root { get; init; }
 
     /// <summary>
-    /// Gets the <c>client_id</c> of the management console's client that setup registered, or <c>null</c> when setup
-    /// registered none.
-    /// </summary>
-    public string? ManagementConsoleClientId { get; init; }
-
-    /// <summary>
     /// Gets the <c>client_id</c> of the automation client that setup registered, or <c>null</c> when setup registered
     /// none.
     /// </summary>

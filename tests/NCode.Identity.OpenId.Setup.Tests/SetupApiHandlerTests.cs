@@ -140,6 +140,9 @@ public sealed class SetupApiHandlerTests : IDisposable
                 TenantId = "control-plane",
                 PrincipalId = "principal-1",
                 UserName = UserName,
+                Issuer = "https://id.example.test/",
+                DiscoveryUrl = "https://id.example.test/.well-known/openid-configuration",
+                ManagementApiUrl = "https://id.example.test/api",
             },
         };
 
@@ -450,6 +453,41 @@ public sealed class SetupApiHandlerTests : IDisposable
     }
 
     [Fact]
+    public async Task CreateRootAsync_WhenCreated_AnswersTheSetupResultsRoot()
+    {
+        var success = new InstanceSetupResult
+        {
+            Root = new CreateRootResponse
+            {
+                TenantId = "control-plane",
+                PrincipalId = "principal-1",
+                UserName = UserName,
+                Issuer = "https://id.example.test/",
+                DiscoveryUrl = "https://id.example.test/.well-known/openid-configuration",
+                ManagementApiUrl = "https://id.example.test/api",
+                ApiReferenceUrl = "https://id.example.test/scalar/v1",
+                ManagementConsoleClientId = "console-1",
+                ManagementConsoleBaseUrl = ConsoleBaseUrl,
+            },
+        };
+        SetupIsServed(true);
+        SetupVerify(true);
+        MockInstanceSetupService
+            .Setup(x =>
+                x.SetUpAsync(It.IsAny<InstanceSetupRequest>(), It.IsAny<CancellationToken>())
+            )
+            .ReturnsAsync(success)
+            .Verifiable();
+        var handler = CreateHandler();
+
+        var result = await handler.CreateRootAsync(CreateHttpContext(), CancellationToken.None);
+
+        var json = Assert.IsType<JsonHttpResult<CreateRootResponse>>(result);
+        Assert.Equal(StatusCodes.Status201Created, json.StatusCode);
+        Assert.Same(success.Root, json.Value);
+    }
+
+    [Fact]
     public async Task CreateRootAsync_WithManagementConsole_PassesConsoleAndReturnsClientId()
     {
         var success = CreateSuccess();
@@ -475,8 +513,16 @@ public sealed class SetupApiHandlerTests : IDisposable
             .ReturnsAsync(
                 new InstanceSetupResult
                 {
-                    Root = success.Root,
-                    ManagementConsoleClientId = "console-1",
+                    Root = new CreateRootResponse
+                    {
+                        TenantId = success.Root!.TenantId,
+                        PrincipalId = success.Root.PrincipalId,
+                        UserName = success.Root.UserName,
+                        Issuer = success.Root.Issuer,
+                        DiscoveryUrl = success.Root.DiscoveryUrl,
+                        ManagementApiUrl = success.Root.ManagementApiUrl,
+                        ManagementConsoleClientId = "console-1",
+                    },
                 }
             )
             .Verifiable();

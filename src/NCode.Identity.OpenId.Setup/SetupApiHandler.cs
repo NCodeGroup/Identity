@@ -217,16 +217,7 @@ internal sealed class SetupApiHandler(
             );
         }
 
-        return TypedResults.Json(
-            new CreateRootResponse
-            {
-                TenantId = result.Root.TenantId,
-                PrincipalId = result.Root.PrincipalId,
-                UserName = result.Root.UserName,
-                ManagementConsoleClientId = result.ManagementConsoleClientId,
-            },
-            statusCode: StatusCodes.Status201Created
-        );
+        return TypedResults.Json(result.Root, statusCode: StatusCodes.Status201Created);
     }
 
     private static SetupManagementConsoleOptions MapConsole(CreateRootManagementConsole console) =>

@@ -355,15 +355,7 @@ public class InstanceSetupCommandLineTests : BaseTests
                 x.SetUpAsync(It.IsAny<InstanceSetupRequest>(), It.IsAny<CancellationToken>())
             )
             .Callback<InstanceSetupRequest, CancellationToken>((r, _) => captured = r)
-            .Returns(
-                new ValueTask<InstanceSetupResult>(
-                    new InstanceSetupResult
-                    {
-                        Root = CreateSuccess().Root,
-                        ManagementConsoleClientId = "mgmt-console",
-                    }
-                )
-            )
+            .Returns(new ValueTask<InstanceSetupResult>(CreateSuccess("mgmt-console")))
             .Verifiable();
         using var services = CreateServices(
             setupService.Object,
@@ -532,7 +524,7 @@ public class InstanceSetupCommandLineTests : BaseTests
 
     #endregion
 
-    private static InstanceSetupResult CreateSuccess() =>
+    private static InstanceSetupResult CreateSuccess(string? managementConsoleClientId = null) =>
         new()
         {
             Root = new CreateRootResponse
@@ -540,6 +532,10 @@ public class InstanceSetupCommandLineTests : BaseTests
                 TenantId = "control-plane",
                 PrincipalId = "principal-1",
                 UserName = UserName,
+                Issuer = "https://id.example.test/",
+                DiscoveryUrl = "https://id.example.test/.well-known/openid-configuration",
+                ManagementApiUrl = "https://id.example.test/api",
+                ManagementConsoleClientId = managementConsoleClientId,
             },
         };
 

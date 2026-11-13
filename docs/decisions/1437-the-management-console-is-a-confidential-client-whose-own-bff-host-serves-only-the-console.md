@@ -34,7 +34,7 @@ The forces:
   ([ADR-1365](1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md)).
   `TenantRequestUri` builds the URL it compares from the control-plane tenant's issuer scheme and host plus the
   request's path, and the management API's route prefix is `/api` at the server's root
-  (`ManagementRootGroup.RoutePrefix`). So the only URL the OP accepts from the console is
+  (`ManagementApiDefaults.RoutePrefix`). So the only URL the OP accepts from the console is
   `<origin of the authority>/api/...`.
 - The console's `__Host-Http-bff.mgmt` cookie has path `/`, so the browser sends it with every request to the console's
   host. A path of that host routed to the OP hands the console's session handle to another process and shares the

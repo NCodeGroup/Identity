@@ -6,8 +6,8 @@
 
 ## Context
 
-The management API is the `/api` route group (`ManagementRootGroup`, `RoutePrefix = "/api"`), separate from the
-protocol endpoints, which the runtime mounts under the tenant route
+The management API is the `/api` route group (`ManagementRootGroup`, at `ManagementApiDefaults.RoutePrefix`, `/api`),
+separate from the protocol endpoints, which the runtime mounts under the tenant route
 ([ADR-1086](1086-endpoints-compose-as-a-declarative-group-tree-and-a-protocol-endpoint-is-a-thin-mediator-driven-provider.md)).
 It belongs to the control plane
 ([ADR-1411](1411-the-platform-is-the-deployment-root-a-team-groups-tenants-and-tenants-share-one-database.md)). Two

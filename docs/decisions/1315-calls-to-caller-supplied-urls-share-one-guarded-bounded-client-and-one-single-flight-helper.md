@@ -48,7 +48,8 @@ which names the host and no address, so a fetcher can tell it from other connect
 (`jwks_uri`, `request_uri`, `sector_identifier_uri`, back-channel logout and CIBA delivery) logs a failed fetch with a
 reason from one vocabulary, `OutboundFetchFailureReasons` (`blocked_address`, `name_resolution`, `tls`, `timeout`,
 `canceled`, `connection`, `http_status`), and names the URL without its user information, query or fragment, and never
-an address.
+an address. Every guarded fetch decides what it catches through `OutboundFetchFailureReasons.IsFetchFailure`, and a
+response body that fails to read or decompress logs as `connection`.
 
 No setting turns the floor off. `IOutboundAddressFilter` (public, registered with `TryAddEnumerable`) only adds denials
 and never re-permits an address, and the `*_allowed_hosts` settings narrow the reachable hosts further.

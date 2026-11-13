@@ -1640,9 +1640,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   `timeout`, `connection`, `http_status`, `too_large`, `not_json`, `invalid_key_set`, `not_https`, `host_not_allowed`,
   `canceled`), while the caller sees only `invalid_client`. A failed `request_uri` or `sector_identifier_uri` fetch,
   and a failed back-channel logout or CIBA delivery, logs the same transport reasons. Each of these entries names the
-  URL without its user information, query or fragment, and never an address. The management API refuses a
-  `jwks_uri` whose host resolves only to addresses the outbound guard refuses, and names the key import endpoint as
-  the alternative ([#783](https://github.com/NCodeGroup/identity/issues/783)).
+  URL without its user information, query or fragment, and never an address. A response body that fails to read or
+  decompress logs as `connection`, and a `request_uri` body that is not valid UTF-8 is refused as
+  `invalid_request_uri` and logs no fetch failure. The management API refuses a `jwks_uri` whose host resolves only
+  to addresses the outbound guard refuses, on a tenant promotion as on create and update, and names the key import
+  endpoint as the alternative ([#783](https://github.com/NCodeGroup/identity/issues/783)).
 
 - **A `kid` is the client's own name for its key, unique among that client's keys.** Any number of clients, in any
   tenants, register keys with the same `kid`; the management import keeps a JSON Web Key's `kid`, so a client that signs

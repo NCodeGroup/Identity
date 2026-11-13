@@ -76,19 +76,20 @@ shared between concurrent callers, remembered when the fetch fails, and never se
     merges by `Min`, so a tenant or a client could set it to zero and remove the protection. The fetch limits stay
     settings because lowering them is safe.
 
-11. **The management API refuses a `jwks_uri` the fetch could never reach.** On create, and on a settings update only
-    when the `jwks_uri` value differs from the stored one, `ClientApiEndpointHandler` asks `IOutboundHostChecker`
-    (`IsRefusedAsync`, implemented by `DefaultOutboundHostChecker` over the same `IOutboundHttpForgeryGuard` the fetch
-    uses) whether the host resolves only to addresses the guard refuses. A literal IP is refused when the guard refuses
-    it, and a name is refused when it resolves and the guard refuses every address. A name that does not resolve is
-    accepted, because a `jwks_uri` may be registered before its DNS exists and the runtime log names `name_resolution`.
-    The refusal is the settings validation problem keyed by `jwks_uri`. It tells a caller already authorized to write
-    the client only that the host resolves to refused addresses, never which ones, and it names the key import endpoint,
-    `POST /api/tenants/{tenantId}/clients/{clientId}/secrets/import`, as the alternative for a client on a private
-    network. A warning on a successful write is not read, and a refused host can never be fetched, so storing it would
-    defer the same failure to every token request. Dynamic client registration does not run the check: its caller is
-    unauthenticated or holds only an initial access token, and would learn how the server's resolver answers for names
-    it chooses. The runtime log covers that path.
+11. **The management API refuses a `jwks_uri` the fetch could never reach.** One internal `IClientJwksUriChecker` runs
+    the check on client create, on a settings update that changes the `jwks_uri` value, and in a tenant promotion when
+    the promoted `jwks_uri` differs from the target's. It asks `IOutboundHostChecker` (`IsRefusedAsync`, implemented by
+    `DefaultOutboundHostChecker` over the same `IOutboundHttpForgeryGuard` the fetch uses) whether the host resolves
+    only to addresses the guard refuses. A literal IP is refused when the guard refuses it, and a name is refused when
+    it resolves and the guard refuses every address. A name that does not resolve, or that the resolver cannot accept,
+    is not refused, because a `jwks_uri` may be registered before its DNS exists and the runtime log names
+    `name_resolution`. The refusal is the settings validation problem keyed by `jwks_uri`. It tells a caller already
+    authorized to write the client only that the host resolves to refused addresses, never which ones, and it names the
+    key import endpoint, `POST /api/tenants/{tenantId}/clients/{clientId}/secrets/import`, as the alternative for a
+    client on a private network. A warning on a successful write is not read, and a refused host can never be fetched,
+    so storing it would defer the same failure to every token request. Dynamic client registration does not run the
+    check: its caller is unauthenticated or holds only an initial access token, and would learn how the server's
+    resolver answers for names it chooses. The runtime log covers that path.
 
 ## Options considered
 
@@ -112,8 +113,8 @@ shared between concurrent callers, remembered when the fetch fails, and never se
 - The remembered failure is per replica and is not shared between replicas.
 - A fetch failure leaves the client without published public keys, so a client whose `jwks_uri` is down cannot
   authenticate with a key signature until the failure expires and a fetch succeeds.
-- A create or a `jwks_uri` change through the management API makes one DNS lookup for a host name, so the write waits
-  for the resolver and the lookup is made by the caller's request.
+- A create, a `jwks_uri` change or a tenant promotion that changes the `jwks_uri` through the management API makes one
+  DNS lookup for a host name, so the write waits for the resolver and the lookup is made by the caller's request.
 
 ## References
 

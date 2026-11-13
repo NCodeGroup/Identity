@@ -108,7 +108,7 @@ internal sealed class SetupOptionsValidator : IValidateOptions<SetupOptions>
         {
             failures.Add(
                 $"'{section}:{nameof(SetupWizardManagementConsoleOptions.BaseUrl)}' must be an absolute https origin "
-                    + "without a path, query or fragment."
+                    + $"without a path, query or fragment (was '{console.BaseUrl}')."
             );
         }
 

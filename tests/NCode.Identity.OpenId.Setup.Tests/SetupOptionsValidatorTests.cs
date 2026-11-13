@@ -399,6 +399,7 @@ public sealed class SetupOptionsValidatorTests : IDisposable
             failure,
             StringComparison.Ordinal
         );
+        Assert.Contains($"(was '{baseUrl}')", failure, StringComparison.Ordinal);
     }
 
     [Fact]

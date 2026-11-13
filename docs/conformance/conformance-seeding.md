@@ -13,7 +13,7 @@ The config-driven startup seeder is `AddConformanceSeed(IConfiguration)` in `NCo
 [`ConformanceSeedHandler`](../../src/NCode.Identity.Server/ConformanceEnvironment/ConformanceSeedHandler.cs),
 [`ConformanceSeedOptions`](../../src/NCode.Identity.Server/ConformanceEnvironment/ConformanceSeedOptions.cs),
 [`ConformanceClientSeed`](../../src/NCode.Identity.Server/ConformanceEnvironment/ConformanceClientSeed.cs)), modeled on
-the bootstrap admin seeder ([`BootstrapAdminSeedHandler`](../../src/NCode.Identity.Server/BootstrapAdminSeedHandler.cs)):
+the bootstrap admin seeder ([`BootstrapAdminSeedHandler`](../../src/NCode.Identity.Server/DevelopmentEnvironment/BootstrapAdminSeedHandler.cs)):
 idempotent, declarative, and conformance-only. It is wired into the host
 ([`Program.cs`](../../hosts/NCode.Identity.OpenId.Host/Program.cs)) and activated by the `Conformance` launch profile
 ([#126](https://github.com/NCodeGroup/identity/issues/126)) plus the

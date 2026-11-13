@@ -175,4 +175,4 @@ assignment instead ([ADR-1512](1512-an-instance-is-set-up-once-through-a-one-tim
 - Code: `NCode.Identity.OpenId.Tenants.ITenantProvisioner`, `DefaultTenantProvisioner`, `SeedTenantCommand`,
   `TenantSeedContext`, `TenantPlane`, `PostCommitWork`, `DefaultOpenIdTenantFactory`, `RootTenantOptions`,
   `NCode.Identity.OpenId.Management.Endpoints.Tenants.TenantApiEndpointHandler.CreateTenantAsync`,
-  `NCode.Identity.Server.BootstrapAdminOptionsValidator`.
+  `NCode.Identity.Server.DevelopmentEnvironment.BootstrapAdminOptionsValidator`.

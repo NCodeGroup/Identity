@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Globalization;
 using System.Net;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
@@ -151,6 +152,16 @@ public sealed class SetupApiHandlerTests : IDisposable
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(statusCode, problem.StatusCode);
         return problem;
+    }
+
+    private static void AssertRetryAfter(HttpContext httpContext)
+    {
+        var retryAfter = Assert.Single(httpContext.Response.Headers.RetryAfter);
+        Assert.True(
+            long.TryParse(retryAfter, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds)
+        );
+        Assert.InRange(seconds, 1L, 60L);
+        Assert.Equal("no-store", httpContext.Response.Headers.CacheControl.ToString());
     }
 
     #endregion
@@ -336,9 +347,12 @@ public sealed class SetupApiHandlerTests : IDisposable
             await handler.CreateRootAsync(CreateHttpContext(), CancellationToken.None);
         }
 
-        var result = await handler.CreateRootAsync(CreateHttpContext(), CancellationToken.None);
+        var limitedContext = CreateHttpContext();
+
+        var result = await handler.CreateRootAsync(limitedContext, CancellationToken.None);
 
         AssertProblem(result, StatusCodes.Status429TooManyRequests);
+        AssertRetryAfter(limitedContext);
     }
 
     [Fact]
@@ -491,6 +505,7 @@ public sealed class SetupApiHandlerTests : IDisposable
     public async Task CreateRootAsync_WithManagementConsole_PassesConsoleAndReturnsClientId()
     {
         var success = CreateSuccess();
+        var created = Assert.IsType<CreateRootResponse>(success.Root);
         SetupIsServed(true);
         SetupVerify(true);
         MockInstanceSetupService
@@ -515,12 +530,12 @@ public sealed class SetupApiHandlerTests : IDisposable
                 {
                     Root = new CreateRootResponse
                     {
-                        TenantId = success.Root!.TenantId,
-                        PrincipalId = success.Root.PrincipalId,
-                        UserName = success.Root.UserName,
-                        Issuer = success.Root.Issuer,
-                        DiscoveryUrl = success.Root.DiscoveryUrl,
-                        ManagementApiUrl = success.Root.ManagementApiUrl,
+                        TenantId = created.TenantId,
+                        PrincipalId = created.PrincipalId,
+                        UserName = created.UserName,
+                        Issuer = created.Issuer,
+                        DiscoveryUrl = created.DiscoveryUrl,
+                        ManagementApiUrl = created.ManagementApiUrl,
                         ManagementConsoleClientId = "console-1",
                     },
                 }
@@ -536,9 +551,8 @@ public sealed class SetupApiHandlerTests : IDisposable
         var json = Assert.IsType<JsonHttpResult<CreateRootResponse>>(result);
         Assert.Equal(StatusCodes.Status201Created, json.StatusCode);
         Assert.NotNull(json.Value);
-        Assert.NotNull(success.Root);
         Assert.Equal("console-1", json.Value.ManagementConsoleClientId);
-        Assert.Equal(success.Root.PrincipalId, json.Value.PrincipalId);
+        Assert.Equal(created.PrincipalId, json.Value.PrincipalId);
     }
 
     [Fact]
@@ -746,16 +760,16 @@ public sealed class SetupApiHandlerTests : IDisposable
             );
         }
 
-        var result = await handler.CheckTokenAsync(
-            CreateHttpContext(body: CreateCheckTokenJson()),
-            CancellationToken.None
-        );
+        var limitedContext = CreateHttpContext(body: CreateCheckTokenJson());
+
+        var result = await handler.CheckTokenAsync(limitedContext, CancellationToken.None);
 
         var problem = AssertProblem(result, StatusCodes.Status429TooManyRequests);
         Assert.Equal(
             "Too many setup attempts. Try again in a minute.",
             problem.ProblemDetails.Detail
         );
+        AssertRetryAfter(limitedContext);
     }
 
     [Theory]

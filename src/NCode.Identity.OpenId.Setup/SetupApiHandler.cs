@@ -1,8 +1,10 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;
 using NCode.Identity.OpenId.Setup.Contracts;
 
@@ -83,12 +85,9 @@ internal sealed class SetupApiHandler(
             return TypedResults.NotFound();
         }
 
-        if (!await RateLimiter.TryAcquireAsync(httpContext, cancellationToken))
+        if (await RateLimiter.AcquireAsync(httpContext, cancellationToken) is { } retryAfter)
         {
-            return TypedResults.Problem(
-                detail: "Too many setup attempts. Try again in a minute.",
-                statusCode: StatusCodes.Status429TooManyRequests
-            );
+            return RefuseRateLimited(httpContext, retryAfter);
         }
 
         var request = await ReadRequestOrDefaultAsync<CheckSetupTokenRequest>(
@@ -150,12 +149,9 @@ internal sealed class SetupApiHandler(
             return TypedResults.NotFound();
         }
 
-        if (!await RateLimiter.TryAcquireAsync(httpContext, cancellationToken))
+        if (await RateLimiter.AcquireAsync(httpContext, cancellationToken) is { } retryAfter)
         {
-            return TypedResults.Problem(
-                detail: "Too many setup attempts. Try again in a minute.",
-                statusCode: StatusCodes.Status429TooManyRequests
-            );
+            return RefuseRateLimited(httpContext, retryAfter);
         }
 
         var request = await ReadRequestOrDefaultAsync<CreateRootRequest>(
@@ -219,6 +215,22 @@ internal sealed class SetupApiHandler(
         }
 
         return TypedResults.Json(result.Root, statusCode: StatusCodes.Status201Created);
+    }
+
+    private static ProblemHttpResult RefuseRateLimited(
+        HttpContext httpContext,
+        TimeSpan retryAfter
+    )
+    {
+        // Retry-After counts whole seconds, so round up and never tell the caller to retry at once.
+        var seconds = Math.Max(1L, (long)Math.Ceiling(retryAfter.TotalSeconds));
+        httpContext.Response.Headers.RetryAfter = seconds.ToString(CultureInfo.InvariantCulture);
+        httpContext.Response.Headers.CacheControl = "no-store";
+
+        return TypedResults.Problem(
+            detail: "Too many setup attempts. Try again in a minute.",
+            statusCode: StatusCodes.Status429TooManyRequests
+        );
     }
 
     private static SetupManagementConsoleOptions MapConsole(CreateRootManagementConsole console) =>

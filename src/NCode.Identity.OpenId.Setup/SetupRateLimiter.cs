@@ -17,6 +17,9 @@ internal sealed class SetupRateLimiter : IDisposable
     // The partition of a request that carries no remote address, such as one made in process.
     private const string UnknownAddressPartition = "unknown";
 
+    // The window of the limit, which is also the longest a refused client address waits.
+    private static TimeSpan Window { get; } = TimeSpan.FromMinutes(1);
+
     private PartitionedRateLimiter<HttpContext> Limiter { get; } =
         PartitionedRateLimiter.Create<HttpContext, string>(static httpContext =>
             RateLimitPartition.GetFixedWindowLimiter(
@@ -26,7 +29,7 @@ internal sealed class SetupRateLimiter : IDisposable
                 static _ => new FixedWindowRateLimiterOptions
                 {
                     PermitLimit = SetupDefaults.SetupAttemptsPerMinute,
-                    Window = TimeSpan.FromMinutes(1),
+                    Window = Window,
                     QueueLimit = 0,
                     AutoReplenishment = true,
                 }
@@ -41,9 +44,10 @@ internal sealed class SetupRateLimiter : IDisposable
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
-    /// <returns><c>true</c> if the attempt is within the limit; <c>false</c> if the client address has used its attempts
-    /// of the current window.</returns>
-    public async ValueTask<bool> TryAcquireAsync(
+    /// <returns><c>null</c> if the attempt is within the limit; otherwise, the delay after which the client address
+    /// has attempts again, because it has used its attempts of the current window. The delay is the one the limiter
+    /// names, or the whole window when it names none.</returns>
+    public async ValueTask<TimeSpan?> AcquireAsync(
         HttpContext httpContext,
         CancellationToken cancellationToken
     )
@@ -53,6 +57,13 @@ internal sealed class SetupRateLimiter : IDisposable
             permitCount: 1,
             cancellationToken
         );
-        return lease.IsAcquired;
+        if (lease.IsAcquired)
+        {
+            return null;
+        }
+
+        return lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter)
+            ? retryAfter
+            : Window;
     }
 }

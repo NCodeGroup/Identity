@@ -140,13 +140,16 @@ defaults, which are the values of the Valkey the host itself uses (ADR-1510).
 {{- end }}
 
 {{/*
-Refuses a Valkey connection that names both of its forms, or a parts Secret without a host key. Rendered for its side
-effect only.
+Refuses a Valkey connection that names both of its forms, a finished connection string without its key, or a parts Secret
+without a host key. Rendered for its side effect only.
 */}}
 {{- define "identity-host.valkeyValidate" -}}
 {{- $scope := .scope }}
 {{- if and $scope.existingSecret $scope.parts.existingSecret }}
 {{- fail (printf "%s.existingSecret and %s.parts.existingSecret are both set: name the Secret that holds the finished connection string or the Secret that holds the server's address and password, not both." .path .path) }}
+{{- end }}
+{{- if and $scope.existingSecret (not ($scope.connectionStringKey | default .defaults.connectionStringKey)) }}
+{{- fail (printf "%s.connectionStringKey must name the key that holds the connection string in %s.existingSecret." .path .path) }}
 {{- end }}
 {{- if and $scope.parts.existingSecret (not ($scope.parts.hostKey | default .defaults.parts.hostKey)) }}
 {{- fail (printf "%s.parts.hostKey must name the key that holds the host in the Secret." .path) }}
@@ -182,8 +185,8 @@ the defaults, which are the values of the database the host itself uses (ADR-150
 {{- end }}
 
 {{/*
-Refuses a database connection that names both of its forms, or none when it is required, or a parts Secret whose
-required key is empty. Rendered for its side effect only.
+Refuses a database connection that names both of its forms, or none when it is required, a finished connection string
+without its key, or a parts Secret whose required key is empty. Rendered for its side effect only.
 */}}
 {{- define "identity-host.databaseValidate" -}}
 {{- $scope := .scope }}
@@ -192,6 +195,9 @@ required key is empty. Rendered for its side effect only.
 {{- end }}
 {{- if and .required (not $scope.existingSecret) (not $scope.parts.existingSecret) }}
 {{- fail "database.existingSecret must name the Secret holding the openiddb connection string, or database.parts.existingSecret the Secret holding its host, database, user and password." }}
+{{- end }}
+{{- if and $scope.existingSecret (not ($scope.connectionStringKey | default .defaults.connectionStringKey)) }}
+{{- fail (printf "%s.connectionStringKey must name the key that holds the connection string in %s.existingSecret." .path .path) }}
 {{- end }}
 {{- if $scope.parts.existingSecret }}
 {{- range $part := list (list "host" "hostKey") (list "database" "databaseKey") (list "user" "usernameKey") (list "password" "passwordKey") }}
@@ -266,6 +272,12 @@ applied. Rendered for its side effect only.
 {{- end }}
 {{- if and .Values.setup.job.enabled (not .Values.setup.job.existingSecret) }}
 {{- fail "setup.job.existingSecret must name the Secret holding the root administrator's user name and password when setup.job.enabled is true." }}
+{{- end }}
+{{- if and .Values.setup.job.enabled (not .Values.setup.job.userNameKey) }}
+{{- fail "setup.job.userNameKey must name the key that holds the root administrator's user name in setup.job.existingSecret." }}
+{{- end }}
+{{- if and .Values.setup.job.enabled (not .Values.setup.job.passwordKey) }}
+{{- fail "setup.job.passwordKey must name the key that holds the root administrator's password in setup.job.existingSecret." }}
 {{- end }}
 {{- if not .Values.secretProtection.rootKeyProvider }}
 {{- fail "secretProtection.rootKeyProvider is required: local, aws-kms, azure-key-vault or google-cloud-kms, or ephemeral outside Production." }}

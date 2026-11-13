@@ -31,6 +31,52 @@ The chart takes no secret values. It references Secrets you create in the releas
   with cert-manager whenever a route uses the ingress controller's Secret and no `ingressSecret` of yours names it.
 - A router that reaches the pods over HTTPS: a Gateway API implementation with `BackendTLSPolicy` (Gateway API v1.4 or
   later), Traefik, or another Ingress controller you configure; see [Routing to the pods](#routing-to-the-pods).
+- `setup.token.existingSecret`, optional: a Secret holding the setup token under the `token` key, and
+  `setup.job.existingSecret`, for the opt-in setup Job: a Secret holding the root administrator's credentials; see
+  [First use](#first-use).
+
+### Creating the Secrets
+
+Create each Secret in the release's namespace, and name it in the value that references it. The key names below are the
+chart's defaults; each is a value you can change.
+
+The database connection string, as `database.existingSecret` reads it. Use the Npgsql connection string of your
+database; the placeholders are yours:
+
+```bash
+kubectl create secret generic identity-database \
+  --from-literal=connection-string='Host=<host>;Database=<database>;Username=<user>;Password=<password>'
+```
+
+The Valkey connection string, as `valkey.existingSecret` reads it, for more than one replica. Use your server's
+StackExchange.Redis connection string:
+
+```bash
+kubectl create secret generic identity-valkey \
+  --from-literal=connection-string='<host>:6379,password=<password>,ssl=true'
+```
+
+The setup token, as `setup.token.existingSecret` reads it, at least 32 characters:
+
+```bash
+kubectl create secret generic identity-setup-token \
+  --from-literal=token="$(openssl rand -base64 32)"
+```
+
+The root administrator's credential for the setup Job, as `setup.job.existingSecret` reads it. The password has at
+least 15 characters:
+
+```bash
+kubectl create secret generic identity-setup-root \
+  --from-literal=userName=<user name> \
+  --from-literal=email=<email address> \
+  --from-literal=password=<password>
+```
+
+The local root key, the recovery key and the management console's keys have their own instructions:
+[Creating the local root key Secret](#creating-the-local-root-key-secret),
+[Creating the recovery key](#creating-the-recovery-key) and [Management console](#management-console). An External
+Secrets `ExternalSecret` that writes the same Secret with the same keys works the same way.
 
 ## Published artifacts
 
@@ -107,10 +153,14 @@ Rendering fails, before anything is applied, when:
   `managementConsole.backendTls.existingSecret`, and `managementConsole.backendTls.caConfigMap` is empty, because the
   console's CA ConfigMap would fall back to the one the publisher writes, which holds only the chart's private CA;
 - neither `database.existingSecret` nor `database.parts.existingSecret` is set, a connection (`database` or
-  `migrations.database`) sets both, or a parts Secret leaves `hostKey`, `databaseKey`, `usernameKey` or `passwordKey`
-  empty;
-- a Valkey connection (`valkey` or `managementConsole.valkey`) sets both `existingSecret` and `parts.existingSecret`, or
-  its parts Secret leaves `hostKey` empty;
+  `migrations.database`) sets both, a connection's `existingSecret` is set and the key of its connection string,
+  `connectionStringKey`, is empty (a `migrations.database` key falls back to the one under `database`), or a parts
+  Secret leaves `hostKey`, `databaseKey`, `usernameKey` or `passwordKey` empty;
+- a Valkey connection (`valkey` or `managementConsole.valkey`) sets both `existingSecret` and `parts.existingSecret`,
+  sets `existingSecret` and leaves `connectionStringKey` empty, or has a parts Secret that leaves `hostKey` empty. The
+  other `parts` keys may be empty, because an empty key leaves that part out;
+- `setup.token.existingSecret` is set and `setup.token.key` is empty, or `setup.job.enabled` is `true` and
+  `setup.job.existingSecret`, `setup.job.userNameKey` or `setup.job.passwordKey` is empty;
 - the `StaticSingle` strategy has no `https` issuer;
 - `secretProtection.rootKeyProvider` is empty, in any environment, because the host does not start without one;
 - `environment` is `Production` and `secretProtection.rootKeyProvider` is `ephemeral`, which would leave no root key

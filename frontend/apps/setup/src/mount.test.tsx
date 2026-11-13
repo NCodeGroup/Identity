@@ -1,13 +1,20 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act } from '@testing-library/react';
 import type { Root } from 'react-dom/client';
 import { mountSetup } from './mount.js';
+import { getStatus } from './setupApi.js';
+
+vi.mock('./setupApi.js', () => ({ getStatus: vi.fn(), createRoot: vi.fn() }));
 
 describe('mountSetup', () => {
   let container: HTMLElement;
   let root: Root | undefined;
 
   beforeEach(() => {
+    vi.mocked(getStatus).mockResolvedValue({
+      kind: 'ok',
+      status: { tokenSource: 'configured', minimumPasswordLength: 15 },
+    });
     container = document.createElement('div');
     document.body.append(container);
   });
@@ -25,26 +32,27 @@ describe('mountSetup', () => {
       });
   });
 
-  function mount(): void {
-    act(() => {
+  async function mount(): Promise<void> {
+    await act(async () => {
       root = mountSetup(container);
+      await Promise.resolve();
     });
   }
 
-  it('renders the wizard into the container', () => {
-    mount();
+  it('renders the wizard into the container', async () => {
+    await mount();
 
-    expect(container.textContent).toContain('NCode.Identity setup');
+    expect(container.textContent).toContain('Set up NCode.Identity');
   });
 
-  it('gives the styles it inserts the nonce the host wrote into the page', () => {
+  it('gives the styles it inserts the nonce the host wrote into the page', async () => {
     const meta = document.createElement('meta');
     meta.setAttribute('property', 'csp-nonce');
     // jsdom has no nonce property; a browser exposes the host's nonce through it.
     meta.nonce = 'n0nce';
     document.head.append(meta);
 
-    mount();
+    await mount();
 
     const styles = Array.from(document.head.querySelectorAll('style[data-emotion]'));
     expect(styles.length).toBeGreaterThan(0);

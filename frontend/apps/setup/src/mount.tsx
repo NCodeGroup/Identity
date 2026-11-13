@@ -3,10 +3,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import createCache from '@emotion/cache';
 import { CacheProvider } from '@emotion/react';
 import { AppThemeProvider, readCspNonce } from '@ncode/ui';
-
-function App() {
-  return <h1>NCode.Identity setup</h1>;
-}
+import { App } from './App.js';
 
 /**
  * Mounts the setup wizard over the page the host rendered, as soon as the bundle's module runs.

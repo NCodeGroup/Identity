@@ -298,6 +298,60 @@ public sealed class SetupApiHandlerTests : IDisposable
         AssertProblem(result, StatusCodes.Status400BadRequest);
     }
 
+    [Theory]
+    [InlineData("token")]
+    [InlineData("userName")]
+    [InlineData("password")]
+    public async Task CreateRootAsync_WhenTheBodyOmitsARequiredField_Answers400WithoutVerifyingTheToken(
+        string field
+    )
+    {
+        SetupIsInitialized(false);
+        var handler = CreateHandler(HostEnvironments.Development);
+        var body = new Dictionary<string, string?>
+        {
+            ["token"] = Token,
+            ["userName"] = UserName,
+            ["password"] = Password,
+        };
+        body.Remove(field);
+
+        var result = await handler.CreateRootAsync(
+            CreateHttpContext(body: JsonSerializer.Serialize(body)),
+            CancellationToken.None
+        );
+
+        var problem = AssertProblem(result, StatusCodes.Status400BadRequest);
+        Assert.Equal("The setup request is not valid.", problem.ProblemDetails.Detail);
+    }
+
+    [Theory]
+    [InlineData("token")]
+    [InlineData("userName")]
+    [InlineData("password")]
+    public async Task CreateRootAsync_WhenTheBodyNamesARequiredFieldAsNull_Answers400WithoutVerifyingTheToken(
+        string field
+    )
+    {
+        SetupIsInitialized(false);
+        var handler = CreateHandler(HostEnvironments.Development);
+        var body = new Dictionary<string, string?>
+        {
+            ["token"] = Token,
+            ["userName"] = UserName,
+            ["password"] = Password,
+        };
+        body[field] = null;
+
+        var result = await handler.CreateRootAsync(
+            CreateHttpContext(body: JsonSerializer.Serialize(body)),
+            CancellationToken.None
+        );
+
+        var problem = AssertProblem(result, StatusCodes.Status400BadRequest);
+        Assert.Equal("The setup request is not valid.", problem.ProblemDetails.Detail);
+    }
+
     [Fact]
     public async Task CreateRootAsync_WhenTheTokenIsNotValid_Answers403WithoutCreatingTheRoot()
     {

@@ -172,9 +172,14 @@ internal sealed class SetupApiHandler(
 
         try
         {
-            return await httpContext.Request.ReadFromJsonAsync<CreateRootRequest>(
+            var request = await httpContext.Request.ReadFromJsonAsync<CreateRootRequest>(
                 cancellationToken
             );
+
+            // a body that names a required field as JSON null leaves it null despite the non-nullable type
+            return request is { Token: not null, UserName: not null, Password: not null }
+                ? request
+                : null;
         }
         catch (JsonException)
         {

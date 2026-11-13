@@ -108,6 +108,11 @@ public class OpenIdDbContext(
     }
 
     // A query that includes several collections runs one SQL query per collection, unless the host chose a behavior.
+    // The framework owns the context, so every relational provider and host gets this default, not only the reference
+    // host's Npgsql setup. AddOrUpdateExtension updates the provider's own relational extension and keeps the rest of
+    // the host's provider setup. Split queries read one consistent snapshot only inside a transaction, so a host that
+    // needs one query sets UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery), and a single query calls
+    // AsSingleQuery().
     private static void UseSplitQueriesByDefault(DbContextOptionsBuilder optionsBuilder)
     {
         var relational = optionsBuilder
@@ -116,9 +121,11 @@ public class OpenIdDbContext(
 
         if (relational is { QuerySplittingBehavior: null })
         {
-            ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(
-                relational.WithUseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+            var splitting = relational.WithUseQuerySplittingBehavior(
+                QuerySplittingBehavior.SplitQuery
             );
+            var infrastructure = (IDbContextOptionsBuilderInfrastructure)optionsBuilder;
+            infrastructure.AddOrUpdateExtension(splitting);
         }
     }
 

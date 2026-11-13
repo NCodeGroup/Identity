@@ -2999,7 +2999,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   entities as extension members. `EntityStoreManager` has a `DbContext`-less store-factory fallback, so a store that is
   not built on Entity Framework resolves without referencing `OpenIdDbContext`. On a relational provider,
   `OpenIdDbContext` runs a query that includes several collections as one SQL query per collection, unless the host
-  chose a query splitting behavior
+  chose a query splitting behavior. Split queries read one snapshot only inside a transaction, so a host chooses
+  `UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery)` or a query calls `AsSingleQuery()` where it needs one
   ([ADR-1052](docs/decisions/1052-entity-framework-persistence-is-a-reusable-framework-that-domain-slices-plug-into.md),
   [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md)).
 

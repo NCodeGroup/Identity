@@ -2736,7 +2736,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         var ok = Assert.IsType<Ok<CreatedSecretResource>>(result);
         Assert.Equal("issued-1", ok.Value?.SecretId);
         Assert.Equal("issued-material", ok.Value?.SecretMaterial);
-        Assert.Equal("settings-ct", httpContext.Response.Headers.ETag);
+        Assert.Equal("\"settings-ct\"", httpContext.Response.Headers.ETag);
     }
 
     [Fact]
@@ -3257,7 +3257,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         var created = Assert.IsType<Created<CreatedSecretResource>>(result);
         Assert.Equal("secret-1", created.Value?.SecretId);
         Assert.Equal("revealed-material", created.Value?.SecretMaterial);
-        Assert.Equal("secret-ct", httpContext.Response.Headers.ETag);
+        Assert.Equal("\"secret-ct\"", httpContext.Response.Headers.ETag);
     }
 
     [Fact]
@@ -4727,7 +4727,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         Assert.Equal("secret-2", created.Value?.SecretId);
         Assert.Equal("revealed-material", created.Value?.SecretMaterial);
         Assert.Equal($"/tenants/{TenantId}/clients/{ClientId}/secrets/secret-2", created.Location);
-        Assert.Equal("replacement-ct", httpContext.Response.Headers.ETag);
+        Assert.Equal("\"replacement-ct\"", httpContext.Response.Headers.ETag);
         MockManagementAuditRecorder.Verify(
             x =>
                 x.RecordClientSecretChangedAsync(

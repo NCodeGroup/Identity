@@ -251,6 +251,58 @@ public class DefaultLoadAuthorizationRequestHandlerTests : BaseTests
         }
     }
 
+    private sealed class FailingReadStream : Stream
+    {
+        public override bool CanRead => true;
+
+        public override bool CanSeek => false;
+
+        public override bool CanWrite => false;
+
+        public override long Length => throw new NotSupportedException();
+
+        public override long Position
+        {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+
+        public override ValueTask<int> ReadAsync(
+            Memory<byte> buffer,
+            CancellationToken cancellationToken = default
+        ) => ValueTask.FromException<int>(new IOException("x"));
+
+        public override int Read(byte[] buffer, int offset, int count) =>
+            throw new IOException("x");
+
+        public override void Flush() { }
+
+        public override long Seek(long offset, SeekOrigin origin) =>
+            throw new NotSupportedException();
+
+        public override void SetLength(long value) => throw new NotSupportedException();
+
+        public override void Write(byte[] buffer, int offset, int count) =>
+            throw new NotSupportedException();
+    }
+
+    private sealed class FailingBodyHttpMessageHandler : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        )
+        {
+            var content = new StreamContent(new FailingReadStream());
+            content.Headers.ContentType = new MediaTypeHeaderValue(
+                "application/oauth-authz-req+jwt"
+            );
+            return Task.FromResult(
+                new HttpResponseMessage(HttpStatusCode.OK) { Content = content }
+            );
+        }
+    }
+
     private sealed class DelayingHttpMessageHandler : HttpMessageHandler
     {
         protected override async Task<HttpResponseMessage> SendAsync(
@@ -333,6 +385,21 @@ public class DefaultLoadAuthorizationRequestHandlerTests : BaseTests
         SetupHttpClient(
             new HttpClient(new ThrowingHttpMessageHandler(new HttpRequestException("x")))
         );
+
+        await Assert.ThrowsAsync<OpenIdException>(async () =>
+            await HandleAsync(context, client, RequestUri, CancellationToken.None)
+        );
+
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidRequestUri, CapturedErrorCode);
+        AssertFetchFailedReason("connection");
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheResponseBodyReadFails_LogsConnection()
+    {
+        var context = CreateContext();
+        var client = CreateClient(readsResponseSettings: true);
+        SetupHttpClient(new HttpClient(new FailingBodyHttpMessageHandler()));
 
         await Assert.ThrowsAsync<OpenIdException>(async () =>
             await HandleAsync(context, client, RequestUri, CancellationToken.None)

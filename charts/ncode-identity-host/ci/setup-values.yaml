@@ -1,0 +1,23 @@
+# A production release that passes the setup token from an operator Secret and also runs the setup Job, which creates the
+# root administrator from the user name, email and password in another Secret.
+allowedHosts:
+  - id.example.com
+tenantResolution:
+  staticSingle:
+    issuer: https://id.example.com
+database:
+  existingSecret: identity-database
+secretProtection:
+  rootKeyProvider: local
+  local:
+    keySecret: identity-root-key
+  recovery:
+    publicKeyConfigMap: identity-recovery-key
+  remoteKeys:
+    deployment: ci-setup
+setup:
+  token:
+    existingSecret: identity-setup-token
+  job:
+    enabled: true
+    existingSecret: identity-setup-root

@@ -1,0 +1,86 @@
+{{- if .Values.setup.job.enabled }}
+{{- include "identity-host.validate" . }}
+{{- $job := .Values.setup.job }}
+# Runs the host image's setup command once for this release revision: it creates the root administrator from the
+# Secret's user name, email and password, and exits 0 on an instance that is already initialized, so it can stay
+# enabled across releases (ADR-1512). Delete the Secret once the instance is initialized.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "identity-host.setupJobName" . }}
+  labels:
+    {{- include "identity-host.commonLabels" . | nindent 4 }}
+    app.kubernetes.io/component: setup
+spec:
+  backoffLimit: {{ $job.backoffLimit }}
+  activeDeadlineSeconds: {{ $job.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "identity-host.commonLabels" . | nindent 8 }}
+        app.kubernetes.io/component: setup
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      restartPolicy: Never
+      # The Job runs as the host does, so a root key provider that trusts the service account (a web identity) works.
+      serviceAccountName: {{ include "identity-host.serviceAccountName" . }}
+      # The host never calls the Kubernetes API.
+      automountServiceAccountToken: false
+      {{- with include "identity-host.imagePullSecrets" . }}
+      {{- . | trim | nindent 6 }}
+      {{- end }}
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      securityContext:
+        {{- include "identity-host.podSecurityContext" . | nindent 8 }}
+      containers:
+        - name: setup
+          image: {{ include "identity-host.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- include "identity-host.containerSecurityContext" . | nindent 12 }}
+          # The image's entry point starts the host; this argument selects its setup command instead.
+          args:
+            - setup
+          env:
+            {{- include "identity-host.hostEnv" . | trim | nindent 12 }}
+            - name: Setup__Root__UserName
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $job.existingSecret }}
+                  key: {{ $job.userNameKey | quote }}
+            # The email address is optional: the Secret may omit its key.
+            - name: Setup__Root__Email
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $job.existingSecret }}
+                  key: {{ $job.emailKey | quote }}
+                  optional: true
+            - name: Setup__Root__Password
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $job.existingSecret }}
+                  key: {{ $job.passwordKey | quote }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          volumeMounts:
+            {{- include "identity-host.hostVolumeMounts" . | trim | nindent 12 }}
+      volumes:
+        {{- include "identity-host.hostVolumes" . | trim | nindent 8 }}
+      {{- with include "identity-host.scheduling" . }}
+      {{- . | trim | nindent 6 }}
+      {{- end }}
+{{- end }}

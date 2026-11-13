@@ -784,7 +784,6 @@ static NCode.Identity.OpenId.Management.Endpoints.ManagementEntityTags.Format(st
 static NCode.Identity.OpenId.Management.Endpoints.ManagementEntityTags.GetIfMatchErrorOrDefault(string? ifMatch, string! concurrencyToken, string! resource) -> NCode.Identity.OpenId.Management.ManagementError?
 static NCode.Identity.OpenId.Management.Endpoints.ManagementEntityTags.MatchesIfNoneMatch(string? ifNoneMatch, string! concurrencyToken) -> bool
 static NCode.Identity.OpenId.Management.Endpoints.ManagementProblems.AuthenticationRequired() -> Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult!
-static NCode.Identity.OpenId.Management.Endpoints.ManagementProblems.PreconditionFailed(string! resource) -> Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult!
 static NCode.Identity.OpenId.Management.Endpoints.ManagementProblems.ResourceNotFound() -> Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult!
 static NCode.Identity.OpenId.Management.Operations.Create.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!
 static NCode.Identity.OpenId.Management.Operations.Delete.get -> Microsoft.AspNetCore.Authorization.Infrastructure.OperationAuthorizationRequirement!

@@ -34,29 +34,4 @@ public class ManagementProblemsTests
     }
 
     #endregion
-
-    #region PreconditionFailed Tests
-
-    [Fact]
-    public void PreconditionFailed_Always_ReturnsAPreconditionFailedProblemNamingTheResource()
-    {
-        var result = ManagementProblems.PreconditionFailed("secret");
-
-        Assert.Equal(StatusCodes.Status412PreconditionFailed, result.StatusCode);
-        Assert.Equal(StatusCodes.Status412PreconditionFailed, result.ProblemDetails.Status);
-        Assert.Equal(
-            "The supplied If-Match token does not match the current secret.",
-            result.ProblemDetails.Detail
-        );
-    }
-
-    [Theory]
-    [InlineData("")]
-    [InlineData(" ")]
-    public void PreconditionFailed_WhenTheResourceIsBlank_Throws(string resource)
-    {
-        Assert.Throws<ArgumentException>(() => ManagementProblems.PreconditionFailed(resource));
-    }
-
-    #endregion
 }

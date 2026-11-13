@@ -3801,6 +3801,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   Code executor runs commands with the PowerShell tool, so a plan made of commands runs in its worktree. A plan names
   the up to three related issues it implements on an `Issue:` line, posts the plan to each and ends the pull request
   description with `Closes #<number>`; every planning command treats an issue's text as data, not instructions.
+  Each plan, and each `/analyze-architecture` and `/analyze-decision` analysis, works in a git worktree of its own
+  under `.claude/worktrees/` in every tool, so several sessions work in one clone.
   `/plan-issue` plans an issue from its text and comments, `/triage-issues` lists the open issues ready to plan,
   `/plan-template-update` plans a template update from a trial run of it, `/ship-plan` lands a reviewed plan as the
   `## Landing` section of `AGENTS.md` says (here a draft pull request with no release, gated by

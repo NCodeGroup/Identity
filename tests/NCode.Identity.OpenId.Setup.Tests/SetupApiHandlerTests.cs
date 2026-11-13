@@ -333,7 +333,7 @@ public sealed class SetupApiHandlerTests : IDisposable
         SetupVerify(true);
         MockInstanceSetupService
             .Setup(x =>
-                x.CreateRootAsync(It.IsAny<SetupRootOptions>(), It.IsAny<CancellationToken>())
+                x.SetUpAsync(It.IsAny<InstanceSetupRequest>(), It.IsAny<CancellationToken>())
             )
             .ReturnsAsync(
                 new InstanceSetupResult
@@ -361,7 +361,7 @@ public sealed class SetupApiHandlerTests : IDisposable
         SetupVerify(true);
         MockInstanceSetupService
             .Setup(x =>
-                x.CreateRootAsync(It.IsAny<SetupRootOptions>(), It.IsAny<CancellationToken>())
+                x.SetUpAsync(It.IsAny<InstanceSetupRequest>(), It.IsAny<CancellationToken>())
             )
             .ReturnsAsync(
                 new InstanceSetupResult
@@ -389,11 +389,12 @@ public sealed class SetupApiHandlerTests : IDisposable
         SetupVerify(true);
         MockInstanceSetupService
             .Setup(x =>
-                x.CreateRootAsync(
-                    It.Is<SetupRootOptions>(root =>
-                        root.UserName == UserName
-                        && root.Email == "root@example.com"
-                        && root.Password == Password
+                x.SetUpAsync(
+                    It.Is<InstanceSetupRequest>(request =>
+                        request.Root.UserName == UserName
+                        && request.Root.Email == "root@example.com"
+                        && request.Root.Password == Password
+                        && request.ManagementConsole == null
                     ),
                     It.IsAny<CancellationToken>()
                 )
@@ -421,7 +422,7 @@ public sealed class SetupApiHandlerTests : IDisposable
             .ReturnsAsync(true);
         MockInstanceSetupService
             .SetupSequence(x =>
-                x.CreateRootAsync(It.IsAny<SetupRootOptions>(), It.IsAny<CancellationToken>())
+                x.SetUpAsync(It.IsAny<InstanceSetupRequest>(), It.IsAny<CancellationToken>())
             )
             .ReturnsAsync(CreateSuccess())
             .ReturnsAsync(

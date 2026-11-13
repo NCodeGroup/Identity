@@ -30,10 +30,13 @@ public class InstanceSetupCommandLineTests : BaseTests
     private static ServiceProvider CreateServices(
         IInstanceSetupService setupService,
         SetupRootOptions? root = null,
-        CapturingLoggerProvider? loggerProvider = null
+        CapturingLoggerProvider? loggerProvider = null,
+        SetupManagementConsoleOptions? managementConsole = null
     )
     {
         var options = new SetupOptions { Root = root ?? new SetupRootOptions() };
+        if (managementConsole is not null)
+            options.ManagementConsole = managementConsole;
 
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging(builder =>
@@ -211,7 +214,7 @@ public class InstanceSetupCommandLineTests : BaseTests
     [Fact]
     public async Task RunAsync_EmailMissing_CreatesTheRoot()
     {
-        SetupRootOptions? captured = null;
+        InstanceSetupRequest? captured = null;
         var setupService = CreateStrictMock<IInstanceSetupService>();
         setupService
             .Setup(x => x.IsInitializedAsync(It.IsAny<CancellationToken>()))
@@ -219,9 +222,9 @@ public class InstanceSetupCommandLineTests : BaseTests
             .Verifiable();
         setupService
             .Setup(x =>
-                x.CreateRootAsync(It.IsAny<SetupRootOptions>(), It.IsAny<CancellationToken>())
+                x.SetUpAsync(It.IsAny<InstanceSetupRequest>(), It.IsAny<CancellationToken>())
             )
-            .Callback<SetupRootOptions, CancellationToken>((r, _) => captured = r)
+            .Callback<InstanceSetupRequest, CancellationToken>((r, _) => captured = r)
             .Returns(new ValueTask<InstanceSetupResult>(CreateSuccess()))
             .Verifiable();
         var root = new SetupRootOptions { UserName = UserName, Password = Password };
@@ -231,7 +234,7 @@ public class InstanceSetupCommandLineTests : BaseTests
 
         Assert.Equal(0, exitCode);
         Assert.NotNull(captured);
-        Assert.Null(captured.Email);
+        Assert.Null(captured.Root.Email);
     }
 
     [Fact]
@@ -245,7 +248,7 @@ public class InstanceSetupCommandLineTests : BaseTests
             .Verifiable();
         setupService
             .Setup(x =>
-                x.CreateRootAsync(It.IsAny<SetupRootOptions>(), It.IsAny<CancellationToken>())
+                x.SetUpAsync(It.IsAny<InstanceSetupRequest>(), It.IsAny<CancellationToken>())
             )
             .Returns(
                 new ValueTask<InstanceSetupResult>(
@@ -278,7 +281,7 @@ public class InstanceSetupCommandLineTests : BaseTests
     [Fact]
     public async Task RunAsync_RootCreated_ReturnsZeroAndPassesTheConfiguredRoot()
     {
-        SetupRootOptions? captured = null;
+        InstanceSetupRequest? captured = null;
         var setupService = CreateStrictMock<IInstanceSetupService>();
         setupService
             .Setup(x => x.IsInitializedAsync(It.IsAny<CancellationToken>()))
@@ -286,9 +289,9 @@ public class InstanceSetupCommandLineTests : BaseTests
             .Verifiable();
         setupService
             .Setup(x =>
-                x.CreateRootAsync(It.IsAny<SetupRootOptions>(), It.IsAny<CancellationToken>())
+                x.SetUpAsync(It.IsAny<InstanceSetupRequest>(), It.IsAny<CancellationToken>())
             )
-            .Callback<SetupRootOptions, CancellationToken>((r, _) => captured = r)
+            .Callback<InstanceSetupRequest, CancellationToken>((r, _) => captured = r)
             .Returns(new ValueTask<InstanceSetupResult>(CreateSuccess()))
             .Verifiable();
         using var services = CreateServices(setupService.Object, CreateRoot());
@@ -297,9 +300,59 @@ public class InstanceSetupCommandLineTests : BaseTests
 
         Assert.Equal(0, exitCode);
         Assert.NotNull(captured);
-        Assert.Equal(UserName, captured.UserName);
-        Assert.Equal(Email, captured.Email);
-        Assert.Equal(Password, captured.Password);
+        Assert.Equal(UserName, captured.Root.UserName);
+        Assert.Equal(Email, captured.Root.Email);
+        Assert.Equal(Password, captured.Root.Password);
+        Assert.Null(captured.ManagementConsole);
+    }
+
+    [Fact]
+    public async Task RunAsync_ManagementConsoleConfigured_PassesIt()
+    {
+        var loggerProvider = new CapturingLoggerProvider();
+        InstanceSetupRequest? captured = null;
+        var console = new SetupManagementConsoleOptions
+        {
+            ClientId = "mgmt-console",
+            BaseUrl = "https://manage.example.com",
+            Jwks = """{"keys":[{"kty":"EC"}]}""",
+        };
+        var setupService = CreateStrictMock<IInstanceSetupService>();
+        setupService
+            .Setup(x => x.IsInitializedAsync(It.IsAny<CancellationToken>()))
+            .Returns(new ValueTask<bool>(false))
+            .Verifiable();
+        setupService
+            .Setup(x =>
+                x.SetUpAsync(It.IsAny<InstanceSetupRequest>(), It.IsAny<CancellationToken>())
+            )
+            .Callback<InstanceSetupRequest, CancellationToken>((r, _) => captured = r)
+            .Returns(
+                new ValueTask<InstanceSetupResult>(
+                    new InstanceSetupResult
+                    {
+                        Root = CreateSuccess().Root,
+                        ManagementConsoleClientId = "mgmt-console",
+                    }
+                )
+            )
+            .Verifiable();
+        using var services = CreateServices(
+            setupService.Object,
+            CreateRoot(),
+            loggerProvider,
+            console
+        );
+
+        var exitCode = await Parse("setup").RunAsync(services, CancellationToken.None);
+
+        Assert.Equal(0, exitCode);
+        Assert.NotNull(captured);
+        Assert.Same(console, captured.ManagementConsole);
+        Assert.Contains(
+            loggerProvider.Messages,
+            message => message.Contains("'mgmt-console'", StringComparison.Ordinal)
+        );
     }
 
     [Fact]
@@ -313,7 +366,7 @@ public class InstanceSetupCommandLineTests : BaseTests
             .Verifiable();
         setupService
             .Setup(x =>
-                x.CreateRootAsync(It.IsAny<SetupRootOptions>(), It.IsAny<CancellationToken>())
+                x.SetUpAsync(It.IsAny<InstanceSetupRequest>(), It.IsAny<CancellationToken>())
             )
             .Returns(new ValueTask<InstanceSetupResult>(CreateSuccess()))
             .Verifiable();

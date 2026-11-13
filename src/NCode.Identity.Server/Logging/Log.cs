@@ -232,4 +232,14 @@ internal static partial class Log
         string userName,
         string tenantId
     );
+
+    [LoggerMessage(
+        EventId = EventIds.InstanceSetupCommandManagementConsoleRegistered,
+        Level = LogLevel.Information,
+        Message = "Registered the management console's client '{ClientId}' in the control-plane tenant."
+    )]
+    internal static partial void InstanceSetupCommandManagementConsoleRegistered(
+        this ILogger logger,
+        string clientId
+    );
 }

@@ -116,7 +116,8 @@ public sealed class InstanceSetupCommandLine
             return 0;
         }
 
-        var root = services.GetRequiredService<IOptions<SetupOptions>>().Value.Root;
+        var options = services.GetRequiredService<IOptions<SetupOptions>>().Value;
+        var root = options.Root;
 
         var missingKeys = new List<string>(capacity: 2);
         if (string.IsNullOrWhiteSpace(root.UserName))
@@ -130,7 +131,16 @@ public sealed class InstanceSetupCommandLine
             return 2;
         }
 
-        var result = await setupService.CreateRootAsync(root, cancellationToken);
+        var result = await setupService.SetUpAsync(
+            new InstanceSetupRequest
+            {
+                Root = root,
+                ManagementConsole = options.ManagementConsole.IsConfigured
+                    ? options.ManagementConsole
+                    : null,
+            },
+            cancellationToken
+        );
         if (!result.Succeeded)
         {
             logger.InstanceSetupCommandFailed(result.Error.StatusCode, result.Error.Detail);
@@ -138,6 +148,9 @@ public sealed class InstanceSetupCommandLine
         }
 
         logger.InstanceSetupCommandRootCreated(result.Root.UserName, result.Root.TenantId);
+        if (result.ManagementConsoleClientId is { } consoleClientId)
+            logger.InstanceSetupCommandManagementConsoleRegistered(consoleClientId);
+
         return 0;
     }
 }

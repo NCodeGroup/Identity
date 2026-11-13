@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Globalization;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -11,6 +12,7 @@ using NCode.Identity.OpenId.Accounts.DataContracts;
 using NCode.Identity.OpenId.Accounts.Management;
 using NCode.Identity.OpenId.Accounts.Management.Contracts;
 using NCode.Identity.OpenId.Management;
+using NCode.Identity.OpenId.Management.Endpoints.Clients;
 using NCode.Identity.OpenId.Persistence;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -29,6 +31,8 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
     private const string UserName = "root";
     private const string Email = "root@example.com";
     private const string Password = "a-root-password-of-15-or-more";
+    private const string ConsoleClientId = "mgmt-console";
+    private const string ConsoleJwks = """{"keys":[{"kty":"EC","crv":"P-256","x":"x","y":"y"}]}""";
 
     private MockRepository MockRepository { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
@@ -42,6 +46,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
     private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private Mock<IDisposable> MockTenantScope { get; }
     private Mock<ILocalAccountCreator> MockLocalAccountCreator { get; }
+    private Mock<IClientCreator> MockClientCreator { get; }
     private Mock<ICryptoService> MockCryptoService { get; }
     private Mock<ILogger<DefaultInstanceSetupService>> MockLogger { get; }
     private FakeTimeProvider TimeProvider { get; }
@@ -61,6 +66,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
         MockTenantScope = MockRepository.Create<IDisposable>();
         MockLocalAccountCreator = MockRepository.Create<ILocalAccountCreator>();
+        MockClientCreator = MockRepository.Create<IClientCreator>();
         MockCryptoService = MockRepository.Create<ICryptoService>();
         MockLogger = MockRepository.Create<ILogger<DefaultInstanceSetupService>>();
 
@@ -81,6 +87,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
             MockServiceScopeFactory.Object,
             MockAmbientTenantAccessor.Object,
             MockLocalAccountCreator.Object,
+            MockClientCreator.Object,
             MockCryptoService.Object,
             TimeProvider,
             MockLogger.Object
@@ -96,6 +103,69 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
             Email = Email,
             Password = password,
         };
+
+    private static InstanceSetupRequest CreateRequest(
+        string? userName = UserName,
+        string? password = Password,
+        SetupManagementConsoleOptions? managementConsole = null
+    ) => new() { Root = CreateRoot(userName, password), ManagementConsole = managementConsole };
+
+    private static SetupManagementConsoleOptions CreateConsole() =>
+        new()
+        {
+            ClientId = ConsoleClientId,
+            BaseUrl = "https://manage.example.com/",
+            Jwks = ConsoleJwks,
+        };
+
+    private void SetupClientCreator(
+        ClientCreation creation,
+        Action<ClientCreationRequest>? onStaged = null
+    )
+    {
+        MockClientCreator
+            .Setup(x =>
+                x.StageAsync(
+                    MockStoreManager.Object,
+                    It.IsAny<ClientCreationRequest>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback<IStoreManager, ClientCreationRequest, CancellationToken>(
+                (_, request, _) =>
+                {
+                    CallLog.Add("client");
+                    onStaged?.Invoke(request);
+                }
+            )
+            .ReturnsAsync(creation)
+            .Verifiable(Times.Once());
+    }
+
+    private static ClientCreation CreateStagedClient() =>
+        ClientCreation.Staged(
+            new PersistedClient
+            {
+                TenantId = TenantId,
+                ClientId = ConsoleClientId,
+                ConcurrencyToken = string.Empty,
+                IsDisabled = false,
+                Settings = new PersistedClientSettings
+                {
+                    TenantId = TenantId,
+                    ClientId = ConsoleClientId,
+                    ConcurrencyToken = string.Empty,
+                    Value = JsonSerializer.SerializeToElement(new { }),
+                },
+                Secrets = new PersistedClientSecrets
+                {
+                    TenantId = TenantId,
+                    ClientId = ConsoleClientId,
+                    ConcurrencyToken = string.Empty,
+                    Value = [],
+                },
+            }
+        );
 
     private static PersistedInstanceSetup CreateRow(bool isInitialized = false) =>
         new()
@@ -324,10 +394,10 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
 
     #endregion
 
-    #region CreateRootAsync Tests
+    #region SetUpAsync Tests
 
     [Fact]
-    public async Task CreateRootAsync_WhenValid_StagesAccountAssignmentAndMarkSavesOnce()
+    public async Task SetUpAsync_WhenValid_StagesAccountAssignmentAndMarkSavesOnce()
     {
         var row = CreateRow();
         PersistedRoleAssignment? assignment = null;
@@ -344,7 +414,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         SetupLogged(LogLevel.Information, EventIds.RootAdministratorCreated, state);
         TimeProvider.SetUtcNow(new DateTimeOffset(2026, 11, 12, 8, 0, 0, TimeSpan.Zero));
 
-        var result = await CreateService().CreateRootAsync(CreateRoot(), CancellationToken.None);
+        var result = await CreateService().SetUpAsync(CreateRequest(), CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.Equal(["tenant", "account"], CallLog);
@@ -377,10 +447,10 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
     [InlineData(null)]
     [InlineData("")]
     [InlineData("fourteen-chars")]
-    public async Task CreateRootAsync_WhenPasswordIsShort_ReturnsBadRequest(string? password)
+    public async Task SetUpAsync_WhenPasswordIsShort_ReturnsBadRequest(string? password)
     {
         var result = await CreateService()
-            .CreateRootAsync(CreateRoot(password: password), CancellationToken.None);
+            .SetUpAsync(CreateRequest(password: password), CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Equal(StatusCodes.Status400BadRequest, result.Error.StatusCode);
@@ -394,24 +464,24 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
     [Theory]
     [InlineData(null)]
     [InlineData(" ")]
-    public async Task CreateRootAsync_WhenUserNameIsBlank_ReturnsBadRequest(string? userName)
+    public async Task SetUpAsync_WhenUserNameIsBlank_ReturnsBadRequest(string? userName)
     {
         var result = await CreateService()
-            .CreateRootAsync(CreateRoot(userName: userName), CancellationToken.None);
+            .SetUpAsync(CreateRequest(userName: userName), CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Equal(StatusCodes.Status400BadRequest, result.Error.StatusCode);
     }
 
     [Fact]
-    public async Task CreateRootAsync_WhenAlreadyInitialized_ReturnsNotFoundAndStagesNothing()
+    public async Task SetUpAsync_WhenAlreadyInitialized_ReturnsNotFoundAndStagesNothing()
     {
         SetupTenantScope();
         SetupStoreManagers(2);
         SetupInstanceSetupStore(1);
         SetupRead(CreateRow(isInitialized: true));
 
-        var result = await CreateService().CreateRootAsync(CreateRoot(), CancellationToken.None);
+        var result = await CreateService().SetUpAsync(CreateRequest(), CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Equal(StatusCodes.Status404NotFound, result.Error.StatusCode);
@@ -419,7 +489,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateRootAsync_WhenCreatorReturnsError_PassesErrorThroughAndSavesNothing()
+    public async Task SetUpAsync_WhenCreatorReturnsError_PassesErrorThroughAndSavesNothing()
     {
         var error = new ManagementError
         {
@@ -433,14 +503,14 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         SetupRead(CreateRow());
         SetupCreator(new LocalAccountCreation { Error = error });
 
-        var result = await CreateService().CreateRootAsync(CreateRoot(), CancellationToken.None);
+        var result = await CreateService().SetUpAsync(CreateRequest(), CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Same(error, result.Error);
     }
 
     [Fact]
-    public async Task CreateRootAsync_WhenUpdateLosesConcurrency_ReturnsNotFound()
+    public async Task SetUpAsync_WhenUpdateLosesConcurrency_ReturnsNotFound()
     {
         var row = CreateRow();
 
@@ -452,14 +522,14 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         SetupAssignment(_ => { });
         SetupUpdate(row, new StoreConcurrencyException());
 
-        var result = await CreateService().CreateRootAsync(CreateRoot(), CancellationToken.None);
+        var result = await CreateService().SetUpAsync(CreateRequest(), CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Equal(StatusCodes.Status404NotFound, result.Error.StatusCode);
     }
 
     [Fact]
-    public async Task CreateRootAsync_WhenSaveLosesConcurrency_ReturnsNotFound()
+    public async Task SetUpAsync_WhenSaveLosesConcurrency_ReturnsNotFound()
     {
         var row = CreateRow();
 
@@ -472,10 +542,172 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         SetupUpdate(row);
         SetupSave(new StoreConcurrencyException());
 
-        var result = await CreateService().CreateRootAsync(CreateRoot(), CancellationToken.None);
+        var result = await CreateService().SetUpAsync(CreateRequest(), CancellationToken.None);
 
         Assert.False(result.Succeeded);
         Assert.Equal(StatusCodes.Status404NotFound, result.Error.StatusCode);
+    }
+
+    [Fact]
+    public async Task SetUpAsync_ManagementConsole_StagesClientInSameSave()
+    {
+        var row = CreateRow();
+        ClientCreationRequest? staged = null;
+        var state = new Dictionary<string, object?>();
+
+        SetupTenantScope();
+        SetupStoreManagers(2);
+        SetupInstanceSetupStore(2);
+        SetupRead(row);
+        SetupCreator(CreateCreation());
+        SetupAssignment(_ => { });
+        SetupClientCreator(CreateStagedClient(), request => staged = request);
+        SetupUpdate(row);
+        SetupSave();
+        SetupLogged(LogLevel.Information, EventIds.RootAdministratorCreated, state);
+
+        var result = await CreateService()
+            .SetUpAsync(CreateRequest(managementConsole: CreateConsole()), CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(ConsoleClientId, result.ManagementConsoleClientId);
+        Assert.Equal(["tenant", "account", "client"], CallLog);
+        Assert.True(row.IsInitialized);
+
+        Assert.NotNull(staged);
+        Assert.Equal(TenantId, staged.TenantId);
+        Assert.Equal(ConsoleClientId, staged.ClientId);
+        Assert.False(staged.IsDisabled);
+        Assert.Null(staged.ResourceServerId);
+        Assert.Null(staged.OwningNodeType);
+        Assert.Null(staged.OwningNodeId);
+
+        Assert.NotNull(staged.Jwks);
+        Assert.Equal(1, staged.Jwks.Value.GetProperty("keys").GetArrayLength());
+
+        var settings = staged.Settings;
+        Assert.Equal(
+            "private_key_jwt",
+            settings.GetProperty("token_endpoint_auth_method").GetString()
+        );
+        Assert.True(settings.GetProperty("require_pushed_authorization_requests").GetBoolean());
+        Assert.True(settings.GetProperty("require_dpop_bound_access_tokens").GetBoolean());
+        Assert.Equal(
+            ["authorization_code", "refresh_token"],
+            settings
+                .GetProperty("grant_types_supported")
+                .EnumerateArray()
+                .Select(item => item.GetString())
+        );
+        Assert.Equal(
+            ["code"],
+            settings
+                .GetProperty("response_types_supported")
+                .EnumerateArray()
+                .Select(item => item.GetString())
+        );
+        Assert.Equal(
+            ["https://manage.example.com/bff/callback"],
+            settings.GetProperty("redirect_uris").EnumerateArray().Select(item => item.GetString())
+        );
+        Assert.Equal(
+            ["https://manage.example.com/"],
+            settings
+                .GetProperty("post_logout_redirect_uris")
+                .EnumerateArray()
+                .Select(item => item.GetString())
+        );
+        Assert.Equal(
+            "https://manage.example.com/bff/backchannel-logout",
+            settings.GetProperty("backchannel_logout_uri").GetString()
+        );
+    }
+
+    [Fact]
+    public async Task SetUpAsync_ManagementConsoleRefused_SavesNothing()
+    {
+        var error = new ManagementError
+        {
+            StatusCode = StatusCodes.Status409Conflict,
+            Detail = "A client with the specified client_id already exists.",
+        };
+
+        SetupTenantScope();
+        SetupStoreManagers(2);
+        SetupInstanceSetupStore(1);
+        SetupRead(CreateRow());
+        SetupCreator(CreateCreation());
+        SetupAssignment(_ => { });
+        SetupClientCreator(ClientCreation.Failed(error));
+
+        var result = await CreateService()
+            .SetUpAsync(CreateRequest(managementConsole: CreateConsole()), CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Same(error, result.Error);
+    }
+
+    [Fact]
+    public async Task SetUpAsync_ManagementConsoleSettingsInvalid_ReturnsBadRequestAndSavesNothing()
+    {
+        SetupTenantScope();
+        SetupStoreManagers(2);
+        SetupInstanceSetupStore(1);
+        SetupRead(CreateRow());
+        SetupCreator(CreateCreation());
+        SetupAssignment(_ => { });
+        SetupClientCreator(
+            ClientCreation.InvalidSettings(
+                new Dictionary<string, string[]> { ["redirect_uris"] = ["Is not allowed."] }
+            )
+        );
+
+        var result = await CreateService()
+            .SetUpAsync(CreateRequest(managementConsole: CreateConsole()), CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(StatusCodes.Status400BadRequest, result.Error.StatusCode);
+        Assert.Contains(
+            "redirect_uris: Is not allowed.",
+            result.Error.Detail,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public async Task SetUpAsync_ManagementConsoleIncomplete_ReturnsBadRequest()
+    {
+        var console = CreateConsole();
+        console.Jwks = null;
+
+        var result = await CreateService()
+            .SetUpAsync(CreateRequest(managementConsole: console), CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(StatusCodes.Status400BadRequest, result.Error.StatusCode);
+    }
+
+    [Fact]
+    public async Task SetUpAsync_NoManagementConsole_StagesNoClient()
+    {
+        var row = CreateRow();
+        var state = new Dictionary<string, object?>();
+
+        SetupTenantScope();
+        SetupStoreManagers(2);
+        SetupInstanceSetupStore(2);
+        SetupRead(row);
+        SetupCreator(CreateCreation());
+        SetupAssignment(_ => { });
+        SetupUpdate(row);
+        SetupSave();
+        SetupLogged(LogLevel.Information, EventIds.RootAdministratorCreated, state);
+
+        var result = await CreateService().SetUpAsync(CreateRequest(), CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        Assert.Null(result.ManagementConsoleClientId);
+        Assert.Equal(["tenant", "account"], CallLog);
     }
 
     #endregion

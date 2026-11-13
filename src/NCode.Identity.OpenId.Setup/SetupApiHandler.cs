@@ -102,12 +102,15 @@ internal sealed class SetupApiHandler(
             );
         }
 
-        var result = await InstanceSetupService.CreateRootAsync(
-            new SetupRootOptions
+        var result = await InstanceSetupService.SetUpAsync(
+            new InstanceSetupRequest
             {
-                UserName = request.UserName,
-                Email = request.Email,
-                Password = request.Password,
+                Root = new SetupRootOptions
+                {
+                    UserName = request.UserName,
+                    Email = request.Email,
+                    Password = request.Password,
+                },
             },
             cancellationToken
         );

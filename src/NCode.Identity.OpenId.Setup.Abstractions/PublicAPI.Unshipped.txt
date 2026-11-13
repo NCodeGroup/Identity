@@ -24,8 +24,8 @@ NCode.Identity.OpenId.Setup.Contracts.SetupStatusResponse.SetupStatusResponse() 
 NCode.Identity.OpenId.Setup.Contracts.SetupStatusResponse.TokenSource.get -> string!
 NCode.Identity.OpenId.Setup.Contracts.SetupStatusResponse.TokenSource.init -> void
 NCode.Identity.OpenId.Setup.IInstanceSetupService
-NCode.Identity.OpenId.Setup.IInstanceSetupService.CreateRootAsync(NCode.Identity.OpenId.Setup.SetupRootOptions! root, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Setup.InstanceSetupResult!>
 NCode.Identity.OpenId.Setup.IInstanceSetupService.IsInitializedAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.OpenId.Setup.IInstanceSetupService.SetUpAsync(NCode.Identity.OpenId.Setup.InstanceSetupRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Setup.InstanceSetupResult!>
 NCode.Identity.OpenId.Setup.InstanceSetupRequest
 NCode.Identity.OpenId.Setup.InstanceSetupRequest.InstanceSetupRequest() -> void
 NCode.Identity.OpenId.Setup.InstanceSetupRequest.ManagementConsole.get -> NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions?
@@ -36,6 +36,8 @@ NCode.Identity.OpenId.Setup.InstanceSetupResult
 NCode.Identity.OpenId.Setup.InstanceSetupResult.Error.get -> NCode.Identity.OpenId.Management.ManagementError?
 NCode.Identity.OpenId.Setup.InstanceSetupResult.Error.init -> void
 NCode.Identity.OpenId.Setup.InstanceSetupResult.InstanceSetupResult() -> void
+NCode.Identity.OpenId.Setup.InstanceSetupResult.ManagementConsoleClientId.get -> string?
+NCode.Identity.OpenId.Setup.InstanceSetupResult.ManagementConsoleClientId.init -> void
 NCode.Identity.OpenId.Setup.InstanceSetupResult.Root.get -> NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse?
 NCode.Identity.OpenId.Setup.InstanceSetupResult.Root.init -> void
 NCode.Identity.OpenId.Setup.InstanceSetupResult.Succeeded.get -> bool

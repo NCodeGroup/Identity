@@ -57,9 +57,14 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.FailedToFetchRequestUri,
         Level = LogLevel.Warning,
-        Message = "Failed to fetch the request URI"
+        Message = "Failed to fetch the request URI '{RequestUri}' ({Reason})"
     )]
-    internal static partial void FailedToFetchRequestUri(this ILogger logger, Exception exception);
+    internal static partial void FailedToFetchRequestUri(
+        this ILogger logger,
+        string requestUri,
+        string reason,
+        Exception exception
+    );
 
     [LoggerMessage(
         EventId = EventIds.EndUserSessionAuthenticationFailed,
@@ -395,12 +400,13 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.ClientJwksFetchFailed,
         Level = LogLevel.Warning,
-        Message = "The client 'jwks_uri' ('{JwksUri}') for client '{ClientId}' could not be fetched or its key set was refused; the client's published keys are unavailable."
+        Message = "The client 'jwks_uri' ('{JwksUri}') for client '{ClientId}' yielded no usable keys ({Reason}); the client's published keys are unavailable."
     )]
     internal static partial void ClientJwksFetchFailed(
         this ILogger logger,
         string clientId,
         string jwksUri,
+        string reason,
         Exception exception
     );
 
@@ -692,5 +698,43 @@ internal static partial class Log
         this ILogger logger,
         Exception exception,
         string tenantId
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.SectorIdentifierUriFetchFailed,
+        Level = LogLevel.Warning,
+        Message = "Failed to fetch the sector identifier URI '{SectorIdentifierUri}' ({Reason})"
+    )]
+    internal static partial void SectorIdentifierUriFetchFailed(
+        this ILogger logger,
+        string sectorIdentifierUri,
+        string reason,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.BackChannelLogoutDeliveryFailed,
+        Level = LogLevel.Warning,
+        Message = "Failed to deliver the back-channel logout for client '{ClientId}' to '{LogoutUri}' ({Reason}); the delivery is retried"
+    )]
+    internal static partial void BackChannelLogoutDeliveryFailed(
+        this ILogger logger,
+        string clientId,
+        string logoutUri,
+        string reason,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.CibaDeliveryFailed,
+        Level = LogLevel.Warning,
+        Message = "Failed to deliver the CIBA notification for client '{ClientId}' to '{EndpointUrl}' ({Reason}); the delivery is retried"
+    )]
+    internal static partial void CibaDeliveryFailed(
+        this ILogger logger,
+        string clientId,
+        string endpointUrl,
+        string reason,
+        Exception exception
     );
 }

@@ -3,8 +3,10 @@
 
 using System.Buffers;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using NCode.Buffers;
 using NCode.Identity.Json;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
@@ -23,10 +25,12 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.Registration;
 /// both a wall-clock timeout and a response size cap bound the request.
 /// </summary>
 internal class DefaultSectorIdentifierValidator(
+    ILogger<DefaultSectorIdentifierValidator> logger,
     IHttpClientFactory httpClientFactory,
     IOutboundHttpContentReader outboundHttpContentReader
 ) : ISectorIdentifierValidator
 {
+    private ILogger Logger { get; } = logger;
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
     private IOutboundHttpContentReader OutboundHttpContentReader { get; } =
         outboundHttpContentReader;
@@ -113,14 +117,23 @@ internal class DefaultSectorIdentifierValidator(
                 );
             }
         }
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException exception)
+            when (!cancellationToken.IsCancellationRequested)
         {
+            var uriForLog = OutboundUriRedaction.ForLog(uri);
+            var reason = OutboundFetchFailureReasons.Classify(exception, timedOut: true);
+            Logger.SectorIdentifierUriFetchFailed(uriForLog, reason, exception);
             return InvalidMetadata(
                 "The 'sector_identifier_uri' document could not be fetched within the allotted time."
             );
         }
-        catch (HttpRequestException)
+        catch (Exception exception)
+            when (OutboundFetchFailureReasons.IsFetchFailure(exception, cancellationToken))
         {
+            var timedOut = OutboundFetchFailureReasons.IsTimedOut(timeoutCts, cancellationToken);
+            var uriForLog = OutboundUriRedaction.ForLog(uri);
+            var reason = OutboundFetchFailureReasons.Classify(exception, timedOut);
+            Logger.SectorIdentifierUriFetchFailed(uriForLog, reason, exception);
             return InvalidMetadata("The 'sector_identifier_uri' document could not be fetched.");
         }
 

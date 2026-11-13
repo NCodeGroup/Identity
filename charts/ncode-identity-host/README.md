@@ -755,6 +755,13 @@ required, the grant types `authorization_code` and `refresh_token`, the redirect
 `https://<host>/bff/callback`, the post-logout redirect URI `https://<host>/`, the back-channel logout URI
 `https://<host>/bff/backchannel-logout`, and `jwks_uri` `https://<host>/bff/jwks`.
 
+The server never fetches a `jwks_uri` whose host resolves to a loopback, private or other special-use address, and the
+management API refuses to store one. A console reachable only on a private network registers without `jwks_uri` and
+imports the public half of its `mgmt-client` key through
+`POST /api/tenants/{tenantId}/clients/mgmt-console/secrets/import`. The client then authenticates against the stored
+key, so a rotation of `mgmt-client` imports the next key. A refused fetch logs `ClientJwksFetchFailed` with the reason
+`blocked_address`.
+
 The setup Job registers this client in the same save as the root administrator, with the metadata above except
 `jwks_uri`, from `setup.managementConsole.baseUrl` and `setup.managementConsole.jwks`; see
 [First use](#first-use). Without it, register the client through the management API.

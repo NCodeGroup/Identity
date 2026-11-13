@@ -73,6 +73,24 @@ public class DefaultOutboundHttpForgeryGuardTests
         Assert.True(guard.IsDisallowedAddress(IPAddress.Parse("10.0.0.1")));
     }
 
+    [Fact]
+    public async Task ConnectAsync_WhenTheHostIsARefusedLiteral_ThrowsOutboundAddressRefusedException()
+    {
+        var guard = CreateGuard();
+        using var handler = new SocketsHttpHandler { ConnectCallback = guard.ConnectAsync };
+        using var client = new HttpClient(handler);
+
+        var exception = await Assert.ThrowsAnyAsync<HttpRequestException>(() =>
+            client.GetAsync("https://10.0.0.5/", CancellationToken.None)
+        );
+
+        var chain = new List<Exception>();
+        for (Exception? link = exception; link is not null; link = link.InnerException)
+            chain.Add(link);
+
+        Assert.Contains(chain, link => link is OutboundAddressRefusedException);
+    }
+
     private sealed class DenyAddressFilter(IPAddress blocked) : IOutboundAddressFilter
     {
         public bool IsDisallowed(IPAddress address) => address.Equals(blocked);

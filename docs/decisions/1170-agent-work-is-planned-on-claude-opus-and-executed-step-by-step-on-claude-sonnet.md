@@ -46,9 +46,9 @@ contributor has the whole loop:
   (`chat.planAgent.defaultModel`) and the built-in **Start Implementation** handoff to Sonnet
   (`github.copilot.chat.implementAgent.model`), so the built-in flow follows the same split.
 - **The workflow runs in three tools.** In VS Code and in Copilot CLI, a planning session starts on Opus
-  (`copilot --model claude-opus-5.5`). In Claude Code, each plan has its own git worktree under `.claude/worktrees/`,
-  `CLAUDE.md` imports `AGENTS.md`, and `.claude/rules/` points Claude Code at the scoped instruction files by path,
-  because it ignores `applyTo`.
+  (`copilot --model claude-opus-5.5`). In every tool, each plan has its own git worktree under `.claude/worktrees/`.
+  In Claude Code, `CLAUDE.md` imports `AGENTS.md`, and `.claude/rules/` points Claude Code at the scoped instruction
+  files by path, because it ignores `applyTo`.
 - **A session that cannot delegate to the Sonnet executor selects Sonnet and runs `/execute-step` directly.** It
   returns to the planner for verification or re-planning. A session's model error is never a reason to hand-edit a
   generated agent.

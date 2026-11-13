@@ -15,7 +15,7 @@ enforced quality bar.
 - Git hooks: run `git config core.hooksPath .githooks` once after cloning to enable the repo-versioned
   `.githooks/pre-push` hook, which refuses a push to the default branch when the Landing section of `AGENTS.md` says
   `protect: hook`.
-- Windows: run `git config --global core.longpaths true` once. A Claude Code plan's worktree under
+- Windows: run `git config --global core.longpaths true` once. A plan's worktree under
   `.claude/worktrees/` adds enough depth that some paths pass Windows' 260-character limit, and without it
   `git worktree remove` fails with "Filename too long" and leaves the folder behind.
 - Frontend / full-stack (Aspire F5): [NVS](https://github.com/jasongin/nvs); `build/frontend-install.ps1` adds the

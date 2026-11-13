@@ -5,18 +5,24 @@ using System.Collections;
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Security.Cryptography;
+using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Testing;
 using Moq;
+using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
+using NCode.Identity.OpenId.Core.Tests.OutboundHttp;
 using NCode.Identity.OpenId.Settings;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Collections;
 using NCode.Identity.Secrets.KeyMaterial;
 using NCode.Identity.Secrets.Keys;
 using NCode.Identity.Secrets.Persistence;
+using NCode.Identity.Secrets.Persistence.DataContracts;
 using NCode.Identity.Settings;
 using Xunit;
 
@@ -74,7 +80,23 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
 
     private DefaultClientKeyResolver CreateFetchingResolver(
         HttpMessageHandler handler,
-        OutboundHttpOptions options
+        OutboundHttpOptions options,
+        ILogger<DefaultClientKeyResolver> logger
+    ) =>
+        CreateFetchingResolver(
+            handler,
+            new FetchCollaborators(
+                options,
+                CreateStrictMock<IOutboundHttpContentReader>().Object,
+                CreateStrictMock<IClientKeyImporter>().Object
+            ),
+            logger
+        );
+
+    private DefaultClientKeyResolver CreateFetchingResolver(
+        HttpMessageHandler handler,
+        FetchCollaborators collaborators,
+        ILogger<DefaultClientKeyResolver> logger
     )
     {
         var mockHttpClientFactory = CreateStrictMock<IHttpClientFactory>();
@@ -84,11 +106,29 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
             .Verifiable();
 
         return new DefaultClientKeyResolver(
-            ServiceProvider.GetRequiredService<ILogger<DefaultClientKeyResolver>>(),
+            logger,
             TimeProvider.System,
             mockHttpClientFactory.Object,
+            collaborators.ContentReader,
+            Microsoft.Extensions.Options.Options.Create(collaborators.Options),
+            MemoryCache,
+            collaborators.KeyImporter,
+            CreateStrictMock<ISecretSerializer>().Object,
+            ServiceProvider.GetRequiredService<ISecretKeyCollectionFactory>()
+        );
+    }
+
+    private DefaultClientKeyResolver CreateRefusingResolver(
+        ILogger<DefaultClientKeyResolver> logger
+    )
+    {
+        // A strict factory with no setup: a jwks_uri refused before any fetch never reaches it.
+        return new DefaultClientKeyResolver(
+            logger,
+            TimeProvider.System,
+            CreateStrictMock<IHttpClientFactory>().Object,
             CreateStrictMock<IOutboundHttpContentReader>().Object,
-            Microsoft.Extensions.Options.Options.Create(options),
+            Microsoft.Extensions.Options.Options.Create(new OutboundHttpOptions()),
             MemoryCache,
             CreateStrictMock<IClientKeyImporter>().Object,
             CreateStrictMock<ISecretSerializer>().Object,
@@ -136,6 +176,18 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
     {
         var key = Assert.Single(keys);
         Assert.Same(SharedSecret, key);
+    }
+
+    private static void AssertFetchFailedReason(
+        FakeLogger<DefaultClientKeyResolver> logger,
+        string reason
+    )
+    {
+        var record = Assert.Single(
+            logger.Collector.GetSnapshot(),
+            r => r.Id.Id == EventIds.ClientJwksFetchFailed
+        );
+        Assert.Equal(reason, record.GetStructuredStateValue("Reason"));
     }
 
     private OpenIdClient CreateClient(
@@ -186,11 +238,193 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
     }
 
     [Fact]
+    public async Task ResolveSecretKeysAsync_WhenJwksUriResolvesToARefusedAddress_LogsBlockedAddress()
+    {
+        var logger = new FakeLogger<DefaultClientKeyResolver>();
+        using var handler = new SocketsHttpHandler
+        {
+            ConnectCallback = new DefaultOutboundHttpForgeryGuard([]).ConnectAsync,
+        };
+        var resolver = CreateFetchingResolver(handler, new OutboundHttpOptions(), logger);
+        var settings = FetchSettings(TimeSpan.FromSeconds(10));
+        settings[OpenIdSettingNames.JwksUri] = "https://10.0.0.5/jwks";
+        var client = CreateClient(settings, readsClientId: true);
+
+        var keys = await resolver.ResolveSecretKeysAsync(client, CancellationToken.None);
+
+        AssertOnlySharedSecret(keys);
+        AssertFetchFailedReason(logger, ClientJwksFetchFailureReasons.BlockedAddress);
+    }
+
+    [Fact]
+    public async Task ResolveSecretKeysAsync_WhenJwksUriIsNotHttps_LogsNotHttps()
+    {
+        var logger = new FakeLogger<DefaultClientKeyResolver>();
+        var resolver = CreateRefusingResolver(logger);
+        var settings = FetchSettings(TimeSpan.FromSeconds(10));
+        settings[OpenIdSettingNames.JwksUri] = "http://client.example/jwks";
+        var client = CreateClient(settings, readsClientId: true);
+
+        var keys = await resolver.ResolveSecretKeysAsync(client, CancellationToken.None);
+
+        AssertOnlySharedSecret(keys);
+        AssertFetchFailedReason(logger, ClientJwksFetchFailureReasons.NotHttps);
+    }
+
+    [Fact]
+    public async Task ResolveSecretKeysAsync_WhenJwksUriHostIsNotAllowed_LogsHostNotAllowed()
+    {
+        var logger = new FakeLogger<DefaultClientKeyResolver>();
+        var resolver = CreateRefusingResolver(logger);
+        var settings = FetchSettings(TimeSpan.FromSeconds(10));
+        string[] allowedHosts = ["other.example"];
+        settings[OpenIdSettingNames.JwksUriAllowedHosts] = allowedHosts;
+        var client = CreateClient(settings, readsClientId: true);
+
+        var keys = await resolver.ResolveSecretKeysAsync(client, CancellationToken.None);
+
+        AssertOnlySharedSecret(keys);
+        AssertFetchFailedReason(logger, ClientJwksFetchFailureReasons.HostNotAllowed);
+    }
+
+    [Fact]
+    public async Task ResolveSecretKeysAsync_WhenTheResponseIsNotSuccessful_LogsHttpStatus()
+    {
+        var logger = new FakeLogger<DefaultClientKeyResolver>();
+        using var handler = new CountingHttpMessageHandler(Task.CompletedTask);
+        var resolver = CreateFetchingResolver(handler, new OutboundHttpOptions(), logger);
+        var client = CreateClient(FetchSettings(TimeSpan.FromSeconds(10)), readsClientId: true);
+
+        var keys = await resolver.ResolveSecretKeysAsync(client, CancellationToken.None);
+
+        AssertOnlySharedSecret(keys);
+        Assert.Equal(1, handler.Calls);
+        AssertFetchFailedReason(logger, ClientJwksFetchFailureReasons.HttpStatus);
+    }
+
+    [Fact]
+    public async Task ResolveSecretKeysAsync_WhenTheFetchTimesOut_LogsTimeout()
+    {
+        var logger = new FakeLogger<DefaultClientKeyResolver>();
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var handler = new CountingHttpMessageHandler(gate.Task);
+        var resolver = CreateFetchingResolver(handler, new OutboundHttpOptions(), logger);
+        var client = CreateClient(
+            FetchSettings(TimeSpan.FromMilliseconds(50)),
+            readsClientId: true
+        );
+
+        var keys = await resolver.ResolveSecretKeysAsync(client, CancellationToken.None);
+
+        AssertOnlySharedSecret(keys);
+        Assert.Equal(1, handler.Calls);
+        AssertFetchFailedReason(logger, ClientJwksFetchFailureReasons.Timeout);
+    }
+
+    [Fact]
+    public async Task ResolveSecretKeysAsync_WhenTheDocumentIsTooLarge_LogsTooLarge()
+    {
+        var logger = new FakeLogger<DefaultClientKeyResolver>();
+        using var handler = new StubContentHttpMessageHandler(
+            """{"keys":[],"padding":"xxxxxxxx"}"""
+        );
+        var collaborators = new FetchCollaborators(
+            new OutboundHttpOptions(),
+            new DefaultOutboundHttpContentReader(),
+            CreateStrictMock<IClientKeyImporter>().Object
+        );
+        var resolver = CreateFetchingResolver(handler, collaborators, logger);
+        var settings = FetchSettings(TimeSpan.FromSeconds(10));
+        settings[OpenIdSettingNames.JwksUriMaxSizeBytes] = 16;
+        var client = CreateClient(settings, readsClientId: true);
+
+        var keys = await resolver.ResolveSecretKeysAsync(client, CancellationToken.None);
+
+        AssertOnlySharedSecret(keys);
+        AssertFetchFailedReason(logger, ClientJwksFetchFailureReasons.TooLarge);
+    }
+
+    [Fact]
+    public async Task ResolveSecretKeysAsync_WhenTheBodyIsCorrupt_LogsConnection()
+    {
+        var logger = new FakeLogger<DefaultClientKeyResolver>();
+        using var handler = new FailingBodyHttpMessageHandler(new InvalidDataException("x"));
+        var collaborators = new FetchCollaborators(
+            new OutboundHttpOptions(),
+            new DefaultOutboundHttpContentReader(),
+            CreateStrictMock<IClientKeyImporter>().Object
+        );
+        var resolver = CreateFetchingResolver(handler, collaborators, logger);
+        var client = CreateClient(FetchSettings(TimeSpan.FromSeconds(10)), readsClientId: true);
+
+        var keys = await resolver.ResolveSecretKeysAsync(client, CancellationToken.None);
+
+        AssertOnlySharedSecret(keys);
+        AssertFetchFailedReason(logger, ClientJwksFetchFailureReasons.Connection);
+    }
+
+    [Fact]
+    public async Task ResolveSecretKeysAsync_WhenTheDocumentIsNotJson_LogsNotJson()
+    {
+        var logger = new FakeLogger<DefaultClientKeyResolver>();
+        using var handler = new StubContentHttpMessageHandler("not json");
+        var collaborators = new FetchCollaborators(
+            new OutboundHttpOptions(),
+            new DefaultOutboundHttpContentReader(),
+            CreateStrictMock<IClientKeyImporter>().Object
+        );
+        var resolver = CreateFetchingResolver(handler, collaborators, logger);
+        var client = CreateClient(FetchSettings(TimeSpan.FromSeconds(10)), readsClientId: true);
+
+        var keys = await resolver.ResolveSecretKeysAsync(client, CancellationToken.None);
+
+        AssertOnlySharedSecret(keys);
+        AssertFetchFailedReason(logger, ClientJwksFetchFailureReasons.NotJson);
+    }
+
+    [Fact]
+    public async Task ResolveSecretKeysAsync_WhenTheKeySetIsRefused_LogsInvalidKeySet()
+    {
+        var logger = new FakeLogger<DefaultClientKeyResolver>();
+        using var handler = new StubContentHttpMessageHandler("""{"keys":[]}""");
+        IReadOnlyList<PersistedSecret>? secrets = null;
+        string? error = "refused";
+        var mockKeyImporter = CreateStrictMock<IClientKeyImporter>();
+        mockKeyImporter
+            .Setup(x =>
+                x.TryImportPublishedKeySet(
+                    It.IsAny<JsonElement>(),
+                    It.IsAny<DateTimeOffset>(),
+                    out secrets,
+                    out error
+                )
+            )
+            .Returns(false)
+            .Verifiable();
+        var collaborators = new FetchCollaborators(
+            new OutboundHttpOptions(),
+            new DefaultOutboundHttpContentReader(),
+            mockKeyImporter.Object
+        );
+        var resolver = CreateFetchingResolver(handler, collaborators, logger);
+        var client = CreateClient(FetchSettings(TimeSpan.FromSeconds(10)), readsClientId: true);
+
+        var keys = await resolver.ResolveSecretKeysAsync(client, CancellationToken.None);
+
+        AssertOnlySharedSecret(keys);
+        AssertFetchFailedReason(logger, ClientJwksFetchFailureReasons.InvalidKeySet);
+    }
+
+    [Fact]
     public async Task ResolveSecretKeysAsync_WhenTwoRequestsMissAtOnce_FetchesOnce()
     {
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var handler = new CountingHttpMessageHandler(gate.Task);
-        var resolver = CreateFetchingResolver(handler, new OutboundHttpOptions());
+        var resolver = CreateFetchingResolver(
+            handler,
+            new OutboundHttpOptions(),
+            ServiceProvider.GetRequiredService<ILogger<DefaultClientKeyResolver>>()
+        );
         var settings = FetchSettings(TimeSpan.FromSeconds(10));
         var client = CreateClient(settings, readsClientId: true);
 
@@ -207,7 +441,11 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
     public async Task ResolveSecretKeysAsync_WhenTheFetchFailed_DoesNotFetchAgain()
     {
         using var handler = new CountingHttpMessageHandler(Task.CompletedTask);
-        var resolver = CreateFetchingResolver(handler, new OutboundHttpOptions());
+        var resolver = CreateFetchingResolver(
+            handler,
+            new OutboundHttpOptions(),
+            ServiceProvider.GetRequiredService<ILogger<DefaultClientKeyResolver>>()
+        );
         var settings = FetchSettings(TimeSpan.FromSeconds(10));
         var client = CreateClient(settings, readsClientId: true);
 
@@ -227,7 +465,11 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
         {
             FailureCacheDuration = TimeSpan.FromMilliseconds(1),
         };
-        var resolver = CreateFetchingResolver(handler, options);
+        var resolver = CreateFetchingResolver(
+            handler,
+            options,
+            ServiceProvider.GetRequiredService<ILogger<DefaultClientKeyResolver>>()
+        );
         var settings = FetchSettings(TimeSpan.FromSeconds(10));
         var client = CreateClient(settings, readsClientId: true);
 
@@ -244,7 +486,11 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
     public async Task ResolveSecretKeysAsync_WhenAnotherClientHasOtherLimits_FetchesSeparately()
     {
         using var handler = new CountingHttpMessageHandler(Task.CompletedTask);
-        var resolver = CreateFetchingResolver(handler, new OutboundHttpOptions());
+        var resolver = CreateFetchingResolver(
+            handler,
+            new OutboundHttpOptions(),
+            ServiceProvider.GetRequiredService<ILogger<DefaultClientKeyResolver>>()
+        );
         var firstSettings = FetchSettings(TimeSpan.FromSeconds(10));
         var firstClient = CreateClient(firstSettings, readsClientId: true);
         var secondSettings = FetchSettings(TimeSpan.FromSeconds(5));
@@ -263,7 +509,11 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
     {
         var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         using var handler = new CountingHttpMessageHandler(gate.Task);
-        var resolver = CreateFetchingResolver(handler, new OutboundHttpOptions());
+        var resolver = CreateFetchingResolver(
+            handler,
+            new OutboundHttpOptions(),
+            ServiceProvider.GetRequiredService<ILogger<DefaultClientKeyResolver>>()
+        );
         var settings = FetchSettings(TimeSpan.FromSeconds(10));
         var client = CreateClient(settings, readsClientId: true);
         using var cancellation = new CancellationTokenSource();
@@ -362,6 +612,26 @@ public sealed class DefaultClientKeyResolverTests : BaseTests, IAsyncLifetime
             await gate.WaitAsync(cancellationToken);
             return new HttpResponseMessage(HttpStatusCode.ServiceUnavailable);
         }
+    }
+
+    private sealed record FetchCollaborators(
+        OutboundHttpOptions Options,
+        IOutboundHttpContentReader ContentReader,
+        IClientKeyImporter KeyImporter
+    );
+
+    private sealed class StubContentHttpMessageHandler(string content) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        ) =>
+            Task.FromResult(
+                new HttpResponseMessage(HttpStatusCode.OK)
+                {
+                    Content = new StringContent(content, SecureEncoding.UTF8),
+                }
+            );
     }
 
     private sealed class StubSettings(IReadOnlyDictionary<string, object> values)

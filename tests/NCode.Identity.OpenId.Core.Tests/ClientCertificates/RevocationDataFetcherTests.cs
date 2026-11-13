@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using Moq;
 using NCode.Identity.OpenId.Authentication.ClientCertificates;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
+using NCode.Identity.OpenId.Core.Tests.OutboundHttp;
 using Xunit;
 
 namespace NCode.Identity.OpenId.Core.Tests.ClientCertificates;
@@ -148,6 +149,17 @@ public class RevocationDataFetcherTests : BaseTests
 
         Assert.Null(result);
         Assert.Equal(1, handler.RequestCount);
+    }
+
+    [Fact]
+    public async Task GetAsync_WhenTheBodyIsCorrupt_ReturnsNull()
+    {
+        var handler = new FailingBodyHttpMessageHandler(new InvalidDataException("x"));
+        var fetcher = CreateFetcher(handler);
+
+        var result = await fetcher.GetAsync(Location, Location, Subject, CancellationToken.None);
+
+        Assert.Null(result);
     }
 
     [Fact]

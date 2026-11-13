@@ -23,6 +23,7 @@ internal sealed class DefaultClientCreator(
     ISettingSerializer settingSerializer,
     IClientKeyImporter clientKeyImporter,
     IClientKeySourceChecker clientKeySourceChecker,
+    IClientJwksUriChecker clientJwksUriChecker,
     TimeProvider timeProvider,
     IOpenIdEnvironmentProvider openIdEnvironmentProvider
 ) : IClientCreator
@@ -34,6 +35,7 @@ internal sealed class DefaultClientCreator(
     private ISettingSerializer SettingSerializer { get; } = settingSerializer;
     private IClientKeyImporter ClientKeyImporter { get; } = clientKeyImporter;
     private IClientKeySourceChecker ClientKeySourceChecker { get; } = clientKeySourceChecker;
+    private IClientJwksUriChecker ClientJwksUriChecker { get; } = clientJwksUriChecker;
     private TimeProvider TimeProvider { get; } = timeProvider;
     private IOpenIdEnvironmentProvider OpenIdEnvironmentProvider { get; } =
         openIdEnvironmentProvider;
@@ -127,6 +129,16 @@ internal sealed class DefaultClientCreator(
         if (effectiveSettingErrors.Count > 0)
         {
             return ClientCreation.InvalidSettings(ToSettingErrors(effectiveSettingErrors));
+        }
+
+        var jwksUriRefusal = await ClientJwksUriChecker.GetRefusalAsync(
+            client.Settings.Value,
+            null,
+            cancellationToken
+        );
+        if (jwksUriRefusal is not null)
+        {
+            return ClientCreation.InvalidSettings(ToSettingErrors([jwksUriRefusal.Value]));
         }
 
         if (request.Jwks is { } jwks)

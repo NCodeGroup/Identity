@@ -37,6 +37,7 @@ internal static class DefaultRegistration
                 IClientKeySourceChecker,
                 DefaultClientKeySourceChecker
             >();
+            serviceCollection.TryAddSingleton<IClientJwksUriChecker, DefaultClientJwksUriChecker>();
 
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

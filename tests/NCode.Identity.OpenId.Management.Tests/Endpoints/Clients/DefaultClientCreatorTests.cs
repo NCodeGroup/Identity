@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Management.Authorization;
 using NCode.Identity.OpenId.Persistence.DataContracts;
@@ -29,6 +30,7 @@ public sealed class DefaultClientCreatorTests
     private Mock<ISettingSerializer> MockSettingSerializer { get; }
     private Mock<IClientKeyImporter> MockClientKeyImporter { get; }
     private Mock<IClientKeySourceChecker> MockClientKeySourceChecker { get; }
+    private Mock<IOutboundHostChecker> MockOutboundHostChecker { get; }
     private DefaultClientCreator Creator { get; }
 
     public DefaultClientCreatorTests()
@@ -41,6 +43,7 @@ public sealed class DefaultClientCreatorTests
         MockSettingSerializer = MockRepository.Create<ISettingSerializer>();
         MockClientKeyImporter = MockRepository.Create<IClientKeyImporter>();
         MockClientKeySourceChecker = MockRepository.Create<IClientKeySourceChecker>();
+        MockOutboundHostChecker = MockRepository.Create<IOutboundHostChecker>();
 
         var openIdEnvironmentProvider = Mock.Of<IOpenIdEnvironmentProvider>(provider =>
             provider.Get()
@@ -55,6 +58,7 @@ public sealed class DefaultClientCreatorTests
             MockSettingSerializer.Object,
             MockClientKeyImporter.Object,
             MockClientKeySourceChecker.Object,
+            new DefaultClientJwksUriChecker(MockOutboundHostChecker.Object),
             TimeProvider.System,
             openIdEnvironmentProvider
         );

@@ -265,12 +265,17 @@ needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI
   model for verification or re-planning. Do not hand-edit generated agents to work around a session-specific
   model-availability error.
 - **Claude Code** (CLI, VS Code extension or desktop app): run `/plan-feature …` and the other planning commands on
-  Claude Opus 5.5. Each plan lives in its own git worktree, `.claude/worktrees/<name>/` on the branch
-  `worktree-<name>`; `/orchestrate-plan` (from another session, `/orchestrate-plan <name>`) delegates each step to
-  the `plan-executor` subagent on Claude Sonnet 5.5, and `/review-plan-diff` reviews the result.
-  [`CLAUDE.md`](CLAUDE.md) imports this file. The subagent runs every command, its Done-when check included, with
-  the PowerShell tool, which Claude Code allows in a worktree, so a plan whose steps run commands rather than edit
-  files runs in its worktree like any other.
+  Claude Opus 5.5; `/orchestrate-plan` (from another session, `/orchestrate-plan <name>`) delegates each step to the
+  `plan-executor` subagent on Claude Sonnet 5.5, and `/review-plan-diff` reviews the result. [`CLAUDE.md`](CLAUDE.md)
+  imports this file. The subagent runs every command, its Done-when check included, with the PowerShell tool, which
+  Claude Code allows in a worktree, so a plan whose steps run commands rather than edit files runs in its worktree
+  like any other.
+- **Worktrees:** each plan lives in its own git worktree, `.claude/worktrees/<name>/` on the branch `worktree-<name>`,
+  in every tool, so several sessions can work on different plans in one clone; `/orchestrate-plan <name>` names the
+  plan when several are open. A Copilot session starts every command in the plan's folder with `Set-Location`,
+  because its shell can't change folders. `/run-issues` entries, `/address-feedback` passes and the
+  `/analyze-architecture` and `/analyze-decision` analyses each work in a worktree of their own too; a decision
+  record that `/analyze-decision` writes lands with the plan made in the same worktree.
 - **Planning from an issue:** run `/plan-issue #123`, or name the issue in any planning request
   (`/plan-feature #123 …`). `/plan-issue` reads the issue and every comment, stops with questions when the issue is
   closed, already planned, has an open pull request or says too little to plan, and picks the kind of plan from its
@@ -297,16 +302,16 @@ needs a decision comes back to Opus to be re-planned — in VS Code, Copilot CLI
   ([ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md)). The squash merge takes
   its subject from the pull request title, which `/ship-plan` takes from the plan's title, so a plan's title is a
   conventional commit subject, such as `# Plan: build: update project-template to v0.23.0`. `/continue-plan` shows
-  where every open plan stands and the command to run next. In Claude Code, `/run-issues #<number> …` takes issues, or
-  groups of up to three, from plan to a draft pull request, landing them in queue order while it plans the next one,
-  and answers your review threads, top-level comments and review summaries; the `main` ruleset requires pull requests,
-  so it runs here.
-- **Finishing a plan:** once the merge queue has merged the plan's pull request, run `/finish-plan` (in Claude Code
-  from the plan's session, or `/finish-plan <name>` from the main checkout). It deletes `PLAN.md`, fast-forwards
-  `main`, deletes the plan's branch and, in Claude Code, removes its worktree. The merge queue squash-merges, so the
-  plan's own commits never reach `main`: the command asks `gh` for the branch's merged pull request, accepts it when
-  its merge commit is on `main` and its head matches the branch, and deletes the branch with `git branch -D`.
-  Without `gh`, or without such a pull request, it stops to ask.
+  where every open plan stands and the command to run next. `/run-issues #<number> …` takes issues, or groups
+  of up to three, from plan to a draft pull request, landing them in queue order while it plans the next one, and
+  answers your review threads, top-level comments and review summaries; the `main` ruleset requires pull requests, so
+  it runs here.
+- **Finishing a plan:** once the merge queue has merged the plan's pull request, run `/finish-plan` (from the plan's
+  session, or `/finish-plan <name>` from the main checkout). It deletes `PLAN.md`, fast-forwards `main`, deletes the
+  plan's branch and removes its worktree. The merge queue squash-merges, so the plan's own commits never reach `main`:
+  the command asks `gh` for the branch's merged pull request, accepts it when its merge commit is on `main` and its
+  head matches the branch, and deletes the branch with `git branch -D`. Without `gh`, or without such a pull request,
+  it stops to ask.
 - The agents, prompts and skills under `.github/`, the commands under `.claude/commands/`,
   `.claude/agents/plan-executor.md` and `CLAUDE.md` **come from the project template**
   ([`NCodeGroup/project-template`](https://github.com/NCodeGroup/project-template); the version is in

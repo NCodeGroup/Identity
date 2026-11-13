@@ -1699,6 +1699,15 @@ Until the first stable release, the [Unreleased] section describes the product a
   `OutboundHttpOptions.FailureCacheDuration` (`OpenId:OutboundHttp:FailureCacheDuration`, one minute), validated when
   the host starts ([#466](https://github.com/NCodeGroup/identity/issues/466),
   [ADR-1106](docs/decisions/1106-a-clients-jwks-uri-key-set-is-fetched-when-needed-shared-between-callers-and-never-served-stale.md)).
+  A fetch that yields no key logs `ClientJwksFetchFailed` with a reason (`blocked_address`, `name_resolution`, `tls`,
+  `timeout`, `connection`, `http_status`, `too_large`, `not_json`, `invalid_key_set`, `not_https`, `host_not_allowed`,
+  `canceled`), while the caller sees only `invalid_client`. A failed `request_uri` or `sector_identifier_uri` fetch,
+  and a failed back-channel logout or CIBA delivery, logs the same transport reasons. Each of these entries names the
+  URL without its user information, query or fragment, and never an address. A response body that fails to read or
+  decompress logs as `connection`, and a `request_uri` body that is not valid UTF-8 is refused as
+  `invalid_request_uri` and logs no fetch failure. The management API refuses a `jwks_uri` whose host resolves only
+  to addresses the outbound guard refuses, on a tenant promotion as on create and update, and names the key import
+  endpoint as the alternative ([#783](https://github.com/NCodeGroup/identity/issues/783)).
 
 - **A `kid` is the client's own name for its key, unique among that client's keys.** Any number of clients, in any
   tenants, register keys with the same `kid`; the management import keeps a JSON Web Key's `kid`, so a client that signs
@@ -3857,6 +3866,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   Code executor runs commands with the PowerShell tool, so a plan made of commands runs in its worktree. A plan names
   the up to three related issues it implements on an `Issue:` line, posts the plan to each and ends the pull request
   description with `Closes #<number>`; every planning command treats an issue's text as data, not instructions.
+  Each plan, and each `/analyze-architecture` and `/analyze-decision` analysis, works in a git worktree of its own
+  under `.claude/worktrees/` in every tool, so several sessions work in one clone.
   `/plan-issue` plans an issue from its text and comments, `/triage-issues` lists the open issues ready to plan,
   `/plan-template-update` plans a template update from a trial run of it, `/ship-plan` lands a reviewed plan as the
   `## Landing` section of `AGENTS.md` says (here a draft pull request with no release, gated by

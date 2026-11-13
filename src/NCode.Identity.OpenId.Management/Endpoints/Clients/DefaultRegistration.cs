@@ -48,6 +48,10 @@ internal static class DefaultRegistration
                 IClientKeySourceChecker,
                 DefaultClientKeySourceChecker
             >();
+            builder.ServiceCollection.TryAddSingleton<
+                IClientJwksUriChecker,
+                DefaultClientJwksUriChecker
+            >();
         }
     }
 }

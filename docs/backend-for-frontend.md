@@ -1330,7 +1330,9 @@ back-channel logout URI `<origin>/bff/backchannel-logout` with `backchannel_logo
 the OpenID audience that UserInfo requires. The console loads UserInfo and allow-lists `preferred_username` and `email`
 for `/bff/user`. The `/management/api` remote API declares the resource `urn:ncode:management`, so the BFF obtains a
 separate, audience-restricted, DPoP-bound management token through the refresh-token grant. No token is usable at both
-UserInfo and the management API. A deployment registers `jwks_uri` = `<origin>/bff/jwks`, and the developer seed
+UserInfo and the management API. A deployment registers `jwks_uri` = `<origin>/bff/jwks`, or, when the console is
+reachable only on a private network that the server's outbound guard never reaches, registers no `jwks_uri` and imports
+the public key through `POST /api/tenants/{tenantId}/clients/{clientId}/secrets/import`. The developer seed
 registers the public key by value. The console's `mgmt-client` and `mgmt-dpop` key rings hold PEM files, keys a KMS
 holds, or both
 ([ADR-1439](decisions/1439-a-bff-loads-its-configured-key-rings-at-start-and-refuses-frontends-naming-an-unknown-ring.md),
@@ -1348,7 +1350,9 @@ host to the console host, and sets `ManagementConsole:ManagementApiUrl` to `/api
 other development secrets, hands their paths to the console host (`Bff__KeyRings__…`) and the client key's public JWKS
 to the OP (`DeveloperInteractiveSeed__BffClients__0__Jwks`). `apps/mgmt` is a build-watched bundle (`vite build
 --watch`) that the console host serves on `https://localhost:5005`. The OP's outbound guard never reaches loopback, so
-on a developer machine the OP cannot fetch a `jwks_uri` or deliver a back-channel logout to the console.
+on a developer machine the OP cannot fetch a `jwks_uri` or deliver a back-channel logout to the console. The seed
+therefore registers the client's public JWKS by value, the same by-value registration that key import gives a
+deployment on a private network.
 
 **The browser side.** The bundle holds no token
 ([ADR-1438](decisions/1438-the-management-console-holds-no-token-and-reads-its-session-from-its-bff.md)).

@@ -1,10 +1,14 @@
 #nullable enable
 NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenRequest
 NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenRequest.CheckSetupTokenRequest() -> void
+NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenRequest.ExtensionData.get -> System.Collections.Generic.Dictionary<string!, System.Text.Json.JsonElement>?
+NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenRequest.ExtensionData.set -> void
 NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenRequest.Token.get -> string!
 NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenRequest.Token.init -> void
 NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenResponse
 NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenResponse.CheckSetupTokenResponse() -> void
+NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenResponse.ExtensionData.get -> System.Collections.Generic.Dictionary<string!, System.Text.Json.JsonElement>?
+NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenResponse.ExtensionData.set -> void
 NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenResponse.ManagementConsole.get -> NCode.Identity.OpenId.Setup.Contracts.SetupManagementConsoleHint?
 NCode.Identity.OpenId.Setup.Contracts.CheckSetupTokenResponse.ManagementConsole.init -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole
@@ -13,12 +17,16 @@ NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.BaseUrl.init -
 NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.ClientId.get -> string?
 NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.ClientId.init -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.CreateRootManagementConsole() -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.ExtensionData.get -> System.Collections.Generic.Dictionary<string!, System.Text.Json.JsonElement>?
+NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.ExtensionData.set -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.Jwks.get -> System.Text.Json.JsonElement
 NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.Jwks.init -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest
 NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.CreateRootRequest() -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.Email.get -> string?
 NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.Email.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.ExtensionData.get -> System.Collections.Generic.Dictionary<string!, System.Text.Json.JsonElement>?
+NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.ExtensionData.set -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.ManagementConsole.get -> NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole?
 NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.ManagementConsole.init -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.Password.get -> string!
@@ -33,6 +41,8 @@ NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.ApiReferenceUrl.init ->
 NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.CreateRootResponse() -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.DiscoveryUrl.get -> string!
 NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.DiscoveryUrl.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.ExtensionData.get -> System.Collections.Generic.Dictionary<string!, System.Text.Json.JsonElement>?
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.ExtensionData.set -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.Issuer.get -> string!
 NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.Issuer.init -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.ManagementApiUrl.get -> string!
@@ -52,8 +62,12 @@ NCode.Identity.OpenId.Setup.Contracts.SetupManagementConsoleHint.BaseUrl.get -> 
 NCode.Identity.OpenId.Setup.Contracts.SetupManagementConsoleHint.BaseUrl.init -> void
 NCode.Identity.OpenId.Setup.Contracts.SetupManagementConsoleHint.ClientId.get -> string!
 NCode.Identity.OpenId.Setup.Contracts.SetupManagementConsoleHint.ClientId.init -> void
+NCode.Identity.OpenId.Setup.Contracts.SetupManagementConsoleHint.ExtensionData.get -> System.Collections.Generic.Dictionary<string!, System.Text.Json.JsonElement>?
+NCode.Identity.OpenId.Setup.Contracts.SetupManagementConsoleHint.ExtensionData.set -> void
 NCode.Identity.OpenId.Setup.Contracts.SetupManagementConsoleHint.SetupManagementConsoleHint() -> void
 NCode.Identity.OpenId.Setup.Contracts.SetupStatusResponse
+NCode.Identity.OpenId.Setup.Contracts.SetupStatusResponse.ExtensionData.get -> System.Collections.Generic.Dictionary<string!, System.Text.Json.JsonElement>?
+NCode.Identity.OpenId.Setup.Contracts.SetupStatusResponse.ExtensionData.set -> void
 NCode.Identity.OpenId.Setup.Contracts.SetupStatusResponse.MinimumPasswordLength.get -> int
 NCode.Identity.OpenId.Setup.Contracts.SetupStatusResponse.MinimumPasswordLength.init -> void
 NCode.Identity.OpenId.Setup.Contracts.SetupStatusResponse.SetupStatusResponse() -> void

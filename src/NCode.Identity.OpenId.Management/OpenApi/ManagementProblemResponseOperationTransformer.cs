@@ -39,7 +39,7 @@ internal class ManagementProblemResponseOperationTransformer : IOpenApiOperation
     /// The description of a <c>412</c> response that its route does not describe.
     /// </summary>
     internal const string PreconditionFailedDescription =
-        "The If-Match token does not match the resource's current concurrency token, or another request changed the resource after this request read it.";
+        "The If-Match header does not match the resource's current entity tag, is malformed, or another request changed the resource after this request read it.";
 
     /// <summary>
     /// The description of a <c>415</c> response that its route does not describe.

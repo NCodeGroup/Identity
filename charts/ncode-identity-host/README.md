@@ -196,6 +196,8 @@ Rendering fails, before anything is applied, when:
   single-use state through Valkey;
 - `managementConsole.enabled` is `true` and `managementConsole.host` is empty or contains `*`;
 - `managementConsole.enabled` is `true` and the console's authority is empty or does not start with `https://`;
+- `managementConsole.enabled` is `true` and `setup.managementConsole.clientId` is empty, because the setup wizard hints
+  the console's `client_id` and the host refuses an empty one;
 - `managementConsole.enabled` is `true` and a console key ring, `managementConsole.keyRings.client` or `.dpop`, names
   neither `pemSecret` nor a remote key;
 - a console key ring holds two keys with the same id, compared without case, where a `pemSecret` key's id is

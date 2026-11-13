@@ -16,6 +16,7 @@
         <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Authentication.Interactive\NCode.Identity.OpenId.Authentication.Interactive.csproj" />
         <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Persistence.EntityFramework.Accounts\NCode.Identity.OpenId.Persistence.EntityFramework.Accounts.csproj" />
         <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Persistence.EntityFramework.Core\NCode.Identity.OpenId.Persistence.EntityFramework.Core.csproj" />
+        <ProjectReference Include="..\..\src\NCode.Identity.OpenId.Setup\NCode.Identity.OpenId.Setup.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Host.Database\NCode.Identity.OpenId.Host.Database.csproj" />
         <ProjectReference Include="..\..\src\NCode.Identity.SharedState.Valkey\NCode.Identity.SharedState.Valkey.csproj" />
         <ProjectReference Include="..\..\src\NCode.Identity.Secrets.AwsKms\NCode.Identity.Secrets.AwsKms.csproj" />

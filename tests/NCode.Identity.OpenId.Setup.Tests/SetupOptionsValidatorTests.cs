@@ -10,9 +10,12 @@ using NCode.Identity.Registration;
 
 namespace NCode.Identity.OpenId.Setup;
 
-public class SetupOptionsValidatorTests
+public sealed class SetupOptionsValidatorTests : IDisposable
 {
+    private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
     private SetupOptionsValidator Validator { get; } = new();
+
+    public void Dispose() => MockRepository.VerifyAll();
 
     #region Validate Tests
 
@@ -464,9 +467,9 @@ public class SetupOptionsValidatorTests
         return serviceCollection.BuildServiceProvider();
     }
 
-    private static Mock<IHostEnvironment> CreateHostEnvironment(string contentRootPath)
+    private Mock<IHostEnvironment> CreateHostEnvironment(string contentRootPath)
     {
-        var mockHostEnvironment = new Mock<IHostEnvironment>(MockBehavior.Strict);
+        var mockHostEnvironment = MockRepository.Create<IHostEnvironment>();
         mockHostEnvironment.SetupGet(x => x.ContentRootPath).Returns(contentRootPath).Verifiable();
         return mockHostEnvironment;
     }
@@ -484,7 +487,6 @@ public class SetupOptionsValidatorTests
         var options = serviceProvider.GetRequiredService<IOptions<SetupOptions>>().Value;
 
         Assert.Equal(Path.Combine(contentRootPath, "setup-bundle"), options.BundleRootPath);
-        mockHostEnvironment.Verify();
     }
 
     [Fact]
@@ -498,13 +500,12 @@ public class SetupOptionsValidatorTests
         Assert.Null(options.Token);
         Assert.Null(options.BundleRootPath);
         Assert.Equal(TimeSpan.FromHours(1), options.GeneratedTokenLifetime);
-        mockHostEnvironment.Verify();
     }
 
     [Fact]
     public void AddInstanceSetup_WhenSectionHasAnUnknownKey_FailsWhenOptionsAreResolved()
     {
-        var mockHostEnvironment = CreateHostEnvironment(Path.GetTempPath());
+        var mockHostEnvironment = MockRepository.Create<IHostEnvironment>();
         using var serviceProvider = BuildServiceProvider(
             new Dictionary<string, string?> { ["Setup:Tokan"] = "misspelled" },
             mockHostEnvironment
@@ -531,13 +532,12 @@ public class SetupOptionsValidatorTests
         );
 
         Assert.Contains("Setup:Token", exception.Message, StringComparison.Ordinal);
-        mockHostEnvironment.Verify();
     }
 
     [Fact]
     public void AddInstanceSetup_Always_RegistersTheSystemTimeProvider()
     {
-        var mockHostEnvironment = CreateHostEnvironment(Path.GetTempPath());
+        var mockHostEnvironment = MockRepository.Create<IHostEnvironment>();
         using var serviceProvider = BuildServiceProvider([], mockHostEnvironment);
 
         var timeProvider = serviceProvider.GetRequiredService<TimeProvider>();

@@ -68,8 +68,8 @@ public sealed class SetupApiHandlerTests : IDisposable
         string? contentType = "application/json"
     )
     {
-        var services = new ServiceCollection();
-        services.AddLogging(builder =>
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddLogging(builder =>
         {
             if (loggerProvider is not null)
             {
@@ -79,7 +79,7 @@ public sealed class SetupApiHandlerTests : IDisposable
 
         var httpContext = new DefaultHttpContext
         {
-            RequestServices = services.BuildServiceProvider(),
+            RequestServices = serviceCollection.BuildServiceProvider(),
         };
         httpContext.Request.Scheme = Uri.UriSchemeHttps;
         httpContext.Request.ContentType = contentType;
@@ -639,6 +639,15 @@ public sealed class SetupApiHandlerTests : IDisposable
                 CancellationToken.None
             );
         }
+
+        MockSetupTokenService.Verify(
+            x => x.VerifyAsync(Token, It.IsAny<CancellationToken>()),
+            Times.Exactly(3)
+        );
+        MockInstanceSetupService.Verify(
+            x => x.SetUpAsync(It.IsAny<InstanceSetupRequest>(), It.IsAny<CancellationToken>()),
+            Times.Exactly(2)
+        );
 
         Assert.DoesNotContain(
             loggerProvider.Messages,

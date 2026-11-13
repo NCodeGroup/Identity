@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -279,7 +280,7 @@ public class InstanceSetupCommandLineTests : BaseTests
                     {
                         Error = new ManagementError
                         {
-                            StatusCode = 400,
+                            StatusCode = StatusCodes.Status400BadRequest,
                             Detail = "The password does not satisfy the password policy.",
                         },
                     }
@@ -475,7 +476,7 @@ public class InstanceSetupCommandLineTests : BaseTests
                     {
                         Error = new ManagementError
                         {
-                            StatusCode = 400,
+                            StatusCode = StatusCodes.Status400BadRequest,
                             Detail = "The automation client needs a JWK Set.",
                         },
                     }

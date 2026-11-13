@@ -350,17 +350,25 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     private static ManagementError Forbidden() =>
         new() { StatusCode = StatusCodes.Status403Forbidden, Detail = "forbidden" };
 
-    private void SetupStore()
+    // A request refused before it stages the client opens the store manager and never gets the client store.
+    private void SetupStoreManager()
     {
         MockStoreManagerFactory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(MockStoreManager.Object)
             .Verifiable();
 
-        // Only a request that stages the client gets its store, so a request that fails a precondition does not.
-        MockStoreManager.Setup(x => x.GetStore<IClientStore>()).Returns(MockClientStore.Object);
-
         MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+    }
+
+    private void SetupStore()
+    {
+        SetupStoreManager();
+
+        MockStoreManager
+            .Setup(x => x.GetStore<IClientStore>())
+            .Returns(MockClientStore.Object)
+            .Verifiable();
     }
 
     // Only a request that changes one of a client's secrets, which the store reads by secret, reads the client too.
@@ -1119,7 +1127,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     {
         SetupAuthorizeCreate(resourceServerId: null, error: null);
         SetupInvalidSettings();
-        SetupStore();
+        SetupStoreManager();
         SetupResourceId("generated-id");
         MockClientValidator
             .Setup(x =>
@@ -1151,7 +1159,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     {
         SetupAuthorizeCreate(resourceServerId: null, error: null);
         SetupValidSettings();
-        SetupStore();
+        SetupStoreManager();
         SetupResourceId("generated-id");
         MockClientValidator
             .Setup(x =>
@@ -1190,7 +1198,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     {
         SetupAuthorizeCreate(resourceServerId: null, error: null);
         SetupValidSettings();
-        SetupStore();
+        SetupStoreManager();
         SetupResourceId("generated-id");
         MockClientValidator
             .Setup(x =>
@@ -1327,7 +1335,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         SetupAuthorizeCreateMachineClient(ResourceNodeTypes.Team, "team-1", error: null);
         SetupTeamLookup("team-1", CreateTeam("team-1"));
         SetupMachineClientScope();
-        SetupStore();
+        SetupStoreManager();
         SetupResourceId("generated-id");
         SetupMachineClientValidation(capture: null);
 

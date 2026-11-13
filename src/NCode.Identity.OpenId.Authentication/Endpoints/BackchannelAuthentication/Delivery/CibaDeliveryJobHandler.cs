@@ -93,12 +93,7 @@ internal sealed class CibaDeliveryJobHandler(
             response.EnsureSuccessStatusCode();
         }
         catch (Exception exception)
-            when (exception is HttpRequestException
-                || (
-                    exception is OperationCanceledException
-                    && !cancellationToken.IsCancellationRequested
-                )
-            )
+            when (OutboundFetchFailureReasons.IsFetchFailure(exception, cancellationToken))
         {
             // The delivery has no timeout source of its own: the guarded client's resilience timeout
             // surfaces as a TimeoutException in the chain, which Classify names.

@@ -65,6 +65,14 @@ public class CibaDeliveryJobHandlerTests : BaseTests
         }
     }
 
+    private sealed class ThrowingHttpMessageHandler(Exception exception) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        ) => Task.FromException<HttpResponseMessage>(exception);
+    }
+
     private void SetupHttpClient() =>
         MockHttpClientFactory
             .Setup(x => x.CreateClient(GuardedHttpClient.Name))
@@ -281,6 +289,23 @@ public class CibaDeliveryJobHandlerTests : BaseTests
         );
 
         AssertDeliveryFailedReason("http_status");
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheSendFailsWithAnIOException_LogsConnectionAndRethrows()
+    {
+        var failure = new IOException("The connection was reset.");
+        MockHttpClientFactory
+            .Setup(x => x.CreateClient(GuardedHttpClient.Name))
+            .Returns(new HttpClient(new ThrowingHttpMessageHandler(failure)))
+            .Verifiable();
+
+        var thrown = await Assert.ThrowsAsync<IOException>(() =>
+            Subject.HandleAsync(CreatePingJob(), Context(), CancellationToken.None).AsTask()
+        );
+
+        Assert.Same(failure, thrown);
+        AssertDeliveryFailedReason("connection");
     }
 
     [Fact]

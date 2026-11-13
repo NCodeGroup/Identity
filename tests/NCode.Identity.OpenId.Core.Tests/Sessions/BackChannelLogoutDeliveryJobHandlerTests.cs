@@ -62,6 +62,14 @@ public class BackChannelLogoutDeliveryJobHandlerTests : BaseTests
         }
     }
 
+    private sealed class ThrowingHttpMessageHandler(Exception exception) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        ) => Task.FromException<HttpResponseMessage>(exception);
+    }
+
     private static DispatchContext Context() =>
         new()
         {
@@ -145,6 +153,23 @@ public class BackChannelLogoutDeliveryJobHandlerTests : BaseTests
         );
 
         AssertDeliveryFailedReason("http_status");
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheSendFailsWithAnIOException_LogsConnectionAndRethrows()
+    {
+        var failure = new IOException("The connection was reset.");
+        MockHttpClientFactory
+            .Setup(x => x.CreateClient(GuardedHttpClient.Name))
+            .Returns(new HttpClient(new ThrowingHttpMessageHandler(failure)))
+            .Verifiable();
+
+        var thrown = await Assert.ThrowsAsync<IOException>(() =>
+            Subject.HandleAsync(CreateJob(), Context(), CancellationToken.None).AsTask()
+        );
+
+        Assert.Same(failure, thrown);
+        AssertDeliveryFailedReason("connection");
     }
 
     [Fact]

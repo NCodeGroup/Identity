@@ -11,20 +11,22 @@ namespace NCode.Identity.OpenId.Authentication.OutboundHttp;
 /// <see cref="IOutboundHttpForgeryGuard.IsDisallowedAddress"/> the outbound fetch uses, so the answer matches what a
 /// fetch of the host would do.
 /// </summary>
-internal class DefaultOutboundHostChecker(IOutboundHttpForgeryGuard forgeryGuard)
-    : IOutboundHostChecker
+internal class DefaultOutboundHostChecker(
+    IOutboundHttpForgeryGuard forgeryGuard,
+    IOutboundHostResolver hostResolver
+) : IOutboundHostChecker
 {
     /// <inheritdoc />
     public async ValueTask<bool> IsRefusedAsync(string host, CancellationToken cancellationToken)
     {
-        // See ADR-1106 and issue #783.
+        // See ADR-1106.
         if (IPAddress.TryParse(host, out var literal))
             return forgeryGuard.IsDisallowedAddress(literal);
 
         IPAddress[] addresses;
         try
         {
-            addresses = await Dns.GetHostAddressesAsync(host, cancellationToken);
+            addresses = await hostResolver.ResolveAsync(host, cancellationToken);
         }
         catch (SocketException)
         {

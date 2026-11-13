@@ -35,6 +35,11 @@ internal static class DefaultRegistration
         private void AddClientServices()
         {
             builder.ServiceCollection.TryAddSingleton<IClientValidator, DefaultClientValidator>();
+            builder.ServiceCollection.TryAddSingleton<IClientCreator, DefaultClientCreator>();
+            builder.ServiceCollection.TryAddSingleton<
+                IClientSettingsEvaluator,
+                DefaultClientSettingsEvaluator
+            >();
             builder.ServiceCollection.TryAddSingleton<
                 IHostManagedClientChecker,
                 DefaultHostManagedClientChecker

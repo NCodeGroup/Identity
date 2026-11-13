@@ -272,6 +272,12 @@ public static class OpenIdSettingNames
     public const string DisplayValuesSupported = "display_values_supported";
 
     /// <summary>
+    /// Contains the name of <c>grant_types_enabled</c> setting: the grants the host adds to the baseline
+    /// <c>grant_types_supported</c> without restating it.
+    /// </summary>
+    public const string GrantTypesEnabled = "grant_types_enabled";
+
+    /// <summary>
     /// Contains the name of <c>grant_types_supported</c> setting.
     /// </summary>
     public const string GrantTypesSupported = OpenIdProtocol.MetadataNames.GrantTypesSupported;

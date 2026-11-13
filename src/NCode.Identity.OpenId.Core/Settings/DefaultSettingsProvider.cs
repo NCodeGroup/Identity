@@ -18,6 +18,8 @@ internal sealed class DefaultSettingsProvider : IDefaultSettingsProvider
         // Secure-by-default: implicit/hybrid and client_credentials/password are intentionally not advertised.
         // The implicit/hybrid capability still exists; an operator re-enables it by widening this setting (and
         // response_types_supported) via configuration (RFC 9700 / OAuth 2.1 direction — no implicit/hybrid).
+        // An operator enables client_credentials or another registered grant by listing it in grant_types_enabled,
+        // which adds it to this list.
         // A hybrid flow uses both 'authorization_code' and 'implicit' (OpenID Connect Registration §2).
         settings.Set(
             OpenIdSettingKeys.GrantTypesSupported,

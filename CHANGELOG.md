@@ -25,7 +25,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   host image; and `Root` with `UserName`, `Email` and `Password`, where `UserName` and `Password` are set both or
   neither), the wire contracts, `IInstanceSetupService` and `ISetupTokenService`; `NCode.Identity.OpenId.Setup`
   implements them over the abstractions and registers through `AddInstanceSetup` on the management library builder. The
-  root password is at least 15 characters and satisfies the control-plane tenant's password policy
+  root password is at least 15 characters and satisfies the control-plane tenant's password policy. Setup can also
+  register the management console's confidential client, which authenticates with `private_key_jwt`: the wizard's
+  optional console step and the `Setup:ManagementConsole` section (`ClientId`, `mgmt-console` by default; `BaseUrl`, the
+  console's `https` origin; `Jwks`) give it a requested stable `client_id` and its public JWK Set, which setup imports
+  by value and never fetches, and the client is saved with the root administrator
   ([#777](https://github.com/NCodeGroup/identity/issues/777),
   [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 
@@ -34,7 +38,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   root administrator through the same `IInstanceSetupService` as the wizard, and exits without starting the server. It
   exits `0` when it creates the root administrator or the instance is already initialized, `1` when the creation fails
   and `2` on a usage error or when the configuration lacks the username or the password, so a Job can run it on every
-  release ([#777](https://github.com/NCodeGroup/identity/issues/777),
+  release. It also registers the console's client from `Setup:ManagementConsole` and, from `Setup:Automation`
+  (`ClientId`, `Jwks`), a platform-owned `client_credentials` automation client that authenticates with `private_key_jwt`
+  and holds `GlobalAdmin`, so an unattended install manages the instance without the development bootstrap client; both
+  clients are saved with the root administrator ([#777](https://github.com/NCodeGroup/identity/issues/777),
   [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 
 - **`ILocalAccountCreator` is the one seam that creates a local account.** `ILocalAccountCreator.StageAsync`
@@ -49,10 +56,19 @@ Until the first stable release, the [Unreleased] section describes the product a
   `setup.token.key` reference an operator Secret whose key the pods read as `Setup__Token`; the chart generates no token
   Secret, and without one the host generates a token and logs it once. The opt-in `setup.job` runs the host image's
   `setup` command once per release with `Setup__Root__UserName`, `Setup__Root__Email` and `Setup__Root__Password` from
-  an operator Secret (`setup.job.existingSecret`, `userNameKey`, `emailKey`, `passwordKey`), so a GitOps install needs
-  no browser ([#776](https://github.com/NCodeGroup/identity/issues/776),
+  an operator Secret (`setup.job.existingSecret`, `userNameKey`, `emailKey`, `passwordKey`), and passes
+  `setup.managementConsole` (`clientId`, `baseUrl`, `jwks`) and `setup.automation` (`clientId`, `jwks`) to the
+  command as `Setup__ManagementConsole__*` and `Setup__Automation__*`, so a GitOps install needs no browser
+  ([#776](https://github.com/NCodeGroup/identity/issues/776),
   [#777](https://github.com/NCodeGroup/identity/issues/777),
   [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
+
+- **The platform-only `grant_types_enabled` setting adds grants to the baseline `grant_types_supported`.** A host that
+  lists `client_credentials` or another registered grant in `OpenId:Platform:Settings:grant_types_enabled` keeps the
+  baseline list and names only the grants it adds, without restating the baseline. The setting applies to the platform
+  alone, its values are grant types, and platform values accumulate by union; a configured `grant_types_supported`
+  remains the whole list
+  ([ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)).
 
 - **Every OpenID protocol endpoint answers the `x-fapi-interaction-id` header.** A request that carries a UUID gets the
   same value back, and a request that carries none, or a value that is not a UUID, gets a new UUID, on success and
@@ -4267,11 +4283,23 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 
 - **`AddProductionSafety` refuses the `BootstrapAdmin` section in Production.** The bootstrap client, a development and
-  test convenience whose secret confers `GlobalAdmin`, is refused like the other development seeders, so a Production
-  instance's first administrator is the root that setup creates
+  test convenience whose secret confers `GlobalAdmin`, is refused like the other development seeders, and only the
+  development environment (`AddDevelopmentEnvironment`) registers it, so a Production instance's first administrator is
+  the root that setup creates
   ([#777](https://github.com/NCodeGroup/identity/issues/777),
   [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md),
   [ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)).
+
+- **A tenant identifier the host claims as a top-level path segment is refused.** `api`, `setup`, `bff`, `health`,
+  `openapi` and `scalar` are not valid tenant identifiers, so a path-strategy tenant cannot be shadowed by the
+  management API, the setup surface, the BFF, the health probes or the API reference
+  ([#777](https://github.com/NCodeGroup/identity/issues/777)).
+
+- **The host chart refuses an empty key name of a Secret it references.** Rendering fails when
+  `setup.token.existingSecret` is set without `setup.token.key`, when an enabled `setup.job` leaves its Secret or its
+  `userNameKey` or `passwordKey` empty, and for the same gap in a database or Valkey connection's Secret, so a release
+  never starts with a Secret reference that names no key
+  ([#777](https://github.com/NCodeGroup/identity/issues/777)).
 
 - **HTTP logging writes a body only for an endpoint that opts in, and never a credential.** `AddGuardedHttpLogging()`
   (`NCode.Identity.AspNetCore`) registers ASP.NET Core HTTP logging that writes the request and response properties, the

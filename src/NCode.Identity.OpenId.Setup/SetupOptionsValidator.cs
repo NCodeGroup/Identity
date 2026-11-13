@@ -11,9 +11,11 @@ namespace NCode.Identity.OpenId.Setup;
 /// <see cref="SetupDefaults.MinimumTokenLength"/> characters, a generated-token lifetime between one minute and
 /// twenty-four hours, a root administrator that names both a username and a password of at least
 /// <see cref="SetupDefaults.MinimumRootPasswordLength"/> characters or neither, and, when the
-/// management console is configured, a console client with a client identifier, an https origin and a JWK Set, and,
-/// when the automation client is configured, a client identifier that differs from the console's and a JWK Set. The
-/// check reports every failure at once, each naming its configuration key.
+/// management console is configured, a console client with a client identifier, an https origin and a JWK Set,
+/// when the wizard's console hint (<c>Setup:Wizard:ManagementConsole</c>) is configured, a console address that is an
+/// absolute https origin and a non-empty client identifier, and, when the automation client is configured, a client
+/// identifier that differs from the console's and a JWK Set. The check reports every failure at once, each naming its
+/// configuration key.
 /// </summary>
 internal sealed class SetupOptionsValidator : IValidateOptions<SetupOptions>
 {

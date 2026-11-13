@@ -72,9 +72,14 @@ client-authentication key ring and nothing else.** Both are configured per front
    - The ring's decryption keys are published with its signing keys, so the OP can encrypt ID tokens and UserInfo
      responses to the BFF.
    - The DPoP key ring is never published.
-8. **The endpoint is anonymous and is never cached.** It allows anonymous requests, answers
+8. **The endpoint is anonymous, is never cached, and answers any origin.** It allows anonymous requests, answers
    `application/json; charset=utf-8` as the OP's JWKS endpoint does, and sends `Cache-Control: no-store` as every BFF
-   endpoint does, so no shared cache holds a key set that a rotation has replaced.
+   endpoint does, so no shared cache holds a key set that a rotation has replaced. It also sends
+   `Access-Control-Allow-Origin: *`. A key set of public keys, read without credentials, discloses nothing that a
+   direct request would not, and the wildcard lets the OP's setup wizard read the console's keys from the operator's
+   browser
+   ([ADR-1512](1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
+   The response allows no credentials and no other header.
 9. **The key set is built with the `NCode.Identity.Jwk` model library**
    ([ADR-1119](1119-a-di-free-jwk-package-models-keys-sets-and-thumbprints-and-key-types-register-their-rules.md)),
    which `NCode.Identity.Secrets.Abstractions` exposes through `ExportedPublicKey.Jwk`. It is a model, not an
@@ -105,6 +110,8 @@ client-authentication key ring and nothing else.** Both are configured per front
 - A BFF registered with its `jwks_uri` rotates its client-authentication and decryption keys by adding a key to its
   key ring. The OP sees the new key when it next reads the key set.
 - The public halves of the BFF's decryption keys are public, as the OP needs them to be.
+- A page on any origin can read the key set from a browser, and so learns only what a direct request would.
+  The OP's setup wizard relies on that to register the console from its own origin.
 
 ## References
 
@@ -115,7 +122,8 @@ client-authentication key ring and nothing else.** Both are configured per front
   [ADR-1280](1280-the-protocol-client-validates-and-decrypts-every-provider-issued-jwt-through-one-core-under-registered-algorithms.md),
   [ADR-1286](1286-the-protocol-client-binds-tokens-with-dpop-whenever-the-provider-supports-it.md),
   [ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md),
-  [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md)
+  [ADR-1500](1500-every-package-names-one-capability-under-the-ncode-identity-prefix-as-an-abstractions-and-implementation-pair.md),
+  [ADR-1512](1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)
 - RFC 7517, RFC 7523, RFC 10017 §6.1.4.1, W3C Content Security Policy Level 3
 - `src/NCode.Identity.Bff/Hardening/`, `src/NCode.Identity.Bff/Endpoints/BffJwksHandler.cs`
 - Issue [#396](https://github.com/NCodeGroup/identity/issues/396)

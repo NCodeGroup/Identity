@@ -28,9 +28,9 @@ internal class DefaultOutboundHostChecker(
         {
             addresses = await hostResolver.ResolveAsync(host, cancellationToken);
         }
-        catch (SocketException)
+        catch (Exception exception) when (exception is SocketException or ArgumentException)
         {
-            // A name that does not resolve is not refused.
+            // A name that does not resolve, or that the resolver cannot accept, is not refused.
             return false;
         }
 

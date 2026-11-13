@@ -54,10 +54,23 @@ public class DefaultOutboundHostCheckerTests : BaseTests
     {
         MockHostResolver
             .Setup(x => x.ResolveAsync("unresolvable.example", It.IsAny<CancellationToken>()))
-            .Throws(new SocketException((int)SocketError.HostNotFound))
+            .ThrowsAsync(new SocketException((int)SocketError.HostNotFound))
             .Verifiable();
 
         var result = await Subject.IsRefusedAsync("unresolvable.example", CancellationToken.None);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public async Task IsRefusedAsync_WhenTheResolverRejectsTheName_ReturnsFalse()
+    {
+        MockHostResolver
+            .Setup(x => x.ResolveAsync("malformed.example", It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new ArgumentException("The name is not acceptable."))
+            .Verifiable();
+
+        var result = await Subject.IsRefusedAsync("malformed.example", CancellationToken.None);
 
         Assert.False(result);
     }

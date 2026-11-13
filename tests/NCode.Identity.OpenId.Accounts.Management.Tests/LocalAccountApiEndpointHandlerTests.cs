@@ -84,8 +84,10 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
             MockManagementAuditRecorder.Object,
             MockSessionService.Object,
             MockOpenIdContextFactory.Object,
-            MockEffectiveSettingsResolver.Object,
-            MockPasswordPolicy.Object,
+            new LocalAccountPasswords(
+                MockEffectiveSettingsResolver.Object,
+                MockPasswordPolicy.Object
+            ),
             MockPostCommitSecurityEffects.Object
         );
     }

@@ -217,10 +217,7 @@ internal sealed class SetupApiHandler(
         return TypedResults.Json(result.Root, statusCode: StatusCodes.Status201Created);
     }
 
-    private static ProblemHttpResult RefuseRateLimited(
-        HttpContext httpContext,
-        TimeSpan retryAfter
-    )
+    private static ProblemHttpResult RefuseRateLimited(HttpContext httpContext, TimeSpan retryAfter)
     {
         // Retry-After counts whole seconds, so round up and never tell the caller to retry at once.
         var seconds = Math.Max(1L, (long)Math.Ceiling(retryAfter.TotalSeconds));
@@ -228,13 +225,21 @@ internal sealed class SetupApiHandler(
         httpContext.Response.Headers.CacheControl = "no-store";
 
         return TypedResults.Problem(
-            detail: string.Create(
-                CultureInfo.InvariantCulture,
-                $"Too many setup attempts. Try again in {seconds} seconds."
-            ),
+            detail: GetRateLimitedDetail(seconds),
             statusCode: StatusCodes.Status429TooManyRequests
         );
     }
+
+    /// <summary>
+    /// Words the problem detail that tells a rate-limited caller how many whole seconds to wait.
+    /// </summary>
+    internal static string GetRateLimitedDetail(long seconds) =>
+        seconds == 1
+            ? "Too many setup attempts. Try again in 1 second."
+            : string.Create(
+                CultureInfo.InvariantCulture,
+                $"Too many setup attempts. Try again in {seconds} seconds."
+            );
 
     private static SetupManagementConsoleOptions MapConsole(CreateRootManagementConsole console) =>
         new()

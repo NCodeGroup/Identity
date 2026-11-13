@@ -158,7 +158,12 @@ public sealed class SetupApiHandlerTests : IDisposable
     {
         var retryAfter = Assert.Single(httpContext.Response.Headers.RetryAfter);
         Assert.True(
-            long.TryParse(retryAfter, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds)
+            long.TryParse(
+                retryAfter,
+                NumberStyles.None,
+                CultureInfo.InvariantCulture,
+                out var seconds
+            )
         );
         Assert.InRange(seconds, 1L, 60L);
         Assert.Equal("no-store", httpContext.Response.Headers.CacheControl.ToString());
@@ -766,11 +771,24 @@ public sealed class SetupApiHandlerTests : IDisposable
 
         var problem = AssertProblem(result, StatusCodes.Status429TooManyRequests);
         var retryAfter = Assert.Single(limitedContext.Response.Headers.RetryAfter);
+        Assert.NotNull(retryAfter);
         Assert.Equal(
-            $"Too many setup attempts. Try again in {retryAfter} seconds.",
+            SetupApiHandler.GetRateLimitedDetail(
+                long.Parse(retryAfter, CultureInfo.InvariantCulture)
+            ),
             problem.ProblemDetails.Detail
         );
         AssertRetryAfter(limitedContext);
+    }
+
+    [Theory]
+    [InlineData(1L, "Too many setup attempts. Try again in 1 second.")]
+    [InlineData(2L, "Too many setup attempts. Try again in 2 seconds.")]
+    public void GetRateLimitedDetail_StatesTheWaitInSeconds(long seconds, string expected)
+    {
+        var detail = SetupApiHandler.GetRateLimitedDetail(seconds);
+
+        Assert.Equal(expected, detail);
     }
 
     [Theory]

@@ -3,6 +3,7 @@
 
 using Microsoft.Extensions.Primitives;
 using NCode.Collections.Providers;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Authentication.Usage;
 using NCode.Identity.OpenId.Settings;
 

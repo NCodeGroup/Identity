@@ -3,15 +3,17 @@
 
 using System.Net;
 using System.Net.Sockets;
+using JetBrains.Annotations;
 
-namespace NCode.Identity.OpenId.Authentication.RateLimiting;
+namespace NCode.Identity.AspNetCore;
 
 /// <summary>
 /// Computes the partition value that a limit counted per remote address counts a request in: an IPv4 address as
 /// itself, an IPv4-mapped IPv6 address as the IPv4 address it maps, and any other IPv6 address by its <c>/64</c>.
 /// </summary>
 // See ADR-1246 and ADR-1399.
-internal static class RemoteAddressPartition
+[PublicAPI]
+public static class RemoteAddressPartition
 {
     /// <summary>
     /// Gets the partition value of a remote address.

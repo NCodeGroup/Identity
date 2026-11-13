@@ -2,10 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
-using NCode.Identity.OpenId.Authentication.RateLimiting;
 using Xunit;
 
-namespace NCode.Identity.OpenId.Core.Tests.RateLimiting;
+namespace NCode.Identity.AspNetCore.Tests;
 
 public sealed class RemoteAddressPartitionTests
 {

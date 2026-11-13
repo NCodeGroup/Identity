@@ -3,6 +3,7 @@
 
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Http;
+using NCode.Identity.AspNetCore;
 
 namespace NCode.Identity.OpenId.Setup;
 
@@ -19,7 +20,9 @@ internal sealed class SetupRateLimiter : IDisposable
     private PartitionedRateLimiter<HttpContext> Limiter { get; } =
         PartitionedRateLimiter.Create<HttpContext, string>(static httpContext =>
             RateLimitPartition.GetFixedWindowLimiter(
-                httpContext.Connection.RemoteIpAddress?.ToString() ?? UnknownAddressPartition,
+                httpContext.Connection.RemoteIpAddress is { } address
+                    ? RemoteAddressPartition.GetValue(address)
+                    : UnknownAddressPartition,
                 static _ => new FixedWindowRateLimiterOptions
                 {
                     PermitLimit = SetupDefaults.RootAttemptsPerMinute,

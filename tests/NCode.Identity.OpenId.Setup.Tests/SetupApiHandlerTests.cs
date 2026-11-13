@@ -20,6 +20,7 @@ public sealed class SetupApiHandlerTests : IDisposable
     private const string Token = "a-setup-token-that-must-never-be-logged";
     private const string UserName = "root";
     private const string Password = "a-long-root-password";
+    private const string ConsoleBaseUrl = "https://console.example.com";
 
     private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
     private Mock<IInstanceSetupService> MockInstanceSetupService { get; }
@@ -104,6 +105,27 @@ public sealed class SetupApiHandlerTests : IDisposable
                 UserName = UserName,
                 Email = "root@example.com",
                 Password = Password,
+            },
+            JsonSerializerOptions.Web
+        );
+
+    private static string CreateConsoleRequestJson(
+        string? clientId = "console-1",
+        string baseUrl = ConsoleBaseUrl,
+        string jwks = """{ "keys": [ { "kty": "EC", "crv": "P-256", "x": "x", "y": "y" } ] }"""
+    ) =>
+        JsonSerializer.Serialize(
+            new CreateRootRequest
+            {
+                Token = Token,
+                UserName = UserName,
+                Password = Password,
+                ManagementConsole = new CreateRootManagementConsole
+                {
+                    ClientId = clientId,
+                    BaseUrl = baseUrl,
+                    Jwks = JsonElement.Parse(jwks),
+                },
             },
             JsonSerializerOptions.Web
         );
@@ -407,7 +429,142 @@ public sealed class SetupApiHandlerTests : IDisposable
 
         var json = Assert.IsType<JsonHttpResult<CreateRootResponse>>(result);
         Assert.Equal(StatusCodes.Status201Created, json.StatusCode);
-        Assert.Same(success.Root, json.Value);
+        Assert.NotNull(json.Value);
+        Assert.NotNull(success.Root);
+        Assert.Equal(success.Root.TenantId, json.Value.TenantId);
+        Assert.Equal(success.Root.PrincipalId, json.Value.PrincipalId);
+        Assert.Equal(success.Root.UserName, json.Value.UserName);
+        Assert.Null(json.Value.ManagementConsoleClientId);
+    }
+
+    [Fact]
+    public async Task CreateRootAsync_WithManagementConsole_PassesConsoleAndReturnsClientId()
+    {
+        var success = CreateSuccess();
+        SetupIsInitialized(false);
+        SetupVerify(true);
+        MockInstanceSetupService
+            .Setup(x =>
+                x.SetUpAsync(
+                    It.Is<InstanceSetupRequest>(request =>
+                        request.Root.UserName == UserName
+                        && request.ManagementConsole != null
+                        && request.ManagementConsole.ClientId == "console-1"
+                        && request.ManagementConsole.BaseUrl == ConsoleBaseUrl
+                        && request.ManagementConsole.Jwks != null
+                        && JsonElement
+                            .Parse(request.ManagementConsole.Jwks)
+                            .GetProperty("keys")
+                            .GetArrayLength() == 1
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new InstanceSetupResult
+                {
+                    Root = success.Root,
+                    ManagementConsoleClientId = "console-1",
+                }
+            )
+            .Verifiable();
+        var handler = CreateHandler(HostEnvironments.Development);
+
+        var result = await handler.CreateRootAsync(
+            CreateHttpContext(body: CreateConsoleRequestJson(clientId: "console-1")),
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<CreateRootResponse>>(result);
+        Assert.Equal(StatusCodes.Status201Created, json.StatusCode);
+        Assert.NotNull(json.Value);
+        Assert.NotNull(success.Root);
+        Assert.Equal("console-1", json.Value.ManagementConsoleClientId);
+        Assert.Equal(success.Root.PrincipalId, json.Value.PrincipalId);
+    }
+
+    [Fact]
+    public async Task CreateRootAsync_WithManagementConsoleWithoutClientId_PassesTheDefaultClientId()
+    {
+        SetupIsInitialized(false);
+        SetupVerify(true);
+        MockInstanceSetupService
+            .Setup(x =>
+                x.SetUpAsync(
+                    It.Is<InstanceSetupRequest>(request =>
+                        request.ManagementConsole != null
+                        && request.ManagementConsole.ClientId
+                            == SetupManagementConsoleOptions.DefaultClientId
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(CreateSuccess())
+            .Verifiable();
+        var handler = CreateHandler(HostEnvironments.Development);
+
+        var result = await handler.CreateRootAsync(
+            CreateHttpContext(body: CreateConsoleRequestJson(clientId: null)),
+            CancellationToken.None
+        );
+
+        Assert.IsType<JsonHttpResult<CreateRootResponse>>(result);
+    }
+
+    [Fact]
+    public async Task CreateRootAsync_ManagementConsoleInvalid_Returns400()
+    {
+        SetupIsInitialized(false);
+        SetupVerify(true);
+        var handler = CreateHandler(HostEnvironments.Development);
+
+        var result = await handler.CreateRootAsync(
+            CreateHttpContext(
+                body: CreateConsoleRequestJson(
+                    baseUrl: "http://console.example.com",
+                    jwks: """{ "keys": [] }"""
+                )
+            ),
+            CancellationToken.None
+        );
+
+        var problem = AssertProblem(result, StatusCodes.Status400BadRequest);
+        Assert.Contains("BaseUrl", problem.ProblemDetails.Detail, StringComparison.Ordinal);
+        Assert.Contains("Jwks", problem.ProblemDetails.Detail, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CreateRootAsync_ManagementConsoleRefused_ReturnsServiceStatus()
+    {
+        SetupIsInitialized(false);
+        SetupVerify(true);
+        MockInstanceSetupService
+            .Setup(x =>
+                x.SetUpAsync(
+                    It.Is<InstanceSetupRequest>(request => request.ManagementConsole != null),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new InstanceSetupResult
+                {
+                    Error = new ManagementError
+                    {
+                        StatusCode = StatusCodes.Status409Conflict,
+                        Detail = "The management console's client is refused.",
+                    },
+                }
+            )
+            .Verifiable();
+        var handler = CreateHandler(HostEnvironments.Development);
+
+        var result = await handler.CreateRootAsync(
+            CreateHttpContext(body: CreateConsoleRequestJson()),
+            CancellationToken.None
+        );
+
+        var problem = AssertProblem(result, StatusCodes.Status409Conflict);
+        Assert.Equal("The management console's client is refused.", problem.ProblemDetails.Detail);
     }
 
     [Fact]

@@ -60,8 +60,9 @@ internal sealed class SetupApiHandler(
     /// <see cref="CreateRootRequest"/> from the request body only after it checks that the surface is served, so the
     /// request is refused with <c>404</c> when the surface is not served whatever the body, <c>429</c> when the client
     /// address has used its attempts of the current minute, <c>400</c> when the body is not a JSON
-    /// <see cref="CreateRootRequest"/>, and <c>403</c> when the setup token is not the current one; a failed
-    /// precondition of the setup is answered with its own status.
+    /// <see cref="CreateRootRequest"/>, and <c>403</c> when the setup token is not the current one; a management
+    /// console that breaks <see cref="SetupManagementConsoleRules"/> is refused with <c>400</c> listing each broken
+    /// rule, and a failed precondition of the setup is answered with its own status.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request, whose body carries the
     /// setup token and the root administrator.</param>
@@ -102,6 +103,19 @@ internal sealed class SetupApiHandler(
             );
         }
 
+        var console = request.ManagementConsole is { } requested ? MapConsole(requested) : null;
+        if (console is not null)
+        {
+            var failures = SetupManagementConsoleRules.Validate(console);
+            if (failures.Count > 0)
+            {
+                return TypedResults.Problem(
+                    detail: string.Join(' ', failures),
+                    statusCode: StatusCodes.Status400BadRequest
+                );
+            }
+        }
+
         var result = await InstanceSetupService.SetUpAsync(
             new InstanceSetupRequest
             {
@@ -111,6 +125,7 @@ internal sealed class SetupApiHandler(
                     Email = request.Email,
                     Password = request.Password,
                 },
+                ManagementConsole = console,
             },
             cancellationToken
         );
@@ -122,8 +137,25 @@ internal sealed class SetupApiHandler(
             );
         }
 
-        return TypedResults.Json(result.Root, statusCode: StatusCodes.Status201Created);
+        return TypedResults.Json(
+            new CreateRootResponse
+            {
+                TenantId = result.Root.TenantId,
+                PrincipalId = result.Root.PrincipalId,
+                UserName = result.Root.UserName,
+                ManagementConsoleClientId = result.ManagementConsoleClientId,
+            },
+            statusCode: StatusCodes.Status201Created
+        );
     }
+
+    private static SetupManagementConsoleOptions MapConsole(CreateRootManagementConsole console) =>
+        new()
+        {
+            ClientId = console.ClientId ?? SetupManagementConsoleOptions.DefaultClientId,
+            BaseUrl = console.BaseUrl,
+            Jwks = console.Jwks.GetRawText(),
+        };
 
     private static async ValueTask<CreateRootRequest?> ReadRequestOrDefaultAsync(
         HttpContext httpContext,

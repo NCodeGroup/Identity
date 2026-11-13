@@ -33,4 +33,10 @@ public sealed class CreateRootRequest
     /// Gets the root administrator's password, hashed server-side on create.
     /// </summary>
     public required string Password { get; init; }
+
+    /// <summary>
+    /// Gets the management console's client to register in the same setup, or <c>null</c> when the request registers
+    /// no console client.
+    /// </summary>
+    public CreateRootManagementConsole? ManagementConsole { get; init; }
 }

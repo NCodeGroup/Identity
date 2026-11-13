@@ -1,8 +1,18 @@
 #nullable enable
+NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole
+NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.BaseUrl.get -> string!
+NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.BaseUrl.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.ClientId.get -> string?
+NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.ClientId.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.CreateRootManagementConsole() -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.Jwks.get -> System.Text.Json.JsonElement
+NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole.Jwks.init -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest
 NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.CreateRootRequest() -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.Email.get -> string?
 NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.Email.init -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.ManagementConsole.get -> NCode.Identity.OpenId.Setup.Contracts.CreateRootManagementConsole?
+NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.ManagementConsole.init -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.Password.get -> string!
 NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.Password.init -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.Token.get -> string!
@@ -11,6 +21,8 @@ NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.UserName.get -> string!
 NCode.Identity.OpenId.Setup.Contracts.CreateRootRequest.UserName.init -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse
 NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.CreateRootResponse() -> void
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.ManagementConsoleClientId.get -> string?
+NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.ManagementConsoleClientId.init -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.PrincipalId.get -> string!
 NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.PrincipalId.init -> void
 NCode.Identity.OpenId.Setup.Contracts.CreateRootResponse.TenantId.get -> string!

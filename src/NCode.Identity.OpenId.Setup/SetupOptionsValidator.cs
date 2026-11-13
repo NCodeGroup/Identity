@@ -1,7 +1,6 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using System.Text.Json;
 using Microsoft.Extensions.Options;
 
 namespace NCode.Identity.OpenId.Setup;
@@ -67,70 +66,6 @@ internal sealed class SetupOptionsValidator : IValidateOptions<SetupOptions>
         if (!console.IsConfigured)
             return;
 
-        const string section =
-            $"{SetupOptions.SectionName}:{nameof(SetupOptions.ManagementConsole)}";
-
-        if (string.IsNullOrWhiteSpace(console.ClientId))
-        {
-            failures.Add(
-                $"'{section}:{nameof(SetupManagementConsoleOptions.ClientId)}' must not be empty."
-            );
-        }
-
-        if (string.IsNullOrWhiteSpace(console.BaseUrl))
-        {
-            failures.Add(
-                $"'{section}:{nameof(SetupManagementConsoleOptions.BaseUrl)}' is required."
-            );
-        }
-        else if (!IsHttpsOrigin(console.BaseUrl))
-        {
-            failures.Add(
-                $"'{section}:{nameof(SetupManagementConsoleOptions.BaseUrl)}' must be an absolute https origin "
-                    + "without a path, query or fragment."
-            );
-        }
-
-        if (string.IsNullOrWhiteSpace(console.Jwks))
-        {
-            failures.Add($"'{section}:{nameof(SetupManagementConsoleOptions.Jwks)}' is required.");
-        }
-        else if (!IsKeySet(console.Jwks))
-        {
-            failures.Add(
-                $"'{section}:{nameof(SetupManagementConsoleOptions.Jwks)}' must be a JSON object with a non-empty "
-                    + "'keys' array."
-            );
-        }
-    }
-
-    private static bool IsHttpsOrigin(string value)
-    {
-        if (
-            value.Contains('?', StringComparison.Ordinal)
-            || value.Contains('#', StringComparison.Ordinal)
-        )
-            return false;
-
-        return Uri.TryCreate(value, UriKind.Absolute, out var uri)
-            && uri.Scheme == Uri.UriSchemeHttps
-            && uri.UserInfo.Length == 0
-            && uri.AbsolutePath == "/";
-    }
-
-    private static bool IsKeySet(string value)
-    {
-        try
-        {
-            var root = JsonElement.Parse(value);
-            return root.ValueKind == JsonValueKind.Object
-                && root.TryGetProperty("keys", out var keys)
-                && keys.ValueKind == JsonValueKind.Array
-                && keys.GetArrayLength() > 0;
-        }
-        catch (JsonException)
-        {
-            return false;
-        }
+        failures.AddRange(SetupManagementConsoleRules.Validate(console));
     }
 }

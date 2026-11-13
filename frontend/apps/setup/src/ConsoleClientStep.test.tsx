@@ -3,13 +3,20 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { AppThemeProvider } from '@ncode/ui';
 import { ConsoleClientStep } from './ConsoleClientStep.js';
 import type { RootAccount } from './RootAccountStep.js';
-import { createRoot, type CreateRootResult } from './setupApi.js';
+import { createRoot, fetchConsoleKeySet, type CreateRootResult } from './setupApi.js';
 
-vi.mock('./setupApi.js', () => ({ createRoot: vi.fn(), getStatus: vi.fn() }));
+vi.mock('./setupApi.js', () => ({
+  createRoot: vi.fn(),
+  fetchConsoleKeySet: vi.fn(),
+  getStatus: vi.fn(),
+}));
 
 const PUBLIC_JWKS = { keys: [{ kty: 'EC', crv: 'P-256', x: 'x', y: 'y', kid: 'k1' }] };
 
-function renderStep(account: RootAccount = { userName: 'root', password: 'a long passphrase!' }) {
+function renderStep(
+  account: RootAccount = { userName: 'root', password: 'a long passphrase!' },
+  consoleHint?: { readonly baseUrl?: string; readonly clientId?: string },
+) {
   const onCreated = vi.fn();
   const onTokenRejected = vi.fn();
   const onNotFound = vi.fn();
@@ -18,6 +25,7 @@ function renderStep(account: RootAccount = { userName: 'root', password: 'a long
       <ConsoleClientStep
         token="the-token"
         account={account}
+        {...(consoleHint ? { consoleHint } : {})}
         onCreated={onCreated}
         onTokenRejected={onTokenRejected}
         onNotFound={onNotFound}
@@ -56,6 +64,173 @@ const CREATED: CreateRootResult = { kind: 'created', root: CREATED_ROOT };
 describe('ConsoleClientStep', () => {
   beforeEach(() => {
     vi.mocked(createRoot).mockReset();
+    vi.mocked(fetchConsoleKeySet).mockReset();
+  });
+
+  it('opens a hinted step checked and filled, fetches the key set and submits it without typing', async () => {
+    vi.mocked(createRoot).mockResolvedValue(CREATED);
+    vi.mocked(fetchConsoleKeySet).mockResolvedValue({ kind: 'ok', jwks: PUBLIC_JWKS });
+    const { onCreated } = renderStep(undefined, {
+      baseUrl: 'https://console.example.test',
+      clientId: 'hinted-console',
+    });
+
+    expect(
+      screen.getByRole('checkbox', { name: 'Register the management console’s client now' }),
+    ).toBeChecked();
+    expect(screen.getByLabelText(/^Client ID/)).toHaveValue('hinted-console');
+    expect(screen.getByLabelText(/^Console URL/)).toHaveValue('https://console.example.test');
+    expect(screen.getByRole('progressbar', { name: 'Fetching the key set' })).toBeInTheDocument();
+
+    expect(
+      await screen.findByText('Fetched from https://console.example.test/bff/jwks'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/^Public JWK Set/)).toHaveValue(
+      JSON.stringify(PUBLIC_JWKS, null, 2),
+    );
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    expect(fetchConsoleKeySet).toHaveBeenCalledExactlyOnceWith(
+      'https://console.example.test',
+      expect.any(AbortSignal),
+    );
+
+    submit();
+
+    await waitFor(() => {
+      expect(onCreated).toHaveBeenCalled();
+    });
+    expect(createRoot).toHaveBeenCalledExactlyOnceWith({
+      token: 'the-token',
+      userName: 'root',
+      password: 'a long passphrase!',
+      managementConsole: {
+        clientId: 'hinted-console',
+        baseUrl: 'https://console.example.test',
+        jwks: PUBLIC_JWKS,
+      },
+    });
+  });
+
+  it('proposes the default client ID when the hint names only a console URL', () => {
+    vi.mocked(fetchConsoleKeySet).mockReturnValue(new Promise(() => undefined));
+    renderStep(undefined, { baseUrl: 'https://console.example.test' });
+
+    expect(screen.getByLabelText(/^Client ID/)).toHaveValue('mgmt-console');
+  });
+
+  it('opens an unhinted step unchecked and fetches nothing', () => {
+    renderStep(undefined, {});
+
+    expect(
+      screen.getByRole('checkbox', { name: 'Register the management console’s client now' }),
+    ).not.toBeChecked();
+    expect(fetchConsoleKeySet).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('button', { name: 'Fetch from the console' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('warns when the console is unreachable and accepts a pasted set', async () => {
+    vi.mocked(createRoot).mockResolvedValue(CREATED);
+    vi.mocked(fetchConsoleKeySet).mockResolvedValue({ kind: 'unreachable' });
+    const { onCreated } = renderStep(undefined, { baseUrl: 'https://console.example.test' });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This page could not read the console’s key set at https://console.example.test/bff/jwks.',
+    );
+    expect(screen.getByRole('alert')).toHaveTextContent('Paste the console’s public JWK Set.');
+    expect(screen.getByLabelText(/^Public JWK Set/)).toHaveValue('');
+
+    fill(/^Public JWK Set/, JSON.stringify(PUBLIC_JWKS));
+    submit();
+
+    await waitFor(() => {
+      expect(onCreated).toHaveBeenCalled();
+    });
+    expect(createRoot).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        managementConsole: expect.objectContaining({ jwks: PUBLIC_JWKS }),
+      }),
+    );
+  });
+
+  it('shows the HTTP status the console answered', async () => {
+    vi.mocked(fetchConsoleKeySet).mockResolvedValue({ kind: 'status', status: 503 });
+    renderStep(undefined, { baseUrl: 'https://console.example.test' });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'The console answered HTTP 503 for its key set at https://console.example.test/bff/jwks. Paste the console’s public JWK Set.',
+    );
+  });
+
+  it('shows nothing when the fetch is aborted', async () => {
+    vi.mocked(fetchConsoleKeySet).mockResolvedValue({ kind: 'aborted' });
+    renderStep(undefined, { baseUrl: 'https://console.example.test' });
+
+    await waitFor(() => {
+      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/^Public JWK Set/)).toHaveValue('');
+  });
+
+  it('refuses a fetched set with a private member', async () => {
+    vi.mocked(fetchConsoleKeySet).mockResolvedValue({
+      kind: 'ok',
+      jwks: { keys: [{ ...PUBLIC_JWKS.keys[0], d: 'private' }] },
+    });
+    renderStep(undefined, { baseUrl: 'https://console.example.test' });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Paste the console’s public keys only.',
+    );
+    expect(screen.getByLabelText(/^Public JWK Set/)).toHaveValue('');
+  });
+
+  it('refuses a console answer that is not a key set', async () => {
+    vi.mocked(fetchConsoleKeySet).mockResolvedValue({ kind: 'ok', jwks: null });
+    renderStep(undefined, { baseUrl: 'https://console.example.test' });
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Paste the console’s public JWK Set: a JSON object with a non-empty keys array.',
+    );
+  });
+
+  it('fetches again when the button is pressed', async () => {
+    vi.mocked(fetchConsoleKeySet).mockResolvedValueOnce({ kind: 'unreachable' });
+    vi.mocked(fetchConsoleKeySet).mockResolvedValueOnce({ kind: 'ok', jwks: PUBLIC_JWKS });
+    renderStep(undefined, { baseUrl: 'https://console.example.test' });
+    await screen.findByRole('alert');
+
+    fill(/^Console URL/, ' https://other.example.test ');
+    fireEvent.click(screen.getByRole('button', { name: 'Fetch from the console' }));
+
+    expect(
+      await screen.findByText('Fetched from https://other.example.test/bff/jwks'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/^Public JWK Set/)).toHaveValue(
+      JSON.stringify(PUBLIC_JWKS, null, 2),
+    );
+    expect(fetchConsoleKeySet).toHaveBeenCalledTimes(2);
+    expect(fetchConsoleKeySet).toHaveBeenLastCalledWith(
+      'https://other.example.test',
+      expect.any(AbortSignal),
+    );
+  });
+
+  it('offers the button only while registration is checked and the URL is not empty', () => {
+    renderStep();
+
+    check();
+
+    expect(
+      screen.queryByRole('button', { name: 'Fetch from the console' }),
+    ).not.toBeInTheDocument();
+
+    fill(/^Console URL/, 'https://console.example.test');
+
+    expect(screen.getByRole('button', { name: 'Fetch from the console' })).toBeEnabled();
   });
 
   it('offers the registration unchecked and shows no console fields', () => {

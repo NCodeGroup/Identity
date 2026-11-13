@@ -156,6 +156,7 @@ export function App() {
           <ConsoleClientStep
             token={token}
             account={step.account}
+            consoleHint={step.consoleHint}
             onCreated={(root) => {
               setToken('');
               setStep({

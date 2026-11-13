@@ -30,6 +30,8 @@ valkey.parts.existingSecret and raise replicaCount for a rolling, highly availab
 The management console answers to {{ .Values.managementConsole.host }} through the
 {{ include "identity-host.managementConsole.fullname" . }} Service. Register the confidential client mgmt-console with
 the server with the jwks_uri https://{{ .Values.managementConsole.host }}/bff/jwks.
+The setup wizard's console step proposes https://{{ .Values.managementConsole.host }} and reads its public key set from
+the console.
 {{- if not (include "identity-host.managementConsole.valkeyEnabled" .) }}
 
 Without managementConsole.valkey.existingSecret or managementConsole.valkey.parts.existingSecret the console runs one

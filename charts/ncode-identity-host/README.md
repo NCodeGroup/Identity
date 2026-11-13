@@ -238,6 +238,12 @@ Warning level, on the one replica that issued it. The generated token expires (a
 The wizard answers at `https://<host>/setup/#token=<token>`. It creates the root global administrator once, and every
 `/setup` route answers 404 after the instance is initialized.
 
+With `managementConsole.enabled`, the host receives `Setup__Wizard__ManagementConsole__BaseUrl` (`https://<managementConsole.host>`)
+and `Setup__Wizard__ManagementConsole__ClientId` (`setup.managementConsole.clientId`), so the wizard's console step opens
+with registration checked, the client ID and the console URL filled, and the key set read from
+`https://<managementConsole.host>/bff/jwks`. The operator submits without typing. When the browser cannot reach the
+console, the step says so and takes a pasted set.
+
 To create the root administrator without a browser, enable `setup.job`. It renders a Job per release revision that runs
 the host image's `setup` command, creates the root administrator from the Secret named in `setup.job.existingSecret`, and
 exits 0 on an instance that is already initialized. The setup values:

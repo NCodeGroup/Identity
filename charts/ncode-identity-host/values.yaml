@@ -241,7 +241,8 @@ setup:
   # save as the root administrator (Setup__ManagementConsole__*). Setting baseUrl registers it; the Job then needs jwks
   # too. Setup imports the JWK Set by value and never fetches a jwks_uri.
   managementConsole:
-    # The console's client_id.
+    # The console's client_id. It is also the client ID that the setup wizard's console step proposes when
+    # managementConsole.enabled.
     clientId: mgmt-console
     # The console's public https origin without a path, such as https://console.example.com. Empty registers no console.
     baseUrl: ""
@@ -420,7 +421,8 @@ managementConsole:
     digest: ""
     pullPolicy: IfNotPresent
   # The console's public host name, such as manage.example.com. It is the console's AllowedHosts, its origin
-  # https://<host>, and the host its Ingress routes.
+  # https://<host>, and the host its Ingress routes. The setup wizard proposes https://<host> and reads the console's key
+  # set from https://<host>/bff/jwks.
   host: ""
   # Bff:Frontends:mgmt:Authority. Defaults to tenantResolution.staticSingle.issuer under StaticSingle. The console calls
   # the management API at /api on its origin.

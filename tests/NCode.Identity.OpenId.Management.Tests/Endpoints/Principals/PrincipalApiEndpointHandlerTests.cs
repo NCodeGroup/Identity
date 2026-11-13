@@ -255,7 +255,7 @@ public sealed class PrincipalApiEndpointHandlerTests : IDisposable
         Assert.NotNull(json.Value);
         Assert.Equal(PrincipalId, json.Value.PrincipalId);
         Assert.True(json.Value.IsBlocked);
-        Assert.Equal(ConcurrencyToken, httpContext.Response.Headers.ETag.ToString());
+        Assert.Equal($"\"{ConcurrencyToken}\"", httpContext.Response.Headers.ETag.ToString());
     }
 
     #endregion

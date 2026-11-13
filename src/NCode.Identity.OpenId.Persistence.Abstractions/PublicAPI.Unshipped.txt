@@ -27,6 +27,8 @@ const NCode.Identity.OpenId.Persistence.OpenIdResourceTypes.Platform = "platform
 const NCode.Identity.OpenId.Persistence.OpenIdResourceTypes.Settings = "settings" -> string!
 const NCode.Identity.OpenId.Persistence.OpenIdResourceTypes.Tenant = "tenant" -> string!
 const NCode.Identity.OpenId.Persistence.OpenIdResourceIds.Platform = "platform" -> string!
+const NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup.SingletonKey = "instance" -> string!
+const NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup.TokenHashLength = 32 -> int
 NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedClientResource
 NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedClientResource.BasePersistedClientResource() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.BasePersistedClientResource.ClientId.get -> string!
@@ -223,6 +225,24 @@ NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope.IsSystem.init -> 
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope.PersistedScope() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope.Value.get -> string!
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope.Value.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup.ConcurrencyToken.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup.ConcurrencyToken.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup.InitializedAt.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup.InitializedAt.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup.InitializedByPrincipalId.get -> string?
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup.InitializedByPrincipalId.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup.IsInitialized.get -> bool
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup.IsInitialized.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup.Key.get -> string!
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup.Key.init -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup.PersistedInstanceSetup() -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup.TokenExpiresAt.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup.TokenExpiresAt.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup.TokenHash.get -> byte[]?
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup.TokenHash.set -> void
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup.TokenIssuedAt.get -> System.DateTimeOffset?
+NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup.TokenIssuedAt.set -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatform
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatform.PersistedPlatform() -> void
 NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatform.Settings.get -> NCode.Identity.OpenId.Persistence.DataContracts.PersistedPlatformSettings!
@@ -323,6 +343,8 @@ NCode.Identity.OpenId.Persistence.Stores.IGrantStore.RevokeWhereAsync(NCode.Iden
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore.RevokeByRefreshTokenLineageAsync(string! refreshTokenLineageId, System.DateTimeOffset revokedWhen, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<long>
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore.GetActiveByRefreshTokenLineageAsync(string! refreshTokenLineageId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<NCode.Identity.OpenId.Persistence.DataContracts.PersistedGrant!>!>
 NCode.Identity.OpenId.Persistence.Stores.IGrantStore.RemoveEndedBeforeAsync(System.DateTimeOffset endedBefore, System.Collections.Generic.IReadOnlyCollection<string!>! grantTypesEndedByRevocation, int limit, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<int>
+NCode.Identity.OpenId.Persistence.Stores.IInstanceSetupStore
+NCode.Identity.OpenId.Persistence.Stores.IInstanceSetupStore.GetOrDefaultAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Persistence.DataContracts.PersistedInstanceSetup?>
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.AddScopeAsync(string! resourceServerId, NCode.Identity.OpenId.Persistence.DataContracts.PersistedScope! persistedScope, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.OpenId.Persistence.Stores.IResourceServerStore.AddSecretAsync(string! resourceServerId, NCode.Identity.Secrets.Persistence.DataContracts.PersistedSecret! persistedSecret, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask

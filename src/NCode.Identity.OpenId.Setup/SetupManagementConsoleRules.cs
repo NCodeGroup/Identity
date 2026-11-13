@@ -84,8 +84,7 @@ internal static class SetupManagementConsoleRules
         )
             return false;
 
-        return Uri.TryCreate(value, UriKind.Absolute, out var uri)
-            && uri.Scheme == Uri.UriSchemeHttps
+        return AbsoluteUri.TryParseHttps(value, out var uri)
             && uri.UserInfo.Length == 0
             && uri.AbsolutePath == "/";
     }

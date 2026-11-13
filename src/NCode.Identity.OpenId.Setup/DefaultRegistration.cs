@@ -77,6 +77,10 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton<ISetupTokenService, DefaultSetupTokenService>();
             serviceCollection.TryAddSingleton<IInstanceSetupService, DefaultInstanceSetupService>();
 
+            serviceCollection.TryAddEnumerable(
+                ServiceDescriptor.Singleton<IHostedService, InstanceSetupHostedService>()
+            );
+
             return builder;
         }
     }

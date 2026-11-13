@@ -383,7 +383,15 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
 
     private void SetupLogged(LogLevel level, int eventId, Dictionary<string, object?> state)
     {
-        MockLogger.Setup(x => x.IsEnabled(level)).Returns(true).Verifiable(Times.Once());
+        SetupLogEnabled(level, 1);
+        SetupLogEntry(level, eventId, state);
+    }
+
+    private void SetupLogEnabled(LogLevel level, int times) =>
+        MockLogger.Setup(x => x.IsEnabled(level)).Returns(true).Verifiable(Times.Exactly(times));
+
+    private void SetupLogEntry(LogLevel level, int eventId, Dictionary<string, object?> state)
+    {
 #pragma warning disable CA1873 // The arguments are matchers of a mock setup, not log arguments.
         MockLogger
             .Setup(x =>
@@ -713,6 +721,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         var row = CreateRow();
         ClientCreationRequest? staged = null;
         var state = new Dictionary<string, object?>();
+        var clientState = new Dictionary<string, object?>();
 
         SetupTenantScope();
         SetupStoreManagers(1);
@@ -723,13 +732,17 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         SetupClientCreator(CreateStagedClient(), request => staged = request);
         SetupUpdate(row);
         SetupSave();
-        SetupLogged(LogLevel.Information, EventIds.RootAdministratorCreated, state);
+        SetupLogEnabled(LogLevel.Information, 2);
+        SetupLogEntry(LogLevel.Information, EventIds.RootAdministratorCreated, state);
+        SetupLogEntry(LogLevel.Information, EventIds.InstanceSetupClientRegistered, clientState);
 
         var result = await CreateService()
             .SetUpAsync(CreateRequest(managementConsole: CreateConsole()), CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.Equal(ConsoleClientId, result.ManagementConsoleClientId);
+        Assert.Equal(ConsoleClientId, clientState["ClientId"]);
+        Assert.Equal(TenantId, clientState["TenantId"]);
         Assert.Equal(["tenant", "account", "client"], CallLog);
         Assert.True(row.IsInitialized);
 
@@ -876,6 +889,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         ClientCreationRequest? staged = null;
         List<PersistedRoleAssignment> assignments = [];
         var state = new Dictionary<string, object?>();
+        var clientState = new Dictionary<string, object?>();
 
         SetupTenantScope();
         SetupStoreManagers(1);
@@ -886,13 +900,17 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         SetupClientCreator(CreateStagedMachineClient(), request => staged = request);
         SetupUpdate(row);
         SetupSave();
-        SetupLogged(LogLevel.Information, EventIds.RootAdministratorCreated, state);
+        SetupLogEnabled(LogLevel.Information, 2);
+        SetupLogEntry(LogLevel.Information, EventIds.RootAdministratorCreated, state);
+        SetupLogEntry(LogLevel.Information, EventIds.InstanceSetupClientRegistered, clientState);
 
         var result = await CreateService()
             .SetUpAsync(CreateRequest(automation: CreateAutomation()), CancellationToken.None);
 
         Assert.True(result.Succeeded);
         Assert.Equal(AutomationClientId, result.AutomationClientId);
+        Assert.Equal(AutomationClientId, clientState["ClientId"]);
+        Assert.Equal(TenantId, clientState["TenantId"]);
         Assert.Null(result.ManagementConsoleClientId);
         Assert.Equal(["tenant", "account", "client"], CallLog);
         Assert.True(row.IsInitialized);

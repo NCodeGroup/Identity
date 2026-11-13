@@ -17,4 +17,5 @@ internal static class EventIds
     public const int SetupTokenIssued = Base + 1;
     public const int SetupTokenIssuedByAnotherReplica = Base + 2;
     public const int RootAdministratorCreated = Base + 3;
+    public const int InstanceSetupClientRegistered = Base + 4;
 }

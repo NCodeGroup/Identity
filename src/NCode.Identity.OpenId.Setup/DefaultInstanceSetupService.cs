@@ -386,6 +386,12 @@ internal sealed class DefaultInstanceSetupService(
 
         Logger.RootAdministratorCreated(tenantId, creation.PrincipalId);
 
+        if (consoleClientId is not null)
+            Logger.InstanceSetupClientRegistered(consoleClientId, tenantId);
+
+        if (automationClientId is not null)
+            Logger.InstanceSetupClientRegistered(automationClientId, tenantId);
+
         return new InstanceSetupResult
         {
             ManagementConsoleClientId = consoleClientId,

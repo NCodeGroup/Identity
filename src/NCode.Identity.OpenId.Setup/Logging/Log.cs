@@ -8,7 +8,7 @@ namespace NCode.Identity.OpenId.Setup.Logging;
 
 /// <summary>
 /// Provides source-generated, strongly-typed log messages for the <c>NCode.Identity.OpenId.Setup</c> package: the
-/// generated setup token an operator reads once, the replica that issued it, and the root administrator's creation.
+/// generated setup token an operator reads once, the replica that issued it, the root administrator's creation, and each client that setup registers.
 /// </summary>
 [ExcludeFromCodeCoverage]
 internal static partial class Log
@@ -43,5 +43,16 @@ internal static partial class Log
         this ILogger logger,
         string tenantId,
         string principalId
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.InstanceSetupClientRegistered,
+        Level = LogLevel.Information,
+        Message = "Registered the client {ClientId} in tenant {TenantId} during instance setup."
+    )]
+    internal static partial void InstanceSetupClientRegistered(
+        this ILogger logger,
+        string clientId,
+        string tenantId
     );
 }

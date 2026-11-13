@@ -107,7 +107,7 @@ on their next seed:
   when `Plane == Root`.
 - `TenantKeySeedHandler` provisions the tenant's keys
   ([ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)).
-- `BootstrapAdminSeedHandler` seeds the bootstrap administrator.
+- `BootstrapAdminSeedHandler` seeds the development bootstrap client.
 - The opt-in `DeveloperSecretPruningSeedHandler`, `DeveloperInteractiveSeedHandler` and `ConformanceSeedHandler`.
 
 Adding a contributor is one registered handler.
@@ -116,8 +116,9 @@ Adding a contributor is one registered handler.
 
 `BootstrapAdmin:TenantId`, `DeveloperInteractiveSeed:TenantId` and `ConformanceSeed:TenantId` are required whenever the
 seeder has something to seed, and the host refuses to start without them. Each seeds exactly that tenant, in either
-plane, because a multi-tenant platform's operators belong in the root tenant. The `GlobalAdmin` role is conferred only
-on the bootstrap client in the bootstrap tenant.
+plane, because a multi-tenant platform's operators belong in the root tenant. The `GlobalAdmin` stamp is carried only by
+the development bootstrap client, in the bootstrap tenant; a Production instance's root administrator holds a role
+assignment instead ([ADR-1512](1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 
 ## Options considered
 
@@ -164,7 +165,7 @@ on the bootstrap client in the bootstrap tenant.
   route.
 - [ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md): plane-aware resource-server
   seeding.
-- [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md): the bootstrap administrator.
+- [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md): the development bootstrap client.
 - [ADR-1165](1165-a-tenants-stored-issuer-is-its-single-origin-and-its-mtls-alias-a-routed-second-host.md): the issuer
   judged on every write.
 - [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md): the key seed handler.

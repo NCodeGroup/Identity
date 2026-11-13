@@ -48,7 +48,7 @@ period that a timer runs on is held to the range that every .NET timer accepts.*
    package binds, among them `BootstrapAdmin`, `Frontend` (`FrontendBootstrapOptions`), `ConformanceSeed`,
    `DeveloperInteractiveSeed`, `InteractiveAuthentication`, `DeveloperKeys`, `Cors`, `ForwardedHeaders`,
    `StrictTransportSecurity`, `SecretProtection` and its key-provider subsections, `DataProtectionKeyRing`, `Valkey`,
-   `Bff` and `ManagementConsole`.
+   `Bff`, `ManagementConsole` and `Setup` (`SetupOptions`).
 3. **The OpenID section has one owner.** `AddConfiguration` (`IdentityServerBuilderExtensions`) owns the whole OpenID
    section and rejects any other subsection with `ThrowOnUnknownSubsection`, whose error lists the recognized ones. The
    section recognizes twelve subsections, listed in `IdentityServerBuilderExtensions.OpenIdSubsections`:

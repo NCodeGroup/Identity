@@ -27,7 +27,7 @@ scopes on a resource server it can seed into every tenant.
 ## Decision
 
 **Authority is a persisted role assignment `(principal, role, node)`, inherited down the authority chain, and no role
-claim confers management authority except the bootstrap `GlobalAdmin` stamp.** Roles and ownership are one mechanism.
+claim confers management authority except the development bootstrap client's `GlobalAdmin` stamp.** Roles and ownership are one mechanism.
 
 1. **The hierarchy and the roles.** An assignment at a node holds at the node and at everything beneath it: the chain
    runs from the platform node through every team above a tenant to the tenant, and on to a client, resource server or
@@ -51,9 +51,12 @@ claim confers management authority except the bootstrap `GlobalAdmin` stamp.** R
    when one of its assignments of an authorizing role sits at the node or at an ancestor that `IAuthorityChainResolver`
    derives from the resource. No parent pointers are stored. Platform, team and tenant nodes match on type and identifier
    across tenants; any other node matches only an assignment of the node's tenant.
-5. **No claim authority.** The one role claim that confers management authority is the bootstrap `GlobalAdmin` stamp
+5. **No claim authority.** The one role claim that confers management authority is the development bootstrap client's
+   `GlobalAdmin` stamp
    ([ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)).
-   Every other authority is an assignment that the `owners` and `admins` lists show, grant and revoke.
+   Every other authority is an assignment that the `owners` and `admins` lists show, grant and revoke, and the root
+   administrator that setup creates holds an assignment like every other administrator
+   ([ADR-1512](1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 6. **Creators and owners.** A resource's creator is assigned `Owner` in the same unit of work as the insert, unless it
    cannot hold it ([ADR-1466](1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md)). A
    resource keeps at least one owner: removing the last answers `409`, and the administrators above it can always
@@ -87,7 +90,7 @@ claim confers management authority except the bootstrap `GlobalAdmin` stamp.** R
 
 ## Consequences
 
-- Every management authority except the bootstrap stamp is an assignment that the `admins` and `owners` endpoints list,
+- Every management authority except the development bootstrap client's stamp is an assignment that the `admins` and `owners` endpoints list,
   grant and revoke.
 - `TeamAdmin` and `TenantAdmin` confer the same operations where they are assigned, one tier apart.
 - A team's administrators grant a tenant's administrators, and a tenant's owners cannot.
@@ -114,3 +117,5 @@ claim confers management authority except the bootstrap `GlobalAdmin` stamp.** R
   at the node it names
 - [ADR-1426](1426-a-team-can-nest-beneath-a-parent-team-and-its-subtree-is-walked-depth-first.md): nested teams
 - [ADR-1466](1466-a-client-is-its-own-principal-and-a-machine-client-acts-only-within-its-owning-node.md): machine clients
+- [ADR-1512](1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md): the
+  root administrator that setup creates

@@ -22,7 +22,7 @@ export function DonePage({ userName }: DonePageProps) {
       </Typography>
 
       <Typography>
-        The root administrator <strong>{userName}</strong> exists. The setup token no longer works.
+        The root administrator <strong>{userName}</strong> exists. The setup token is spent.
       </Typography>
 
       <Typography variant="h6" component="h2">

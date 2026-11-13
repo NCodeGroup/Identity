@@ -16,6 +16,7 @@ using NCode.Identity.Events.Audit;
 using NCode.Identity.Jose;
 using NCode.Identity.Jose.Algorithms;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Environments;
 using NCode.Identity.OpenId.Management.Auditing;
@@ -72,6 +73,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
     private Mock<IResourceOwnershipService> MockResourceOwnershipService { get; }
     private Mock<IManagementAuditRecorder> MockManagementAuditRecorder { get; }
     private Mock<IHostManagedClientPolicy> MockHostManagedClientPolicy { get; }
+    private Mock<IOutboundHostChecker> MockOutboundHostChecker { get; }
     private Mock<IAmbientTenantAccessor> MockAmbientTenantAccessor { get; }
     private ServiceProvider ServiceProvider { get; }
     private ClientApiEndpointHandler Handler { get; }
@@ -111,6 +113,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         MockManagementAuditRecorder = MockRepository.Create<IManagementAuditRecorder>();
         MockHostManagedClientPolicy = MockRepository.Create<IHostManagedClientPolicy>();
+        MockOutboundHostChecker = MockRepository.Create<IOutboundHostChecker>();
         MockAmbientTenantAccessor = MockRepository.Create<IAmbientTenantAccessor>();
 
         Handler = CreateHandler();
@@ -143,6 +146,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             new DefaultClientKeySourceChecker(
                 ServiceProvider.GetRequiredService<ISecretKeyTypeCatalog>()
             ),
+            MockOutboundHostChecker.Object,
             NullLogger<ClientApiEndpointHandler>.Instance,
             MockAmbientTenantAccessor.Object
         );
@@ -512,6 +516,12 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
     private void SetupNoChangedLimits(string name, string value) =>
         SetupChangedLimits([], name, value);
+
+    private void SetupJwksUriHostCheck(bool isRefused) =>
+        MockOutboundHostChecker
+            .Setup(x => x.IsRefusedAsync("client.example", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(isRefused)
+            .Verifiable();
 
     private void SetupChangedLimits(IReadOnlyList<string> limits, string name, string value)
     {
@@ -1184,6 +1194,40 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
         );
 
         AssertAlgorithmNotPermitted(result, OpenIdSettingNames.IdTokenSignedResponseAlg, "RS256");
+    }
+
+    [Fact]
+    public async Task CreateClientAsync_WhenJwksUriHostIsRefused_ReturnsValidationProblem()
+    {
+        SetupAuthorizeCreate(resourceServerId: null, error: null);
+        SetupValidSettings();
+        SetupStore();
+        SetupResourceId("generated-id");
+        MockClientValidator
+            .Setup(x =>
+                x.ValidateCreateAsync(
+                    It.IsAny<PersistedClient>(),
+                    It.IsAny<IStoreManager>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
+        SetupEffectiveSettings();
+        SetupJwksUriHostCheck(isRefused: true);
+
+        var request = new CreateClientRequest { IsDisabled = false, Settings = JwksUriSettings() };
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no AddAsync / SaveChangesAsync setup, so persisting the client would fail the test.
+        var result = await Handler.CreateClientAsync(
+            httpContext,
+            TenantId,
+            request,
+            CancellationToken.None
+        );
+
+        AssertJwksUriRefused(result);
     }
 
     [Fact]
@@ -2456,6 +2500,7 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Verifiable();
 
         SetupEffectiveSettings();
+        SetupJwksUriHostCheck(isRefused: false);
         // The settings leave the method as it is, so the secrets are left as they are: no reconciliation is set up.
         SetupResolvedAuthenticationMethods(
             OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
@@ -2463,6 +2508,84 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
 
         var httpContext = CreateHttpContext(authenticated: true);
 
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            CreateAddPatch(OpenIdSettingNames.JwksUri, "https://client.example/jwks"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenAddedJwksUriHostIsRefused_ReturnsValidationProblem()
+    {
+        SetupValidSettings();
+        SetupNoChangedLimits(OpenIdSettingNames.JwksUri, "https://client.example/jwks");
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct", EmptyObject(), CreatePersistedSecret()))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        SetupEffectiveSettings();
+        SetupJwksUriHostCheck(isRefused: true);
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: no UpdateSettingsAsync / SaveChangesAsync setup, so a write would fail the test.
+        var result = await Handler.UpdateSettingsAsync(
+            httpContext,
+            TenantId,
+            ClientId,
+            CreateAddPatch(OpenIdSettingNames.JwksUri, "https://client.example/jwks"),
+            ifMatch: null,
+            CancellationToken.None
+        );
+
+        AssertJwksUriRefused(result);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_WhenJwksUriIsUnchanged_DoesNotCheckItsHost()
+    {
+        SetupClientChangedAudit();
+        SetupValidSettings();
+        MockSettingSerializer
+            .Setup(x => x.GetChangedLimits(It.IsAny<JsonElement>(), It.IsAny<JsonElement>()))
+            .Returns([])
+            .Verifiable();
+        SetupStore();
+        MockClientStore
+            .Setup(x => x.GetOrDefaultAsync(ClientId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(CreateClient("client-ct", JwksUriSettings(), CreatePersistedSecret()))
+            .Verifiable();
+        SetupAuthorization(AuthorizationResult.Success());
+        MockClientStore
+            .Setup(x =>
+                x.UpdateSettingsAsync(
+                    It.IsAny<PersistedClientSettings>(),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+
+        SetupEffectiveSettings();
+        SetupResolvedAuthenticationMethods(
+            OpenIdProtocol.ClientAuthenticationMethods.ClientSecretPost
+        );
+
+        var httpContext = CreateHttpContext(authenticated: true);
+
+        // Strict mocks: the host checker has no setup, so checking the host would fail the test.
         var result = await Handler.UpdateSettingsAsync(
             httpContext,
             TenantId,
@@ -3055,6 +3178,13 @@ public sealed class ClientApiEndpointHandlerTests : IAsyncLifetime
             .Setup(x => x.Validate(tenantSettings, It.IsAny<JsonElement>()))
             .Returns(violations)
             .Verifiable();
+    }
+
+    private static void AssertJwksUriRefused(IResult result)
+    {
+        var problem = Assert.IsType<ValidationProblem>(result);
+        Assert.Equal(StatusCodes.Status400BadRequest, problem.StatusCode);
+        Assert.Equal([OpenIdSettingNames.JwksUri], problem.ProblemDetails.Errors.Keys);
     }
 
     private static void AssertAlgorithmNotPermitted(

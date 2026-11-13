@@ -14,7 +14,9 @@ using Microsoft.Extensions.Logging;
 using NCode.Identity.AspNetCore;
 using NCode.Identity.Cryptography;
 using NCode.Identity.Events.Audit;
+using NCode.Identity.Json;
 using NCode.Identity.OpenId.Authentication.Clients;
+using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management.Auditing;
 using NCode.Identity.OpenId.Management.Authorization;
@@ -87,6 +89,7 @@ internal class ClientApiEndpointHandler(
     IManagementAuditRecorder managementAuditRecorder,
     IHostManagedClientChecker hostManagedClientChecker,
     IClientKeySourceChecker clientKeySourceChecker,
+    IOutboundHostChecker outboundHostChecker,
     ILogger<ClientApiEndpointHandler> logger,
     IAmbientTenantAccessor ambientTenantAccessor
 ) : BaseOwnableApiEndpointHandler, IEndpointProvider
@@ -201,6 +204,7 @@ internal class ClientApiEndpointHandler(
         managementAuditRecorder;
     private IHostManagedClientChecker HostManagedClientChecker { get; } = hostManagedClientChecker;
     private IClientKeySourceChecker ClientKeySourceChecker { get; } = clientKeySourceChecker;
+    private IOutboundHostChecker OutboundHostChecker { get; } = outboundHostChecker;
 
     /// <inheritdoc />
     protected override IResourceOwnershipService ResourceOwnershipService { get; } =
@@ -554,6 +558,64 @@ internal class ClientApiEndpointHandler(
                 .Validate(tenantSettings, clientSettings)
                 .Select(violation => new SettingError(violation.SettingName, violation.Description))
                 .ToList();
+    }
+
+    /// <summary>
+    /// Refuses a <c>jwks_uri</c> whose host resolves only to addresses the server's outbound network guard refuses,
+    /// because the server can never fetch such a key set. A value that is absent, unchanged from the stored settings,
+    /// or not an absolute <c>https</c> URI is not checked here.
+    /// </summary>
+    /// <param name="settings">The client's settings document to verify.</param>
+    /// <param name="storedSettings">The client's stored settings document, or <see langword="null"/> when the client
+    /// is being created.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="SettingError"/> that names the <c>jwks_uri</c> setting, or <see langword="null"/> when
+    /// the value is not refused.</returns>
+    // See ADR-1106 decision 11.
+    private async ValueTask<SettingError?> GetJwksUriRefusalOrDefaultAsync(
+        JsonElement settings,
+        JsonElement? storedSettings,
+        CancellationToken cancellationToken
+    )
+    {
+        if (
+            settings.ValueKind != JsonValueKind.Object
+            || !settings.TryGetPropertyValue<string>(OpenIdSettingNames.JwksUri, out var jwksUri)
+            || string.IsNullOrEmpty(jwksUri)
+        )
+        {
+            return null;
+        }
+
+        if (
+            storedSettings is { ValueKind: JsonValueKind.Object } stored
+            && stored.TryGetPropertyValue<string>(OpenIdSettingNames.JwksUri, out var storedJwksUri)
+            && string.Equals(jwksUri, storedJwksUri, StringComparison.Ordinal)
+        )
+        {
+            return null;
+        }
+
+        if (
+            !Uri.TryCreate(jwksUri, UriKind.Absolute, out var uri)
+            || !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)
+        )
+        {
+            return null;
+        }
+
+        var isRefused = await OutboundHostChecker.IsRefusedAsync(
+            uri.DnsSafeHost,
+            cancellationToken
+        );
+        return isRefused
+            ? new SettingError(
+                OpenIdSettingNames.JwksUri,
+                "The 'jwks_uri' host resolves only to addresses the server's outbound network guard refuses, so the "
+                    + "server can never fetch it. A client on a private network registers no 'jwks_uri' and imports "
+                    + "its public key through POST /api/tenants/{tenantId}/clients/{clientId}/secrets/import."
+            )
+            : null;
     }
 
     /// <summary>
@@ -1211,6 +1273,16 @@ internal class ClientApiEndpointHandler(
             return SettingsValidationProblem(effectiveSettingErrors);
         }
 
+        var jwksUriRefusal = await GetJwksUriRefusalOrDefaultAsync(
+            client.Settings.Value,
+            null,
+            cancellationToken
+        );
+        if (jwksUriRefusal is not null)
+        {
+            return SettingsValidationProblem([jwksUriRefusal.Value]);
+        }
+
         var tokenEndpointAuthMethod = await GetTokenEndpointAuthMethodAsync(
             client.TenantId,
             client.ClientId,
@@ -1711,6 +1783,16 @@ internal class ClientApiEndpointHandler(
         if (effectiveSettingErrors.Count > 0)
         {
             return SettingsValidationProblem(effectiveSettingErrors);
+        }
+
+        var jwksUriRefusal = await GetJwksUriRefusalOrDefaultAsync(
+            settingsValue,
+            clientSettings.Value,
+            cancellationToken
+        );
+        if (jwksUriRefusal is not null)
+        {
+            return SettingsValidationProblem([jwksUriRefusal.Value]);
         }
 
         // The client's shared secrets follow the method the settings register when they change it, through the rule

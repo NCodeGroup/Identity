@@ -536,7 +536,9 @@ internal class ResourceServerApiEndpointHandler(
             );
         }
 
-        httpContext.Response.Headers.ETag = resourceServer.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(
+            resourceServer.ConcurrencyToken
+        );
         return TypedResults.Created(
             $"/tenants/{tenantId}/resource-servers/{resourceServerId}",
             ToResourceServerResource(resourceServer)
@@ -1264,11 +1266,15 @@ internal class ResourceServerApiEndpointHandler(
         }
 
         if (
-            !string.IsNullOrEmpty(ifMatch)
-            && !string.Equals(ifMatch, settings.ConcurrencyToken, StringComparison.Ordinal)
+            ManagementEntityTags.GetIfMatchErrorOrDefault(
+                ifMatch,
+                settings.ConcurrencyToken,
+                "settings"
+            ) is
+            { } preconditionError
         )
         {
-            return ManagementProblems.PreconditionFailed("settings");
+            return ToErrorResult(preconditionError);
         }
 
         var jsonObject = ToJsonObject(settings.Value);
@@ -1327,7 +1333,7 @@ internal class ResourceServerApiEndpointHandler(
             ToResourceValues(ToResourceServerSettingsResource(settings))
         );
 
-        httpContext.Response.Headers.ETag = settings.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(settings.ConcurrencyToken);
         return TypedResults.NoContent();
     }
 
@@ -1519,7 +1525,9 @@ internal class ResourceServerApiEndpointHandler(
             ToResourceValues(ToSecretResource(generatedSecret.Secret))
         );
 
-        httpContext.Response.Headers.ETag = generatedSecret.Secret.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(
+            generatedSecret.Secret.ConcurrencyToken
+        );
         return TypedResults.Created(
             $"/tenants/{tenantId}/resource-servers/{resourceServerId}/secrets/{secretId}",
             ToCreatedSecretResource(generatedSecret.Secret, generatedSecret.SecretMaterial)
@@ -1635,7 +1643,9 @@ internal class ResourceServerApiEndpointHandler(
             ToResourceValues(importedSecretResource)
         );
 
-        httpContext.Response.Headers.ETag = importedSecret.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(
+            importedSecret.ConcurrencyToken
+        );
         return TypedResults.Created(
             $"/tenants/{tenantId}/resource-servers/{resourceServerId}/secrets/{secretId}",
             importedSecretResource
@@ -1766,11 +1776,15 @@ internal class ResourceServerApiEndpointHandler(
         var secret = resourceServerSecret.Value;
 
         if (
-            !string.IsNullOrEmpty(ifMatch)
-            && !string.Equals(ifMatch, secret.ConcurrencyToken, StringComparison.Ordinal)
+            ManagementEntityTags.GetIfMatchErrorOrDefault(
+                ifMatch,
+                secret.ConcurrencyToken,
+                "secret"
+            ) is
+            { } preconditionError
         )
         {
-            return ManagementProblems.PreconditionFailed("secret");
+            return ToErrorResult(preconditionError);
         }
 
         var metadataError = SecretValidator.ValidateUpdate(secret, request);

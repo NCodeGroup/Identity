@@ -86,6 +86,12 @@ The metadata endpoint resolves the account's principal through its self-issued i
 through `IFederatedPrincipalStore`. With create, it is the only write path for `SystemMetadata`, and the whole API is
 administrator-gated, so the bag is never writable by an end user.
 
+The account's resource carries its principal's identifier (`principalId`, `null` for an account without a self-issued
+identity) in the create, get and list answers, because a role assignment names a principal and the account's own
+identifier is not one. Create reads it from the staged principal, get from the account's self-issued identity, and a
+list resolves its page's identities in one `IFederatedIdentityStore.GetByIssuerSubjectsAsync` call, so a grant needs no
+call to the metadata endpoint. A client's resource carries its `principalId` the same way.
+
 Delete ends the principal's sessions first, then removes the account, its self-issued identity, and the principal when
 that was its last identity. Disable and password reset end sessions after the commit
 ([ADR-1229](1229-a-blocked-disabled-or-deleted-end-user-loses-its-sessions-and-is-refused-with-access-denied.md)). Create and reset judge

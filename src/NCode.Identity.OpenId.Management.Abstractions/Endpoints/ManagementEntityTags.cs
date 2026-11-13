@@ -18,7 +18,8 @@ public static class ManagementEntityTags
         "The supplied If-Match entity tag does not match the current ";
 
     private const string MalformedDetail =
-        "The If-Match header must be \"*\", a list of entity tags such as \"\\\"<concurrency token>\\\"\", or the resource's concurrencyToken.";
+        "The If-Match header must be \"*\", a list of entity tags such as \"\\\"<concurrency token>\\\"\", "
+        + "or the resource's concurrencyToken.";
 
     private const string WeakPrefix = "W/";
 

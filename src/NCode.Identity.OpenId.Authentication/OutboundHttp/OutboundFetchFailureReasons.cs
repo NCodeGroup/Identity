@@ -98,4 +98,38 @@ internal static class OutboundFetchFailureReasons
 
         return exception is OperationCanceledException ? Canceled : Connection;
     }
+
+    /// <summary>
+    /// Determines whether an exception is a failure of the fetch itself, as opposed to a cancellation by the caller or
+    /// a defect in the code.
+    /// </summary>
+    /// <param name="exception">The exception that the fetch threw.</param>
+    /// <param name="cancellationToken">The caller's cancellation token.</param>
+    /// <returns>
+    /// <see langword="true"/> when <paramref name="exception"/> is a transport failure, a corrupt response body, a
+    /// malformed response header, or a cancellation that the caller did not request; otherwise,
+    /// <see langword="false"/>.
+    /// </returns>
+    public static bool IsFetchFailure(Exception exception, CancellationToken cancellationToken) =>
+        exception
+            is HttpRequestException
+                or IOException
+                or InvalidDataException
+                or InvalidOperationException
+                or FormatException
+        || (exception is OperationCanceledException && !cancellationToken.IsCancellationRequested);
+
+    /// <summary>
+    /// Determines whether the fetch's own timeout, not the caller, canceled it.
+    /// </summary>
+    /// <param name="timeoutSource">The cancellation source that enforces the fetch's timeout.</param>
+    /// <param name="cancellationToken">The caller's cancellation token.</param>
+    /// <returns>
+    /// <see langword="true"/> when <paramref name="timeoutSource"/> is canceled and
+    /// <paramref name="cancellationToken"/> is not; otherwise, <see langword="false"/>.
+    /// </returns>
+    public static bool IsTimedOut(
+        CancellationTokenSource timeoutSource,
+        CancellationToken cancellationToken
+    ) => timeoutSource.IsCancellationRequested && !cancellationToken.IsCancellationRequested;
 }

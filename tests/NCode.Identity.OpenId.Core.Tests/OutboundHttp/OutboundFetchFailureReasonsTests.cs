@@ -110,4 +110,91 @@ public class OutboundFetchFailureReasonsTests
     }
 
     #endregion
+
+    #region IsFetchFailure Tests
+
+    public static TheoryData<Exception> FetchFailureExceptions =>
+        new()
+        {
+            new HttpRequestException("x"),
+            new IOException("x"),
+            new InvalidDataException("x"),
+            new InvalidOperationException("x"),
+            new FormatException("x"),
+            new OperationCanceledException(),
+        };
+
+    [Theory]
+    [MemberData(nameof(FetchFailureExceptions))]
+    public void IsFetchFailure_WhenTheExceptionIsAFetchFailure_ReturnsTrue(Exception exception)
+    {
+        var result = OutboundFetchFailureReasons.IsFetchFailure(exception, CancellationToken.None);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsFetchFailure_WhenTheCallerCanceled_ReturnsFalse()
+    {
+        using var callerSource = new CancellationTokenSource();
+        callerSource.Cancel();
+
+        var result = OutboundFetchFailureReasons.IsFetchFailure(
+            new OperationCanceledException(),
+            callerSource.Token
+        );
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsFetchFailure_WhenTheExceptionIsADefect_ReturnsFalse()
+    {
+        var result = OutboundFetchFailureReasons.IsFetchFailure(
+            new ArgumentException("x"),
+            CancellationToken.None
+        );
+
+        Assert.False(result);
+    }
+
+    #endregion
+
+    #region IsTimedOut Tests
+
+    [Fact]
+    public void IsTimedOut_WhenOnlyTheTimeoutIsCanceled_ReturnsTrue()
+    {
+        using var timeoutSource = new CancellationTokenSource();
+        timeoutSource.Cancel();
+
+        var result = OutboundFetchFailureReasons.IsTimedOut(timeoutSource, CancellationToken.None);
+
+        Assert.True(result);
+    }
+
+    [Fact]
+    public void IsTimedOut_WhenBothAreCanceled_ReturnsFalse()
+    {
+        using var timeoutSource = new CancellationTokenSource();
+        using var callerSource = new CancellationTokenSource();
+        timeoutSource.Cancel();
+        callerSource.Cancel();
+
+        var result = OutboundFetchFailureReasons.IsTimedOut(timeoutSource, callerSource.Token);
+
+        Assert.False(result);
+    }
+
+    [Fact]
+    public void IsTimedOut_WhenNeitherIsCanceled_ReturnsFalse()
+    {
+        using var timeoutSource = new CancellationTokenSource();
+
+        var result = OutboundFetchFailureReasons.IsTimedOut(timeoutSource, CancellationToken.None);
+
+        Assert.False(result);
+    }
+
+    #endregion
 }

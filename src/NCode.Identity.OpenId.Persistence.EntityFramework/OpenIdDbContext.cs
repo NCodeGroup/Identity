@@ -104,6 +104,22 @@ public class OpenIdDbContext(
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         optionsBuilder.AddInterceptors(new ConcurrencyTokenSaveChangesInterceptor());
+        UseSplitQueriesByDefault(optionsBuilder);
+    }
+
+    // A query that includes several collections runs one SQL query per collection, unless the host chose a behavior.
+    private static void UseSplitQueriesByDefault(DbContextOptionsBuilder optionsBuilder)
+    {
+        var relational = optionsBuilder
+            .Options.Extensions.OfType<RelationalOptionsExtension>()
+            .SingleOrDefault();
+
+        if (relational is { QuerySplittingBehavior: null })
+        {
+            ((IDbContextOptionsBuilderInfrastructure)optionsBuilder).AddOrUpdateExtension(
+                relational.WithUseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+            );
+        }
     }
 
     /// <inheritdoc />

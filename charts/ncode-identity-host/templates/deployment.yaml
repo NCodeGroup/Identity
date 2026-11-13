@@ -81,6 +81,13 @@ spec:
           env:
             {{- include "identity-host.hostEnv" . | trim | nindent 12 }}
             {{- include "identity-host.backendTls.env" . | nindent 12 }}
+            {{- if .Values.setup.token.existingSecret }}
+            - name: Setup__Token
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.setup.token.existingSecret }}
+                  key: {{ .Values.setup.token.key | quote }}
+            {{- end }}
           {{- with .Values.extraEnvFrom }}
           envFrom:
             {{- toYaml . | nindent 12 }}

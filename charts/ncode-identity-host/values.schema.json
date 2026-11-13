@@ -556,6 +556,53 @@
         }
       }
     },
+    "setup": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "token": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "existingSecret": {
+              "type": "string"
+            },
+            "key": {
+              "type": "string"
+            }
+          }
+        },
+        "job": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "existingSecret": {
+              "type": "string"
+            },
+            "userNameKey": {
+              "type": "string"
+            },
+            "emailKey": {
+              "type": "string"
+            },
+            "passwordKey": {
+              "type": "string"
+            },
+            "backoffLimit": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "activeDeadlineSeconds": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
     "backendTls": {
       "type": "object",
       "additionalProperties": false,

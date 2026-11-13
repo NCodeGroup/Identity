@@ -23,6 +23,15 @@ into (batch.kubernetes.io/job-name).
 {{- end }}
 
 {{/*
+The name of the setup Job, which carries the release revision so each upgrade can run its own. The fully qualified name
+is shortened first so the name, with its suffix, fits the 63-character label value Kubernetes copies it into
+(batch.kubernetes.io/job-name).
+*/}}
+{{- define "identity-host.setupJobName" -}}
+{{- printf "%s-setup-%d" (include "identity-host.fullname" . | trunc 49 | trimSuffix "-") (int .Release.Revision) }}
+{{- end }}
+
+{{/*
 The fully qualified name of the release's resources.
 */}}
 {{- define "identity-host.fullname" -}}
@@ -251,6 +260,12 @@ applied. Rendered for its side effect only.
 {{- if and (eq .Values.secretProtection.rewrapJob.command "rewrap-recovery") (not .Values.secretProtection.recovery.publicKeyConfigMap) }}
 {{- fail "secretProtection.rewrapJob.command rewrap-recovery replaces the recovery copies, so secretProtection.recovery.publicKeyConfigMap must name the recovery public key ConfigMap." }}
 {{- end }}
+{{- end }}
+{{- if and .Values.setup.token.existingSecret (not .Values.setup.token.key) }}
+{{- fail "setup.token.key must name the key that holds the setup token in setup.token.existingSecret." }}
+{{- end }}
+{{- if and .Values.setup.job.enabled (not .Values.setup.job.existingSecret) }}
+{{- fail "setup.job.existingSecret must name the Secret holding the root administrator's user name and password when setup.job.enabled is true." }}
 {{- end }}
 {{- if not .Values.secretProtection.rootKeyProvider }}
 {{- fail "secretProtection.rootKeyProvider is required: local, aws-kms, azure-key-vault or google-cloud-kms, or ephemeral outside Production." }}

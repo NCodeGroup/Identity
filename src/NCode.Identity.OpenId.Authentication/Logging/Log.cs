@@ -395,12 +395,13 @@ internal static partial class Log
     [LoggerMessage(
         EventId = EventIds.ClientJwksFetchFailed,
         Level = LogLevel.Warning,
-        Message = "The client 'jwks_uri' ('{JwksUri}') for client '{ClientId}' could not be fetched or its key set was refused; the client's published keys are unavailable."
+        Message = "The client 'jwks_uri' ('{JwksUri}') for client '{ClientId}' yielded no usable keys ({Reason}); the client's published keys are unavailable."
     )]
     internal static partial void ClientJwksFetchFailed(
         this ILogger logger,
         string clientId,
         string jwksUri,
+        string reason,
         Exception exception
     );
 

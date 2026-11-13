@@ -2,6 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Buffers;
+using System.Net.Sockets;
+using System.Security.Authentication;
 using System.Text.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
@@ -105,6 +107,7 @@ internal sealed class DefaultClientKeyResolver(
             Logger.ClientJwksFetchFailed(
                 openIdClient.ClientId,
                 jwksUri,
+                ClientJwksFetchFailureReasons.NotHttps,
                 new InvalidOperationException("The 'jwks_uri' must be an absolute https URI.")
             );
             return [];
@@ -119,6 +122,7 @@ internal sealed class DefaultClientKeyResolver(
             Logger.ClientJwksFetchFailed(
                 openIdClient.ClientId,
                 jwksUri,
+                ClientJwksFetchFailureReasons.HostNotAllowed,
                 new InvalidOperationException(
                     $"The 'jwks_uri' host '{uri.Host}' is not in the configured allow-list."
                 )
@@ -238,6 +242,7 @@ internal sealed class DefaultClientKeyResolver(
                 Logger.ClientJwksFetchFailed(
                     openIdClient.ClientId,
                     uri.AbsoluteUri,
+                    ClientJwksFetchFailureReasons.HttpStatus,
                     new InvalidOperationException(
                         $"The 'jwks_uri' document could not be fetched (HTTP {(int)response.StatusCode})."
                     )
@@ -257,6 +262,7 @@ internal sealed class DefaultClientKeyResolver(
                 Logger.ClientJwksFetchFailed(
                     openIdClient.ClientId,
                     uri.AbsoluteUri,
+                    ClientJwksFetchFailureReasons.TooLarge,
                     new InvalidOperationException(
                         "The 'jwks_uri' document exceeds the maximum allowed size."
                     )
@@ -269,9 +275,52 @@ internal sealed class DefaultClientKeyResolver(
         catch (Exception exception)
             when (exception is HttpRequestException or OperationCanceledException)
         {
-            Logger.ClientJwksFetchFailed(openIdClient.ClientId, uri.AbsoluteUri, exception);
+            var timedOut =
+                timeoutSource.IsCancellationRequested && !cancellationToken.IsCancellationRequested;
+            Logger.ClientJwksFetchFailed(
+                openIdClient.ClientId,
+                uri.AbsoluteUri,
+                GetFetchFailureReason(exception, timedOut),
+                exception
+            );
             return [];
         }
+    }
+
+    // Names the cause of a failed fetch. The guard's refusal, a TLS failure and a name-resolution failure are found by
+    // walking the exception chain, because SocketsHttpHandler wraps whatever its connect callback throws.
+    private static string GetFetchFailureReason(Exception exception, bool timedOut)
+    {
+        for (var current = exception; current is not null; current = current.InnerException)
+        {
+            switch (current)
+            {
+                case OutboundAddressRefusedException:
+                    return ClientJwksFetchFailureReasons.BlockedAddress;
+
+                case AuthenticationException:
+                    return ClientJwksFetchFailureReasons.Tls;
+
+                case TimeoutException:
+                    return ClientJwksFetchFailureReasons.Timeout;
+
+                case SocketException
+                {
+                    SocketErrorCode: SocketError.HostNotFound
+                        or SocketError.NoData
+                        or SocketError.TryAgain
+                }:
+                case HttpRequestException { HttpRequestError: HttpRequestError.NameResolutionError }:
+                    return ClientJwksFetchFailureReasons.NameResolution;
+            }
+        }
+
+        if (timedOut)
+            return ClientJwksFetchFailureReasons.Timeout;
+
+        return exception is OperationCanceledException
+            ? ClientJwksFetchFailureReasons.Canceled
+            : ClientJwksFetchFailureReasons.Connection;
     }
 
     private List<SecretKey> ImportKeys(
@@ -287,7 +336,12 @@ internal sealed class DefaultClientKeyResolver(
         }
         catch (JsonException exception)
         {
-            Logger.ClientJwksFetchFailed(openIdClient.ClientId, uri.AbsoluteUri, exception);
+            Logger.ClientJwksFetchFailed(
+                openIdClient.ClientId,
+                uri.AbsoluteUri,
+                ClientJwksFetchFailureReasons.NotJson,
+                exception
+            );
             return [];
         }
 
@@ -304,6 +358,7 @@ internal sealed class DefaultClientKeyResolver(
             Logger.ClientJwksFetchFailed(
                 openIdClient.ClientId,
                 uri.AbsoluteUri,
+                ClientJwksFetchFailureReasons.InvalidKeySet,
                 new InvalidOperationException(error)
             );
             return [];

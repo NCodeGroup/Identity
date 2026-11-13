@@ -699,4 +699,16 @@ internal static partial class Log
         Exception exception,
         string tenantId
     );
+
+    [LoggerMessage(
+        EventId = EventIds.SectorIdentifierUriFetchFailed,
+        Level = LogLevel.Warning,
+        Message = "Failed to fetch the sector identifier URI '{SectorIdentifierUri}' ({Reason})"
+    )]
+    internal static partial void SectorIdentifierUriFetchFailed(
+        this ILogger logger,
+        string sectorIdentifierUri,
+        string reason,
+        Exception exception
+    );
 }

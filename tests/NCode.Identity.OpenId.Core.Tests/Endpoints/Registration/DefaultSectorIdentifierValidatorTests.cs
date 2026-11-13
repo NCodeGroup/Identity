@@ -2,9 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
+using Microsoft.Extensions.Logging.Testing;
 using Moq;
 using NCode.Buffers;
 using NCode.Identity.OpenId.Authentication.Endpoints.Registration;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Errors;
@@ -21,6 +23,7 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
     #region Scaffold
 
     private Mock<IHttpClientFactory> MockHttpClientFactory { get; }
+    private FakeLogger<DefaultSectorIdentifierValidator> Logger { get; } = new();
 
     public DefaultSectorIdentifierValidatorTests()
     {
@@ -28,7 +31,7 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
     }
 
     private DefaultSectorIdentifierValidator CreateValidator() =>
-        new(MockHttpClientFactory.Object, new DefaultOutboundHttpContentReader());
+        new(Logger, MockHttpClientFactory.Object, new DefaultOutboundHttpContentReader());
 
     private (IOpenIdErrorFactory factory, Func<string?> capturedCode) CreateErrorFactory()
     {
@@ -91,10 +94,22 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
     }
 
     private void SetupHttpResponse(HttpResponseMessage response) =>
+        SetupHttpClient(new HttpClient(new StubHttpMessageHandler(response)));
+
+    private void SetupHttpClient(HttpClient httpClient) =>
         MockHttpClientFactory
             .Setup(x => x.CreateClient(GuardedHttpClient.Name))
-            .Returns(new HttpClient(new StubHttpMessageHandler(response)))
+            .Returns(httpClient)
             .Verifiable();
+
+    private void AssertFetchFailedReason(string reason)
+    {
+        var record = Assert.Single(
+            Logger.Collector.GetSnapshot(),
+            r => r.Id.Id == EventIds.SectorIdentifierUriFetchFailed
+        );
+        Assert.Equal(reason, record.GetStructuredStateValue("Reason"));
+    }
 
     private static HttpResponseMessage JsonResponse(string json)
     {
@@ -111,6 +126,14 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
             HttpRequestMessage request,
             CancellationToken cancellationToken
         ) => Task.FromResult(response);
+    }
+
+    private sealed class ThrowingHttpMessageHandler(Exception exception) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        ) => Task.FromException<HttpResponseMessage>(exception);
     }
 
     #endregion
@@ -265,6 +288,52 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
 
         Assert.NotNull(error);
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenTheHostResolvesToARefusedAddress_LogsBlockedAddress()
+    {
+        var validator = CreateValidator();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var context = CreateContext(factory);
+        using var handler = new SocketsHttpHandler
+        {
+            ConnectCallback = new DefaultOutboundHttpForgeryGuard([]).ConnectAsync,
+        };
+        SetupHttpClient(new HttpClient(handler, disposeHandler: false));
+
+        var error = await validator.ValidateAsync(
+            context,
+            "https://10.0.0.5/sector.json",
+            ["https://a.example.com/cb"],
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
+        AssertFetchFailedReason("blocked_address");
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenTheConnectionFails_LogsConnection()
+    {
+        var validator = CreateValidator();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var context = CreateContext(factory);
+        SetupHttpClient(
+            new HttpClient(new ThrowingHttpMessageHandler(new HttpRequestException("x")))
+        );
+
+        var error = await validator.ValidateAsync(
+            context,
+            "https://sector.example.com/uris.json",
+            ["https://a.example.com/cb"],
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
+        AssertFetchFailedReason("connection");
     }
 
     #endregion

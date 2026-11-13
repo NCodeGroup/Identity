@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Diagnostics.CodeAnalysis;
 using JetBrains.Annotations;
 
 namespace NCode.Identity.OpenId.Setup;
@@ -28,5 +29,6 @@ public sealed class SetupWizardManagementConsoleOptions
     /// <summary>
     /// Gets a value indicating whether the management console is named, which is when <see cref="BaseUrl"/> is set.
     /// </summary>
+    [MemberNotNullWhen(true, nameof(BaseUrl))]
     public bool IsConfigured => BaseUrl is not null;
 }

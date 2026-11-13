@@ -57,9 +57,7 @@ internal sealed class SetupPageHandler(
         }
 
         var console = optionsAccessor.Value.Wizard.ManagementConsole;
-        var managementConsoleOrigin = console is { IsConfigured: true, BaseUrl: { } baseUrl }
-            ? new Uri(baseUrl)
-            : null;
+        var managementConsoleOrigin = console.IsConfigured ? new Uri(console.BaseUrl) : null;
 
         var security = SetupPageSecurity.Create(managementConsoleOrigin);
         httpContext.Response.SetHtmlPageSecurity(security.Policy);

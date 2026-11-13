@@ -116,10 +116,10 @@ internal sealed class SetupApiHandler(
         return TypedResults.Ok(
             new CheckSetupTokenResponse
             {
-                ManagementConsole = console is { IsConfigured: true, BaseUrl: { } baseUrl }
+                ManagementConsole = console.IsConfigured
                     ? new SetupManagementConsoleHint
                     {
-                        BaseUrl = baseUrl,
+                        BaseUrl = console.BaseUrl,
                         ClientId = console.ClientId,
                     }
                     : null,

@@ -27,6 +27,12 @@ the format (issue [#782](https://github.com/NCodeGroup/identity/issues/782)):
 `NCode.Identity.OpenId.Management.Abstractions` is the one place that holds the rules, and every handler and validator
 calls it.
 
+The class lives in `NCode.Identity.OpenId.Management.Abstractions` because the handlers of
+`NCode.Identity.OpenId.Management` and `NCode.Identity.OpenId.Accounts.Management`, their validators, and
+`ManagementApiEndpointHandler` in the Abstractions package itself all call it, and that package already holds the
+management API's shared rules, such as `ClientIdRules`. The class is pure: it reads only its arguments and holds no
+state.
+
 1. **`Format` sends a strong tag.** `ManagementEntityTags.Format(concurrencyToken)` returns the token between double
    quotes, such as `"abc"`, and validates it as an entity tag, so an invalid token throws. Every `ETag` the API sends is
    strong.
@@ -56,6 +62,9 @@ calls it.
   sends it bare, so a caller would have to quote a value the API gave unquoted.
 - **Accept `W/` tags in `If-Match`.** Rejected: RFC 9110 §13.1.1 requires strong comparison, and the API sends no weak
   tag, so a weak tag in `If-Match` did not come from the API.
+- **Accept a bare token in `If-None-Match`.** Rejected: a cache revalidates with the quoted `ETag` it received
+  (RFC 9110 §8.8.3 and §13.1.2), and a read that misses a `304` only sends the body again, so the header needs no
+  non-RFC form.
 - **Answer a malformed `If-Match` with `400`.** Rejected: every route that reads `If-Match` declares `412`
   ([ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md)), and the precondition is
   what fails.

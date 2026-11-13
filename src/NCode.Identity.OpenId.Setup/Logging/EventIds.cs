@@ -12,6 +12,8 @@ namespace NCode.Identity.OpenId.Setup.Logging;
 /// </remarks>
 internal static class EventIds
 {
-    // ReSharper disable once UnusedMember.Local
     private const int Base = 29000;
+
+    public const int SetupTokenIssued = Base + 1;
+    public const int SetupTokenIssuedByAnotherReplica = Base + 2;
 }

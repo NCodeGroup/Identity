@@ -73,6 +73,9 @@ public static class DefaultRegistration
                 ServiceDescriptor.Singleton<IValidateOptions<SetupOptions>, SetupOptionsValidator>()
             );
 
+            serviceCollection.TryAddSingleton<SetupProcessClock>();
+            serviceCollection.TryAddSingleton<ISetupTokenService, DefaultSetupTokenService>();
+
             return builder;
         }
     }

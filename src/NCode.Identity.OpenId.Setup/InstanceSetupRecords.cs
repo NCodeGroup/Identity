@@ -34,11 +34,7 @@ internal static class InstanceSetupRecords
         if (existing is not null)
             return existing;
 
-        var created = new PersistedInstanceSetup
-        {
-            Key = PersistedInstanceSetup.SingletonKey,
-            ConcurrencyToken = Guid.NewGuid().ToString("N"),
-        };
+        var created = Create();
 
         await store.AddAsync(created, cancellationToken);
 
@@ -61,7 +57,27 @@ internal static class InstanceSetupRecords
         return created;
     }
 
-    private static async ValueTask<PersistedInstanceSetup?> FindAsync(
+    /// <summary>
+    /// Creates an uninitialized <see cref="PersistedInstanceSetup"/> row that carries the singleton key and a new
+    /// concurrency token.
+    /// </summary>
+    /// <returns>The new, uninitialized instance setup row.</returns>
+    internal static PersistedInstanceSetup Create() =>
+        new()
+        {
+            Key = PersistedInstanceSetup.SingletonKey,
+            ConcurrencyToken = Guid.NewGuid().ToString("N"),
+        };
+
+    /// <summary>
+    /// Reads the singleton <see cref="PersistedInstanceSetup"/> row on a store manager of its own.
+    /// </summary>
+    /// <param name="storeManagerFactory">The <see cref="IStoreManagerFactory"/> that creates the store manager
+    /// the read runs on.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the instance
+    /// setup row, or <see langword="null"/> when it is absent.</returns>
+    internal static async ValueTask<PersistedInstanceSetup?> FindAsync(
         IStoreManagerFactory storeManagerFactory,
         CancellationToken cancellationToken
     )

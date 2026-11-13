@@ -352,6 +352,25 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
             setup.Throws(exception).Verifiable(Times.Once());
     }
 
+    private void SetupAdd(Action<PersistedInstanceSetup> onAdded)
+    {
+        MockInstanceSetupStore
+            .Setup(x =>
+                x.AddAsync(It.IsAny<PersistedInstanceSetup>(), It.IsAny<CancellationToken>())
+            )
+            .Callback<PersistedInstanceSetup, CancellationToken>((item, _) => onAdded(item))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once());
+    }
+
+    private void SetupReadSequence(PersistedInstanceSetup? first, PersistedInstanceSetup? second)
+    {
+        MockInstanceSetupStore
+            .SetupSequence(x => x.GetOrDefaultAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(first)
+            .ReturnsAsync(second);
+    }
+
     private void SetupSave(Exception? exception = null)
     {
         var setup = MockStoreManager.Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()));
@@ -437,15 +456,50 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
     #region SetUpAsync Tests
 
     [Fact]
-    public async Task SetUpAsync_WhenValid_StagesAccountAssignmentAndMarkSavesOnce()
+    public async Task SetUpAsync_WhenNoRecord_AddsInitializedRecordAndSavesOnce()
+    {
+        PersistedInstanceSetup? added = null;
+        var state = new Dictionary<string, object?>();
+
+        SetupTenantScope();
+        SetupStoreManagers(1);
+        SetupInstanceSetupStore(1);
+        SetupRead(null);
+        SetupCreator(CreateCreation());
+        SetupAssignment(_ => { });
+        SetupAdd(item => added = item);
+        SetupSave();
+        SetupLogged(LogLevel.Information, EventIds.RootAdministratorCreated, state);
+        TimeProvider.SetUtcNow(new DateTimeOffset(2026, 11, 12, 8, 0, 0, TimeSpan.Zero));
+
+        var result = await CreateService().SetUpAsync(CreateRequest(), CancellationToken.None);
+
+        Assert.True(result.Succeeded);
+        MockInstanceSetupStore.Verify(
+            x => x.UpdateAsync(It.IsAny<PersistedInstanceSetup>(), It.IsAny<CancellationToken>()),
+            Times.Never()
+        );
+
+        Assert.NotNull(added);
+        Assert.Equal(PersistedInstanceSetup.SingletonKey, added.Key);
+        Assert.True(added.IsInitialized);
+        Assert.Equal(TimeProvider.GetUtcNow(), added.InitializedAt);
+        Assert.Equal(PrincipalId, added.InitializedByPrincipalId);
+        Assert.Null(added.TokenHash);
+        Assert.Null(added.TokenIssuedAt);
+        Assert.Null(added.TokenExpiresAt);
+    }
+
+    [Fact]
+    public async Task SetUpAsync_WhenRecordIsUninitialized_StagesAccountAssignmentAndMarkSavesOnce()
     {
         var row = CreateRow();
         PersistedRoleAssignment? assignment = null;
         var state = new Dictionary<string, object?>();
 
         SetupTenantScope();
-        SetupStoreManagers(2);
-        SetupInstanceSetupStore(2);
+        SetupStoreManagers(1);
+        SetupInstanceSetupStore(1);
         SetupRead(row);
         SetupCreator(CreateCreation());
         SetupAssignment(added => assignment = added);
@@ -517,7 +571,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
     public async Task SetUpAsync_WhenAlreadyInitialized_ReturnsNotFoundAndStagesNothing()
     {
         SetupTenantScope();
-        SetupStoreManagers(2);
+        SetupStoreManagers(1);
         SetupInstanceSetupStore(1);
         SetupRead(CreateRow(isInitialized: true));
 
@@ -538,7 +592,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         };
 
         SetupTenantScope();
-        SetupStoreManagers(2);
+        SetupStoreManagers(1);
         SetupInstanceSetupStore(1);
         SetupRead(CreateRow());
         SetupCreator(new LocalAccountCreation { Error = error });
@@ -555,8 +609,8 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         var row = CreateRow();
 
         SetupTenantScope();
-        SetupStoreManagers(2);
-        SetupInstanceSetupStore(2);
+        SetupStoreManagers(1);
+        SetupInstanceSetupStore(1);
         SetupRead(row);
         SetupCreator(CreateCreation());
         SetupAssignment(_ => { });
@@ -574,8 +628,8 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         var row = CreateRow();
 
         SetupTenantScope();
-        SetupStoreManagers(2);
-        SetupInstanceSetupStore(2);
+        SetupStoreManagers(1);
+        SetupInstanceSetupStore(1);
         SetupRead(row);
         SetupCreator(CreateCreation());
         SetupAssignment(_ => { });
@@ -589,6 +643,71 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task SetUpAsync_WhenAddFailsAndReReadFindsInitialized_ReturnsNotFound()
+    {
+        SetupTenantScope();
+        SetupStoreManagers(2);
+        SetupInstanceSetupStore(2);
+        SetupReadSequence(null, CreateRow(isInitialized: true));
+        SetupCreator(CreateCreation());
+        SetupAssignment(_ => { });
+        SetupAdd(_ => { });
+        SetupSave(new InvalidOperationException("duplicate key"));
+
+        var result = await CreateService().SetUpAsync(CreateRequest(), CancellationToken.None);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(StatusCodes.Status404NotFound, result.Error.StatusCode);
+        MockInstanceSetupStore.Verify(
+            x => x.GetOrDefaultAsync(It.IsAny<CancellationToken>()),
+            Times.Exactly(2)
+        );
+    }
+
+    [Fact]
+    public async Task SetUpAsync_WhenAddFailsAndReReadFindsNone_Throws()
+    {
+        var exception = new InvalidOperationException("save failed");
+
+        SetupTenantScope();
+        SetupStoreManagers(2);
+        SetupInstanceSetupStore(2);
+        SetupReadSequence(null, null);
+        SetupCreator(CreateCreation());
+        SetupAssignment(_ => { });
+        SetupAdd(_ => { });
+        SetupSave(exception);
+
+        var thrown = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            CreateService().SetUpAsync(CreateRequest(), CancellationToken.None).AsTask()
+        );
+
+        Assert.Same(exception, thrown);
+    }
+
+    [Fact]
+    public async Task SetUpAsync_WhenSaveFailsForExistingRecord_Throws()
+    {
+        var row = CreateRow();
+        var exception = new InvalidOperationException("save failed");
+
+        SetupTenantScope();
+        SetupStoreManagers(1);
+        SetupInstanceSetupStore(1);
+        SetupRead(row);
+        SetupCreator(CreateCreation());
+        SetupAssignment(_ => { });
+        SetupUpdate(row);
+        SetupSave(exception);
+
+        var thrown = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            CreateService().SetUpAsync(CreateRequest(), CancellationToken.None).AsTask()
+        );
+
+        Assert.Same(exception, thrown);
+    }
+
+    [Fact]
     public async Task SetUpAsync_ManagementConsole_StagesClientInSameSave()
     {
         var row = CreateRow();
@@ -596,8 +715,8 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         var state = new Dictionary<string, object?>();
 
         SetupTenantScope();
-        SetupStoreManagers(2);
-        SetupInstanceSetupStore(2);
+        SetupStoreManagers(1);
+        SetupInstanceSetupStore(1);
         SetupRead(row);
         SetupCreator(CreateCreation());
         SetupAssignment(_ => { });
@@ -673,7 +792,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         };
 
         SetupTenantScope();
-        SetupStoreManagers(2);
+        SetupStoreManagers(1);
         SetupInstanceSetupStore(1);
         SetupRead(CreateRow());
         SetupCreator(CreateCreation());
@@ -691,7 +810,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
     public async Task SetUpAsync_ManagementConsoleSettingsInvalid_ReturnsBadRequestAndSavesNothing()
     {
         SetupTenantScope();
-        SetupStoreManagers(2);
+        SetupStoreManagers(1);
         SetupInstanceSetupStore(1);
         SetupRead(CreateRow());
         SetupCreator(CreateCreation());
@@ -734,8 +853,8 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         var state = new Dictionary<string, object?>();
 
         SetupTenantScope();
-        SetupStoreManagers(2);
-        SetupInstanceSetupStore(2);
+        SetupStoreManagers(1);
+        SetupInstanceSetupStore(1);
         SetupRead(row);
         SetupCreator(CreateCreation());
         SetupAssignment(_ => { });
@@ -759,8 +878,8 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         var state = new Dictionary<string, object?>();
 
         SetupTenantScope();
-        SetupStoreManagers(2);
-        SetupInstanceSetupStore(2);
+        SetupStoreManagers(1);
+        SetupInstanceSetupStore(1);
         SetupRead(row);
         SetupCreator(CreateCreation());
         SetupAssignment(assignments.Add, assignments: 2);
@@ -821,7 +940,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         };
 
         SetupTenantScope();
-        SetupStoreManagers(2);
+        SetupStoreManagers(1);
         SetupInstanceSetupStore(1);
         SetupRead(CreateRow());
         SetupCreator(CreateCreation());
@@ -839,7 +958,7 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
     public async Task SetUpAsync_AutomationSettingsInvalid_ReturnsBadRequestAndSavesNothing()
     {
         SetupTenantScope();
-        SetupStoreManagers(2);
+        SetupStoreManagers(1);
         SetupInstanceSetupStore(1);
         SetupRead(CreateRow());
         SetupCreator(CreateCreation());
@@ -886,8 +1005,8 @@ public sealed class DefaultInstanceSetupServiceTests : IDisposable
         var state = new Dictionary<string, object?>();
 
         SetupTenantScope();
-        SetupStoreManagers(2);
-        SetupInstanceSetupStore(2);
+        SetupStoreManagers(1);
+        SetupInstanceSetupStore(1);
         SetupRead(row);
         SetupCreator(CreateCreation());
         SetupAssignment(_ => { });

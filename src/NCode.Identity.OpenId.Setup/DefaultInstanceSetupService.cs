@@ -241,11 +241,9 @@ internal sealed class DefaultInstanceSetupService(
 
         await using var storeManager = await StoreManagerFactory.CreateAsync(cancellationToken);
 
-        var setup = await InstanceSetupRecords.GetOrAddAsync(
-            StoreManagerFactory,
-            cancellationToken
-        );
-        if (setup.IsInitialized)
+        var setupStore = storeManager.GetStore<IInstanceSetupStore>();
+        var existing = await setupStore.GetOrDefaultAsync(cancellationToken);
+        if (existing is { IsInitialized: true })
             return CreateAlreadySetUpResult();
 
         var creation = await LocalAccountCreator.StageAsync(
@@ -342,6 +340,7 @@ internal sealed class DefaultInstanceSetupService(
             automationClientId = machineCreation.Client.ClientId;
         }
 
+        var setup = existing ?? InstanceSetupRecords.Create();
         setup.IsInitialized = true;
         setup.InitializedAt = TimeProvider.GetUtcNow();
         setup.InitializedByPrincipalId = creation.PrincipalId;
@@ -351,15 +350,33 @@ internal sealed class DefaultInstanceSetupService(
 
         try
         {
-            await storeManager
-                .GetStore<IInstanceSetupStore>()
-                .UpdateAsync(setup, cancellationToken);
+            // The store reads an existing row from the database, so a row that is only staged is added, not updated,
+            // and the add copies the fields at the call.
+            if (existing is null)
+                await setupStore.AddAsync(setup, cancellationToken);
+            else
+                await setupStore.UpdateAsync(setup, cancellationToken);
+
             await storeManager.SaveChangesAsync(cancellationToken);
         }
         catch (StoreConcurrencyException)
         {
             // Another attempt marked the instance initialized between the read above and this write, so it won.
             return CreateAlreadySetUpResult();
+        }
+        catch (Exception exception)
+            when (existing is null && exception is not OperationCanceledException)
+        {
+            // Another setup may have inserted the singleton row first. The persistence abstractions have no
+            // duplicate-key failure type, so the re-read of the row, not the exception type, decides it.
+            var concurrent = await InstanceSetupRecords.FindAsync(
+                StoreManagerFactory,
+                cancellationToken
+            );
+            if (concurrent is { IsInitialized: true })
+                return CreateAlreadySetUpResult();
+
+            throw;
         }
 
         Logger.RootAdministratorCreated(tenantId, creation.PrincipalId);

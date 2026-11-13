@@ -1212,7 +1212,7 @@ public sealed class PlatformApiEndpointHandlerTests : IDisposable
         );
 
         Assert.IsType<NoContent>(result);
-        Assert.Equal("settings-ct", httpContext.Response.Headers.ETag);
+        Assert.Equal("\"settings-ct\"", httpContext.Response.Headers.ETag);
         Assert.Equal("bar", settings.Value.GetProperty("foo").GetString());
     }
 

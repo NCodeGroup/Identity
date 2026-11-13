@@ -397,7 +397,7 @@ internal class PlatformApiEndpointHandler(
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="request">The JSON Patch document to apply to the settings.</param>
-    /// <param name="ifMatch">The optional <c>If-Match</c> concurrency token that must match the current settings.</param>
+    /// <param name="ifMatch">The optional <c>If-Match</c> header that must match the current settings. It accepts a quoted strong entity tag, <c>*</c>, or the bare <c>concurrencyToken</c>.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
     /// <response code="204">The platform's settings were updated.</response>
     /// <response code="400">The JSON Patch document cannot be applied to the settings, the patched settings are not valid, or the patched settings leave a client with a value they do not permit.</response>
@@ -436,11 +436,15 @@ internal class PlatformApiEndpointHandler(
         // row we just loaded would always pass the store's concurrency comparison, silently overwriting
         // any changes made between the caller's read and this write (lost update).
         if (
-            !string.IsNullOrEmpty(ifMatch)
-            && !string.Equals(ifMatch, platformSettings.ConcurrencyToken, StringComparison.Ordinal)
+            ManagementEntityTags.GetIfMatchErrorOrDefault(
+                ifMatch,
+                platformSettings.ConcurrencyToken,
+                "settings"
+            ) is
+            { } preconditionError
         )
         {
-            return ManagementProblems.PreconditionFailed("settings");
+            return ToErrorResult(preconditionError);
         }
 
         var jsonObject = ToJsonObject(platformSettings.Value);
@@ -519,7 +523,9 @@ internal class PlatformApiEndpointHandler(
             cancellationToken
         );
 
-        httpContext.Response.Headers.ETag = platformSettings.ConcurrencyToken;
+        httpContext.Response.Headers.ETag = ManagementEntityTags.Format(
+            platformSettings.ConcurrencyToken
+        );
 
         return TypedResults.NoContent();
     }

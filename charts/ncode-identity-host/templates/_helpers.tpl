@@ -279,6 +279,15 @@ applied. Rendered for its side effect only.
 {{- if and .Values.setup.job.enabled (not .Values.setup.job.passwordKey) }}
 {{- fail "setup.job.passwordKey must name the key that holds the root administrator's password in setup.job.existingSecret." }}
 {{- end }}
+{{- if and .Values.setup.job.enabled .Values.setup.managementConsole.baseUrl (not .Values.setup.managementConsole.jwks) }}
+{{- fail "setup.managementConsole.jwks must hold the console's public JWK Set when setup.managementConsole.baseUrl is set and setup.job.enabled is true." }}
+{{- end }}
+{{- if and .Values.setup.job.enabled .Values.setup.managementConsole.baseUrl (not .Values.setup.managementConsole.clientId) }}
+{{- fail "setup.managementConsole.clientId must name the console's client_id when setup.managementConsole.baseUrl is set and setup.job.enabled is true." }}
+{{- end }}
+{{- if and .Values.setup.job.enabled .Values.setup.automation.clientId (not .Values.setup.automation.jwks) }}
+{{- fail "setup.automation.jwks must hold the automation client's public JWK Set when setup.automation.clientId is set and setup.job.enabled is true." }}
+{{- end }}
 {{- if not .Values.secretProtection.rootKeyProvider }}
 {{- fail "secretProtection.rootKeyProvider is required: local, aws-kms, azure-key-vault or google-cloud-kms, or ephemeral outside Production." }}
 {{- end }}

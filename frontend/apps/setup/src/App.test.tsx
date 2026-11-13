@@ -53,6 +53,12 @@ function submitAccount(): void {
   fireEvent.click(screen.getByRole('button', { name: 'Create the root administrator' }));
 }
 
+const ROOT_ADDRESSES = {
+  issuer: 'https://id.example.test/',
+  discoveryUrl: 'https://id.example.test/.well-known/openid-configuration',
+  managementApiUrl: 'https://id.example.test/api',
+};
+
 describe('App', () => {
   beforeEach(() => {
     vi.mocked(getStatus).mockReset();
@@ -226,7 +232,7 @@ describe('App', () => {
     vi.mocked(getStatus).mockResolvedValue(READY);
     vi.mocked(createRoot).mockResolvedValue({
       kind: 'created',
-      root: { tenantId: 't', principalId: 'p', userName: 'root' },
+      root: { tenantId: 't', principalId: 'p', userName: 'root', ...ROOT_ADDRESSES },
     } satisfies CreateRootResult);
     renderApp();
 
@@ -238,6 +244,8 @@ describe('App', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('root')).toBeInTheDocument();
     expect(screen.getByText('Register the management console client.')).toBeInTheDocument();
+    expect(screen.getByText('The generated setup token is spent.')).toBeInTheDocument();
+    expect(screen.queryByText('Remove the setup token Secret.')).not.toBeInTheDocument();
     expect(createRoot).toHaveBeenCalledExactlyOnceWith({
       token: 'the-token',
       userName: 'root',
@@ -254,6 +262,9 @@ describe('App', () => {
         principalId: 'p',
         userName: 'root',
         managementConsoleClientId: 'mgmt-console',
+        managementConsoleBaseUrl: 'https://console.example.test',
+        apiReferenceUrl: 'https://id.example.test/scalar/v1',
+        ...ROOT_ADDRESSES,
       },
     } satisfies CreateRootResult);
     renderApp();
@@ -274,6 +285,13 @@ describe('App', () => {
       'The management console’s client mgmt-console is registered.',
     );
     expect(screen.queryByText('Register the management console client.')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'https://console.example.test' })).toHaveAttribute(
+      'href',
+      'https://console.example.test',
+    );
+    expect(
+      screen.getByRole('link', { name: 'https://id.example.test/scalar/v1' }),
+    ).toBeInTheDocument();
     expect(createRoot).toHaveBeenCalledExactlyOnceWith({
       token: 'the-token',
       userName: 'root',

@@ -11,7 +11,13 @@ import { ConsoleClientStep } from './ConsoleClientStep.js';
 import { DonePage } from './DonePage.js';
 import { RootAccountStep, type RootAccount } from './RootAccountStep.js';
 import { TokenStep } from './TokenStep.js';
-import { checkToken, getStatus, type ManagementConsoleHint, type SetupStatus } from './setupApi.js';
+import {
+  checkToken,
+  getStatus,
+  type CreatedRoot,
+  type ManagementConsoleHint,
+  type SetupStatus,
+} from './setupApi.js';
 import { takeSetupFragment } from './setupToken.js';
 
 type Load =
@@ -27,11 +33,7 @@ type Step =
   | { readonly name: 'token'; readonly errorMessage?: string }
   | { readonly name: 'account'; readonly consoleHint: ConsoleHint }
   | { readonly name: 'console'; readonly account: RootAccount; readonly consoleHint: ConsoleHint }
-  | {
-      readonly name: 'done';
-      readonly userName: string;
-      readonly managementConsoleClientId?: string;
-    };
+  | { readonly name: 'done'; readonly root: CreatedRoot };
 
 const TOKEN_REJECTED = 'The instance did not accept the setup token. Check it and enter it again.';
 const TOKEN_NOT_CHECKED = 'The setup token could not be checked. Try again.';
@@ -159,13 +161,7 @@ export function App() {
             consoleHint={step.consoleHint}
             onCreated={(root) => {
               setToken('');
-              setStep({
-                name: 'done',
-                userName: root.userName,
-                ...(root.managementConsoleClientId
-                  ? { managementConsoleClientId: root.managementConsoleClientId }
-                  : {}),
-              });
+              setStep({ name: 'done', root });
             }}
             onTokenRejected={() => {
               setStep({ name: 'token', errorMessage: TOKEN_REJECTED });
@@ -177,12 +173,7 @@ export function App() {
           />
         );
       case 'done':
-        return (
-          <DonePage
-            userName={step.userName}
-            managementConsoleClientId={step.managementConsoleClientId}
-          />
-        );
+        return <DonePage root={step.root} tokenSource={load.status.tokenSource} />;
     }
   }
 

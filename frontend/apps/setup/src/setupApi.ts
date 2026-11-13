@@ -31,6 +31,16 @@ export interface CreatedRoot {
   readonly userName: string;
   /** The `client_id` of the management console's client the instance registered, when the request asked for one. */
   readonly managementConsoleClientId?: string;
+  /** The control-plane tenant's issuer. */
+  readonly issuer: string;
+  /** The URL of the issuer's OpenID Connect discovery document. */
+  readonly discoveryUrl: string;
+  /** The URL of the management API. */
+  readonly managementApiUrl: string;
+  /** The URL of the API reference page, when the instance serves one. */
+  readonly apiReferenceUrl?: string;
+  /** The base URL of the management console the instance registered, when the request asked for one. */
+  readonly managementConsoleBaseUrl?: string;
 }
 
 /** The problem details the server answers a refused request with. */

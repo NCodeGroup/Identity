@@ -58,7 +58,14 @@ function submit(): void {
   fireEvent.click(screen.getByRole('button', { name: 'Create the root administrator' }));
 }
 
-const CREATED_ROOT = { tenantId: 't', principalId: 'p', userName: 'root' };
+const CREATED_ROOT = {
+  tenantId: 't',
+  principalId: 'p',
+  userName: 'root',
+  issuer: 'https://id.example.test/',
+  discoveryUrl: 'https://id.example.test/.well-known/openid-configuration',
+  managementApiUrl: 'https://id.example.test/api',
+};
 const CREATED: CreateRootResult = { kind: 'created', root: CREATED_ROOT };
 
 describe('ConsoleClientStep', () => {

@@ -68,6 +68,33 @@ describe('createRoot', () => {
     });
   });
 
+  it('posts the management console registration and returns the registered client id', async () => {
+    const withConsole = {
+      ...request,
+      managementConsole: {
+        clientId: 'mgmt-console',
+        baseUrl: 'https://console.example.test',
+        jwks: { keys: [{ kty: 'EC', crv: 'P-256', x: 'x', y: 'y' }] },
+      },
+    };
+    const created = {
+      tenantId: 'tenant',
+      principalId: 'principal',
+      userName: 'root',
+      managementConsoleClientId: 'mgmt-console',
+    };
+    const fetchMock = stubFetch(json(201, created));
+
+    const result = await createRoot(withConsole);
+
+    expect(result).toEqual({ kind: 'created', root: created });
+    expect(fetchMock).toHaveBeenCalledWith('./api/root', {
+      method: 'POST',
+      headers: { accept: 'application/json', 'content-type': 'application/json' },
+      body: JSON.stringify(withConsole),
+    });
+  });
+
   it.each([400, 409])('returns the problem detail of a %i as invalid', async (status) => {
     stubFetch(
       json(status, { title: 'Invalid', detail: 'Password too short.' }, 'application/problem+json'),

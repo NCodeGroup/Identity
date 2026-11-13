@@ -1,27 +1,16 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { AppThemeProvider } from '@ncode/ui';
 import { RootAccountStep } from './RootAccountStep.js';
-import { createRoot, type CreateRootResult } from './setupApi.js';
-
-vi.mock('./setupApi.js', () => ({ createRoot: vi.fn(), getStatus: vi.fn() }));
 
 function renderStep() {
-  const onCreated = vi.fn();
-  const onTokenRejected = vi.fn();
-  const onNotFound = vi.fn();
+  const onContinue = vi.fn();
   render(
     <AppThemeProvider>
-      <RootAccountStep
-        token="the-token"
-        minimumPasswordLength={15}
-        onCreated={onCreated}
-        onTokenRejected={onTokenRejected}
-        onNotFound={onNotFound}
-      />
+      <RootAccountStep minimumPasswordLength={15} onContinue={onContinue} />
     </AppThemeProvider>,
   );
-  return { onCreated, onTokenRejected, onNotFound };
+  return { onContinue };
 }
 
 function fill(label: RegExp, value: string): void {
@@ -35,19 +24,10 @@ function fillAccount(password = 'a long passphrase!', confirmation = password): 
 }
 
 function submit(): void {
-  fireEvent.click(screen.getByRole('button', { name: 'Create the root administrator' }));
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 }
 
-const CREATED: CreateRootResult = {
-  kind: 'created',
-  root: { tenantId: 't', principalId: 'p', userName: 'root' },
-};
-
 describe('RootAccountStep', () => {
-  beforeEach(() => {
-    vi.mocked(createRoot).mockReset();
-  });
-
   it('renders the account fields with their autocomplete hints', () => {
     renderStep();
 
@@ -68,8 +48,8 @@ describe('RootAccountStep', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 
-  it('refuses a password shorter than the minimum without calling the instance', () => {
-    renderStep();
+  it('refuses a password shorter than the minimum without continuing', () => {
+    const { onContinue } = renderStep();
 
     fillAccount('too short', 'too short');
     submit();
@@ -77,11 +57,11 @@ describe('RootAccountStep', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       'The password must have at least 15 characters.',
     );
-    expect(createRoot).not.toHaveBeenCalled();
+    expect(onContinue).not.toHaveBeenCalled();
   });
 
-  it('refuses a confirmation that differs without calling the instance', () => {
-    renderStep();
+  it('refuses a confirmation that differs without continuing', () => {
+    const { onContinue } = renderStep();
 
     fillAccount('a long passphrase!', 'another long passphrase!');
     submit();
@@ -89,147 +69,37 @@ describe('RootAccountStep', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       'The password and its confirmation do not match.',
     );
-    expect(createRoot).not.toHaveBeenCalled();
+    expect(onContinue).not.toHaveBeenCalled();
   });
 
-  it('creates the root with the token and the trimmed user name, and omits a blank email', async () => {
-    vi.mocked(createRoot).mockResolvedValue(CREATED);
-    const { onCreated } = renderStep();
+  it('continues with the trimmed user name and omits a blank email', () => {
+    const { onContinue } = renderStep();
 
     fillAccount();
     submit();
 
-    await waitFor(() => {
-      expect(onCreated).toHaveBeenCalledExactlyOnceWith('root');
-    });
-    expect(createRoot).toHaveBeenCalledExactlyOnceWith({
-      token: 'the-token',
+    expect(onContinue).toHaveBeenCalledExactlyOnceWith({
       userName: 'root',
       password: 'a long passphrase!',
     });
   });
 
-  it('sends the trimmed email when one is given', async () => {
-    vi.mocked(createRoot).mockResolvedValue(CREATED);
-    const { onCreated } = renderStep();
+  it('continues with the trimmed email when one is given and clears an earlier error', () => {
+    const { onContinue } = renderStep();
+
+    fillAccount('too short', 'too short');
+    submit();
+    expect(screen.getByRole('alert')).toBeInTheDocument();
 
     fillAccount();
     fill(/^Email/, '  root@example.com ');
     submit();
 
-    await waitFor(() => {
-      expect(onCreated).toHaveBeenCalled();
-    });
-    expect(createRoot).toHaveBeenCalledExactlyOnceWith({
-      token: 'the-token',
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(onContinue).toHaveBeenCalledExactlyOnceWith({
       userName: 'root',
       email: 'root@example.com',
       password: 'a long passphrase!',
-    });
-  });
-
-  it('shows the problem detail the instance gives for an invalid account and enables another try', async () => {
-    vi.mocked(createRoot).mockResolvedValue({
-      kind: 'invalid',
-      problem: { title: 'Bad', detail: 'The password is too common.' },
-    });
-    renderStep();
-
-    fillAccount();
-    submit();
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('The password is too common.');
-    expect(screen.getByRole('button', { name: 'Create the root administrator' })).toBeEnabled();
-  });
-
-  it('falls back to the problem title when the problem has no detail', async () => {
-    vi.mocked(createRoot).mockResolvedValue({ kind: 'invalid', problem: { title: 'Bad request' } });
-    renderStep();
-
-    fillAccount();
-    submit();
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('Bad request');
-  });
-
-  it('falls back to a general message when the problem has neither detail nor title', async () => {
-    vi.mocked(createRoot).mockResolvedValue({ kind: 'invalid', problem: {} });
-    renderStep();
-
-    fillAccount();
-    submit();
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'The root administrator was not created.',
-    );
-  });
-
-  it('asks to wait when the instance rate-limits the request', async () => {
-    vi.mocked(createRoot).mockResolvedValue({ kind: 'rateLimited', problem: {} });
-    renderStep();
-
-    fillAccount();
-    submit();
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Too many attempts. Wait a minute, then try again.',
-    );
-  });
-
-  it('shows a general error when the request fails', async () => {
-    vi.mocked(createRoot).mockResolvedValue({ kind: 'failed' });
-    renderStep();
-
-    fillAccount();
-    submit();
-
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'The instance could not create the root administrator. Try again.',
-    );
-  });
-
-  it('reports a refused token', async () => {
-    vi.mocked(createRoot).mockResolvedValue({ kind: 'forbidden', problem: {} });
-    const { onTokenRejected } = renderStep();
-
-    fillAccount();
-    submit();
-
-    await waitFor(() => {
-      expect(onTokenRejected).toHaveBeenCalledOnce();
-    });
-  });
-
-  it('reports an instance that is already set up', async () => {
-    vi.mocked(createRoot).mockResolvedValue({ kind: 'notFound' });
-    const { onNotFound } = renderStep();
-
-    fillAccount();
-    submit();
-
-    await waitFor(() => {
-      expect(onNotFound).toHaveBeenCalledOnce();
-    });
-  });
-
-  it('disables the button while the request is pending', async () => {
-    let resolve: (result: CreateRootResult) => void = () => undefined;
-    vi.mocked(createRoot).mockReturnValue(
-      new Promise<CreateRootResult>((r) => {
-        resolve = r;
-      }),
-    );
-    const { onCreated } = renderStep();
-
-    fillAccount();
-    submit();
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Create the root administrator' })).toBeDisabled();
-    });
-    resolve(CREATED);
-    await waitFor(() => {
-      expect(onCreated).toHaveBeenCalled();
     });
   });
 });

@@ -22,6 +22,23 @@ describe('DonePage', () => {
     ]);
   });
 
+  it('omits the registration item when the console’s client is registered', () => {
+    render(
+      <AppThemeProvider>
+        <DonePage userName="root" managementConsoleClientId="mgmt-console" />
+      </AppThemeProvider>,
+    );
+
+    expect(screen.getByText(/The management console’s client/)).toHaveTextContent(
+      'The management console’s client mgmt-console is registered.',
+    );
+    expect(screen.getAllByRole('listitem').map((item) => item.textContent)).toEqual([
+      'Sign in to the management console as the root administrator.',
+      'Configure the tenants and their grants.',
+      'Remove the setup token Secret.',
+    ]);
+  });
+
   it('links to the guide to the first use of a Production instance', () => {
     render(
       <AppThemeProvider>

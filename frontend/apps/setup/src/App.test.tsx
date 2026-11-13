@@ -35,6 +35,7 @@ function submitAccount(): void {
   fill(/^User name/, 'root');
   fill(/^Password/, 'a long passphrase!');
   fill(/^Confirm password/, 'a long passphrase!');
+  fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
   fireEvent.click(screen.getByRole('button', { name: 'Create the root administrator' }));
 }
 
@@ -137,10 +138,52 @@ describe('App', () => {
       await screen.findByRole('heading', { level: 1, name: 'The instance is set up' }),
     ).toBeInTheDocument();
     expect(screen.getByText('root')).toBeInTheDocument();
+    expect(screen.getByText('Register the management console client.')).toBeInTheDocument();
     expect(createRoot).toHaveBeenCalledExactlyOnceWith({
       token: 'the-token',
       userName: 'root',
       password: 'a long passphrase!',
+    });
+  });
+
+  it('registers the management console and reports its client on the done page', async () => {
+    vi.mocked(getStatus).mockResolvedValue(READY);
+    vi.mocked(createRoot).mockResolvedValue({
+      kind: 'created',
+      root: {
+        tenantId: 't',
+        principalId: 'p',
+        userName: 'root',
+        managementConsoleClientId: 'mgmt-console',
+      },
+    } satisfies CreateRootResult);
+    renderApp();
+
+    await enterToken('the-token');
+    fill(/^User name/, 'root');
+    fill(/^Password/, 'a long passphrase!');
+    fill(/^Confirm password/, 'a long passphrase!');
+    fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
+    fireEvent.click(
+      screen.getByRole('checkbox', { name: 'Register the management console’s client now' }),
+    );
+    fill(/^Console URL/, 'https://console.example.test');
+    fill(/^Public JWK Set/, '{"keys":[{"kty":"EC","crv":"P-256","x":"x","y":"y"}]}');
+    fireEvent.click(screen.getByRole('button', { name: 'Create the root administrator' }));
+
+    expect(await screen.findByText(/is registered\./)).toHaveTextContent(
+      'The management console’s client mgmt-console is registered.',
+    );
+    expect(screen.queryByText('Register the management console client.')).not.toBeInTheDocument();
+    expect(createRoot).toHaveBeenCalledExactlyOnceWith({
+      token: 'the-token',
+      userName: 'root',
+      password: 'a long passphrase!',
+      managementConsole: {
+        clientId: 'mgmt-console',
+        baseUrl: 'https://console.example.test',
+        jwks: { keys: [{ kty: 'EC', crv: 'P-256', x: 'x', y: 'y' }] },
+      },
     });
   });
 

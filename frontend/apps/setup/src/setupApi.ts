@@ -7,12 +7,21 @@ export interface SetupStatus {
   readonly minimumPasswordLength: number;
 }
 
+/** The management console's client that the instance registers in the same setup as the root administrator. */
+export interface ManagementConsoleRegistration {
+  readonly clientId?: string;
+  readonly baseUrl: string;
+  /** The console's public JWK Set, sent as the JSON object it is. */
+  readonly jwks: unknown;
+}
+
 /** The body of `POST ./api/root`. */
 export interface CreateRootRequest {
   readonly token: string;
   readonly userName: string;
   readonly email?: string;
   readonly password: string;
+  readonly managementConsole?: ManagementConsoleRegistration;
 }
 
 /** The root administrator the instance created. */
@@ -20,6 +29,8 @@ export interface CreatedRoot {
   readonly tenantId: string;
   readonly principalId: string;
   readonly userName: string;
+  /** The `client_id` of the management console's client the instance registered, when the request asked for one. */
+  readonly managementConsoleClientId?: string;
 }
 
 /** The problem details the server answers a refused request with. */

@@ -4,44 +4,33 @@ import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import { createRoot } from './setupApi.js';
 
-export type RootAccountStepProps = {
-  /** The setup token the operator entered. */
-  readonly token: string;
-  /** The shortest password the instance accepts. */
-  readonly minimumPasswordLength: number;
-  /** Called with the root administrator's user name once the instance created it. */
-  readonly onCreated: (userName: string) => void;
-  /** Called when the instance refuses the setup token. */
-  readonly onTokenRejected: () => void;
-  /** Called when the instance is already set up. */
-  readonly onNotFound: () => void;
+/** The root administrator's account, as the operator entered it. */
+export type RootAccount = {
+  readonly userName: string;
+  readonly email?: string;
+  readonly password: string;
 };
 
-const NOT_CREATED = 'The root administrator was not created.';
-const RATE_LIMITED = 'Too many attempts. Wait a minute, then try again.';
-const FAILED = 'The instance could not create the root administrator. Try again.';
+export type RootAccountStepProps = {
+  /** The shortest password the instance accepts. */
+  readonly minimumPasswordLength: number;
+  /** Called with the checked account when the operator continues. */
+  readonly onContinue: (account: RootAccount) => void;
+};
 
 /**
- * The second step of the setup wizard: it collects the root administrator's account and creates it with the setup
- * token. The password and its confirmation stay in the component's state.
+ * The second step of the setup wizard: it collects and checks the root administrator's account. The password and its
+ * confirmation stay in the component's state; the next step creates the account.
  */
-export function RootAccountStep({
-  token,
-  minimumPasswordLength,
-  onCreated,
-  onTokenRejected,
-  onNotFound,
-}: RootAccountStepProps) {
+export function RootAccountStep({ minimumPasswordLength, onContinue }: RootAccountStepProps) {
   const [userName, setUserName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmation, setConfirmation] = useState('');
   const [error, setError] = useState<string | undefined>(undefined);
-  const [submitting, setSubmitting] = useState(false);
 
-  async function submit(): Promise<void> {
+  function submit(): void {
     if (password.length < minimumPasswordLength) {
       setError(`The password must have at least ${String(minimumPasswordLength)} characters.`);
       return;
@@ -52,41 +41,16 @@ export function RootAccountStep({
     }
 
     setError(undefined);
-    setSubmitting(true);
     const trimmedEmail = email.trim();
-    const result = await createRoot({
-      token,
+    onContinue({
       userName: userName.trim(),
       ...(trimmedEmail ? { email: trimmedEmail } : {}),
       password,
     });
-
-    switch (result.kind) {
-      case 'created':
-        onCreated(result.root.userName);
-        return;
-      case 'forbidden':
-        onTokenRejected();
-        return;
-      case 'notFound':
-        onNotFound();
-        return;
-      case 'invalid':
-        setError(result.problem.detail ?? result.problem.title ?? NOT_CREATED);
-        break;
-      case 'rateLimited':
-        setError(RATE_LIMITED);
-        break;
-      case 'failed':
-        setError(FAILED);
-        break;
-    }
-    setSubmitting(false);
   }
-
   function handleSubmit(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
-    void submit();
+    submit();
   }
 
   return (
@@ -155,8 +119,8 @@ export function RootAccountStep({
         fullWidth
       />
 
-      <Button type="submit" variant="contained" disabled={submitting} fullWidth>
-        Create the root administrator
+      <Button type="submit" variant="contained" fullWidth>
+        Continue
       </Button>
     </Stack>
   );

@@ -5,6 +5,7 @@ const NCode.Identity.Server.DevelopmentEnvironment.DeveloperCorsOptions.DefaultS
 const NCode.Identity.Server.DevelopmentEnvironment.DeveloperInteractiveSeedOptions.DefaultSectionName = "DeveloperInteractiveSeed" -> string!
 const NCode.Identity.Server.DevelopmentEnvironment.DeveloperKeysOptions.DefaultSectionName = "DeveloperKeys" -> string!
 const NCode.Identity.Server.IdentityServerApiReferenceOptions.DefaultSectionName = "ApiReference" -> string!
+const NCode.Identity.Server.IdentityServerApiReferenceOptions.PagePath = "/scalar/v1" -> string!
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.ClientSecret.get -> string?
 NCode.Identity.Server.ConformanceEnvironment.ConformanceClientSeed.ClientSecret.set -> void

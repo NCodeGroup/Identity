@@ -17,6 +17,7 @@ using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Authentication.Persistence;
 using NCode.Identity.OpenId.Authentication.Sessions;
 using NCode.Identity.OpenId.Authentication.Usage;
+using NCode.Identity.OpenId.Setup;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.DevelopmentEnvironment;
@@ -126,6 +127,32 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
 
         Assert.False(options.DocumentEnabled);
         Assert.False(options.PageEnabled);
+    }
+
+    [Fact]
+    public void AddConfiguration_WhenTheApiReferencePageIsEnabled_GivesSetupItsPath()
+    {
+        using var serviceProvider = BuildConfiguredServiceProvider(
+            new Dictionary<string, string?>
+            {
+                ["ApiReference:DocumentEnabled"] = "true",
+                ["ApiReference:PageEnabled"] = "true",
+            }
+        );
+
+        var options = serviceProvider.GetRequiredService<IOptions<SetupInstanceLinksOptions>>().Value;
+
+        Assert.Equal(IdentityServerApiReferenceOptions.PagePath, options.ApiReferencePath);
+    }
+
+    [Fact]
+    public void AddConfiguration_WhenTheApiReferencePageIsDisabled_GivesSetupNoPath()
+    {
+        using var serviceProvider = BuildConfiguredServiceProvider([]);
+
+        var options = serviceProvider.GetRequiredService<IOptions<SetupInstanceLinksOptions>>().Value;
+
+        Assert.Null(options.ApiReferencePath);
     }
 
     [Fact]

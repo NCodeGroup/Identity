@@ -83,6 +83,10 @@ NCode.Identity.OpenId.Setup.SetupAutomationOptions.IsConfigured.get -> bool
 NCode.Identity.OpenId.Setup.SetupAutomationOptions.Jwks.get -> string?
 NCode.Identity.OpenId.Setup.SetupAutomationOptions.Jwks.set -> void
 NCode.Identity.OpenId.Setup.SetupAutomationOptions.SetupAutomationOptions() -> void
+NCode.Identity.OpenId.Setup.SetupInstanceLinksOptions
+NCode.Identity.OpenId.Setup.SetupInstanceLinksOptions.ApiReferencePath.get -> string?
+NCode.Identity.OpenId.Setup.SetupInstanceLinksOptions.ApiReferencePath.set -> void
+NCode.Identity.OpenId.Setup.SetupInstanceLinksOptions.SetupInstanceLinksOptions() -> void
 NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions
 NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.BaseUrl.get -> string?
 NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.BaseUrl.set -> void

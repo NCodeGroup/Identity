@@ -26,6 +26,12 @@ NCode.Identity.OpenId.Setup.Contracts.SetupStatusResponse.TokenSource.init -> vo
 NCode.Identity.OpenId.Setup.IInstanceSetupService
 NCode.Identity.OpenId.Setup.IInstanceSetupService.CreateRootAsync(NCode.Identity.OpenId.Setup.SetupRootOptions! root, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Setup.InstanceSetupResult!>
 NCode.Identity.OpenId.Setup.IInstanceSetupService.IsInitializedAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
+NCode.Identity.OpenId.Setup.InstanceSetupRequest
+NCode.Identity.OpenId.Setup.InstanceSetupRequest.InstanceSetupRequest() -> void
+NCode.Identity.OpenId.Setup.InstanceSetupRequest.ManagementConsole.get -> NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions?
+NCode.Identity.OpenId.Setup.InstanceSetupRequest.ManagementConsole.init -> void
+NCode.Identity.OpenId.Setup.InstanceSetupRequest.Root.get -> NCode.Identity.OpenId.Setup.SetupRootOptions!
+NCode.Identity.OpenId.Setup.InstanceSetupRequest.Root.init -> void
 NCode.Identity.OpenId.Setup.InstanceSetupResult
 NCode.Identity.OpenId.Setup.InstanceSetupResult.Error.get -> NCode.Identity.OpenId.Management.ManagementError?
 NCode.Identity.OpenId.Setup.InstanceSetupResult.Error.init -> void
@@ -38,11 +44,22 @@ NCode.Identity.OpenId.Setup.ISetupTokenService.EnsureTokenAsync(System.Threading
 NCode.Identity.OpenId.Setup.ISetupTokenService.TokenSource.get -> string!
 NCode.Identity.OpenId.Setup.ISetupTokenService.VerifyAsync(string! token, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<bool>
 NCode.Identity.OpenId.Setup.SetupDefaults
+NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions
+NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.BaseUrl.get -> string?
+NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.BaseUrl.set -> void
+NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.ClientId.get -> string!
+NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.ClientId.set -> void
+NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.IsConfigured.get -> bool
+NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.Jwks.get -> string?
+NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.Jwks.set -> void
+NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.SetupManagementConsoleOptions() -> void
 NCode.Identity.OpenId.Setup.SetupOptions
 NCode.Identity.OpenId.Setup.SetupOptions.BundleRootPath.get -> string?
 NCode.Identity.OpenId.Setup.SetupOptions.BundleRootPath.set -> void
 NCode.Identity.OpenId.Setup.SetupOptions.GeneratedTokenLifetime.get -> System.TimeSpan
 NCode.Identity.OpenId.Setup.SetupOptions.GeneratedTokenLifetime.set -> void
+NCode.Identity.OpenId.Setup.SetupOptions.ManagementConsole.get -> NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions!
+NCode.Identity.OpenId.Setup.SetupOptions.ManagementConsole.set -> void
 NCode.Identity.OpenId.Setup.SetupOptions.Root.get -> NCode.Identity.OpenId.Setup.SetupRootOptions!
 NCode.Identity.OpenId.Setup.SetupOptions.Root.set -> void
 NCode.Identity.OpenId.Setup.SetupOptions.SetupOptions() -> void
@@ -61,6 +78,7 @@ const NCode.Identity.OpenId.Setup.SetupDefaults.MinimumRootPasswordLength = 15 -
 const NCode.Identity.OpenId.Setup.SetupDefaults.MinimumTokenLength = 32 -> int
 const NCode.Identity.OpenId.Setup.SetupDefaults.PathPrefix = "/setup" -> string!
 const NCode.Identity.OpenId.Setup.SetupDefaults.RootAttemptsPerMinute = 10 -> int
+const NCode.Identity.OpenId.Setup.SetupManagementConsoleOptions.DefaultClientId = "mgmt-console" -> string!
 const NCode.Identity.OpenId.Setup.SetupOptions.SectionName = "Setup" -> string!
 const NCode.Identity.OpenId.Setup.SetupTokenSources.Configured = "configured" -> string!
 const NCode.Identity.OpenId.Setup.SetupTokenSources.Generated = "generated" -> string!

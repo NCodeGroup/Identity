@@ -160,6 +160,122 @@ public class SetupOptionsValidatorTests
 
     #endregion
 
+    #region Validate ManagementConsole Tests
+
+    private const string ValidJwks = """{"keys":[{"kty":"oct","k":"AAAA"}]}""";
+
+    private static SetupOptions CreateOptions(
+        string? baseUrl = "https://console.example.com",
+        string? jwks = ValidJwks,
+        string clientId = SetupManagementConsoleOptions.DefaultClientId
+    ) =>
+        new()
+        {
+            ManagementConsole = new SetupManagementConsoleOptions
+            {
+                ClientId = clientId,
+                BaseUrl = baseUrl,
+                Jwks = jwks,
+            },
+        };
+
+    [Fact]
+    public void Validate_ManagementConsoleUnset_Succeeds()
+    {
+        var options = new SetupOptions();
+
+        var result = Validator.Validate(null, options);
+
+        Assert.False(options.ManagementConsole.IsConfigured);
+        Assert.Equal(
+            SetupManagementConsoleOptions.DefaultClientId,
+            options.ManagementConsole.ClientId
+        );
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_ManagementConsoleComplete_Succeeds()
+    {
+        var result = Validator.Validate(null, CreateOptions());
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_ManagementConsoleWithoutJwks_Fails()
+    {
+        var result = Validator.Validate(null, CreateOptions(jwks: null));
+
+        Assert.True(result.Failed);
+        var failure = Assert.Single(result.Failures!);
+        Assert.Contains("'Setup:ManagementConsole:Jwks'", failure, StringComparison.Ordinal);
+        Assert.Contains("is required", failure, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_ManagementConsoleWithoutBaseUrl_Fails()
+    {
+        var result = Validator.Validate(null, CreateOptions(baseUrl: null));
+
+        Assert.True(result.Failed);
+        var failure = Assert.Single(result.Failures!);
+        Assert.Contains("'Setup:ManagementConsole:BaseUrl'", failure, StringComparison.Ordinal);
+        Assert.Contains("is required", failure, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("http://console.example.com")]
+    [InlineData("console.example.com")]
+    public void Validate_ManagementConsoleBaseUrlNotHttps_Fails(string baseUrl)
+    {
+        var result = Validator.Validate(null, CreateOptions(baseUrl: baseUrl));
+
+        Assert.True(result.Failed);
+        var failure = Assert.Single(result.Failures!);
+        Assert.Contains("'Setup:ManagementConsole:BaseUrl'", failure, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("https://console.example.com/app")]
+    [InlineData("https://console.example.com/?a=b")]
+    [InlineData("https://console.example.com/#fragment")]
+    public void Validate_ManagementConsoleBaseUrlWithPath_Fails(string baseUrl)
+    {
+        var result = Validator.Validate(null, CreateOptions(baseUrl: baseUrl));
+
+        Assert.True(result.Failed);
+        var failure = Assert.Single(result.Failures!);
+        Assert.Contains("'Setup:ManagementConsole:BaseUrl'", failure, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("not json")]
+    [InlineData("[]")]
+    [InlineData("""{"keys":[]}""")]
+    [InlineData("""{"keys":{}}""")]
+    [InlineData("""{"other":[{"kty":"oct"}]}""")]
+    public void Validate_ManagementConsoleJwksNotKeySet_Fails(string jwks)
+    {
+        var result = Validator.Validate(null, CreateOptions(jwks: jwks));
+
+        Assert.True(result.Failed);
+        var failure = Assert.Single(result.Failures!);
+        Assert.Contains("'Setup:ManagementConsole:Jwks'", failure, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Validate_ManagementConsoleClientIdEmpty_Fails()
+    {
+        var result = Validator.Validate(null, CreateOptions(clientId: string.Empty));
+
+        Assert.True(result.Failed);
+        var failure = Assert.Single(result.Failures!);
+        Assert.Contains("'Setup:ManagementConsole:ClientId'", failure, StringComparison.Ordinal);
+    }
+
+    #endregion
+
     #region AddInstanceSetup Tests
 
     private static ServiceProvider BuildServiceProvider(

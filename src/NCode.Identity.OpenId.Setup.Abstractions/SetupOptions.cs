@@ -37,4 +37,9 @@ public sealed class SetupOptions
     /// Gets or sets the root administrator that the headless <c>setup</c> command creates.
     /// </summary>
     public SetupRootOptions Root { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the management console's confidential client that the headless <c>setup</c> command registers.
+    /// </summary>
+    public SetupManagementConsoleOptions ManagementConsole { get; set; } = new();
 }

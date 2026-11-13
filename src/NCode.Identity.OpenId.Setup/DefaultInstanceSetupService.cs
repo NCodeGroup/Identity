@@ -43,6 +43,12 @@ internal sealed class DefaultInstanceSetupService(
     ILogger<DefaultInstanceSetupService> logger
 ) : IInstanceSetupService
 {
+    private const string BffPathPrefix = "/bff";
+
+    internal const string BffCallbackPath = BffPathPrefix + "/callback";
+
+    internal const string BffBackChannelLogoutPath = BffPathPrefix + "/backchannel-logout";
+
     private IStoreManagerFactory StoreManagerFactory { get; } = storeManagerFactory;
 
     private ITenantResolver TenantResolver { get; } = tenantResolver;
@@ -103,9 +109,9 @@ internal sealed class DefaultInstanceSetupService(
                 {
                     OpenIdProtocol.ResponseTypes.Code,
                 },
-                [OpenIdSettingNames.RedirectUris] = new[] { $"{origin}/bff/callback" },
+                [OpenIdSettingNames.RedirectUris] = new[] { $"{origin}{BffCallbackPath}" },
                 [OpenIdSettingNames.PostLogoutRedirectUris] = new[] { $"{origin}/" },
-                [OpenIdSettingNames.BackChannelLogoutUri] = $"{origin}/bff/backchannel-logout",
+                [OpenIdSettingNames.BackChannelLogoutUri] = $"{origin}{BffBackChannelLogoutPath}",
                 [OpenIdSettingNames.BackChannelLogoutSessionRequired] = true,
             }
         );

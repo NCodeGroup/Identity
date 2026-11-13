@@ -8,4 +8,5 @@ using System.Runtime.InteropServices;
 [assembly: Guid("4a9d7c32-e1b5-48f6-a3c0-9d2e6f8b1c57")]
 
 [assembly: InternalsVisibleTo("NCode.Identity.OpenId.Setup.Tests")]
+[assembly: InternalsVisibleTo("NCode.Identity.OpenId.Integration.Tests")]
 [assembly: InternalsVisibleTo("DynamicProxyGenAssembly2")]

@@ -102,9 +102,10 @@ internal sealed class DefaultClientKeyResolver(
             || !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)
         )
         {
+            var jwksUriForLog = OutboundUriRedaction.ForLog(jwksUri);
             Logger.ClientJwksFetchFailed(
                 openIdClient.ClientId,
-                jwksUri,
+                jwksUriForLog,
                 ClientJwksFetchFailureReasons.NotHttps,
                 new InvalidOperationException("The 'jwks_uri' must be an absolute https URI.")
             );
@@ -117,9 +118,10 @@ internal sealed class DefaultClientKeyResolver(
             && !allowedHosts.Contains(uri.Host, StringComparer.OrdinalIgnoreCase)
         )
         {
+            var jwksUriForLog = OutboundUriRedaction.ForLog(jwksUri);
             Logger.ClientJwksFetchFailed(
                 openIdClient.ClientId,
-                jwksUri,
+                jwksUriForLog,
                 ClientJwksFetchFailureReasons.HostNotAllowed,
                 new InvalidOperationException(
                     $"The 'jwks_uri' host '{uri.Host}' is not in the configured allow-list."
@@ -163,9 +165,10 @@ internal sealed class DefaultClientKeyResolver(
         if (!Fetches.IsFailureRemembered(fetchKey))
             return null;
 
+        var uriForLog = OutboundUriRedaction.ForLog(uri);
         Logger.ClientJwksFetchSuppressed(
             openIdClient.ClientId,
-            uri.AbsoluteUri,
+            uriForLog,
             Fetches.FailureCacheDuration
         );
         return [];
@@ -217,6 +220,7 @@ internal sealed class DefaultClientKeyResolver(
         var settings = openIdClient.Settings;
         var timeout = settings.GetValue(OpenIdSettingKeys.JwksUriFetchTimeout);
         var maxSizeBytes = settings.GetValue(OpenIdSettingKeys.JwksUriMaxSizeBytes);
+        var uriForLog = OutboundUriRedaction.ForLog(uri);
 
         using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(
             cancellationToken
@@ -239,7 +243,7 @@ internal sealed class DefaultClientKeyResolver(
             {
                 Logger.ClientJwksFetchFailed(
                     openIdClient.ClientId,
-                    uri.AbsoluteUri,
+                    uriForLog,
                     ClientJwksFetchFailureReasons.HttpStatus,
                     new InvalidOperationException(
                         $"The 'jwks_uri' document could not be fetched (HTTP {(int)response.StatusCode})."
@@ -259,7 +263,7 @@ internal sealed class DefaultClientKeyResolver(
             {
                 Logger.ClientJwksFetchFailed(
                     openIdClient.ClientId,
-                    uri.AbsoluteUri,
+                    uriForLog,
                     ClientJwksFetchFailureReasons.TooLarge,
                     new InvalidOperationException(
                         "The 'jwks_uri' document exceeds the maximum allowed size."
@@ -275,12 +279,8 @@ internal sealed class DefaultClientKeyResolver(
         {
             var timedOut =
                 timeoutSource.IsCancellationRequested && !cancellationToken.IsCancellationRequested;
-            Logger.ClientJwksFetchFailed(
-                openIdClient.ClientId,
-                uri.AbsoluteUri,
-                OutboundFetchFailureReasons.Classify(exception, timedOut),
-                exception
-            );
+            var reason = OutboundFetchFailureReasons.Classify(exception, timedOut);
+            Logger.ClientJwksFetchFailed(openIdClient.ClientId, uriForLog, reason, exception);
             return [];
         }
     }
@@ -298,9 +298,10 @@ internal sealed class DefaultClientKeyResolver(
         }
         catch (JsonException exception)
         {
+            var uriForLog = OutboundUriRedaction.ForLog(uri);
             Logger.ClientJwksFetchFailed(
                 openIdClient.ClientId,
-                uri.AbsoluteUri,
+                uriForLog,
                 ClientJwksFetchFailureReasons.NotJson,
                 exception
             );
@@ -317,9 +318,10 @@ internal sealed class DefaultClientKeyResolver(
             )
         )
         {
+            var uriForLog = OutboundUriRedaction.ForLog(uri);
             Logger.ClientJwksFetchFailed(
                 openIdClient.ClientId,
-                uri.AbsoluteUri,
+                uriForLog,
                 ClientJwksFetchFailureReasons.InvalidKeySet,
                 new InvalidOperationException(error)
             );

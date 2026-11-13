@@ -380,11 +380,9 @@ internal class DefaultLoadAuthorizationRequestHandler(
         {
             var timedOut =
                 timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested;
-            Logger.FailedToFetchRequestUri(
-                requestUri.AbsoluteUri,
-                OutboundFetchFailureReasons.Classify(exception, timedOut),
-                exception
-            );
+            var uriForLog = OutboundUriRedaction.ForLog(requestUri);
+            var reason = OutboundFetchFailureReasons.Classify(exception, timedOut);
+            Logger.FailedToFetchRequestUri(uriForLog, reason, exception);
             throw errorFactory
                 .InvalidRequestUri("Failed to fetch the request URI")
                 .WithException(exception)

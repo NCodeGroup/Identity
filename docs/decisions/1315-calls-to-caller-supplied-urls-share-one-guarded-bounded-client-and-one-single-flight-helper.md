@@ -47,7 +47,7 @@ connects to the address it vetted, which defeats DNS rebinding. A refusal throws
 which names the host and no address, so a fetcher can tell it from other connection errors. Every guarded fetcher
 (`jwks_uri`, `request_uri`, `sector_identifier_uri`, back-channel logout and CIBA delivery) logs a failed fetch with a
 reason from one vocabulary, `OutboundFetchFailureReasons` (`blocked_address`, `name_resolution`, `tls`, `timeout`,
-`canceled`, `connection`, `http_status`), and never an address.
+`canceled`, `connection`, `http_status`), and names the URL without its query or fragment, and never an address.
 
 No setting turns the floor off. `IOutboundAddressFilter` (public, registered with `TryAddEnumerable`) only adds denials
 and never re-permits an address, and the `*_allowed_hosts` settings narrow the reachable hosts further.

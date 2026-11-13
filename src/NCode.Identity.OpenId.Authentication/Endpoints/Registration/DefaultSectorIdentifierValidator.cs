@@ -120,11 +120,9 @@ internal class DefaultSectorIdentifierValidator(
         catch (OperationCanceledException exception)
             when (!cancellationToken.IsCancellationRequested)
         {
-            Logger.SectorIdentifierUriFetchFailed(
-                uri.AbsoluteUri,
-                OutboundFetchFailureReasons.Classify(exception, timedOut: true),
-                exception
-            );
+            var uriForLog = OutboundUriRedaction.ForLog(uri);
+            var reason = OutboundFetchFailureReasons.Classify(exception, timedOut: true);
+            Logger.SectorIdentifierUriFetchFailed(uriForLog, reason, exception);
             return InvalidMetadata(
                 "The 'sector_identifier_uri' document could not be fetched within the allotted time."
             );
@@ -133,11 +131,9 @@ internal class DefaultSectorIdentifierValidator(
         {
             var timedOut =
                 timeoutCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested;
-            Logger.SectorIdentifierUriFetchFailed(
-                uri.AbsoluteUri,
-                OutboundFetchFailureReasons.Classify(exception, timedOut),
-                exception
-            );
+            var uriForLog = OutboundUriRedaction.ForLog(uri);
+            var reason = OutboundFetchFailureReasons.Classify(exception, timedOut);
+            Logger.SectorIdentifierUriFetchFailed(uriForLog, reason, exception);
             return InvalidMetadata("The 'sector_identifier_uri' document could not be fetched.");
         }
 

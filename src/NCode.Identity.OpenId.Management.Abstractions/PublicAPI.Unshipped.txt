@@ -14,6 +14,10 @@ const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Resource
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Platform = "platform" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.Tenant = "tenant" -> string!
 const NCode.Identity.OpenId.Management.Auditing.ManagementResourceTypes.TenantSecret = "tenant.secret" -> string!
+const NCode.Identity.OpenId.Management.BuiltInRoles.GlobalAdmin = "GlobalAdmin" -> string!
+const NCode.Identity.OpenId.Management.BuiltInRoles.Owner = "Owner" -> string!
+const NCode.Identity.OpenId.Management.BuiltInRoles.TeamAdmin = "TeamAdmin" -> string!
+const NCode.Identity.OpenId.Management.BuiltInRoles.TenantAdmin = "TenantAdmin" -> string!
 const NCode.Identity.OpenId.Management.Contracts.ManagementProblemMembers.AccessIdentity = "accessIdentity" -> string!
 const NCode.Identity.OpenId.Management.Contracts.ManagementProblemMembers.DocumentError = "documentError" -> string!
 const NCode.Identity.OpenId.Management.Contracts.ManagementProblemMembers.KeyReference = "keyReference" -> string!
@@ -715,6 +719,7 @@ NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.AuthorizeUpd
 NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateCreateAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Identity.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateDeleteAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Identity.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
 NCode.Identity.OpenId.Management.Endpoints.Tenants.ITenantValidator.ValidateUpdateAsync(NCode.Identity.OpenId.Persistence.DataContracts.PersistedTenant! tenant, NCode.Identity.OpenId.Management.Contracts.Tenants.UpdateTenantRequest! model, string? ifMatch, NCode.Identity.Persistence.Stores.IStoreManager! storeManager, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.OpenId.Management.ManagementError?>
+NCode.Identity.OpenId.Management.BuiltInRoles
 NCode.Identity.OpenId.Management.ManagementError
 NCode.Identity.OpenId.Management.ManagementError.Detail.get -> string!
 NCode.Identity.OpenId.Management.ManagementError.Detail.init -> void

@@ -115,9 +115,7 @@ public class OpenIdDbContext(
     // AsSingleQuery().
     private static void UseSplitQueriesByDefault(DbContextOptionsBuilder optionsBuilder)
     {
-        var relational = optionsBuilder
-            .Options.Extensions.OfType<RelationalOptionsExtension>()
-            .SingleOrDefault();
+        var relational = FindRelationalExtension(optionsBuilder);
 
         if (relational is { QuerySplittingBehavior: null })
         {
@@ -127,6 +125,21 @@ public class OpenIdDbContext(
             var infrastructure = (IDbContextOptionsBuilderInfrastructure)optionsBuilder;
             infrastructure.AddOrUpdateExtension(splitting);
         }
+    }
+
+    private static RelationalOptionsExtension? FindRelationalExtension(
+        DbContextOptionsBuilder optionsBuilder
+    )
+    {
+        foreach (var extension in optionsBuilder.Options.Extensions)
+        {
+            if (extension is RelationalOptionsExtension relational)
+            {
+                return relational;
+            }
+        }
+
+        return null;
     }
 
     /// <inheritdoc />

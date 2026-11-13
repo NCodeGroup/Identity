@@ -39,6 +39,7 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
         string? capturedCode = null;
         var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
         var mockError = CreateLooseMock<IOpenIdError>();
+        mockError.SetupAllProperties();
         mockErrorFactory
             .Setup(x => x.Create(It.IsAny<string>()))
             .Callback<string>(code => capturedCode = code)
@@ -127,6 +128,18 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
             HttpRequestMessage request,
             CancellationToken cancellationToken
         ) => Task.FromResult(response);
+    }
+
+    private sealed class DelayingHttpMessageHandler : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(
+            HttpRequestMessage request,
+            CancellationToken cancellationToken
+        )
+        {
+            await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            return new HttpResponseMessage(HttpStatusCode.OK);
+        }
     }
 
     private sealed class ThrowingHttpMessageHandler(Exception exception) : HttpMessageHandler
@@ -335,6 +348,30 @@ public class DefaultSectorIdentifierValidatorTests : BaseTests
         Assert.NotNull(error);
         Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
         AssertFetchFailedReason("connection");
+    }
+
+    [Fact]
+    public async Task ValidateAsync_WhenTheFetchTimesOut_LogsTimeout()
+    {
+        var validator = CreateValidator();
+        var (factory, capturedCode) = CreateErrorFactory();
+        var context = CreateContext(factory, timeout: TimeSpan.FromMilliseconds(50));
+        SetupHttpClient(new HttpClient(new DelayingHttpMessageHandler()));
+
+        var error = await validator.ValidateAsync(
+            context,
+            "https://sector.example.com/uris.json",
+            ["https://a.example.com/cb"],
+            CancellationToken.None
+        );
+
+        Assert.NotNull(error);
+        Assert.Equal(OpenIdProtocol.ErrorCodes.InvalidClientMetadata, capturedCode());
+        Assert.Equal(
+            "The 'sector_identifier_uri' document could not be fetched within the allotted time.",
+            error.Description
+        );
+        AssertFetchFailedReason("timeout");
     }
 
     [Fact]

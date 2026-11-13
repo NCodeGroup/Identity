@@ -155,3 +155,14 @@ NCode.Identity.AspNetCore.RemoteAddressPartition
 NCode.Identity.AspNetCore.GuardedHttpLoggingRegistration
 NCode.Identity.AspNetCore.GuardedHttpLoggingRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.AspNetCore.GuardedHttpLoggingRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddGuardedHttpLogging() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+const NCode.Identity.AspNetCore.Options.LocalDevelopmentOptions.DefaultSectionName = "LocalDevelopment" -> string!
+NCode.Identity.AspNetCore.LocalDevelopmentConfiguration
+NCode.Identity.AspNetCore.LocalDevelopmentConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!)
+NCode.Identity.AspNetCore.LocalDevelopmentConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!).IsLocalDevelopment() -> bool
+NCode.Identity.AspNetCore.LocalDevelopmentRegistration
+NCode.Identity.AspNetCore.LocalDevelopmentRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.AspNetCore.LocalDevelopmentRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddLocalDevelopmentOptions(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.AspNetCore.Options.LocalDevelopmentOptions
+NCode.Identity.AspNetCore.Options.LocalDevelopmentOptions.Enabled.get -> bool
+NCode.Identity.AspNetCore.Options.LocalDevelopmentOptions.Enabled.init -> void
+NCode.Identity.AspNetCore.Options.LocalDevelopmentOptions.LocalDevelopmentOptions() -> void

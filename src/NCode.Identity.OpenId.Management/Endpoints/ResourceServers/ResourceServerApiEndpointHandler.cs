@@ -1227,7 +1227,7 @@ internal class ResourceServerApiEndpointHandler(
     /// <response code="204">The settings were updated.</response>
     /// <response code="400">The JSON Patch document cannot be applied to the settings, or the patched settings are not valid for a resource server.</response>
     /// <response code="404">The resource server does not exist.</response>
-    /// <response code="412">The supplied <c>If-Match</c> concurrency token did not match.</response>
+    /// <response code="412">The supplied <c>If-Match</c> header does not match the current settings' entity tag, or is malformed.</response>
     [EndpointName("api/resource-servers/settings/update")]
     internal virtual async ValueTask<IResult> UpdateSettingsAsync(
         HttpContext httpContext,
@@ -1731,7 +1731,7 @@ internal class ResourceServerApiEndpointHandler(
     /// <response code="204">The secret was updated.</response>
     /// <response code="400">The new metadata is not valid for the secret: an unsupported use or algorithm, a key management service's key whose algorithm changes, or an incoherent lifecycle.</response>
     /// <response code="404">The resource server or the secret does not exist.</response>
-    /// <response code="412">The supplied <c>If-Match</c> concurrency token did not match.</response>
+    /// <response code="412">The supplied <c>If-Match</c> header does not match the current secret's entity tag, or is malformed.</response>
     [EndpointName("api/resource-servers/secrets/update")]
     internal virtual async ValueTask<IResult> UpdateSecretAsync(
         HttpContext httpContext,

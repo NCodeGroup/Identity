@@ -2204,7 +2204,7 @@ internal class ClientApiEndpointHandler(
     /// <response code="400">The secret is not a shared secret or the replacement could not be generated from its parameters.</response>
     /// <response code="404">The client or the secret does not exist.</response>
     /// <response code="409">The client already holds a secret with the generated identifier or is managed by its host.</response>
-    /// <response code="412">The <c>If-Match</c> token does not match the rotated secret, or another request changed the client's secrets after this request read them.</response>
+    /// <response code="412">The <c>If-Match</c> header does not match the rotated secret's current entity tag, is malformed, or another request changed the client's secrets after this request read them.</response>
     // See ADR-1320.
     [EndpointName("api/clients/secrets/rotate")]
     internal virtual async ValueTask<IResult> RotateSecretAsync(

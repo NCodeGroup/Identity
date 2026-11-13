@@ -76,55 +76,94 @@ public class DefaultLoadAuthorizationRequestHandlerTests : BaseTests
             .Verifiable();
     }
 
-    // The error factory answers every code with a loose error and remembers the last code it was asked for.
-    private void SetupErrorFactory()
+    // What a path does with the error the factory creates: a path that never fails with an error creates none.
+    private enum ErrorShape
     {
-        var mockErrorFactory = CreateLooseMock<IOpenIdErrorFactory>();
-        var mockError = CreateLooseMock<IOpenIdError>();
-        mockErrorFactory
-            .Setup(x => x.Create(It.IsAny<string>()))
-            .Callback<string>(code => CapturedErrorCode = code)
-            .Returns(mockError.Object);
+        None,
+        WithoutException,
+        WithException,
+    }
+
+    // The error factory answers every code with a strict error and remembers the last code it was asked for. The
+    // error takes a description and, when the path attaches one, an exception; the exception is thrown with the code.
+    private void SetupErrorFactory(ErrorShape errorShape)
+    {
+        var mockErrorFactory = CreateStrictMock<IOpenIdErrorFactory>();
+        if (errorShape != ErrorShape.None)
+        {
+            var mockError = CreateStrictMock<IOpenIdError>();
+            Exception? errorException = null;
+            mockError.SetupSet(x => x.Description = It.IsAny<string?>()).Verifiable();
+            if (errorShape == ErrorShape.WithException)
+            {
+                mockError
+                    .SetupSet(x => x.Exception = It.IsAny<Exception?>())
+                    .Callback<Exception?>(exception => errorException = exception)
+                    .Verifiable();
+            }
+            mockError.SetupGet(x => x.Exception).Returns(() => errorException).Verifiable();
+            mockError.SetupGet(x => x.Code).Returns(() => CapturedErrorCode ?? "").Verifiable();
+
+            mockErrorFactory
+                .Setup(x => x.Create(It.IsAny<string>()))
+                .Callback<string>(code => CapturedErrorCode = code)
+                .Returns(mockError.Object)
+                .Verifiable();
+        }
+
         MockOpenIdEnvironment
             .Setup(x => x.ErrorFactory)
             .Returns(mockErrorFactory.Object)
             .Verifiable();
     }
 
-    private OpenIdContext CreateContext()
+    private OpenIdContext CreateContext(ErrorShape errorShape = ErrorShape.WithException)
     {
         SetupKnownParameters();
-        SetupErrorFactory();
+        SetupErrorFactory(errorShape);
 
         var mockContext = CreateStrictMock<OpenIdContext>();
         mockContext.Setup(x => x.Environment).Returns(MockOpenIdEnvironment.Object).Verifiable();
         return mockContext.Object;
     }
 
-    // The settings are a value-provider stub: a path that fails early reads fewer of them.
-    private OpenIdClient CreateClient(TimeSpan? fetchTimeout = null)
+    // The settings are strict: every path that sends reads the supported flag, the allowed hosts, the fetch timeout and
+    // the size limit, and only a path that gets a 200 response also reads the content-type settings.
+    private OpenIdClient CreateClient(
+        TimeSpan? fetchTimeout = null,
+        bool readsResponseSettings = false
+    )
     {
-        var mockSettings = CreateLooseMock<IReadOnlySettingCollection>();
+        var mockSettings = CreateStrictMock<IReadOnlySettingCollection>();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.RequestUriParameterSupported))
-            .Returns(true);
+            .Returns(true)
+            .Verifiable();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.RequestUriFetchTimeout))
-            .Returns(fetchTimeout ?? TimeSpan.FromSeconds(10));
+            .Returns(fetchTimeout ?? TimeSpan.FromSeconds(10))
+            .Verifiable();
         mockSettings
             .Setup(x => x.GetValue(OpenIdSettingKeys.RequestUriMaxSizeBytes))
-            .Returns(100 * 1024);
-        mockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.RequestUriExpectedContentType))
-            .Returns("application/oauth-authz-req+jwt");
-        mockSettings
-            .Setup(x => x.GetValue(OpenIdSettingKeys.RequestUriRequireStrictContentType))
-            .Returns(true);
+            .Returns(100 * 1024)
+            .Verifiable();
+        if (readsResponseSettings)
+        {
+            mockSettings
+                .Setup(x => x.GetValue(OpenIdSettingKeys.RequestUriExpectedContentType))
+                .Returns("application/oauth-authz-req+jwt")
+                .Verifiable();
+            mockSettings
+                .Setup(x => x.GetValue(OpenIdSettingKeys.RequestUriRequireStrictContentType))
+                .Returns(true)
+                .Verifiable();
+        }
 
         IReadOnlyCollection<string>? allowedHosts = null;
         mockSettings
             .Setup(x => x.TryGetValue(OpenIdSettingKeys.RequestUriAllowedHosts, out allowedHosts))
-            .Returns(false);
+            .Returns(false)
+            .Verifiable();
 
         var mockClient = CreateStrictMock<OpenIdClient>();
         mockClient.Setup(x => x.Settings).Returns(mockSettings.Object).Verifiable();
@@ -231,7 +270,7 @@ public class DefaultLoadAuthorizationRequestHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenTheRequestUriAnswersANonOkStatus_ThrowsInvalidRequestUriWithoutAFetchLog()
     {
-        var context = CreateContext();
+        var context = CreateContext(ErrorShape.WithoutException);
         var client = CreateClient();
         SetupHttpClient(new HttpClient(new StubHttpMessageHandler(HttpStatusCode.NotFound)));
 
@@ -247,7 +286,7 @@ public class DefaultLoadAuthorizationRequestHandlerTests : BaseTests
     public async Task HandleAsync_WhenTheResponseIsNotUtf8_ThrowsInvalidRequestUriWithoutAFetchLog()
     {
         var context = CreateContext();
-        var client = CreateClient();
+        var client = CreateClient(readsResponseSettings: true);
         SetupHttpClient(
             new HttpClient(
                 new BodyHttpMessageHandler([0xC3, 0x28], "application/oauth-authz-req+jwt")
@@ -321,7 +360,7 @@ public class DefaultLoadAuthorizationRequestHandlerTests : BaseTests
     [Fact]
     public async Task HandleAsync_WhenTheCallerCancels_ThrowsOperationCanceledWithoutAFetchLog()
     {
-        var context = CreateContext();
+        var context = CreateContext(ErrorShape.None);
         var client = CreateClient(fetchTimeout: TimeSpan.FromSeconds(10));
         SetupHttpClient(new HttpClient(new DelayingHttpMessageHandler()));
         using var callerCts = new CancellationTokenSource(TimeSpan.FromMilliseconds(50));

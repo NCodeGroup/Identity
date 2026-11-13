@@ -76,7 +76,7 @@ internal static class SetupManagementConsoleRules
         return failures;
     }
 
-    private static bool IsHttpsOrigin(string value)
+    internal static bool IsHttpsOrigin(string value)
     {
         if (
             value.Contains('?', StringComparison.Ordinal)

@@ -324,6 +324,99 @@ public sealed class SetupOptionsValidatorTests : IDisposable
 
     #endregion
 
+    #region Validate Wizard Tests
+
+    private static SetupOptions CreateWizardOptions(
+        string? baseUrl = "https://console.example.com",
+        string clientId = SetupManagementConsoleOptions.DefaultClientId
+    ) =>
+        new()
+        {
+            Wizard = new SetupWizardOptions
+            {
+                ManagementConsole = new SetupWizardManagementConsoleOptions
+                {
+                    BaseUrl = baseUrl,
+                    ClientId = clientId,
+                },
+            },
+        };
+
+    [Fact]
+    public void Validate_WizardConsoleUnset_Succeeds()
+    {
+        var options = new SetupOptions();
+
+        var result = Validator.Validate(null, options);
+
+        Assert.False(options.Wizard.ManagementConsole.IsConfigured);
+        Assert.Equal(
+            SetupManagementConsoleOptions.DefaultClientId,
+            options.Wizard.ManagementConsole.ClientId
+        );
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_WizardConsoleOrigin_Succeeds()
+    {
+        var options = CreateWizardOptions();
+
+        var result = Validator.Validate(null, options);
+
+        Assert.True(options.Wizard.ManagementConsole.IsConfigured);
+        Assert.True(result.Succeeded);
+    }
+
+    [Theory]
+    [InlineData("https://console.example.com/app")]
+    [InlineData("https://console.example.com/?a=b")]
+    [InlineData("https://console.example.com/#fragment")]
+    public void Validate_WizardConsoleBaseUrlWithPath_Fails(string baseUrl)
+    {
+        var result = Validator.Validate(null, CreateWizardOptions(baseUrl: baseUrl));
+
+        Assert.True(result.Failed);
+        var failure = Assert.Single(result.Failures!);
+        Assert.Contains(
+            "'Setup:Wizard:ManagementConsole:BaseUrl'",
+            failure,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Theory]
+    [InlineData("http://console.example.com")]
+    [InlineData("console.example.com")]
+    public void Validate_WizardConsoleBaseUrlNotHttps_Fails(string baseUrl)
+    {
+        var result = Validator.Validate(null, CreateWizardOptions(baseUrl: baseUrl));
+
+        Assert.True(result.Failed);
+        var failure = Assert.Single(result.Failures!);
+        Assert.Contains(
+            "'Setup:Wizard:ManagementConsole:BaseUrl'",
+            failure,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void Validate_WizardConsoleBlankClientId_Fails()
+    {
+        var result = Validator.Validate(null, CreateWizardOptions(clientId: " "));
+
+        Assert.True(result.Failed);
+        var failure = Assert.Single(result.Failures!);
+        Assert.Contains(
+            "'Setup:Wizard:ManagementConsole:ClientId'",
+            failure,
+            StringComparison.Ordinal
+        );
+    }
+
+    #endregion
+
     #region Validate Automation Tests
 
     private static SetupOptions CreateAutomationOptions(
@@ -500,6 +593,27 @@ public sealed class SetupOptionsValidatorTests : IDisposable
         Assert.Null(options.Token);
         Assert.Null(options.BundleRootPath);
         Assert.Equal(TimeSpan.FromHours(1), options.GeneratedTokenLifetime);
+    }
+
+    [Fact]
+    public void AddInstanceSetup_WhenWizardConsoleIsConfigured_BindsIt()
+    {
+        var mockHostEnvironment = CreateHostEnvironment(Path.GetTempPath());
+        using var serviceProvider = BuildServiceProvider(
+            new Dictionary<string, string?>
+            {
+                ["Setup:Wizard:ManagementConsole:BaseUrl"] = "https://console.example.com",
+                ["Setup:Wizard:ManagementConsole:ClientId"] = "console-client",
+            },
+            mockHostEnvironment
+        );
+
+        var console = serviceProvider
+            .GetRequiredService<IOptions<SetupOptions>>()
+            .Value.Wizard.ManagementConsole;
+
+        Assert.Equal("https://console.example.com", console.BaseUrl);
+        Assert.Equal("console-client", console.ClientId);
     }
 
     [Fact]

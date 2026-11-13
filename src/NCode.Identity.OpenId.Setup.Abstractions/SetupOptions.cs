@@ -47,4 +47,10 @@ public sealed class SetupOptions
     /// Gets or sets the automation client that the headless <c>setup</c> command registers.
     /// </summary>
     public SetupAutomationOptions Automation { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets what the deployment tells the setup wizard, bound from the <c>Setup:Wizard</c> section. Its
+    /// <c>Setup:Wizard:ManagementConsole</c> section only prefills the wizard's console step and registers nothing.
+    /// </summary>
+    public SetupWizardOptions Wizard { get; set; } = new();
 }

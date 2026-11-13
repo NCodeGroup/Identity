@@ -92,6 +92,8 @@ NCode.Identity.OpenId.Setup.SetupOptions.Root.set -> void
 NCode.Identity.OpenId.Setup.SetupOptions.SetupOptions() -> void
 NCode.Identity.OpenId.Setup.SetupOptions.Token.get -> string?
 NCode.Identity.OpenId.Setup.SetupOptions.Token.set -> void
+NCode.Identity.OpenId.Setup.SetupOptions.Wizard.get -> NCode.Identity.OpenId.Setup.SetupWizardOptions!
+NCode.Identity.OpenId.Setup.SetupOptions.Wizard.set -> void
 NCode.Identity.OpenId.Setup.SetupRootOptions
 NCode.Identity.OpenId.Setup.SetupRootOptions.Email.get -> string?
 NCode.Identity.OpenId.Setup.SetupRootOptions.Email.set -> void
@@ -101,6 +103,17 @@ NCode.Identity.OpenId.Setup.SetupRootOptions.SetupRootOptions() -> void
 NCode.Identity.OpenId.Setup.SetupRootOptions.UserName.get -> string?
 NCode.Identity.OpenId.Setup.SetupRootOptions.UserName.set -> void
 NCode.Identity.OpenId.Setup.SetupTokenSources
+NCode.Identity.OpenId.Setup.SetupWizardManagementConsoleOptions
+NCode.Identity.OpenId.Setup.SetupWizardManagementConsoleOptions.BaseUrl.get -> string?
+NCode.Identity.OpenId.Setup.SetupWizardManagementConsoleOptions.BaseUrl.set -> void
+NCode.Identity.OpenId.Setup.SetupWizardManagementConsoleOptions.ClientId.get -> string!
+NCode.Identity.OpenId.Setup.SetupWizardManagementConsoleOptions.ClientId.set -> void
+NCode.Identity.OpenId.Setup.SetupWizardManagementConsoleOptions.IsConfigured.get -> bool
+NCode.Identity.OpenId.Setup.SetupWizardManagementConsoleOptions.SetupWizardManagementConsoleOptions() -> void
+NCode.Identity.OpenId.Setup.SetupWizardOptions
+NCode.Identity.OpenId.Setup.SetupWizardOptions.ManagementConsole.get -> NCode.Identity.OpenId.Setup.SetupWizardManagementConsoleOptions!
+NCode.Identity.OpenId.Setup.SetupWizardOptions.ManagementConsole.set -> void
+NCode.Identity.OpenId.Setup.SetupWizardOptions.SetupWizardOptions() -> void
 const NCode.Identity.OpenId.Setup.SetupDefaults.MinimumRootPasswordLength = 15 -> int
 const NCode.Identity.OpenId.Setup.SetupDefaults.MinimumTokenLength = 32 -> int
 const NCode.Identity.OpenId.Setup.SetupDefaults.PathPrefix = "/setup" -> string!

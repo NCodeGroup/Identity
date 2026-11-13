@@ -12,6 +12,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\NCode.Identity.Events.Abstractions\NCode.Identity.Events.Abstractions.csproj" />
+        <ProjectReference Include="..\NCode.Identity.OpenId.Accounts.Abstractions\NCode.Identity.OpenId.Accounts.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Management.Abstractions\NCode.Identity.OpenId.Management.Abstractions.csproj" />
         <ProjectReference Include="..\NCode.Identity.OpenId.Persistence.Abstractions\NCode.Identity.OpenId.Persistence.Abstractions.csproj" />
     </ItemGroup>

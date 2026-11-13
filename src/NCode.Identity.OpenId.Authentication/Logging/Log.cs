@@ -711,4 +711,30 @@ internal static partial class Log
         string reason,
         Exception exception
     );
+
+    [LoggerMessage(
+        EventId = EventIds.BackChannelLogoutDeliveryFailed,
+        Level = LogLevel.Warning,
+        Message = "Failed to deliver the back-channel logout for client '{ClientId}' to '{LogoutUri}' ({Reason}); the delivery is retried"
+    )]
+    internal static partial void BackChannelLogoutDeliveryFailed(
+        this ILogger logger,
+        string clientId,
+        string logoutUri,
+        string reason,
+        Exception exception
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.CibaDeliveryFailed,
+        Level = LogLevel.Warning,
+        Message = "Failed to deliver the CIBA notification for client '{ClientId}' to '{EndpointUrl}' ({Reason}); the delivery is retried"
+    )]
+    internal static partial void CibaDeliveryFailed(
+        this ILogger logger,
+        string clientId,
+        string endpointUrl,
+        string reason,
+        Exception exception
+    );
 }

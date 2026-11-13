@@ -3,9 +3,11 @@
 
 using System.Net;
 using System.Text.Json;
+using Microsoft.Extensions.Logging.Testing;
 using Moq;
 using NCode.Identity.Dispatch;
 using NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Delivery;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
 using NCode.Identity.OpenId.Core.Tests.OutboundHttp;
 using Xunit;
@@ -20,13 +22,14 @@ public class CibaDeliveryJobHandlerTests : BaseTests
 
     private Mock<IHttpClientFactory> MockHttpClientFactory { get; }
     private RecordingHttpMessageHandler Handler { get; }
+    private FakeLogger<CibaDeliveryJobHandler> Logger { get; } = new();
     private CibaDeliveryJobHandler Subject { get; }
 
     public CibaDeliveryJobHandlerTests()
     {
         MockHttpClientFactory = CreateStrictMock<IHttpClientFactory>();
         Handler = new RecordingHttpMessageHandler();
-        Subject = new CibaDeliveryJobHandler(MockHttpClientFactory.Object);
+        Subject = new CibaDeliveryJobHandler(MockHttpClientFactory.Object, Logger);
     }
 
     private sealed class RecordingHttpMessageHandler(HttpStatusCode statusCode = HttpStatusCode.OK)
@@ -63,6 +66,26 @@ public class CibaDeliveryJobHandlerTests : BaseTests
             Attempt = 1,
             MaxAttempts = 5,
         };
+
+    private static CibaDeliveryJob CreatePingJob(string endpointUrl = Endpoint) =>
+        new()
+        {
+            DeliveryMode = OpenIdProtocol.BackchannelTokenDeliveryModes.Ping,
+            ClientId = "client-1",
+            EndpointUrl = endpointUrl,
+            ClientNotificationToken = NotificationToken,
+            AuthReqId = AuthReqId,
+        };
+
+    private void AssertDeliveryFailedReason(string reason)
+    {
+        var record = Assert.Single(
+            Logger.Collector.GetSnapshot(),
+            r => r.Id.Id == EventIds.CibaDeliveryFailed
+        );
+        Assert.Equal(reason, record.GetStructuredStateValue("Reason"));
+        Assert.DoesNotContain(NotificationToken, record.Message);
+    }
 
     #region HandleAsync Tests
 
@@ -230,6 +253,47 @@ public class CibaDeliveryJobHandlerTests : BaseTests
         await Assert.ThrowsAsync<HttpRequestException>(() =>
             Subject.HandleAsync(job, Context(), CancellationToken.None).AsTask()
         );
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenEndpointReturnsError_LogsHttpStatus()
+    {
+        var errorHandler = new RecordingHttpMessageHandler(HttpStatusCode.ServiceUnavailable);
+        MockHttpClientFactory
+            .Setup(x => x.CreateClient(GuardedHttpClient.Name))
+            .Returns(new HttpClient(errorHandler))
+            .Verifiable();
+
+        await Assert.ThrowsAsync<HttpRequestException>(() =>
+            Subject.HandleAsync(CreatePingJob(), Context(), CancellationToken.None).AsTask()
+        );
+
+        AssertDeliveryFailedReason("http_status");
+    }
+
+    [Fact]
+    public async Task HandleAsync_WhenTheHostResolvesToARefusedAddress_LogsBlockedAddress()
+    {
+        using var handler = new SocketsHttpHandler
+        {
+            ConnectCallback = new DefaultOutboundHttpForgeryGuard([]).ConnectAsync,
+        };
+        MockHttpClientFactory
+            .Setup(x => x.CreateClient(GuardedHttpClient.Name))
+            .Returns(new HttpClient(handler, disposeHandler: false))
+            .Verifiable();
+
+        await Assert.ThrowsAsync<HttpRequestException>(() =>
+            Subject
+                .HandleAsync(
+                    CreatePingJob("https://10.0.0.5/ciba"),
+                    Context(),
+                    CancellationToken.None
+                )
+                .AsTask()
+        );
+
+        AssertDeliveryFailedReason("blocked_address");
     }
 
     #endregion

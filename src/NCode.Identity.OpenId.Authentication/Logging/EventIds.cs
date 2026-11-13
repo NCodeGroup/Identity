@@ -87,4 +87,6 @@ internal static class EventIds
     public const int PostCommitSessionTerminationFailed = Base + 74;
     public const int PostCommitPasswordAttemptResetFailed = Base + 75;
     public const int SectorIdentifierUriFetchFailed = Base + 76;
+    public const int BackChannelLogoutDeliveryFailed = Base + 77;
+    public const int CibaDeliveryFailed = Base + 78;
 }

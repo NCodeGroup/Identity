@@ -3,8 +3,10 @@
 
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using NCode.Buffers;
 using NCode.Identity.Dispatch;
+using NCode.Identity.OpenId.Authentication.Logging;
 using NCode.Identity.OpenId.Authentication.OutboundHttp;
 
 namespace NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthentication.Delivery;
@@ -15,12 +17,15 @@ namespace NCode.Identity.OpenId.Authentication.Endpoints.BackchannelAuthenticati
 /// <c>client_notification_endpoint</c>, authenticated with the client notification token. A delivery failure throws so
 /// the <see cref="IJobDispatcher"/> retries the job (up to its attempt limit), giving CIBA push and ping delivery
 /// at-least-once semantics. The response body is never read: the delivery waits for the status line and headers only,
-/// so a hostile endpoint cannot make the server buffer a body.
+/// so a hostile endpoint cannot make the server buffer a body. A failed delivery logs its cause before it throws.
 /// </summary>
-internal sealed class CibaDeliveryJobHandler(IHttpClientFactory httpClientFactory)
-    : IDispatchJobHandler<CibaDeliveryJob>
+internal sealed class CibaDeliveryJobHandler(
+    IHttpClientFactory httpClientFactory,
+    ILogger<CibaDeliveryJobHandler> logger
+) : IDispatchJobHandler<CibaDeliveryJob>
 {
     private IHttpClientFactory HttpClientFactory { get; } = httpClientFactory;
+    private ILogger Logger { get; } = logger;
 
     /// <inheritdoc />
     public async ValueTask HandleAsync(
@@ -75,13 +80,36 @@ internal sealed class CibaDeliveryJobHandler(IHttpClientFactory httpClientFactor
         }
 
         var httpClient = HttpClientFactory.CreateClient(GuardedHttpClient.Name);
-        using var response = await httpClient.SendAsync(
-            requestMessage,
-            HttpCompletionOption.ResponseHeadersRead,
-            cancellationToken
-        );
 
-        // A non-success status throws, signaling the dispatcher to retry with back-off.
-        response.EnsureSuccessStatusCode();
+        try
+        {
+            using var response = await httpClient.SendAsync(
+                requestMessage,
+                HttpCompletionOption.ResponseHeadersRead,
+                cancellationToken
+            );
+
+            // A non-success status throws, signaling the dispatcher to retry with back-off.
+            response.EnsureSuccessStatusCode();
+        }
+        catch (Exception exception)
+            when (exception is HttpRequestException
+                || (
+                    exception is OperationCanceledException
+                    && !cancellationToken.IsCancellationRequested
+                )
+            )
+        {
+            // The delivery has no timeout source of its own: the guarded client's resilience timeout
+            // surfaces as a TimeoutException in the chain, which Classify names.
+            Logger.CibaDeliveryFailed(
+                job.ClientId,
+                job.EndpointUrl,
+                OutboundFetchFailureReasons.Classify(exception, timedOut: false),
+                exception
+            );
+
+            throw;
+        }
     }
 }

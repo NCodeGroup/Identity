@@ -70,7 +70,9 @@ client that configuration seeds.**
 7. **It is a development and test convenience, opt-in through `BootstrapAdminOptions`.** `BootstrapAdmin:ClientId`,
    `BootstrapAdmin:ClientSecret` (Base64Url-encoded) and `BootstrapAdmin:TenantId` are required once configured, and
    `TenantId` names a host's static tenant or the root tenant. Without an id and a secret nothing is seeded or
-   conferred. `AddProductionSafety` refuses a configured bootstrap client in Production, where the first
+   conferred. `AddDevelopmentEnvironment` is the only registration that binds the section and registers the client's
+   handlers; elsewhere `IOptions<BootstrapAdminOptions>` resolves unbound and disabled. `AddProductionSafety` refuses a
+   configured bootstrap client in Production, where the first
    administrator is the root that instance setup creates
    ([ADR-1512](1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 8. **`BootstrapAdminSeedHandler` seeds the client.** It is an `ICommandHandler<SeedTenantCommand>`

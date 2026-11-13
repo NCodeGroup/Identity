@@ -105,9 +105,8 @@ public static class IdentityServerBuilderExtensions
         /// jobs the in-process dispatcher queues and runs at once, and what a dispatch does when the queue is
         /// full.</description></item>
         /// </list>
-        /// The top-level <c>BootstrapAdmin</c> section binds <see cref="BootstrapAdminOptions"/>, and the top-level
-        /// <c>SecretProtection</c> section binds <see cref="SecretProtectionOptions"/>: it names the root key provider
-        /// that protects the stored secrets and the Data Protection key ring at rest. The top-level
+        /// The top-level <c>SecretProtection</c> section binds <see cref="SecretProtectionOptions"/>: it names the root
+        /// key provider that protects the stored secrets and the Data Protection key ring at rest. The top-level
         /// <c>ApiReference</c> section binds <see cref="IdentityServerApiReferenceOptions"/>, which decide whether the
         /// OpenAPI document and the API reference page are served.
         /// </summary>
@@ -160,11 +159,6 @@ public static class IdentityServerBuilderExtensions
             );
             var inProcessJobDispatcherSection = openIdSection.GetSection(
                 InProcessJobDispatcherOptions.SectionName
-            );
-            // The bootstrap administrator credential is sourced from its own top-level section so it can be supplied
-            // out of band (for example, environment variables); absent it, the feature stays inert (ADR-1044).
-            var bootstrapAdminSection = configuration.GetSection(
-                BootstrapAdminOptions.DefaultSectionName
             );
             var apiReferenceSection = configuration.GetSection(
                 IdentityServerApiReferenceOptions.DefaultSectionName
@@ -233,11 +227,6 @@ public static class IdentityServerBuilderExtensions
             serviceCollection
                 .AddOptions<InProcessJobDispatcherOptions>()
                 .Configure(options => inProcessJobDispatcherSection.BindStrictly(options))
-                .ValidateOnStart();
-
-            serviceCollection
-                .AddOptions<BootstrapAdminOptions>()
-                .Configure(options => bootstrapAdminSection.BindStrictly(options))
                 .ValidateOnStart();
 
             serviceCollection

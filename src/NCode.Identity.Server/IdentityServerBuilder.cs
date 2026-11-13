@@ -13,10 +13,7 @@ using NCode.Identity.Jose;
 using NCode.Identity.Jwt;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Authentication;
-using NCode.Identity.OpenId.Authentication.Tokens.Commands;
 using NCode.Identity.OpenId.Management;
-using NCode.Identity.OpenId.Management.Clients;
-using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Registration;
 using NCode.Identity.Secrets;
 using NCode.Identity.Secrets.Persistence;
@@ -24,7 +21,6 @@ using NCode.Identity.Server.DevelopmentEnvironment.OpenApi;
 using NCode.Identity.Server.OpenApi;
 using NCode.Identity.Settings;
 using NCode.Identity.SharedState;
-using NCode.Mediator;
 using NCode.PropertyBag;
 
 namespace NCode.Identity.Server;
@@ -113,34 +109,6 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
             OpenIdCoreLibraryBuilder.AddOpenIdAuthenticationLibrary(JoseLibraryBuilder);
         OpenIdManagementLibraryBuilder = OpenIdCoreLibraryBuilder.AddOpenIdManagementLibrary();
 
-        // The bootstrap administrator client's management tokens are stamped with the GlobalAdmin role at issuance
-        // (ADR-1044); the handler is a no-op unless a bootstrap client id is configured.
-        serviceCollection.TryAddEnumerable(
-            ServiceDescriptor.Singleton<
-                ICommandHandler<GetAccessTokenPayloadClaimsCommand>,
-                BootstrapAdminAccessTokenClaimsHandler
-            >()
-        );
-
-        // The bootstrap administrator client's secret and authority come from host configuration, so the management
-        // API refuses every change to it (ADR-1417).
-        serviceCollection.TryAddEnumerable(
-            ServiceDescriptor.Singleton<
-                IHostManagedClientPolicy,
-                BootstrapAdminHostManagedClientPolicy
-            >()
-        );
-
-        // The bootstrap administrator client is seeded into the one tenant its options name, on the same tenant seed
-        // fan-out that seeds the system resource servers (ADR-1166); inert unless a bootstrap client is
-        // configured, and that configuration must name the tenant.
-        serviceCollection.TryAddEnumerable(
-            ServiceDescriptor.Singleton<
-                ICommandHandler<SeedTenantCommand>,
-                BootstrapAdminSeedHandler
-            >()
-        );
-
         // Every configuration seeder checks the clients it creates with this validator before it stores them.
         serviceCollection.TryAddSingleton<SeededClientValidator>();
 
@@ -148,12 +116,6 @@ internal sealed class IdentityServerBuilder : ServiceBuilder<IdentityServer>, II
         // it.
         serviceCollection.TryAddSingleton<SeededLocalAccountValidator>();
 
-        serviceCollection.TryAddEnumerable(
-            ServiceDescriptor.Singleton<
-                IValidateOptions<BootstrapAdminOptions>,
-                BootstrapAdminOptionsValidator
-            >()
-        );
         serviceCollection.TryAddEnumerable(
             ServiceDescriptor.Singleton<
                 IValidateOptions<IdentityServerApiReferenceOptions>,

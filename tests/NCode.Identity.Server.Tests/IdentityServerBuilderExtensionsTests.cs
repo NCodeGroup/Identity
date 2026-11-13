@@ -445,34 +445,30 @@ public sealed class IdentityServerBuilderExtensionsTests : BaseTests
     }
 
     [Fact]
-    public void AddConfiguration_WhenBootstrapAdminConfigured_BindsIt()
+    public void AddConfiguration_DoesNotRegisterBootstrapAdmin()
     {
-        using var serviceProvider = BuildConfiguredServiceProvider(
-            new Dictionary<string, string?>
-            {
-                ["BootstrapAdmin:ClientId"] = "bootstrap",
-                ["BootstrapAdmin:ClientSecret"] = "c2VjcmV0",
-            }
-        );
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["BootstrapAdmin:ClientId"] = "bootstrap",
+                    ["BootstrapAdmin:ClientSecret"] = "c2VjcmV0",
+                }
+            )
+            .Build();
+        var serviceCollection = new ServiceCollection();
+        var builder = CreateStrictMock<IIdentityServerBuilder>();
+        builder.Setup(x => x.ServiceCollection).Returns(serviceCollection).Verifiable();
 
+        builder.Object.AddConfiguration(configuration);
+
+        Assert.DoesNotContain(
+            serviceCollection,
+            descriptor => descriptor.ImplementationType == typeof(BootstrapAdminSeedHandler)
+        );
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<BootstrapAdminOptions>>().Value;
-
-        Assert.Equal("bootstrap", options.ClientId);
-        Assert.True(options.IsEnabled);
-    }
-
-    [Fact]
-    public void AddConfiguration_WhenBootstrapAdminHasUnknownKey_Throws()
-    {
-        using var serviceProvider = BuildConfiguredServiceProvider(
-            new Dictionary<string, string?> { ["BootstrapAdmin:Secret"] = "c2VjcmV0" }
-        );
-
-        var exception = Assert.Throws<InvalidOperationException>(() =>
-            serviceProvider.GetRequiredService<IOptions<BootstrapAdminOptions>>().Value
-        );
-
-        Assert.Contains("'BootstrapAdmin'", exception.Message, StringComparison.Ordinal);
+        Assert.False(options.IsEnabled);
     }
 
     [Fact]

@@ -75,6 +75,7 @@ public static class DefaultRegistration
 
             serviceCollection.TryAddSingleton<SetupProcessClock>();
             serviceCollection.TryAddSingleton<ISetupTokenService, DefaultSetupTokenService>();
+            serviceCollection.TryAddSingleton<IInstanceSetupService, DefaultInstanceSetupService>();
 
             return builder;
         }

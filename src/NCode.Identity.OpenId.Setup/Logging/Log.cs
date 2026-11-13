@@ -8,7 +8,7 @@ namespace NCode.Identity.OpenId.Setup.Logging;
 
 /// <summary>
 /// Provides source-generated, strongly-typed log messages for the <c>NCode.Identity.OpenId.Setup</c> package: the
-/// generated setup token an operator reads once, and the replica that issued it.
+/// generated setup token an operator reads once, the replica that issued it, and the root administrator's creation.
 /// </summary>
 [ExcludeFromCodeCoverage]
 internal static partial class Log
@@ -32,5 +32,16 @@ internal static partial class Log
     internal static partial void SetupTokenIssuedByAnotherReplica(
         this ILogger logger,
         DateTimeOffset? issuedAt
+    );
+
+    [LoggerMessage(
+        EventId = EventIds.RootAdministratorCreated,
+        Level = LogLevel.Information,
+        Message = "Created the root administrator {PrincipalId} in tenant {TenantId} and marked the instance initialized."
+    )]
+    internal static partial void RootAdministratorCreated(
+        this ILogger logger,
+        string tenantId,
+        string principalId
     );
 }

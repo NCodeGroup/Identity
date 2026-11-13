@@ -48,5 +48,23 @@ public class OutboundUriRedactionTests : BaseTests
         Assert.Equal("/relative/path", result);
     }
 
+    [Fact]
+    public void ForLog_WhenTheUriHasUserInfo_ReturnsTheUriWithoutIt()
+    {
+        var uri = new Uri("https://user:secret@example.com:8443/jwks?t=1#f");
+
+        var result = OutboundUriRedaction.ForLog(uri);
+
+        Assert.Equal("https://example.com:8443/jwks", result);
+    }
+
+    [Fact]
+    public void ForLog_WhenTheStringHasUserInfo_ReturnsItWithoutIt()
+    {
+        var result = OutboundUriRedaction.ForLog("https://user:secret@example.com:8443/jwks?t=1#f");
+
+        Assert.Equal("https://example.com:8443/jwks", result);
+    }
+
     #endregion
 }

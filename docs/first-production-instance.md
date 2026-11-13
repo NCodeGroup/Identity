@@ -139,7 +139,22 @@ Setup derives the redirect, post-logout and back-channel logout URIs from `BaseU
 the chart's [Management console](../charts/ncode-identity-host/README.md#management-console) section lists, except
 `jwks_uri`. The registration passes the same validation as one made through the management API.
 
-Derive the public JWK Set from the console's `mgmt-client.pem` key. Never put the private key in it.
+Derive the public JWK Set from the console's `mgmt-client.pem` key with `openssl`, `base64`, `tr`, `head` and `tail`.
+The set holds one ES256 signing key: its `kid` is the key file's name without its extension (`mgmt-client`), its `use`
+is `sig` and its `alg` is `ES256`, because the console signs its client assertions with that `kid`. The private key
+never appears in it. The last 65 bytes of a P-256 SubjectPublicKeyInfo are `04 || X || Y`, so the block cuts `x` and
+`y` from them:
+
+```bash
+openssl pkey -in mgmt-client.pem -pubout -outform DER -out mgmt-client.pub.der
+b64url() { base64 | tr -d '=\n' | tr '+/' '-_'; }
+x=$(tail -c 64 mgmt-client.pub.der | head -c 32 | b64url)
+y=$(tail -c 32 mgmt-client.pub.der | b64url)
+printf '{"keys":[{"kty":"EC","crv":"P-256","use":"sig","alg":"ES256","kid":"mgmt-client","x":"%s","y":"%s"}]}\n' "$x" "$y"
+```
+
+A running console publishes the same public set at `https://<console-host>/bff/jwks`
+(`Bff:Frontends:mgmt:Jwks:Enabled`); it is public data and never holds the DPoP key.
 
 With the chart, the setup Job passes these values from `setup.managementConsole.clientId`, `baseUrl` and `jwks`, and
 emits them only when `baseUrl` is set.

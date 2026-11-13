@@ -266,7 +266,8 @@ created either. Setup imports each JWK Set by value, so neither client needs a `
 
 - **The management console's client** is a confidential client of the control-plane tenant, with the metadata that
   [Management console](#management-console) lists, except `jwks_uri`. Set `setup.managementConsole.baseUrl` to the origin
-  of `managementConsole.host` and `setup.managementConsole.jwks` to the public JWK Set of the console's `mgmt-client.pem`.
+  of `managementConsole.host` and `setup.managementConsole.jwks` to the public JWK Set of the console's `mgmt-client.pem`
+  ([how to derive it](../../docs/first-production-instance.md#the-management-consoles-client)).
 - **The automation client** is a platform-owned `client_credentials` machine client that holds `GlobalAdmin` and
   authenticates with `private_key_jwt`, so a GitOps install manages the instance without the development bootstrap
   client. Setting `setup.automation.clientId` and `setup.automation.jwks` registers it. The platform's

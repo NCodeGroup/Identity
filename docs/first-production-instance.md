@@ -91,6 +91,13 @@ at least 15 characters and must satisfy the control-plane tenant's password poli
 management console's client in the same save, as [The management console's client](#the-management-consoles-client)
 describes.
 
+A deployment that names its console in `Setup__Wizard__ManagementConsole__BaseUrl` and
+`Setup__Wizard__ManagementConsole__ClientId`, as the chart does with `managementConsole.enabled`, opens the console step
+checked, with the client ID and the console URL filled. The browser reads the console's public JWK Set from
+`<console>/bff/jwks` and fills it in too, so the operator submits without typing. The fragment parameters `consoleUrl`
+and `consoleClientId` beside `token` fill what the deployment leaves empty. The page may read keys only from the console
+origin that the deployment names. When the read fails, the step says why and takes a pasted set.
+
 The setup API is rate-limited to 10 requests per minute per client IP address. Behind a reverse proxy, configure the
 host with forwarded headers, or every client shares the proxy's address and one person's attempts limit everyone's.
 
@@ -158,6 +165,17 @@ A running console publishes the same public set at `https://<console-host>/bff/j
 
 With the chart, the setup Job passes these values from `setup.managementConsole.clientId`, `baseUrl` and `jwks`, and
 emits them only when `baseUrl` is set.
+
+The wizard's console step is prefilled from two more settings, which the host reads when it serves the wizard:
+
+| Setting                                      | Meaning                                                                                        |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `Setup__Wizard__ManagementConsole__BaseUrl`  | The console's public https origin with no path. The wizard proposes it and reads keys from it. |
+| `Setup__Wizard__ManagementConsole__ClientId` | The client ID the wizard proposes. The default is `mgmt-console`.                              |
+
+They only prefill the wizard and register nothing: the registration is the one the operator submits at the console
+step. With `managementConsole.enabled`, the chart sets them to `https://<managementConsole.host>` and
+`setup.managementConsole.clientId`.
 
 ### The automation client
 

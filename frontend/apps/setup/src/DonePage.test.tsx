@@ -154,15 +154,15 @@ describe('DonePage', () => {
     expect(button).not.toHaveTextContent('Copied');
   });
 
-  it('links to the guide to the first use of a Production instance', () => {
+  it('links to the guide to the first use of a deployed instance', () => {
     renderPage(ROOT);
 
     const link = screen.getByRole('link', {
-      name: 'Read the guide to the first use of a Production instance',
+      name: 'Read the guide to the first use of a deployed instance',
     });
     expect(link).toHaveAttribute(
       'href',
-      'https://github.com/NCodeGroup/identity/blob/main/docs/first-production-instance.md',
+      'https://github.com/NCodeGroup/identity/blob/main/docs/first-deployed-instance.md',
     );
     expect(link).toHaveAttribute('href', FIRST_INSTANCE_DOCS_URL);
     expect(link).toHaveAttribute('rel', 'noopener noreferrer');

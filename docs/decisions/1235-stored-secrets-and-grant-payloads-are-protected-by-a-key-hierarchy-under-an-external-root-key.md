@@ -69,9 +69,9 @@ root lives outside the database.
    or `Unprotect`) makes the grant absent (`null`, `false` or skipped) and logs the Warning event
    `GrantPayloadUnreadable`. This fails closed: an altered or foreign row never authorizes anything.
    `ConsumeOnceOrDefault` checks the payload before it marks a grant consumed.
-9. **Production** refuses the `ephemeral` provider, an inline local key under any provider (an unused root key in
-   configuration is still a leaked key), and a missing decision about recovery, reporting them together with every other
-   production-safety finding.
+9. **A deployment** refuses the `ephemeral` provider, an inline local key under any provider (an unused root key in
+   configuration is still a leaked key), and a missing decision about recovery, reporting them together with every
+   other deployment-safety finding.
 10. **Deletion.** Deleting a tenant deletes its master keys, so its secrets and grant payloads are unreadable in the live
     database. A backup that holds the wrapped master key stays readable until it expires.
 11. **Buffers** follow
@@ -130,7 +130,7 @@ root lives outside the database.
   master key loads.
 - A grant whose master key was lost or replaced reads as absent and logs a warning rather than failing the request.
 - Tests cover the envelope binding to owner, purpose and item id, the case-insensitive binding, the partial unique index,
-  unreadable-payload handling and the production-safety findings.
+  unreadable-payload handling and the deployment-safety findings.
 
 ## References
 

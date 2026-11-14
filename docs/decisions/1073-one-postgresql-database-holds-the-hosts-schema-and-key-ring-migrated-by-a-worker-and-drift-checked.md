@@ -37,7 +37,7 @@ key ring. A worker applies the migrations, the host never does, and the build fa
   [ADR-1509](1509-the-host-chart-passes-a-postgres-operators-secret-as-the-connections-parts-and-the-host-assembles-the-npgsql-connection.md)),
   registers `OpenIdDbContext` with `UseOpenIdNpgsql`, and tags an `openiddb` `AddDbContextCheck<OpenIdDbContext>` with
   `HealthCheckTags.Readiness`. Without a database connection, as in hermetic test hosts that replace the context, the
-  host uses an in-memory `OpenIdDbContext` and configures no Data Protection repository, which Production refuses.
+  host uses an in-memory `OpenIdDbContext` and configures no Data Protection repository, which a deployment refuses.
 - **A host-owned database project.** The published `NCode.Identity.OpenId.Persistence.EntityFramework` ships the model
   only. The unpacked `NCode.Identity.OpenId.Host.Database` holds the Npgsql wiring (`HostDatabase`, which points
   `MigrationsAssembly` at itself), the design-time factories `OpenIdDbContextDesignTimeFactory` and

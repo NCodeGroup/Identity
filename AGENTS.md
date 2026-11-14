@@ -205,6 +205,7 @@ so a bare ADR number names one record. Eleven family records override template r
   supersedes project-template ADR-0119's decision 5 and decision 3's Production condition, because a host runs the
   deployment posture in every environment unless `LocalDevelopment:Enabled` is set, and an environment name relaxes
   nothing.
+
 One family record conflicts with a template record:
 [ADR-1242](docs/decisions/1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md) with
 project-template ADR-0141, tracked in [#25](https://github.com/NCodeGroup/identity/issues/25).

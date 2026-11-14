@@ -126,10 +126,10 @@ composition root chooses: in-process for one replica, Valkey for several.**
    ([ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md))
    runs a Valkey container and injects its connection string, so local development runs the adapter a multi-replica
    deployment runs.
-9. **The artifact that sets the replica count enforces it.** The production-safety gate does not require Valkey, because a
-   replica cannot know how many replicas run and a single-replica production deployment on the in-process adapters is
-   correct. The host's Helm chart, which sets the replica count, fails a `replicaCount` above 1 without
-   `valkey.existingSecret` or `valkey.parts.existingSecret`.
+9. **The artifact that sets the replica count enforces it.** The deployment gate (`AddDeploymentSafety`) does not
+   require Valkey, because a replica cannot know how many replicas run and a single-replica production deployment on
+   the in-process adapters is correct. The host's Helm chart, which sets the replica count, fails a `replicaCount` above
+   1 without `valkey.existingSecret` or `valkey.parts.existingSecret`.
 10. **Metrics.** Operations are recorded under the shared-state meter, `value_set.*` and `index_set.*` among them
     ([ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md)).
 

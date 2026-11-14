@@ -57,11 +57,17 @@ internal sealed class BackChannelLogoutDeliveryJobHandler(
         catch (Exception exception)
             when (OutboundFetchFailureReasons.IsFetchFailure(exception, cancellationToken))
         {
-            // The delivery has no timeout source of its own: the guarded client's resilience timeout
-            // surfaces as a TimeoutException in the chain, which Classify names.
-            var uriForLog = OutboundUriRedaction.ForLog(job.LogoutUri);
-            var reason = OutboundFetchFailureReasons.Classify(exception, timedOut: false);
-            Logger.BackChannelLogoutDeliveryFailed(job.ClientId, uriForLog, reason, exception);
+            OutboundDeliveryFailureLog.Report(
+                job.LogoutUri,
+                exception,
+                (uriForLog, reason) =>
+                    Logger.BackChannelLogoutDeliveryFailed(
+                        job.ClientId,
+                        uriForLog,
+                        reason,
+                        exception
+                    )
+            );
 
             throw;
         }

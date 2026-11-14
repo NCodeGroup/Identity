@@ -1073,6 +1073,100 @@ one component owns it. Change the policy the same way with `StrictTransportSecur
 only after submitting the domain to the browsers' preload list: it requires `IncludeSubDomains` and a `MaxAge` of at
 least 365 days, and the host refuses to start without them.
 
+## GitOps
+
+A GitOps tool applies a release from Git, so what `helm install` is given by hand becomes manifests: the namespace, the
+Secrets the chart references, the chart's source and the release's values. This section deploys the chart with
+[Flux](https://fluxcd.io/) 2.3 or later, whose `HelmRelease` is the `helm.toolkit.fluxcd.io/v2` API. `examples/flux/`
+holds the manifests, and `ci/gitops-values.yaml` holds the release's values as a values file, which the `Host chart`
+workflow lints and renders ([What CI proves for the example](#what-ci-proves-for-the-example)).
+
+The release needs cert-manager, which issues the pods' certificates, and an ingress controller; the example uses
+Traefik with its Kubernetes CRD provider (see [Routing to the pods](#routing-to-the-pods)). Make the Flux
+`Kustomization` or `HelmRelease` of each add-on a `dependsOn` of the release, so their CRDs exist before the chart's
+`Certificate` and `ServersTransport` are applied.
+
+The manifests live in the cluster's Git repository in two folders:
+
+```text
+identity/
+  prerequisites/   the namespace, the Secrets and the ConfigMap the release references
+  release/         the HelmRepository and the HelmRelease
+```
+
+Two Flux `Kustomization`s apply the folders in order. The release's `dependsOn` names the prerequisites, so Flux creates
+every Secret before a pod asks for one. They live with Flux's own manifests for the cluster, and their `sourceRef`
+names its `GitRepository`, `flux-system` here (`examples/flux/kustomizations.yaml`):
+
+```yaml
+# The two Flux Kustomizations that deploy the host chart: the prerequisites first, then the release.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: identity-prerequisites
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./identity/prerequisites
+  prune: true
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: identity
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./identity/release
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: identity-prerequisites
+```
+
+### The prerequisites
+
+The chart takes no secret values, so every Secret and ConfigMap it names exists before the release; a pod that names a
+missing Secret stays in `CreateContainerConfigError`. The example's release names these, in the `identity` namespace:
+
+| Kind        | Name                       | Keys                            | Holds                                                                                  |
+|-------------|----------------------------|---------------------------------|----------------------------------------------------------------------------------------|
+| `Secret`    | `identity-database`        | `connection-string`             | The Npgsql connection string of the database, or use `database.parts.existingSecret`.  |
+| `Secret`    | `identity-root-key`        | `key`                           | The local root key; see [Creating the local root key Secret](#creating-the-local-root-key-secret). |
+| `ConfigMap` | `identity-recovery-key`    | `recovery-public.pem`           | The recovery public key; see [Creating the recovery key](#creating-the-recovery-key).  |
+| `Secret`    | `identity-setup-token`     | `token`                         | The setup token, at least 32 characters; see [First use](#first-use).                  |
+| `Secret`    | `identity-setup-root`      | `userName`, `email`, `password` | The root administrator's credential for the setup Job; the password has at least 15 characters. |
+| `Secret`    | `identity-mgmt-client-key` | `mgmt-client.pem`               | The console's client key; see [Management console](#management-console).               |
+| `Secret`    | `identity-mgmt-dpop-key`   | `mgmt-dpop.pem`                 | The console's DPoP key; see [Management console](#management-console).                 |
+
+Generate each manifest with `kubectl create ... --dry-run=client -o yaml`, encrypt a Secret's `data` with
+[SOPS](https://fluxcd.io/flux/guides/mozilla-sops/), and commit the result under `prerequisites/`:
+
+```bash
+kubectl -n identity create secret generic identity-setup-token \
+  --from-literal=token="$(openssl rand -base64 32)" --dry-run=client -o yaml > prerequisites/identity-setup-token.yaml
+sops --encrypt --encrypted-regex '^(data|stringData)$' --in-place prerequisites/identity-setup-token.yaml
+```
+
+The `identity-prerequisites` `Kustomization` decrypts them with the age key in the `sops-age` Secret of `flux-system`
+(`decryption` in `examples/flux/kustomizations.yaml`). An External Secrets `ExternalSecret` or a Sealed Secret that
+writes the same Secret with the same keys works the same way. The recovery public key is not secret: commit its
+ConfigMap as it is, from `kubectl -n identity create configmap identity-recovery-key --from-file=recovery-public.pem
+--dry-run=client -o yaml`. Never commit a Secret unencrypted, because Git keeps it in its history, and keep the root key
+and the recovery private key backed up offline as [Secret protection](#secret-protection) says: the encrypted manifest
+is a backup only when its age key is one too. Once the instance is initialized, set `setup.job.enabled` to `false` and
+delete the setup Secrets.
+
 ## API reference
 
 The host serves neither the OpenAPI document (`/openapi/v1.json`) nor the Scalar API reference page (`/scalar/v1`) by

@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using NCode.Identity.AspNetCore.Options;
-using NCode.Identity.Registration;
 
 namespace NCode.Identity.AspNetCore;
 
@@ -50,13 +49,13 @@ public static class LocalDevelopmentRegistration
                 return serviceCollection;
             }
 
-            var section = configuration.GetSection(LocalDevelopmentOptions.DefaultSectionName);
-
             // ValidateOnStart materializes the options as the host starts, so a switch that the environment refuses
             // stops the host before it accepts traffic (ADR-1137).
             serviceCollection
                 .AddOptions<LocalDevelopmentOptions>()
-                .Configure(options => section.BindStrictly(options))
+                .Configure(options =>
+                    LocalDevelopmentConfiguration.BindSection(configuration, options)
+                )
                 .ValidateOnStart();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<

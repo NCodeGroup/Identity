@@ -16,11 +16,11 @@ public sealed class LocalDevelopmentRegistrationTests
     private static IConfiguration CreateConfiguration(Dictionary<string, string?> values) =>
         new ConfigurationBuilder().AddInMemoryCollection(values).Build();
 
-    private static ServiceCollection CreateServices()
+    private static ServiceCollection CreateServiceCollection()
     {
-        var services = new ServiceCollection();
-        services.AddSingleton<IHostEnvironment>(new TestHostEnvironment());
-        return services;
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton<IHostEnvironment>(new TestHostEnvironment());
+        return serviceCollection;
     }
 
     #region AddLocalDevelopmentOptions Tests
@@ -28,14 +28,14 @@ public sealed class LocalDevelopmentRegistrationTests
     [Fact]
     public void AddLocalDevelopmentOptions_WhenEnabledIsTrue_BindsTheValue()
     {
-        var services = CreateServices();
-        services.AddLocalDevelopmentOptions(
+        var serviceCollection = CreateServiceCollection();
+        serviceCollection.AddLocalDevelopmentOptions(
             CreateConfiguration(
                 new Dictionary<string, string?> { ["LocalDevelopment:Enabled"] = "true" }
             )
         );
 
-        using var provider = services.BuildServiceProvider();
+        using var provider = serviceCollection.BuildServiceProvider();
 
         Assert.True(provider.GetRequiredService<IOptions<LocalDevelopmentOptions>>().Value.Enabled);
     }
@@ -43,10 +43,10 @@ public sealed class LocalDevelopmentRegistrationTests
     [Fact]
     public void AddLocalDevelopmentOptions_WhenSectionIsAbsent_BindsFalse()
     {
-        var services = CreateServices();
-        services.AddLocalDevelopmentOptions(CreateConfiguration([]));
+        var serviceCollection = CreateServiceCollection();
+        serviceCollection.AddLocalDevelopmentOptions(CreateConfiguration([]));
 
-        using var provider = services.BuildServiceProvider();
+        using var provider = serviceCollection.BuildServiceProvider();
 
         Assert.False(
             provider.GetRequiredService<IOptions<LocalDevelopmentOptions>>().Value.Enabled
@@ -56,14 +56,14 @@ public sealed class LocalDevelopmentRegistrationTests
     [Fact]
     public void AddLocalDevelopmentOptions_WithAnUnknownKey_ThrowsWhenTheOptionsAreRead()
     {
-        var services = CreateServices();
-        services.AddLocalDevelopmentOptions(
+        var serviceCollection = CreateServiceCollection();
+        serviceCollection.AddLocalDevelopmentOptions(
             CreateConfiguration(
                 new Dictionary<string, string?> { ["LocalDevelopment:Enabeld"] = "true" }
             )
         );
 
-        using var provider = services.BuildServiceProvider();
+        using var provider = serviceCollection.BuildServiceProvider();
 
         Assert.Throws<InvalidOperationException>(() =>
             provider.GetRequiredService<IOptions<LocalDevelopmentOptions>>().Value
@@ -73,16 +73,16 @@ public sealed class LocalDevelopmentRegistrationTests
     [Fact]
     public void AddLocalDevelopmentOptions_CalledTwice_RegistersOneValidator()
     {
-        var services = new ServiceCollection();
+        var serviceCollection = new ServiceCollection();
         var configuration = CreateConfiguration([]);
 
-        services.AddLocalDevelopmentOptions(configuration);
-        var countAfterFirstCall = services.Count;
-        services.AddLocalDevelopmentOptions(configuration);
+        serviceCollection.AddLocalDevelopmentOptions(configuration);
+        var countAfterFirstCall = serviceCollection.Count;
+        serviceCollection.AddLocalDevelopmentOptions(configuration);
 
-        Assert.Equal(countAfterFirstCall, services.Count);
+        Assert.Equal(countAfterFirstCall, serviceCollection.Count);
         Assert.Single(
-            services,
+            serviceCollection,
             descriptor =>
                 descriptor.ServiceType == typeof(IValidateOptions<LocalDevelopmentOptions>)
                 && descriptor.ImplementationType == typeof(LocalDevelopmentOptionsValidator)
@@ -92,11 +92,11 @@ public sealed class LocalDevelopmentRegistrationTests
     [Fact]
     public void AddLocalDevelopmentOptions_ReturnsTheSameServiceCollection()
     {
-        var services = new ServiceCollection();
+        var serviceCollection = new ServiceCollection();
 
-        var result = services.AddLocalDevelopmentOptions(CreateConfiguration([]));
+        var result = serviceCollection.AddLocalDevelopmentOptions(CreateConfiguration([]));
 
-        Assert.Same(services, result);
+        Assert.Same(serviceCollection, result);
     }
 
     #endregion

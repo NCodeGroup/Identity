@@ -14,6 +14,17 @@ namespace NCode.Identity.AspNetCore;
 [PublicAPI]
 public static class LocalDevelopmentConfiguration
 {
+    /// <summary>
+    /// Binds the <c>LocalDevelopment</c> configuration section strictly. It is the one binding of the section that both
+    /// the registration-time read and the registered options use.
+    /// </summary>
+    /// <param name="configuration">The <see cref="IConfiguration"/> to read the <c>LocalDevelopment</c> section from.</param>
+    /// <param name="options">The <see cref="LocalDevelopmentOptions"/> to bind the section to.</param>
+    internal static void BindSection(
+        IConfiguration configuration,
+        LocalDevelopmentOptions options
+    ) => configuration.GetSection(LocalDevelopmentOptions.DefaultSectionName).BindStrictly(options);
+
     /// <param name="configuration">The <see cref="IConfiguration"/> to read the local development switch from.</param>
     extension(IConfiguration configuration)
     {
@@ -30,8 +41,7 @@ public static class LocalDevelopmentConfiguration
             ArgumentNullException.ThrowIfNull(configuration);
 
             var options = new LocalDevelopmentOptions();
-            var section = configuration.GetSection(LocalDevelopmentOptions.DefaultSectionName);
-            section.BindStrictly(options);
+            BindSection(configuration, options);
 
             return options.Enabled;
         }

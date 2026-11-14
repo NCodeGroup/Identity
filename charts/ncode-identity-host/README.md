@@ -1167,6 +1167,151 @@ and the recovery private key backed up offline as [Secret protection](#secret-pr
 is a backup only when its age key is one too. Once the instance is initialized, set `setup.job.enabled` to `false` and
 delete the setup Secrets.
 
+### Pod Security
+
+The release's namespace should enforce the `restricted` Pod Security level, which the chart's pods and Jobs are built
+for: a namespace that enforces it rejects any pod that asks for more. The example's namespace also audits and warns on
+`restricted`, and its `kustomize.toolkit.fluxcd.io/prune: disabled` annotation stops Flux from pruning the namespace,
+which would delete the release, its Secrets and its pods (`examples/flux/prerequisites/namespace.yaml`):
+
+```yaml
+# The release's namespace enforces the restricted Pod Security Standard, which the chart's pods meet.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: identity
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+  annotations:
+    # Pruning the namespace would delete the release, its Secrets and its pods.
+    kustomize.toolkit.fluxcd.io/prune: disabled
+```
+
+### The chart source and the release
+
+The chart is an OCI artifact in GHCR ([Published artifacts](#published-artifacts)), so its source is a `HelmRepository`
+of `type: oci`. The package is public, so the repository needs no `secretRef`
+(`examples/flux/release/helmrepository.yaml`):
+
+```yaml
+# The chart is published as an OCI artifact; a HelmRepository of type oci names the registry path that holds it. The
+# package is public, so the repository needs no secretRef.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: ncode-identity
+  namespace: identity
+spec:
+  type: oci
+  interval: 1h
+  url: oci://ghcr.io/ncodegroup/charts
+```
+
+The `HelmRelease` names the chart, a version range and the release's values
+(`examples/flux/release/helmrelease.yaml`):
+
+```yaml
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: identity
+  namespace: identity
+spec:
+  interval: 10m
+  # Helm waits for the pre-install and pre-upgrade migration Job, so the timeout outlasts the Job's
+  # migrations.activeDeadlineSeconds (600 seconds).
+  timeout: 15m
+  chart:
+    spec:
+      chart: ncode-identity-host
+      # The chart's appVersion pins both images, so a range that includes prereleases rolls the images out too.
+      version: ">=0.0.1-alpha"
+      sourceRef:
+        kind: HelmRepository
+        name: ncode-identity
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+      remediateLastFailure: true
+  values:
+    # The release's values: one replica behind Traefik, the management console on its own host, and the root administrator
+    # created by the setup Job. Every Secret and the ConfigMap named here exists before the release.
+    allowedHosts:
+      - id.example.com
+    tenantResolution:
+      staticSingle:
+        issuer: https://id.example.com
+    forwardedHeaders:
+      knownNetworks:
+        - 10.42.0.0/16
+    database:
+      existingSecret: identity-database
+    secretProtection:
+      rootKeyProvider: local
+      local:
+        keySecret: identity-root-key
+      recovery:
+        publicKeyConfigMap: identity-recovery-key
+    setup:
+      token:
+        existingSecret: identity-setup-token
+      job:
+        enabled: true
+        existingSecret: identity-setup-root
+    ingress:
+      enabled: true
+      controller: traefik
+      className: traefik
+      annotations:
+        cert-manager.io/cluster-issuer: letsencrypt
+        external-dns.alpha.kubernetes.io/ttl: "300"
+      hosts:
+        - host: id.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: id-example-com-tls
+          hosts:
+            - id.example.com
+    managementConsole:
+      enabled: true
+      host: manage.example.com
+      keyRings:
+        client:
+          pemSecret: identity-mgmt-client-key
+        dpop:
+          pemSecret: identity-mgmt-dpop-key
+      ingress:
+        enabled: true
+        className: traefik
+        annotations:
+          cert-manager.io/cluster-issuer: letsencrypt
+          external-dns.alpha.kubernetes.io/ttl: "300"
+        tls:
+          - secretName: manage-example-com-tls
+            hosts:
+              - manage.example.com
+```
+
+- `version: ">=0.0.1-alpha"` selects the newest chart version in the range, prereleases included, which covers every
+  `0.0.1-alpha.<n>` that a merge to `main` publishes. The chart's `appVersion` pins both images, so a newer chart version
+  rolls the host and the console out too. Name one exact version to stop following.
+- `timeout` is Helm's wait for each operation, the migration Job included, so it outlasts the Job's
+  `migrations.activeDeadlineSeconds` (600 seconds). Raise both for a long migration.
+- `install.remediation` retries a failed install three times, uninstalling between attempts. `upgrade.remediation`
+  retries a failed upgrade three times and rolls the last failure back to the previous revision, and
+  `upgrade.cleanupOnFail` removes the resources the failed upgrade created.
+- `values` is the release's values, the same text as `ci/gitops-values.yaml`. The example runs one replica without
+  Valkey, so each update has a short outage ([Updates](#updates)). For a rolling update, set `replicaCount` above 1 and
+  name `valkey.existingSecret` or `valkey.parts.existingSecret`.
+
 ## API reference
 
 The host serves neither the OpenAPI document (`/openapi/v1.json`) nor the Scalar API reference page (`/scalar/v1`) by

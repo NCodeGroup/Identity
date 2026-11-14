@@ -29,6 +29,7 @@ public class ClientCertificateProviderTests : BaseTests, IAsyncLifetime
     private FakeTimeProvider TimeProvider { get; } =
         new(new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
     private List<IDisposable> Disposables { get; } = [];
+    private List<X509Certificate2> IssuedIntermediates { get; } = [];
 
     public ClientCertificateProviderTests()
     {
@@ -42,6 +43,18 @@ public class ClientCertificateProviderTests : BaseTests, IAsyncLifetime
 
     public async Task DisposeAsync()
     {
+        // On Windows the TLS certificate context stores the issuers it is given.
+        if (OperatingSystem.IsWindows())
+        {
+            using var store = new X509Store(
+                StoreName.CertificateAuthority,
+                StoreLocation.CurrentUser
+            );
+            store.Open(OpenFlags.ReadWrite);
+            foreach (var certificate in IssuedIntermediates)
+                store.Remove(certificate);
+        }
+
         foreach (var disposable in Disposables)
             disposable.Dispose();
 
@@ -510,7 +523,7 @@ public class ClientCertificateProviderTests : BaseTests, IAsyncLifetime
 
         using var rootKey = RSA.Create(2048);
         var rootRequest = new CertificateRequest(
-            "CN=test-root",
+            $"CN=test-root-{Guid.NewGuid():N}",
             rootKey,
             HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1
@@ -525,7 +538,7 @@ public class ClientCertificateProviderTests : BaseTests, IAsyncLifetime
 
         using var intermediateKey = RSA.Create(2048);
         var intermediateRequest = new CertificateRequest(
-            "CN=test-intermediate",
+            $"CN=test-intermediate-{Guid.NewGuid():N}",
             intermediateKey,
             HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1
@@ -554,10 +567,12 @@ public class ClientCertificateProviderTests : BaseTests, IAsyncLifetime
         AddUsages(leafRequest, ClientAuthOid, X509KeyUsageFlags.DigitalSignature);
         using var leafPublic = leafRequest.Create(intermediate, notBefore, notAfter, [5, 6, 7, 8]);
 
-        return (
-            Track(leafPublic.CopyWithPrivateKey(leafKey)),
-            Track(X509CertificateLoader.LoadCertificate(intermediatePublic.RawData))
+        var issuedIntermediate = Track(
+            X509CertificateLoader.LoadCertificate(intermediatePublic.RawData)
         );
+        IssuedIntermediates.Add(issuedIntermediate);
+
+        return (Track(leafPublic.CopyWithPrivateKey(leafKey)), issuedIntermediate);
     }
 
     [Fact]

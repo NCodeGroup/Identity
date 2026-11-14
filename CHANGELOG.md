@@ -2560,10 +2560,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   disable and enable a local account, reset its credential, manage its profile claims, and read and set its server-owned
   metadata. Creating an account provisions its owning `FederatedPrincipal` and its one-to-one self-issued
   `FederatedIdentity` in the same unit of work, so principal-level metadata (`ProfileMetadata` / `SystemMetadata`) has a
-  target from the moment the account exists; the metadata endpoint is the administrator-gated write path that keeps
-  `SystemMetadata` never end-user-writable. Local accounts are end-user subjects rather than ownable resources, so every
-  operation authorizes against the owning tenant scope (`TenantScopeResource`), gated by `*:local_accounts` scopes. The
-  endpoints, their validator (`ILocalAccountValidator` / `DefaultLocalAccountValidator`), the wire contracts (namespace
+  target from the moment the account exists; `LocalAccountResource.principalId` carries that principal's identifier in
+  the create, get and list answers (`null` for an account without a self-issued identity), so an account is granted a
+  role through `AddRoleHolderRequest.principalId` from its own resource, and
+  `IFederatedIdentityStore.GetByIssuerSubjectsAsync` resolves a list page's principals in one call; the metadata
+  endpoint is the administrator-gated write path that keeps `SystemMetadata` never end-user-writable. Local accounts are
+  end-user subjects rather than ownable resources, so every operation authorizes against the owning tenant scope
+  (`TenantScopeResource`), gated by `*:local_accounts` scopes. The endpoints, their validator (`ILocalAccountValidator`
+  / `DefaultLocalAccountValidator`), the wire contracts (namespace
   `NCode.Identity.OpenId.Accounts.Management.Contracts`) and `LocalAccountChangedAuditEvent` live in the account-owned
   packages `NCode.Identity.OpenId.Accounts.Management` (`AddLocalAccountManagement()`) and
   `NCode.Identity.OpenId.Accounts.Management.Abstractions`, so `NCode.Identity.OpenId.Management` does not reference
@@ -2574,8 +2578,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   `Operations`, `TenantScopeResource`, the `ManagementEndpointGroups.Tenant` group-name constant for attaching a keyed
   `IEndpointProvider` to the tenant group, and the generic audit seam
   `RecordResourceChangeAsync(HttpContext, ResourceChangeAuditEvent)`. See
-  [ADR-1057](docs/decisions/1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md) and
-  [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md).
+  [ADR-1057](docs/decisions/1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md),
+  [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) and
+  issue [#781](https://github.com/NCodeGroup/identity/issues/781).
 
 - **The management API looks up audit records.** `GET api/tenants/{tenantId}/audit-records` lists the tenant's records
   from the audit store, newest first by event time with ties broken by id, filtered by `startTime`/`endTime`,

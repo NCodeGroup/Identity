@@ -55,6 +55,27 @@ Accept: application/json
 GET {{host}}/api/tenants/{{tenantId}}/admins
 Accept: application/json
 
+### Create a local account — the answer carries its principalId, which every role grant names
+POST {{host}}/api/tenants/{{tenantId}}/local-accounts
+Content-Type: application/json
+
+{
+  "userName": "alice",
+  "password": "REPLACE_WITH_A_PASSWORD_OF_AT_LEAST_15_CHARACTERS"
+}
+
+### Grant the account the TenantAdmin role with the principalId of its resource (create, get and list all carry it)
+POST {{host}}/api/tenants/{{tenantId}}/admins
+Content-Type: application/json
+
+{
+  "principalId": "REPLACE_WITH_the_account's_principalId"
+}
+
+### List a tenant's local accounts — each carries its principalId
+GET {{host}}/api/tenants/{{tenantId}}/local-accounts?limit=50
+Accept: application/json
+
 ### List teams (central-admin)
 GET {{host}}/api/teams?limit=50
 Accept: application/json

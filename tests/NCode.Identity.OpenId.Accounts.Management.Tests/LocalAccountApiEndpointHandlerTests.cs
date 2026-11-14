@@ -20,6 +20,7 @@ using NCode.Identity.OpenId.Authentication.Subject;
 using NCode.Identity.OpenId.Contexts;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.OpenId.Management.Auditing;
+using NCode.Identity.OpenId.Management.Contracts;
 using NCode.Identity.OpenId.Management.Endpoints;
 using NCode.Identity.OpenId.Persistence.DataContracts;
 using NCode.Identity.OpenId.Persistence.Stores;
@@ -37,6 +38,7 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
     private const string LocalAccountId = "account-1";
     private const string UserName = "alice";
     private const string Password = "a-long-unlisted-passphrase";
+    private const string PrincipalIdNotChecked = "<principal id not checked>";
 
     private MockRepository MockRepository { get; }
     private Mock<IStoreManagerFactory> MockStoreManagerFactory { get; }
@@ -268,7 +270,7 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
-    private void SetupSelfIssuedIdentity()
+    private void SetupSelfIssuedIdentity(Action? onLookup = null)
     {
         var identity = new PersistedFederatedIdentity
         {
@@ -293,6 +295,7 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
                     It.IsAny<CancellationToken>()
                 )
             )
+            .Callback(() => onLookup?.Invoke())
             .ReturnsAsync(identity)
             .Verifiable();
     }
@@ -315,13 +318,39 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
-    private void SetupAuditRecorded(string resourceId = LocalAccountId)
+    // The audit's values are the serialized resource; when the principal id is checked, a null expectation matches an
+    // absent or null principalId.
+    private static bool HasPrincipalId(JsonElement? resourceValues, string? expectedPrincipalId)
+    {
+        if (
+            resourceValues is not { } values
+            || !values.TryGetProperty("principalId", out var principalId)
+            || principalId.ValueKind == JsonValueKind.Null
+        )
+        {
+            return expectedPrincipalId is null;
+        }
+
+        return principalId.ValueKind == JsonValueKind.String
+            && principalId.GetString() == expectedPrincipalId;
+    }
+
+    private void SetupAuditRecorded(
+        string resourceId = LocalAccountId,
+        string? expectedPrincipalId = PrincipalIdNotChecked
+    )
     {
         MockManagementAuditRecorder
             .Setup(x =>
                 x.RecordResourceChangeAsync(
                     It.IsAny<HttpContext>(),
-                    It.Is<ResourceChangeAuditEvent>(e => e.ResourceId == resourceId)
+                    It.Is<ResourceChangeAuditEvent>(e =>
+                        e.ResourceId == resourceId
+                        && (
+                            expectedPrincipalId == PrincipalIdNotChecked
+                            || HasPrincipalId(e.ResourceValues, expectedPrincipalId)
+                        )
+                    )
                 )
             )
             .Callback(() => Calls.Add("audit"))
@@ -329,11 +358,44 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
-    private static PersistedLocalAccount CreateAccount() =>
+    // The get route creates one store manager to read the account and resolve its principal.
+    private void SetupAccountForGet(PersistedLocalAccount? account)
+    {
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockStoreManager.Object)
+            .Verifiable(Times.Once);
+        MockStoreManager
+            .Setup(x => x.DisposeAsync())
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable(Times.Once);
+        MockStoreManager
+            .Setup(x => x.GetStore<ILocalAccountStore>())
+            .Returns(MockLocalAccountStore.Object)
+            .Verifiable();
+        MockLocalAccountStore
+            .Setup(x => x.GetByIdOrDefaultAsync(LocalAccountId, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(account)
+            .Verifiable();
+    }
+
+    private void SetupAuthorizationSucceeds() =>
+        MockAuthorizationService
+            .Setup(x =>
+                x.AuthorizeAsync(
+                    It.IsAny<ClaimsPrincipal>(),
+                    It.IsAny<object?>(),
+                    It.IsAny<IEnumerable<IAuthorizationRequirement>>()
+                )
+            )
+            .ReturnsAsync(AuthorizationResult.Success())
+            .Verifiable();
+
+    private static PersistedLocalAccount CreateAccount(string localAccountId = LocalAccountId) =>
         new()
         {
             TenantId = TenantId,
-            LocalAccountId = LocalAccountId,
+            LocalAccountId = localAccountId,
             UserName = UserName,
             Email = null,
             EmailVerified = false,
@@ -409,6 +471,7 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
         account.IsEnabled = false;
         SetupAuthorizeUpdate(error: null);
         SetupAccount(account);
+        SetupSelfIssuedIdentity();
         MockLocalAccountStore
             .Setup(x =>
                 x.UpdateAsync(
@@ -422,15 +485,7 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
-        MockManagementAuditRecorder
-            .Setup(x =>
-                x.RecordResourceChangeAsync(
-                    It.IsAny<HttpContext>(),
-                    It.Is<ResourceChangeAuditEvent>(e => e.ResourceId == LocalAccountId)
-                )
-            )
-            .Returns(ValueTask.CompletedTask)
-            .Verifiable();
+        SetupAuditRecorded(expectedPrincipalId: "principal-1");
         var httpContext = CreateHttpContext();
 
         // No CreateForTenantAsync or session scaffold: a strict-mock failure would mean enabling an account
@@ -478,7 +533,7 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
             .Callback(() => Calls.Add("sessions"))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
-        SetupAuditRecorded();
+        SetupAuditRecorded(expectedPrincipalId: "principal-1");
         var httpContext = CreateHttpContext();
 
         var result = await Handler.DisableLocalAccountAsync(
@@ -512,7 +567,7 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
             .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
             .Returns(ValueTask.CompletedTask)
             .Verifiable();
-        SetupAuditRecorded();
+        SetupAuditRecorded(expectedPrincipalId: null);
         var httpContext = CreateHttpContext();
 
         var result = await Handler.DisableLocalAccountAsync(
@@ -809,8 +864,122 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
 
         var created = Assert.IsType<Created<LocalAccountResource>>(result);
         Assert.Equal("account-ct", created.Value?.ConcurrencyToken);
+        Assert.Equal("id-1", created.Value?.PrincipalId);
         Assert.Equal("\"account-ct\"", httpContext.Response.Headers.ETag);
         Assert.Equal(["attempts", "audit"], Calls);
+    }
+
+    #endregion
+
+    #region ListLocalAccountsAsync Tests
+
+    [Fact]
+    public async Task ListLocalAccountsAsync_WhenAPageHasAccounts_ResolvesTheirPrincipalsInOneCall()
+    {
+        SetupAuthorizationSucceeds();
+        MockStoreManagerFactory
+            .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
+            .ReturnsAsync(MockStoreManager.Object)
+            .Verifiable();
+        MockStoreManager.Setup(x => x.DisposeAsync()).Returns(ValueTask.CompletedTask).Verifiable();
+        MockStoreManager
+            .Setup(x => x.GetStore<ILocalAccountStore>())
+            .Returns(MockLocalAccountStore.Object)
+            .Verifiable();
+        MockLocalAccountStore
+            .Setup(x => x.GetPageAsync(It.IsAny<PageRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(
+                new PagedResult<PersistedLocalAccount>
+                {
+                    Items = [CreateAccount("account-1"), CreateAccount("account-2")],
+                    NextCursor = null,
+                }
+            )
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.GetStore<IFederatedIdentityStore>())
+            .Returns(MockFederatedIdentityStore.Object)
+            .Verifiable();
+        MockFederatedIdentityStore
+            .Setup(x =>
+                x.GetByIssuerSubjectsAsync(
+                    AccountConstants.SelfIssuer,
+                    It.Is<IReadOnlyCollection<string>>(ids =>
+                        ids.SequenceEqual(new[] { "account-1", "account-2" })
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                (IReadOnlyList<PersistedFederatedIdentity>)
+                    [
+                        new PersistedFederatedIdentity
+                        {
+                            TenantId = TenantId,
+                            FederatedIdentityId = "identity-1",
+                            PrincipalId = "principal-1",
+                            Issuer = AccountConstants.SelfIssuer,
+                            Subject = "account-1",
+                            JoinKey = null,
+                            ConcurrencyToken = "identity-ct",
+                        },
+                    ]
+            )
+            .Verifiable(Times.Once);
+
+        var result = await Handler.ListLocalAccountsAsync(
+            CreateHttpContext(),
+            TenantId,
+            cursor: null,
+            limit: null,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<CollectionResource<LocalAccountResource>>>(result);
+        Assert.Equal(2, json.Value?.Items.Count);
+        Assert.Equal("principal-1", json.Value?.Items[0].PrincipalId);
+        Assert.Null(json.Value?.Items[1].PrincipalId);
+    }
+
+    #endregion
+
+    #region GetLocalAccountAsync Tests
+
+    [Fact]
+    public async Task GetLocalAccountAsync_WhenTheAccountHasASelfIssuedIdentity_ReturnsItsPrincipalId()
+    {
+        SetupAuthorizationSucceeds();
+        SetupAccountForGet(CreateAccount());
+        SetupSelfIssuedIdentity();
+
+        var result = await Handler.GetLocalAccountAsync(
+            CreateHttpContext(),
+            TenantId,
+            LocalAccountId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<LocalAccountResource>>(result);
+        Assert.Equal("principal-1", json.Value?.PrincipalId);
+    }
+
+    [Fact]
+    public async Task GetLocalAccountAsync_WhenTheAccountHasNoSelfIssuedIdentity_ReturnsANullPrincipalId()
+    {
+        SetupAuthorizationSucceeds();
+        SetupAccountForGet(CreateAccount());
+        SetupNoSelfIssuedIdentity();
+
+        var result = await Handler.GetLocalAccountAsync(
+            CreateHttpContext(),
+            TenantId,
+            LocalAccountId,
+            CancellationToken.None
+        );
+
+        var json = Assert.IsType<JsonHttpResult<LocalAccountResource>>(result);
+        Assert.NotNull(json.Value);
+        Assert.Null(json.Value.PrincipalId);
     }
 
     #endregion
@@ -832,6 +1001,95 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
 
         var problem = Assert.IsType<ProblemHttpResult>(result);
         Assert.Equal(StatusCodes.Status403Forbidden, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateLocalAccountAsync_WhenValidationFails_LooksUpNoIdentityAndWritesNothing()
+    {
+        SetupAuthorizeUpdate(error: null);
+        SetupAccount(CreateAccount());
+        MockLocalAccountValidator
+            .Setup(x =>
+                x.ValidateUpdateAsync(
+                    LocalAccountId,
+                    UserName,
+                    "account-ct",
+                    null,
+                    MockStoreManager.Object,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync(
+                new ManagementError
+                {
+                    StatusCode = StatusCodes.Status409Conflict,
+                    Detail = "Another local account has the username.",
+                }
+            )
+            .Verifiable();
+
+        // No identity lookup, UpdateAsync/SaveChangesAsync or audit scaffold: a strict-mock failure would mean a
+        // request that failed validation looked up the identity, wrote the account or audited the change.
+        var result = await Handler.UpdateLocalAccountAsync(
+            CreateHttpContext(),
+            TenantId,
+            LocalAccountId,
+            new UpdateLocalAccountRequest { UserName = UserName },
+            CancellationToken.None
+        );
+
+        var problem = Assert.IsType<ProblemHttpResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, problem.StatusCode);
+    }
+
+    [Fact]
+    public async Task UpdateLocalAccountAsync_WhenAccepted_AuditsTheResourceWithItsPrincipalId()
+    {
+        SetupAuthorizeUpdate(error: null);
+        SetupAccount(CreateAccount());
+        MockLocalAccountValidator
+            .Setup(x =>
+                x.ValidateUpdateAsync(
+                    LocalAccountId,
+                    UserName,
+                    "account-ct",
+                    null,
+                    MockStoreManager.Object,
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .ReturnsAsync((ManagementError?)null)
+            .Verifiable();
+        SetupSelfIssuedIdentity(onLookup: () => Calls.Add("identity"));
+        MockLocalAccountStore
+            .Setup(x =>
+                x.UpdateAsync(
+                    It.Is<PersistedLocalAccount>(updated =>
+                        updated.LocalAccountId == LocalAccountId
+                    ),
+                    It.IsAny<CancellationToken>()
+                )
+            )
+            .Callback(() => Calls.Add("update"))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        MockStoreManager
+            .Setup(x => x.SaveChangesAsync(It.IsAny<CancellationToken>()))
+            .Callback(() => Calls.Add("save"))
+            .Returns(ValueTask.CompletedTask)
+            .Verifiable();
+        SetupAuditRecorded(expectedPrincipalId: "principal-1");
+
+        var result = await Handler.UpdateLocalAccountAsync(
+            CreateHttpContext(),
+            TenantId,
+            LocalAccountId,
+            new UpdateLocalAccountRequest { UserName = UserName },
+            CancellationToken.None
+        );
+
+        Assert.IsType<NoContent>(result);
+        Assert.Equal(["identity", "update", "save", "audit"], Calls);
     }
 
     #endregion

@@ -1108,7 +1108,8 @@ metadata:
 spec:
   interval: 10m
   path: ./identity/prerequisites
-  prune: true
+  # Key material is never pruned: removing a manifest from Git leaves its object in the cluster.
+  prune: false
   wait: true
   sourceRef:
     kind: GitRepository
@@ -1166,6 +1167,10 @@ ConfigMap as it is, from `kubectl -n identity create configmap identity-recovery
 and the recovery private key backed up offline as [Secret protection](#secret-protection) says: the encrypted manifest
 is a backup only when its age key is one too. Once the instance is initialized, set `setup.job.enabled` to `false` and
 delete the setup Secrets.
+
+Flux never deletes the prerequisites: the `identity-prerequisites` Kustomization sets `prune: false`, and the namespace
+carries the prune-disabled annotation, so removing a Secret or the ConfigMap from Git leaves it in the cluster until an
+operator deletes it, which a retired deployment does on purpose.
 
 ### Pod Security
 

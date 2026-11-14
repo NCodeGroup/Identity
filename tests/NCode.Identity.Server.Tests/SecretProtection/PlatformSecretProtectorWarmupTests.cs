@@ -2,10 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using NCode.Identity.AspNetCore.Options;
 using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -18,13 +18,6 @@ namespace NCode.Identity.Server.Tests;
 public class PlatformSecretProtectorWarmupTests : BaseTests
 {
     private ISecretProtector CreateProtector() => CreateStrictMock<ISecretProtector>().Object;
-
-    private IHostEnvironment CreateEnvironment(string environmentName)
-    {
-        var mockEnvironment = CreateStrictMock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.EnvironmentName).Returns(environmentName).Verifiable();
-        return mockEnvironment.Object;
-    }
 
     private ISecretProtectorProvider CreateProvider(
         ISecretProtector protector,
@@ -48,7 +41,7 @@ public class PlatformSecretProtectorWarmupTests : BaseTests
     private PlatformSecretProtectorWarmup CreateWarmup(
         ISecretProtectorProvider provider,
         SecretProtectionOptions protectionOptions,
-        IHostEnvironment hostEnvironment,
+        bool localDevelopmentEnabled,
         PlatformSecretProtectorHolder holder,
         ILogger<PlatformSecretProtectorWarmup> logger
     ) =>
@@ -64,7 +57,7 @@ public class PlatformSecretProtectorWarmupTests : BaseTests
                 CreateLooseMock<ILogger<PlatformSecretProtectorLoader>>().Object
             ),
             Options.Create(protectionOptions),
-            hostEnvironment,
+            Options.Create(new LocalDevelopmentOptions { Enabled = localDevelopmentEnabled }),
             logger
         );
 
@@ -80,7 +73,7 @@ public class PlatformSecretProtectorWarmupTests : BaseTests
         var warmup = CreateWarmup(
             CreateProvider(protector, cancellationToken),
             new SecretProtectionOptions(),
-            CreateEnvironment(Environments.Development),
+            false,
             holder,
             CreateLooseMock<ILogger<PlatformSecretProtectorWarmup>>().Object
         );
@@ -92,7 +85,7 @@ public class PlatformSecretProtectorWarmupTests : BaseTests
     }
 
     [Fact]
-    public async Task StartAsync_ProductionWithLocalRootKey_LogsWarning()
+    public async Task StartAsync_DeploymentWithLocalRootKey_LogsWarning()
     {
         var mockLogger = CreateStrictMock<ILogger<PlatformSecretProtectorWarmup>>();
         mockLogger.Setup(x => x.IsEnabled(LogLevel.Warning)).Returns(true).Verifiable();
@@ -100,7 +93,7 @@ public class PlatformSecretProtectorWarmupTests : BaseTests
             .Setup(x =>
                 x.Log(
                     LogLevel.Warning,
-                    It.Is<EventId>(eventId => eventId.Id == EventIds.LocalRootKeyInProduction),
+                    It.Is<EventId>(eventId => eventId.Id == EventIds.LocalRootKeyInDeployment),
                     It.IsAny<It.IsAnyType>(),
                     null,
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()
@@ -110,7 +103,7 @@ public class PlatformSecretProtectorWarmupTests : BaseTests
         var warmup = CreateWarmup(
             CreateProvider(CreateProtector(), CancellationToken.None),
             new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.Local },
-            CreateEnvironment(Environments.Production),
+            false,
             new PlatformSecretProtectorHolder(),
             mockLogger.Object
         );
@@ -119,13 +112,13 @@ public class PlatformSecretProtectorWarmupTests : BaseTests
     }
 
     [Fact]
-    public async Task StartAsync_ProductionWithoutLocalRootKey_DoesNotLog()
+    public async Task StartAsync_DeploymentWithoutLocalRootKey_DoesNotLog()
     {
         // Strict logger with no setups: any log call fails the test.
         var warmup = CreateWarmup(
             CreateProvider(CreateProtector(), CancellationToken.None),
             new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.AwsKms },
-            CreateEnvironment(Environments.Production),
+            false,
             new PlatformSecretProtectorHolder(),
             CreateStrictMock<ILogger<PlatformSecretProtectorWarmup>>().Object
         );
@@ -134,13 +127,13 @@ public class PlatformSecretProtectorWarmupTests : BaseTests
     }
 
     [Fact]
-    public async Task StartAsync_LocalRootKeyOutsideProduction_DoesNotLog()
+    public async Task StartAsync_LocalRootKeyWithLocalDevelopmentEnabled_DoesNotLog()
     {
         // Strict logger with no setups: any log call fails the test.
         var warmup = CreateWarmup(
             CreateProvider(CreateProtector(), CancellationToken.None),
             new SecretProtectionOptions { RootKeyProvider = KeyWrapperNames.Local },
-            CreateEnvironment(Environments.Development),
+            true,
             new PlatformSecretProtectorHolder(),
             CreateStrictMock<ILogger<PlatformSecretProtectorWarmup>>().Object
         );
@@ -158,7 +151,7 @@ public class PlatformSecretProtectorWarmupTests : BaseTests
         var warmup = CreateWarmup(
             CreateStrictMock<ISecretProtectorProvider>().Object,
             new SecretProtectionOptions(),
-            CreateStrictMock<IHostEnvironment>().Object,
+            false,
             new PlatformSecretProtectorHolder(),
             CreateStrictMock<ILogger<PlatformSecretProtectorWarmup>>().Object
         );

@@ -58,11 +58,11 @@ internal static partial class Log
     );
 
     [LoggerMessage(
-        EventId = EventIds.LocalRootKeyInProduction,
+        EventId = EventIds.LocalRootKeyInDeployment,
         Level = LogLevel.Warning,
-        Message = "The root key is a local file; prefer a key management service."
+        Message = "A deployment uses a local root key; prefer a key management service."
     )]
-    internal static partial void LocalRootKeyInProduction(this ILogger logger);
+    internal static partial void LocalRootKeyInDeployment(this ILogger logger);
 
     [LoggerMessage(
         EventId = EventIds.KeyRingKeyUndecryptable,

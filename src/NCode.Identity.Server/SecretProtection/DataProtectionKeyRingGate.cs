@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NCode.Identity.AspNetCore.Options;
 using NCode.Identity.Server.Logging;
 
 namespace NCode.Identity.Server.SecretProtection;
@@ -22,8 +23,8 @@ namespace NCode.Identity.Server.SecretProtection;
 /// revoked without being decrypted, and a key that is revoked or expired is ignored however unreadable it is.
 /// </para>
 /// <para>
-/// A live key that cannot be decrypted is logged as an error. In the Development environment the gate revokes it, the
-/// same heal that development secret pruning applies to the master keys of tenants. In every other environment the gate
+/// A live key that cannot be decrypted is logged as an error. When <c>LocalDevelopment:Enabled</c> is true the gate
+/// revokes it, the same heal that development secret pruning applies to the master keys of tenants. Otherwise the gate
 /// throws an <see cref="InvalidOperationException"/> that names every such key and the setting that revokes them, so
 /// the host does not run with a key ring that it cannot read.
 /// </para>
@@ -32,7 +33,7 @@ namespace NCode.Identity.Server.SecretProtection;
 internal class DataProtectionKeyRingGate(
     IKeyManager keyManager,
     IOptions<DataProtectionKeyRingOptions> optionsAccessor,
-    IHostEnvironment hostEnvironment,
+    IOptions<LocalDevelopmentOptions> localDevelopmentOptions,
     TimeProvider timeProvider,
     ILogger<DataProtectionKeyRingGate> logger
 ) : IHostedService
@@ -44,24 +45,25 @@ internal class DataProtectionKeyRingGate(
         "listed in DataProtectionKeyRing:RevokedKeyIds";
 
     /// <summary>
-    /// The reason recorded when a key is revoked because the Development environment cannot decrypt it.
+    /// The reason recorded when a key is revoked because a local-development host cannot decrypt it.
     /// </summary>
-    internal const string DevelopmentRevocationReason =
-        "the platform's master key cannot decrypt it in the Development environment";
+    internal const string LocalDevelopmentRevocationReason =
+        "the platform's master key cannot decrypt it in a local-development host";
 
     private IKeyManager KeyManager { get; } = keyManager;
 
     private IOptions<DataProtectionKeyRingOptions> OptionsAccessor { get; } = optionsAccessor;
 
-    private IHostEnvironment HostEnvironment { get; } = hostEnvironment;
+    private IOptions<LocalDevelopmentOptions> LocalDevelopmentOptionsAccessor { get; } =
+        localDevelopmentOptions;
 
     private TimeProvider TimeProvider { get; } = timeProvider;
 
     private ILogger<DataProtectionKeyRingGate> Logger { get; } = logger;
 
     /// <inheritdoc />
-    /// <exception cref="InvalidOperationException">A live key cannot be decrypted and the environment is not
-    /// Development.</exception>
+    /// <exception cref="InvalidOperationException">A live key cannot be decrypted and <c>LocalDevelopment:Enabled</c>
+    /// is not true.</exception>
     public Task StartAsync(CancellationToken cancellationToken)
     {
         var now = TimeProvider.GetUtcNow();
@@ -86,9 +88,9 @@ internal class DataProtectionKeyRingGate(
             if (CanDecrypt(key, keyId))
                 continue;
 
-            if (HostEnvironment.IsDevelopment())
+            if (LocalDevelopmentOptionsAccessor.Value.Enabled)
             {
-                Revoke(keyId, DevelopmentRevocationReason);
+                Revoke(keyId, LocalDevelopmentRevocationReason);
             }
             else
             {

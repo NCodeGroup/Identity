@@ -1,0 +1,12 @@
+# The release's namespace enforces the restricted Pod Security Standard, which the chart's pods meet.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: identity
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+  annotations:
+    # Pruning the namespace would delete the release, its Secrets and its pods.
+    kustomize.toolkit.fluxcd.io/prune: disabled

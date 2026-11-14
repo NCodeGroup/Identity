@@ -535,6 +535,18 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1510](docs/decisions/1510-the-host-chart-passes-a-valkey-servers-address-and-password-as-parts-and-the-adapter-assembles-the-connection.md),
   issue [#780](https://github.com/NCodeGroup/identity/issues/780)).
 
+- **The host chart's README documents a GitOps deployment with Flux, and CI checks the example.** The `GitOps` section
+  deploys the chart from Git: two Flux `Kustomization`s apply a namespace that enforces the restricted Pod Security
+  level and the prerequisite Secrets and ConfigMap, then a `HelmRepository` of type `oci`
+  (`oci://ghcr.io/ncodegroup/charts`) and a `HelmRelease` whose version range includes prereleases, so following the
+  chart follows the images its `appVersion` pins. The `HelmRelease`'s `timeout` outlasts the pre-install and
+  pre-upgrade migration Job, a failed migration fails the release before any pod is replaced, and a failed upgrade
+  rolls back to the previous revision. The manifests under `examples/flux/` and `ci/gitops-values.yaml` hold the same
+  values: the `Host chart` workflow lints and renders them, and checks that the README shows each manifest as it is,
+  that the release names the chart and its source, follows prereleases and outlasts the migration Job, and that every
+  manifest is valid against the CRD schemas of the pinned Flux release, with unknown fields refused
+  ([#784](https://github.com/NCodeGroup/identity/issues/784)).
+
 - **The family builds with repository-wide engineering conventions.** These are Central Package Management, lockstep
   Nerdbank.GitVersioning versioning, SourceLink-to-GitHub provenance with portable symbols, a scripted Definition of
   Done, CSharpier formatting, and scoped coding-convention instruction files. `global.json` requires .NET SDK 10.0.403

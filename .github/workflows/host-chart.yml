@@ -15,6 +15,8 @@
 # server and the management console in kind behind Traefik and behind an Envoy Gateway, which implements the Gateway's
 # backend client certificate (ADR-1506, ADR-1507).
 # The chart serves no API reference unless its values enable it (ADR-1481).
+# The README's GitOps example, the Flux manifests under examples/flux/, must agree with ci/gitops-values.yaml, the chart
+# and the README, and validate against the CRD schemas of the pinned Flux release (issue #784).
 # The Publish artifacts workflow publishes the chart (ADR-1505).
 name: Host chart
 
@@ -165,6 +167,66 @@ jobs:
             echo "::error::The chart rendered a migration Job with migrations.enabled=false."
             exit 1
           fi
+
+      - name: Keep the Flux example in step with its values, the chart and the README
+        run: |
+          flux="$CHART/examples/flux"
+          release="$flux/release/helmrelease.yaml"
+          # The values are the last key of the HelmRelease, indented by four more spaces.
+          if ! diff <(sed -n '/^  values:$/,$p' "$release" | tail -n +2 | sed 's/^    //') "$CHART/ci/gitops-values.yaml"; then
+            echo "::error::ci/gitops-values.yaml differs from the values of the Flux HelmRelease."
+            exit 1
+          fi
+          readme=$(< "$CHART/README.md")
+          for file in "$flux"/*.yaml "$flux"/*/*.yaml; do
+            if [[ "$readme" != *"$(< "$file")"* ]]; then
+              echo "::error::The README does not show $file as it is."
+              exit 1
+            fi
+          done
+          repository=$(awk '/^  name:/ { print $2; exit }' "$flux/release/helmrepository.yaml")
+          chart=$(awk '/^name:/ { print $2 }' "$CHART/Chart.yaml")
+          minutes=$(sed -n 's/^  timeout: \([0-9][0-9]*\)m$/\1/p' "$release")
+          deadline=$(awk '/^migrations:/ { m = 1 } m && /activeDeadlineSeconds:/ { print $2; exit }' "$CHART/values.yaml")
+          if ! grep -qx "      chart: $chart" "$release" || ! grep -qx "        name: $repository" "$release" ||
+             ! grep -Eqx '      version: ".*-.+"' "$release" || (( ${minutes:-0} * 60 <= deadline )); then
+            echo "::error::The Flux HelmRelease must name the chart and its source, follow prereleases and outlast the migration Job."
+            exit 1
+          fi
+
+      - name: Validate the Flux example against Flux's CRD schemas
+        # kubeconform and the Flux schemas are pinned by version and SHA-256 here, because Dependabot does not read
+        # these values: a person moves both pins of a tool together, from its upstream release, once the release is
+        # three days old. The schemas are the CRD schemas that the Flux release publishes, one file per kind and API
+        # group, named <kind>-<group>-<version>.json with the first label of the group (helmrelease-helm-v2.json).
+        # kubeconform's {{.Group}} is the whole group, so each Flux API group of the archive gets its own schema
+        # location. -strict refuses a field that Flux's API does not have, and the Namespace is validated by
+        # kubeconform's default schemas.
+        env:
+          KUBECONFORM_VERSION: v0.8.0
+          KUBECONFORM_SHA256: 9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883
+          FLUX_VERSION: v2.10.0
+          FLUX_SCHEMAS_SHA256: a1d64309d0965ef681f161ce2d28a1a58aa78239d6f5e94ea6e556b5674cfefb
+        run: |
+          scratch=$(mktemp -d)
+          trap 'rm -rf "$scratch"' EXIT
+          curl --fail --silent --show-error --location --output "$scratch/kubeconform.tar.gz" \
+            "https://github.com/yannh/kubeconform/releases/download/$KUBECONFORM_VERSION/kubeconform-linux-amd64.tar.gz"
+          curl --fail --silent --show-error --location --output "$scratch/crd-schemas.tar.gz" \
+            "https://github.com/fluxcd/flux2/releases/download/$FLUX_VERSION/crd-schemas.tar.gz"
+          echo "$KUBECONFORM_SHA256  $scratch/kubeconform.tar.gz" | sha256sum --check --strict -
+          echo "$FLUX_SCHEMAS_SHA256  $scratch/crd-schemas.tar.gz" | sha256sum --check --strict -
+          mkdir "$scratch/bin" "$scratch/schemas"
+          tar -xzf "$scratch/kubeconform.tar.gz" -C "$scratch/bin"
+          tar -xzf "$scratch/crd-schemas.tar.gz" -C "$scratch/schemas"
+          PATH="$scratch/bin:$PATH"
+          kubeconform -strict -summary -schema-location default \
+            -schema-location "$scratch/schemas/{{.ResourceKind}}-helm-{{.ResourceAPIVersion}}.json" \
+            -schema-location "$scratch/schemas/{{.ResourceKind}}-source-{{.ResourceAPIVersion}}.json" \
+            -schema-location "$scratch/schemas/{{.ResourceKind}}-kustomize-{{.ResourceAPIVersion}}.json" \
+            -schema-location "$scratch/schemas/{{.ResourceKind}}-notification-{{.ResourceAPIVersion}}.json" \
+            -schema-location "$scratch/schemas/{{.ResourceKind}}-image-{{.ResourceAPIVersion}}.json" \
+            "$CHART/examples/flux"
 
       - name: Take the database as a finished connection string or as its parts
         run: |

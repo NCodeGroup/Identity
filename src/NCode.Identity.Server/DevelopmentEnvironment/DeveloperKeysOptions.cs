@@ -20,7 +20,7 @@ public sealed class DeveloperKeysOptions
     /// <summary>
     /// Gets or sets a value indicating whether a tenant signing key that can no longer be read is removed. A tenant key
     /// can no longer be read when its master key, or the root key that wraps it, was lost or changed. It is removed when
-    /// the tenant is seeded, and provisioning replaces it. Development-only: Production refuses the section.
+    /// the tenant is seeded, and provisioning replaces it. Local-development-only: a deployment refuses the section.
     /// </summary>
     // See ADR-1370.
     public bool PruneUnreadableKeys { get; set; }

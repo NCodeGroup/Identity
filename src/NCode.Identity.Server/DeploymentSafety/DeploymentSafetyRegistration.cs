@@ -22,13 +22,12 @@ namespace NCode.Identity.Server;
 /// </summary>
 /// <remarks>
 /// Most settings checked here are conveniences that are correct on a developer's machine and dangerous on a public
-/// origin. The
-/// rest describe a secret protection configuration that cannot keep stored secrets readable and private: no root key
-/// that outlives the process, a root key held inline in configuration, or no decision about recovering a lost root
-/// key. Each finding is also silent: a deployment that forgets to override or supply it starts, serves traffic, and
-/// looks healthy, which is precisely why these are startup failures rather than log warnings. Failing before the
-/// server binds a port is the only outcome an operator cannot miss. The gate also refuses, as the host finishes
-/// starting, a server that binds a plain-HTTP endpoint or serves an unusable certificate.
+/// origin. The rest describe a secret protection configuration that cannot keep stored secrets readable and private:
+/// no root key that outlives the process, a root key held inline in configuration, or no decision about recovering a
+/// lost root key. Each finding is also silent: a deployment that forgets to override or supply it starts, serves
+/// traffic, and looks healthy, which is precisely why these are startup failures rather than log warnings. Failing
+/// before the server binds a port is the only outcome an operator cannot miss. The gate also refuses, as the host
+/// finishes starting, a server that binds a plain-HTTP endpoint or serves an unusable certificate.
 /// </remarks>
 [PublicAPI]
 public static class DeploymentSafetyRegistration
@@ -204,12 +203,11 @@ public static class DeploymentSafetyRegistration
         /// Validates that the current configuration is safe to expose publicly, and throws when it is not. The check
         /// runs in every host environment (Development, Conformance, Staging, Production, and any custom name) unless
         /// <c>LocalDevelopment:Enabled</c> is true, which a local inner-loop host sets and which leaves the gate
-        /// unregistered. It also refuses a secret
-        /// protection configuration that cannot keep stored secrets readable and private, and, as the host starts, a
-        /// Data Protection key ring that has no repository or is not encrypted at rest, a work factor for supplied
-        /// client secrets below the recommended one, and configured platform settings whose <c>environment_type</c> is
-        /// a registered non-production type. It also refuses, as the host finishes starting, a server that binds a
-        /// plain-HTTP endpoint or serves an unusable certificate.
+        /// unregistered. It also refuses a secret protection configuration that cannot keep stored secrets readable
+        /// and private, and, as the host starts, a Data Protection key ring that has no repository or is not encrypted
+        /// at rest, a work factor for supplied client secrets below the recommended one, and configured platform
+        /// settings whose <c>environment_type</c> is a registered non-production type. It also refuses, as the host
+        /// finishes starting, a server that binds a plain-HTTP endpoint or serves an unusable certificate.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> to validate.</param>
         /// <returns>The same <see cref="IServiceCollection"/> instance for method chaining.</returns>
@@ -230,6 +228,7 @@ public static class DeploymentSafetyRegistration
 
             if (configuration.IsLocalDevelopment())
                 return serviceCollection;
+
             // Data Protection is composed after this gate runs, so the key ring is checked as the host starts.
             serviceCollection
                 .AddOptions<KeyManagementOptions>()

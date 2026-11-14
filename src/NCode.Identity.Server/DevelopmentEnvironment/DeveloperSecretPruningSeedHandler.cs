@@ -21,9 +21,9 @@ namespace NCode.Identity.Server.DevelopmentEnvironment;
 /// </summary>
 /// <remarks>
 /// It runs before every other seed contributor, so they all observe only readable secrets. When the master keys of a
-/// tenant cannot be unwrapped, it also removes them, so that the tenant starts over with a new master key. Production
-/// never registers it: there, an undecryptable key signals a lost or changed root key, and the tenant fails until the
-/// root key is restored rather than having its keys silently discarded and replaced.
+/// tenant cannot be unwrapped, it also removes them, so that the tenant starts over with a new master key. A deployment
+/// refuses its section, so there an undecryptable key signals a lost or changed root key, and the tenant fails until
+/// the root key is restored rather than having its keys silently discarded and replaced.
 /// </remarks>
 internal sealed class DeveloperSecretPruningSeedHandler(
     ISecretSerializer secretSerializer,

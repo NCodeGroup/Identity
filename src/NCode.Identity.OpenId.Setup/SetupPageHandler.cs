@@ -35,8 +35,8 @@ internal sealed class SetupPageHandler(
     public void Dispose() => Bundle.Dispose();
 
     /// <summary>
-    /// Writes the setup page, or <c>404</c> when the instance is initialized, when a Production request is not HTTPS,
-    /// or when no bundle is readable.
+    /// Writes the setup page, or <c>404</c> when the instance is initialized, when the request is not HTTPS (unless
+    /// <c>LocalDevelopment:Enabled</c> admits a loopback request), or when no bundle is readable.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
@@ -69,8 +69,9 @@ internal sealed class SetupPageHandler(
 
     /// <summary>
     /// Serves a file of the setup bundle's assets directory, such as a hashed script or style, named by the
-    /// <see cref="AssetRouteParameterName"/> route value, or <c>404</c> when the instance is initialized, when a
-    /// Production request is not HTTPS, or when there is no such file.
+    /// <see cref="AssetRouteParameterName"/> route value, or <c>404</c> when the instance is initialized, when the
+    /// request is not HTTPS (unless <c>LocalDevelopment:Enabled</c> admits a loopback request), or when there is no
+    /// such file.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>

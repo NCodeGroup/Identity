@@ -243,8 +243,8 @@ Why this shape:
   ([ADR-1166](decisions/1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md)),
   and its first administrator is created once through `/setup` on that host
   ([ADR-1512](decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md),
-  [first use of a Production instance](first-production-instance.md)); `BootstrapAdmin` is development-only, and the
-  host refuses it in Production. `/api` is served on
+  [first use of a deployed instance](first-deployed-instance.md)); `BootstrapAdmin` is development-only, and a
+  host without `LocalDevelopment:Enabled` refuses it. `/api` is served on
   `auth.ncodeid.net`, the control-plane tenant's origin, because the OP accepts the console's DPoP-bound call only at
   that origin plus `/api` ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)); the API authenticates by the control-plane tenant whichever host or path addresses it
   ([ADR-1191](decisions/1191-a-management-request-is-authenticated-by-the-control-plane-tenant-and-scoped-by-its-routes-tenant.md)).
@@ -639,12 +639,14 @@ speed-test endpoint from the Denver network the users are on.
 - **Stored secrets must be protected by a root key outside the database.** The host persists signing keys, client
   secrets and the Data Protection key ring in the same Postgres database, so a backup would otherwise hold everything
   needed to use them. Every private value is encrypted under a per-owner master key wrapped by a root key held in a key
-  management service, and a Production host refuses to start without a real root key and a recovery decision
+  management service, and a host without `LocalDevelopment:Enabled` refuses to start without a real root key and a
+  recovery decision
   ([ADR-1235](decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md); pairs with
   [#165](https://github.com/NCodeGroup/identity/issues/165)).
 - **Kubernetes deployment artifacts** — issue [#85](https://github.com/NCodeGroup/identity/issues/85), done. `NCode.Identity.OpenId.Host` already trusts forwarded headers
   only from configured proxies (set `ForwardedHeaders:KnownNetworks` to the pod CIDR so Traefik's `X-Forwarded-Proto` /
-  `Host` are honored) and refuses development-only settings in Production (developer keys, wildcard `AllowedHosts`,
+  `Host` are honored) and, unless `LocalDevelopment:Enabled` is set, refuses development-only settings (developer keys,
+  wildcard `AllowedHosts`,
   developer CORS, seeders). Its image is chiseled, runs non-root, serves HTTPS only on port 8443, is built for amd64 and
   arm64, and carries the login bundle
   ([ADR-1248](decisions/1248-the-host-and-console-images-are-chiseled-non-root-multi-arch-digest-pinned-and-log-one-line-json.md)). Its Helm

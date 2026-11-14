@@ -12,8 +12,8 @@ namespace NCode.Identity.OpenId.Setup;
 internal interface ISetupSurfaceGate
 {
     /// <summary>
-    /// Determines whether the setup surface is served for the request: the instance is not initialized, and in
-    /// Production the request is HTTPS.
+    /// Determines whether the setup surface is served for the request: the instance is not initialized, and the request
+    /// is HTTPS (unless <c>LocalDevelopment:Enabled</c> admits a loopback request).
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>

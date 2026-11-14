@@ -33,26 +33,17 @@ public sealed class HttpLoggingTests
     private static string BasicParameter { get; } =
         Convert.ToBase64String(SecureEncoding.UTF8.GetBytes($"log-probe:{BasicSecret}"));
 
-    // Qualified because the NCode.Identity.OpenId.Environments namespace shadows the framework's Environments class.
-    private static string StagingEnvironment { get; } =
-        Microsoft.Extensions.Hosting.Environments.Staging;
+    private static Dictionary<string, string?> DebugLogging { get; } =
+        new() { ["Logging:LogLevel:Default"] = "Debug", ["Logging:LogLevel:Microsoft"] = "Debug" };
 
     #region PostToken Tests
 
     [Fact]
-    public async Task PostToken_WithDebugLoggingOutsideDevelopment_WritesNoBodyAndNoCredentialHeaderValue()
+    public async Task PostToken_WithDebugLoggingWithoutLocalDevelopment_WritesNoBodyAndNoCredentialHeaderValue()
     {
-        using var factory = new ConfiguredHostApplicationFactory(
-            new Dictionary<string, string?>
-            {
-                ["Logging:LogLevel:Default"] = "Debug",
-                ["Logging:LogLevel:Microsoft"] = "Debug",
-            }
-        );
+        using var factory = new StrictPostureHostApplicationFactory(DebugLogging);
         using var staging = factory.WithWebHostBuilder(builder =>
-            builder
-                .UseEnvironment(StagingEnvironment)
-                .ConfigureLogging(logging => logging.AddFakeLogging())
+            builder.ConfigureLogging(logging => logging.AddFakeLogging())
         );
         using var client = staging.CreateClient();
         using var content = new FormUrlEncodedContent(
@@ -120,19 +111,11 @@ public sealed class HttpLoggingTests
     #region GetAuthorization Tests
 
     [Fact]
-    public async Task GetAuthorization_WithDebugLoggingOutsideDevelopment_WritesNoQueryString()
+    public async Task GetAuthorization_WithDebugLoggingWithoutLocalDevelopment_WritesNoQueryString()
     {
-        using var factory = new ConfiguredHostApplicationFactory(
-            new Dictionary<string, string?>
-            {
-                ["Logging:LogLevel:Default"] = "Debug",
-                ["Logging:LogLevel:Microsoft"] = "Debug",
-            }
-        );
+        using var factory = new StrictPostureHostApplicationFactory(DebugLogging);
         using var staging = factory.WithWebHostBuilder(builder =>
-            builder
-                .UseEnvironment(StagingEnvironment)
-                .ConfigureLogging(logging => logging.AddFakeLogging())
+            builder.ConfigureLogging(logging => logging.AddFakeLogging())
         );
         var clientOptions = new WebApplicationFactoryClientOptions { AllowAutoRedirect = false };
         using var client = staging.CreateClient(clientOptions);

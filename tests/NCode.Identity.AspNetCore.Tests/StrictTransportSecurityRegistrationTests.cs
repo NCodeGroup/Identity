@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Xunit;
@@ -16,7 +17,7 @@ public sealed class StrictTransportSecurityRegistrationTests : BaseTests
     #region UseStrictTransportSecurity Tests
 
     [Fact]
-    public async Task UseStrictTransportSecurity_OverHttpsOutsideDevelopment_SendsTheDefaultPolicy()
+    public async Task UseStrictTransportSecurity_OverHttps_SendsTheDefaultPolicy()
     {
         var header = await SendAsync(
             [],
@@ -65,10 +66,10 @@ public sealed class StrictTransportSecurityRegistrationTests : BaseTests
     }
 
     [Fact]
-    public async Task UseStrictTransportSecurity_InDevelopment_SendsNothing()
+    public async Task UseStrictTransportSecurity_LocalDevelopmentEnabled_SendsNoHeader()
     {
         var header = await SendAsync(
-            [],
+            new Dictionary<string, string?> { ["LocalDevelopment:Enabled"] = "true" },
             Environments.Development,
             "https",
             "id.example.com",
@@ -76,6 +77,38 @@ public sealed class StrictTransportSecurityRegistrationTests : BaseTests
         );
 
         Assert.Null(header);
+    }
+
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Staging")]
+    public async Task UseStrictTransportSecurity_LocalDevelopmentAbsent_SendsTheDefaultPolicy(
+        string environmentName
+    )
+    {
+        var header = await SendAsync(
+            [],
+            environmentName,
+            "https",
+            "id.example.com",
+            CancellationToken.None
+        );
+
+        Assert.Equal("max-age=31536000; includeSubDomains", header);
+    }
+
+    [Fact]
+    public async Task UseStrictTransportSecurity_LocalDevelopmentDisabled_SendsTheDefaultPolicy()
+    {
+        var header = await SendAsync(
+            new Dictionary<string, string?> { ["LocalDevelopment:Enabled"] = "false" },
+            Environments.Development,
+            "https",
+            "id.example.com",
+            CancellationToken.None
+        );
+
+        Assert.Equal("max-age=31536000; includeSubDomains", header);
     }
 
     [Fact]
@@ -191,7 +224,7 @@ public sealed class StrictTransportSecurityRegistrationTests : BaseTests
 
     #endregion
 
-    private async ValueTask<string?> SendAsync(
+    private static async ValueTask<string?> SendAsync(
         Dictionary<string, string?> configurationData,
         string environmentName,
         string scheme,
@@ -203,12 +236,11 @@ public sealed class StrictTransportSecurityRegistrationTests : BaseTests
             .AddInMemoryCollection(configurationData)
             .Build();
 
-        var environment = CreateStrictMock<IHostEnvironment>();
-        environment.SetupGet(x => x.EnvironmentName).Returns(environmentName).Verifiable();
-
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddSingleton(environment.Object);
+        serviceCollection.AddSingleton<IHostEnvironment>(
+            new TestHostEnvironment { EnvironmentName = environmentName }
+        );
         serviceCollection.AddStrictTransportSecurity(configuration);
 
         await using var serviceProvider = serviceCollection.BuildServiceProvider();
@@ -225,5 +257,16 @@ public sealed class StrictTransportSecurityRegistrationTests : BaseTests
 
         var value = context.Response.Headers.StrictTransportSecurity;
         return value.Count == 0 ? null : value.ToString();
+    }
+
+    private sealed class TestHostEnvironment : IHostEnvironment
+    {
+        public string EnvironmentName { get; set; } = Environments.Development;
+
+        public string ApplicationName { get; set; } = string.Empty;
+
+        public string ContentRootPath { get; set; } = AppContext.BaseDirectory;
+
+        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
     }
 }

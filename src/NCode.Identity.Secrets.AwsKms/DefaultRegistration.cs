@@ -5,7 +5,6 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 using NCode.Identity.Registration;
 using NCode.Identity.Secrets.AwsKms.Facades;
 using NCode.Identity.Secrets.AwsKms.Options;
@@ -52,13 +51,6 @@ public static class DefaultRegistration
                         .BindStrictly(options)
                 )
                 .ValidateOnStart();
-
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    IValidateOptions<AwsKmsKeyWrapperOptions>,
-                    AwsKmsKeyWrapperOptionsValidator
-                >()
-            );
 
             serviceCollection.TryAddSingleton(TimeProvider.System);
             serviceCollection.TryAddSingleton<IAwsKmsClientFactory, DefaultAwsKmsClientFactory>();

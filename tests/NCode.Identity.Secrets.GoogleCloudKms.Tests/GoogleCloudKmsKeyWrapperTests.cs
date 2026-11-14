@@ -895,4 +895,50 @@ public class GoogleCloudKmsKeyWrapperTests : BaseTests
     }
 
     #endregion
+
+    #region GetConfigurationFailures Tests
+
+    [Fact]
+    public void GetConfigurationFailures_WithAValidKeyName_ReturnsNone()
+    {
+        var provider = CreateProvider(CryptoKeyName);
+
+        var failures = provider.GetConfigurationFailures();
+
+        Assert.Empty(failures);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("not-a-key")]
+    [InlineData(CryptoKeyVersionName)]
+    public void GetConfigurationFailures_WithAMalformedKeyName_ReturnsTheMessage(string? keyName)
+    {
+        var provider = CreateProvider(keyName);
+
+        var failures = provider.GetConfigurationFailures();
+
+        var failure = Assert.Single(failures);
+        Assert.Equal(
+            "SecretProtection:RootKeyProviders:GoogleCloudKms:KeyName must be the resource name of a Cloud KMS crypto key, such as projects/my-project/locations/us-central1/keyRings/ncode-identity/cryptoKeys/root.",
+            failure
+        );
+    }
+
+    #endregion
+
+    #region GetReferenceConfigurationFailures Tests
+
+    [Fact]
+    public void GetReferenceConfigurationFailures_ReturnsNone()
+    {
+        var provider = CreateProvider(keyName: null);
+
+        var failures = provider.GetReferenceConfigurationFailures();
+
+        Assert.Empty(failures);
+    }
+
+    #endregion
 }

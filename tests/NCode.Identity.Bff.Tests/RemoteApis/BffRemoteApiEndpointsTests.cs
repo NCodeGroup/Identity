@@ -4,8 +4,8 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Time.Testing;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Frontends;
@@ -32,8 +32,16 @@ public sealed class BffRemoteApiEndpointsTests : BaseTests
         base.Dispose(disposing);
     }
 
-    private IEndpointRouteBuilder CreateEndpoints(Action<BffFrontendOptions>? configure = null) =>
-        CreateEndpoints(BffTestFrontends.CreateCatalog(configure));
+    private IEndpointRouteBuilder CreateEndpoints(
+        Action<BffFrontendOptions>? configure = null,
+        bool localDevelopment = false,
+        string environmentName = "Production"
+    ) =>
+        CreateEndpoints(
+            BffTestFrontends.CreateCatalog(configure),
+            localDevelopment,
+            environmentName
+        );
 
     private BffTokenContexts CreateContexts(BffFrontendCatalog catalog)
     {
@@ -49,13 +57,18 @@ public sealed class BffRemoteApiEndpointsTests : BaseTests
         return new BffTokenContexts(catalog, resolver, cookies);
     }
 
-    private IEndpointRouteBuilder CreateEndpoints(BffFrontendCatalog catalog)
+    private IEndpointRouteBuilder CreateEndpoints(
+        BffFrontendCatalog catalog,
+        bool localDevelopment = false,
+        string environmentName = "Production"
+    )
     {
         var builder = WebApplication.CreateSlimBuilder(
-            new WebApplicationOptions { EnvironmentName = Environments.Production }
+            new WebApplicationOptions { EnvironmentName = environmentName }
         );
         var serviceCollection = builder.Services;
 
+        serviceCollection.AddSingleton(new LocalDevelopmentMode(localDevelopment));
         var requirement = CreateLooseMock<IBffTokenRequirement>();
         requirement.SetupGet(x => x.Name).Returns(BffTokenRequirementNames.User);
         serviceCollection.AddSingleton(requirement.Object);
@@ -143,6 +156,32 @@ public sealed class BffRemoteApiEndpointsTests : BaseTests
             exception.Message,
             StringComparison.Ordinal
         );
+    }
+
+    [Fact]
+    public void MapBffRemoteApi_HttpDestinationInDevelopmentWithoutTheSwitch_Throws()
+    {
+        var endpoints = CreateEndpoints(environmentName: "Development");
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            endpoints.MapBffRemoteApi("/api/orders", "http://api.example.com")
+        );
+
+        Assert.StartsWith(
+            "MapBffRemoteApi:Destination",
+            exception.Message,
+            StringComparison.Ordinal
+        );
+    }
+
+    [Fact]
+    public void MapBffRemoteApi_HttpDestinationWithTheSwitchOn_Maps()
+    {
+        var endpoints = CreateEndpoints(localDevelopment: true);
+
+        endpoints.MapBffRemoteApi("/api/orders", "http://api.example.com");
+
+        Assert.Single(GetEndpoints(endpoints));
     }
 
     [Fact]

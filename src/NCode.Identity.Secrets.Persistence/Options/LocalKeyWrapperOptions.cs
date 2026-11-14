@@ -25,8 +25,8 @@ public sealed class LocalKeyWrapperOptions
     public string? KeyPath { get; set; }
 
     /// <summary>
-    /// Gets or sets the current root key inline as a base64url-encoded 32-byte key. This is intended for Development
-    /// and tests only; Production refuses it.
+    /// Gets or sets the current root key inline as a base64url-encoded 32-byte key. This is intended for local
+    /// development and tests only; a host without <c>LocalDevelopment:Enabled</c> refuses it.
     /// </summary>
     public string? Key { get; set; }
 

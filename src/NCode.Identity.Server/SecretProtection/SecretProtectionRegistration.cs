@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Registration;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -126,6 +127,10 @@ internal static class SecretProtectionRegistration
             >()
         );
         serviceCollection.TryAddSingleton(TimeProvider.System);
+
+        // The warmup and the key ring gate read the mode; a host that composes this without AddIdentityServer()
+        // still resolves one, and the host's AddLocalDevelopmentOptions call replaces it.
+        serviceCollection.TryAddSingleton(new LocalDevelopmentMode(false));
 
         // The gate resolves IKeyManager, which Data Protection registers.
         serviceCollection.AddDataProtection();

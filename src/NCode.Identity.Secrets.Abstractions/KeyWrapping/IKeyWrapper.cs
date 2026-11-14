@@ -22,6 +22,15 @@ public interface IKeyWrapper
     string Name { get; }
 
     /// <summary>
+    /// Gets the problems with the configuration that this wrapper needs to wrap keys under its configured root key,
+    /// without reaching the key management service.
+    /// </summary>
+    /// <returns>
+    /// One message per problem, each naming the configuration entry; empty when the configuration is usable.
+    /// </returns>
+    IReadOnlyList<string> GetConfigurationFailures();
+
+    /// <summary>
     /// Wraps a key with the key encryption key of this wrapper.
     /// </summary>
     /// <param name="key">The key to wrap.</param>

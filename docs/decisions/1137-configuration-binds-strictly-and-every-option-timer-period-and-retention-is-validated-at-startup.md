@@ -88,12 +88,19 @@ period that a timer runs on is held to the range that every .NET timer accepts.*
    which removes a row as soon as it ends, and refuse a negative value.
 10. **Each validator is an `IValidateOptions<T>` that lists every failure.** It is registered beside the services that
     read the options. It does not read the options type it validates through `IOptions<T>`, because a validator that
-    reads the options it validates deadlocks the host as it starts. A failure names each failing option with its
-    configuration key, for example:
+    reads the options it validates deadlocks the host as it starts. It reads no other options type either, through
+    `IOptions<…>`, `IOptionsMonitor<…>` or `IOptionsSnapshot<…>`; a check that spans two options types runs as a start
+    check or inside the service that uses both. A failure names each failing option with its configuration key, for
+    example:
 
     ```text
     GrantRetentionOptions.Retention ('GrantRetention:Retention') must not be negative; it is -1.00:00:00.
     ```
+
+    The key configuration of a KMS key wrapper is checked by the wrapper, not by an options validator:
+    `IKeyWrapper.GetConfigurationFailures` and `IReferencedKeyWrapper.GetReferenceConfigurationFailures` return the
+    failures, and `DefaultKeyWrapperCatalog` collects them for the selected providers only as the host starts, so a bad
+    key identifier or host suffix stops the host before it serves.
 
 ## Options considered
 

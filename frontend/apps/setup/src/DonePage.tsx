@@ -26,9 +26,9 @@ function addressesOf(root: CreatedRoot): readonly Address[] {
   ];
 }
 
-/** The URL of the guide to the first use of a Production instance. */
+/** The URL of the guide to the first use of a deployed instance. */
 export const FIRST_INSTANCE_DOCS_URL =
-  'https://github.com/NCodeGroup/identity/blob/main/docs/first-production-instance.md';
+  'https://github.com/NCodeGroup/identity/blob/main/docs/first-deployed-instance.md';
 
 /**
  * The last page of the setup wizard: it confirms the root administrator and lists the configuration that remains.
@@ -116,7 +116,7 @@ export function DonePage({ root, tokenSource }: DonePageProps) {
       ) : null}
 
       <Link href={FIRST_INSTANCE_DOCS_URL} target="_blank" rel="noopener noreferrer">
-        Read the guide to the first use of a Production instance
+        Read the guide to the first use of a deployed instance
       </Link>
     </Stack>
   );

@@ -1,4 +1,4 @@
-# 1447. Each host composes forwarded-header trust and Strict-Transport-Security from one general package outside Development
+# 1447. Each host composes forwarded-header trust and Strict-Transport-Security from one general package
 
 - **Status:** Accepted
 - **Date:** 2026-11-06
@@ -8,15 +8,18 @@
 ## Context
 
 [project-template ADR-0122](project-template/0122-strict-transport-security-outside-development.md) sends
-`Strict-Transport-Security` on every response to a request that arrived over HTTPS outside Development, from options
-bound strictly and validated when the host starts. The family adds where the helpers live, how a host learns that a
-request arrived over HTTPS, and why the host sends the header itself.
+`Strict-Transport-Security` on every response to a request that arrived over HTTPS, unless the host's environment is a
+local inner loop, from options bound strictly and validated when the host starts. The family keys that exception on
+the explicit `LocalDevelopment:Enabled` switch
+([ADR-1370](1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)),
+never on the environment's name. It adds where the helpers live, how a host learns that a request arrived over HTTPS,
+and why the host sends the header itself.
 
-A host behind a TLS-terminating ingress outside Production sees plain HTTP to an internal address. Without trusted
-forwarded headers it reads the wrong scheme and host, and without the header a browser does not pin HTTPS for the
-host's origin. In Production the host serves HTTPS only
-([ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md)), so every request arrives over HTTPS. Five facts shape the
-decision:
+A host behind a TLS-terminating ingress sees plain HTTP to an internal address. Without trusted forwarded headers it
+reads the wrong scheme and host, and without the header a browser does not pin HTTPS for the host's origin. A host
+serves HTTPS only
+([ADR-1504](1504-the-hosts-serve-https-only-and-verify-their-certificate-at-startup.md)), so every request arrives over
+HTTPS. Five facts shape the decision:
 
 - A host that terminates TLS itself, with no proxy in front of it, has no proxy to send the header. Behind a
   TLS-terminating proxy it sees HTTPS only through `X-Forwarded-Proto` from a proxy that `ForwardedHeaders` trusts.
@@ -33,7 +36,8 @@ Issue [#611](https://github.com/NCodeGroup/identity/issues/611) describes the ne
 ## Decision
 
 **`NCode.Identity.AspNetCore` holds forwarded-header trust and Strict-Transport-Security, each host composes both, and
-the header is sent outside Development as `Strict-Transport-Security: max-age=31536000; includeSubDomains`.**
+the header is sent unless `LocalDevelopment:Enabled` is set, as `Strict-Transport-Security: max-age=31536000;
+includeSubDomains`.**
 
 1. **`NCode.Identity.AspNetCore` holds both helpers.** It holds `AddTrustedForwardedHeaders(configuration)` and
    `UseTrustedForwardedHeaders()` with `TrustedForwardedHeadersOptions`, bound from the `ForwardedHeaders` section
@@ -54,16 +58,16 @@ the header is sent outside Development as `Strict-Transport-Security: max-age=31
    neither, because whether a proxy terminates TLS is the deployment's decision. A BFF host references
    `NCode.Identity.AspNetCore` to do the same.
 3. **The header follows the template's defaults.** The header is
-   `Strict-Transport-Security: max-age=31536000; includeSubDomains` on every response to an HTTPS request outside
-   Development, which is every response in Production. The redirect that pairs with the header is added outside
-   Production only. `Enabled` is `true`, `MaxAge` is 365 days, `IncludeSubDomains` is `true` and `Preload` is `false`. The
-   issuer's subdomains, such as tenant hosts and the mutual-TLS alias host, are served over HTTPS by the same
-   deployment.
+   `Strict-Transport-Security: max-age=31536000; includeSubDomains` on every response to an HTTPS request unless
+   `LocalDevelopment:Enabled` is set, which is every response in a deployment. The HTTPS redirect that pairs with the
+   header is added only when `LocalDevelopment:Enabled` is set (`UseLocalDevelopmentHttpsRedirection()`). `Enabled` is
+   `true`, `MaxAge` is 365 days, `IncludeSubDomains` is `true` and `Preload` is `false`. The issuer's subdomains, such
+   as tenant hosts and the mutual-TLS alias host, are served over HTTPS by the same deployment.
 4. **The validator guards preload and age.** It refuses `Preload` without `IncludeSubDomains`, `Preload` with a
    `MaxAge` under 365 days, and a negative `MaxAge`. `max-age=0` is allowed: it withdraws the policy.
-5. **Development and loopback hosts never receive it.** Development adds nothing. `localhost`, `127.0.0.1` and `[::1]`
-   are always excluded. `ExcludedHosts` entries are DNS names, IPv4 addresses or bracketed IPv6 addresses, without a
-   scheme or a port.
+5. **Local-development and loopback hosts never receive it.** A host that sets `LocalDevelopment:Enabled` adds nothing.
+   `localhost`, `127.0.0.1` and `[::1]` are always excluded. `ExcludedHosts` entries are DNS names, IPv4 addresses or
+   bracketed IPv6 addresses, without a scheme or a port.
 6. **One component owns the header.** A deployment whose proxy sends `Strict-Transport-Security` sets `Enabled` to
    `false`. Otherwise the host trusts the proxy in `ForwardedHeaders`, so it sees HTTPS and sends the header.
 7. **The Helm chart carries the configuration.** It sets `ForwardedHeaders__…` from its `forwardedHeaders` values and
@@ -85,10 +89,10 @@ the header is sent outside Development as `Strict-Transport-Security: max-age=31
 
 ## Consequences
 
-- The console host trusts its ingress through `ForwardedHeaders:KnownNetworks` and sends the header outside
-  Development.
-- Outside Production, behind a proxy that does not set `X-Forwarded-Proto`, or that `ForwardedHeaders` does not trust,
-  the host sees plain HTTP and sends no header; the proxy sends it instead, or the deployment trusts the proxy.
+- The console host trusts its ingress through `ForwardedHeaders:KnownNetworks` and sends the header unless
+  `LocalDevelopment:Enabled` is set.
+- Behind a proxy that does not set `X-Forwarded-Proto`, or that `ForwardedHeaders` does not trust, the host sees plain
+  HTTP and sends no header; the proxy sends it instead, or the deployment trusts the proxy.
 - `NCode.Identity.AspNetCore` references `NCode.Identity.Registration` for strict binding and depends on
   `NCode.Buffers`.
 - A host that omits the two calls sends no header and reads the wrong scheme behind an ingress.

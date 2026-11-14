@@ -40,7 +40,7 @@
 | 4   | **A protected value is bound to where it belongs.** If a value is copied to another row, tenant or purpose, it fails to decrypt.                        |
 | 5   | **The KMS is off the hot path.** The KMS is called only to unwrap a master key, roughly once per owner per process, never once per token or request. |
 | 6   | **Secret plaintext never sits on the garbage-collected heap.** It lives in pinned or stack memory and is zeroed when released. A secret is never a `string`. |
-| 7   | **Production refuses an unsafe setup.** It won't start with a throwaway key, a key in a config file, or no decision about recovery.                   |
+| 7   | **A deployment refuses an unsafe setup.** It won't start with a throwaway key, a key in a config file, or no decision about recovery.                |
 | 8   | **A master key rotates every year, and a retired one is destroyed once nothing names it.** Rotation rewraps a tenant's 32-byte data keys and never touches a payload; the platform's next version protects the Data Protection keys and host data created afterwards. |
 | 9   | **A tenant can hold the key to its own data.** Its master keys are wrapped only by a key in its own KMS, with no operator recovery copy, and revoking or destroying that key makes its data unreadable everywhere within an hour by default. |
 
@@ -257,7 +257,7 @@ vocabulary: the family ships five, and any package can register its own.
 
 | Provider           | Where the root key lives                                     | Binding                                               | Credentials                         | Use for                                     |
 | ------------------ | ------------------------------------------------------------ | ----------------------------------------------------- | ----------------------------------- | ------------------------------------------- |
-| `ephemeral`        | Process memory, new on every start                           | AES-GCM associated data                               | n/a                                 | Development and tests. **Refused in Production.** |
+| `ephemeral`        | Process memory, new on every start                           | AES-GCM associated data                               | n/a                                 | Local development and tests. **Refused unless `LocalDevelopment:Enabled` is set.** |
 | `local`            | An AES-256 key file mounted from a Kubernetes Secret         | AES-GCM associated data                               | Whoever can read the Secret         | Homelab and small self-hosted setups        |
 | `aws-kms`          | AWS KMS symmetric key, which never leaves AWS                | KMS encryption context (logged in CloudTrail)         | Web identity federation, keyless    | Production on AWS, or anywhere              |
 | `google-cloud-kms` | Google Cloud KMS symmetric key                               | Additional authenticated data, plus CRC32C on every call | Workload identity federation, keyless | Production on Google Cloud, or anywhere   |
@@ -491,7 +491,7 @@ A root key you can't reach means secrets you can't read, so recovery is a decisi
   The **private** half never touches the deployment. Keep it offline, for example split among three people with a
   Shamir tool. The server refuses a PEM that contains a private key.
 - **Or opt out explicitly.** `SecretProtection:Recovery:Disabled=true` records that losing the root key loses every
-  stored secret. In Production, the server won't start until you've chosen one or the other.
+  stored secret. Unless `LocalDevelopment:Enabled` is set, the server won't start until you've chosen one or the other.
 - **A tenant's own root key has no recovery copy.** A master key wrapped by a key the tenant brings
   ([Tenant root keys](#tenant-root-keys-bring-your-own-key)) is never wrapped by the recovery key, whatever the recovery
   settings say: the tenant's control is the point, so only the tenant's key can unwrap it.
@@ -510,11 +510,11 @@ A root key you can't reach means secrets you can't read, so recovery is a decisi
 
 ## Safe by default
 
-| Environment     | Behavior                                                                                                                                                                                       |
+| Posture         | Behavior                                                                                                                                                                                       |
 | --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Production**  | Refuses to start with the `ephemeral` provider, with a root key written inline in configuration (even if unused), or with no recovery decision. It reports every finding together.              |
+| **Deployment**  | Every host without `LocalDevelopment:Enabled`, in any environment, refuses to start with the `ephemeral` provider, with a root key written inline in configuration (even if unused), or with no recovery decision. It reports every finding together. The Production environment refuses the switch. |
 | **Helm chart**  | Refuses to render a malformed KMS key ARN, key name or key id ([ADR-1458](../decisions/1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)), and mounts cloud credentials only for the selected provider ([ADR-1485](../decisions/1485-the-host-chart-enables-server-kms-vendors-and-holds-console-key-rings-under-the-consoles-identity.md)). |
-| **Development** | No root key or development credential is ever committed, and `ephemeral` is selected only by the host's Development and Conformance overlays. The LocalDev AppHost generates one per machine, outside the repository. If the root key changes, development key pruning (`DeveloperKeys:PruneUnreadableKeys`) heals the platform and the affected tenants: the platform starts over with a new master key, and its Data Protection keys are revoked.       |
+| **Local development** | No root key or development credential is ever committed, and `ephemeral` is selected only by the host's Development and Conformance overlays, which set `LocalDevelopment:Enabled`. The LocalDev AppHost generates one per machine, outside the repository. If the root key changes, development key pruning (`DeveloperKeys:PruneUnreadableKeys`) heals the platform and the affected tenants: the platform starts over with a new master key, and its Data Protection keys are revoked.       |
 
 ## Protect your own data with it
 
@@ -587,4 +587,4 @@ We'd rather say what this doesn't do yet:
 - [`IKeyWrapper`](../../src/NCode.Identity.Secrets.Abstractions/KeyWrapping/IKeyWrapper.cs): the key wrapper contract that root key wrappers implement
 - [`IReferencedKeyWrapper`](../../src/NCode.Identity.Secrets.Abstractions/KeyWrapping/IReferencedKeyWrapper.cs): a key wrapper that wraps under a key the caller names
 - [`IOwnerRootKeyManager`](../../src/NCode.Identity.Secrets.Persistence.Abstractions/Protection/IOwnerRootKeyManager.cs): sets, removes and validates a tenant's root key
-- [`ProductionSafetyRegistration`](../../src/NCode.Identity.Server/ProductionSafety/ProductionSafetyRegistration.cs): the Production refusals
+- [`DeploymentSafetyRegistration`](../../src/NCode.Identity.Server/DeploymentSafety/DeploymentSafetyRegistration.cs): the deployment refusals

@@ -21,7 +21,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   The done page lists the instance's addresses as links with copy buttons (the management console, the issuer, the
   discovery document, the management API and the API reference when it is served, all computed from the control-plane
   tenant's issuer), shows the root user and the tenant, and lists the remaining configuration with a link to
-  `docs/first-production-instance.md`, naming the setup token Secret only when the token was configured. The root
+  `docs/first-deployed-instance.md`, naming the setup token Secret only when the token was configured. The root
   administrator is a local account in the control-plane tenant holding
   `GlobalAdmin` at the platform node; the account, its identity, that role assignment and the initialized mark of the
   `InstanceSetup` row are saved together, so one setup creates one root. `NCode.Identity.OpenId.Setup.Abstractions`
@@ -263,19 +263,19 @@ Until the first stable release, the [Unreleased] section describes the product a
   registration in `NCode.Identity.Server` lets a local SPA dev server read discovery and call the management API
   cross-origin. Its allowed origins come from the `Cors:AllowedOrigins` configuration array, and the library carries no
   origins of its own: without a `Cors` section it registers nothing, and `UseDeveloperCors()` adds the CORS middleware
-  only when the policy is registered, so a host without the section, such as the reference host in Production, runs
+  only when the policy is registered, so a host without the section, such as a deployed reference host, runs
   without CORS services. The reference host's `appsettings.Development.json` lists its dev-server origins.
   `AddDeveloperCors` is a standalone CORS policy, so it is a bare `IServiceCollection` extension
   ([#441](https://github.com/NCodeGroup/identity/issues/441),
-  [ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
+  [ADR-1370](docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)).
 
 - **Development signing keys are the tenant's persisted keys, self-healing on opt-in.** Every tenant is provisioned with
   persisted signing keys through the tenant secret store, so the runtime, the JWKS endpoint and the management API share
   one source of truth that survives restarts. `DeveloperKeys:PruneUnreadableKeys` (which the reference host's
   `launchSettings.json` sets) registers `AddDeveloperKeyPruning()`, which removes a tenant key that cannot be read,
   because its master key or the root key wrapping it was lost or changed, when the tenant is seeded, and provisioning
-  generates a fresh key in its place. Production refuses a `DeveloperKeys` section
-  ([ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
+  generates a fresh key in its place. A deployment refuses a `DeveloperKeys` section
+  ([ADR-1370](docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)).
 
 - **Development seeding signs in end to end (`AddDeveloperInteractiveSeed`).** A development-only, idempotent seeder
   provisions public (PKCE-only) single-page-application clients, confidential BFF clients and a deterministic
@@ -293,7 +293,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   publishes `playground-spa`, and an integration test fails if the bootstrap document publishes a client id the seed
   does not register (issues [#139](https://github.com/NCodeGroup/identity/issues/139),
   [#133](https://github.com/NCodeGroup/identity/issues/133),
-  [ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
+  [ADR-1370](docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)).
 
 - **`IIdentityServerBuilder.AddFrontendBootstrap(configuration)` publishes a surface-aware runtime frontend bootstrap
   document at `/config/bootstrap.json`** (issue [#136](https://github.com/NCodeGroup/identity/issues/136),
@@ -464,10 +464,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   is an existing Secret (`setup.token.existingSecret` and `setup.token.key`) that the pods read as `Setup__Token`, and
   `setup.job` is an opt-in Job that runs the host's `setup` command once per release. Rendering fails for a release the
   host would refuse to start (an empty or wildcard `allowedHosts`, a missing database Secret or one named in both
-  forms, a `StaticSingle` issuer that is not `https`, a missing or incomplete root key provider, `ephemeral` or a local
-  provider without its Secret in Production, a Production release with no recovery decision, a
-  `setup.token.existingSecret` without its key, an enabled `setup.job` without its Secret), for more than one replica
-  without Valkey, and for unknown values. Without Valkey the chart uses the `Recreate` deployment strategy, which waits for the old pod to
+  forms, a `StaticSingle` issuer that is not `https`, a missing or incomplete root key provider, `ephemeral`, a local
+  provider without its Secret, a release with no recovery decision, a `setup.token.existingSecret` without its key, an
+  enabled `setup.job` without its Secret), in any `environment`, for more than one replica without Valkey, and for
+  unknown values. Without Valkey the chart uses the `Recreate` deployment strategy, which waits for the old pod to
   terminate before starting the next, so it never runs two replicas at once. The `Host chart` CI workflow lints the
   chart, renders each example release, and checks that each unsafe release is refused; the workflow also installs the
   chart with the management console in a kind cluster, behind Traefik and behind an Envoy Gateway, and proves the pods
@@ -1189,14 +1189,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   algorithm ([ADR-1169](docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [#241](https://github.com/NCodeGroup/identity/issues/241)).
 
-- **A Development host can recover from keys it cannot read.** `DeveloperKeys:PruneUnreadableKeys`
+- **A local-development host can recover from keys it cannot read.** `DeveloperKeys:PruneUnreadableKeys`
   (`DeveloperKeysOptions`) removes a tenant key whose master key, or the root key that wraps it, was lost or changed
   when the tenant is seeded, and provisioning generates a fresh one. When the host starts and the platform's master keys
   cannot be unwrapped, it removes them, revokes every Data Protection key they protected, and the platform starts over
-  with a new master key. The reference host's Development launch profiles set it, and Production refuses the
+  with a new master key. The reference host's Development launch profiles set it, and a deployment refuses the
   `DeveloperKeys` section
   ([#569](https://github.com/NCodeGroup/identity/issues/569),
-  [ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md),
+  [ADR-1370](docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md),
   [ADR-1247](docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)).
 
 - **Asymmetric secret keys model their public half as `SubjectPublicKeyInfo` DER through a buffer writer.** The
@@ -2979,15 +2979,15 @@ Until the first stable release, the [Unreleased] section describes the product a
   endpoints, and `/management/api/*` forwarded to `ManagementConsole:ManagementApiUrl` with the user's DPoP-bound
   `urn:ncode:management` token. The console is the confidential client `mgmt-console` of the control-plane tenant
   (`private_key_jwt`, PAR, DPoP, back-channel logout) and listens on `https://localhost:5005` under the AppHost, which
-  generates the console's keys per machine. The host refuses a missing or wildcard `AllowedHosts` in Production,
-  trusts forwarded headers only from the proxies its `ForwardedHeaders` section names, and sends
-  `Strict-Transport-Security` outside Development. The console's `ManagementConsole:Branding:FaviconUrl` (absolute
-  `https`) replaces the family's tab icon the same way
+  generates the console's keys per machine. The host refuses a missing or wildcard `AllowedHosts` unless
+  `LocalDevelopment:Enabled` is set, trusts forwarded headers only from the proxies its `ForwardedHeaders` section
+  names, and sends `Strict-Transport-Security` unless that switch is set. The console's
+  `ManagementConsole:Branding:FaviconUrl` (absolute `https`) replaces the family's tab icon the same way
   ([#158](https://github.com/NCodeGroup/identity/issues/158),
   [#611](https://github.com/NCodeGroup/identity/issues/611),
   [#745](https://github.com/NCodeGroup/identity/issues/745),
   [ADR-1437](docs/decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md),
-  [ADR-1447](docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md),
+  [ADR-1447](docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package.md),
   [ADR-1253](docs/decisions/1253-a-tenant-brands-its-sign-in-pages-through-settings-and-the-bundle-mounts-over-the-hosts-page.md)).
 
 - **A BFF loads its key rings from PEM files and key management services when the host starts.**
@@ -4322,7 +4322,22 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#809](https://github.com/NCodeGroup/identity/issues/809),
   [ADR-1505](docs/decisions/1505-every-merge-to-main-publishes-the-host-image-the-console-image-the-chart-and-the-openapi-document-at-one-prerelease-version.md)).
 
+- **`LocalDevelopmentOptions` is the one switch for a local inner-loop host.** `NCode.Identity.AspNetCore` binds the
+  `LocalDevelopment` section (`Enabled`, `false` when absent) strictly into `LocalDevelopmentOptions` through
+  `AddLocalDevelopmentOptions(configuration)`, which is idempotent and validates when the host starts, and
+  `IsLocalDevelopment()` reads the same section for choices made during registration. The switch never follows the host
+  environment's name, and the validator fails the start when it is set in the Production environment
+  ([#831](https://github.com/NCodeGroup/identity/issues/831),
+  [ADR-1370](docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)).
+
 ### Security
+
+- **Every host runs one secure-by-default posture in every environment.** The deployment gate, the Kestrel transport
+  check, HSTS, HTTPS-only setup, an explicit console `AllowedHosts`, https-only BFF and console URLs and the key-ring
+  refusal apply unless `LocalDevelopment:Enabled` is set. That switch is off when absent, the Production environment
+  refuses it, and it relaxes only the local inner loop
+  ([#831](https://github.com/NCodeGroup/identity/issues/831),
+  [ADR-1370](docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)).
 
 - **A single-use setup token guards the first administrator, and the setup surface disappears once it is used.** A
   configured `Setup:Token` (at least 32 characters) is the token: only its SHA-256 hash is held, it is compared with
@@ -4332,7 +4347,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   on the replica that stored it. The token expires after `Setup:GeneratedTokenLifetime` and a restart issues a fresh
   one. Creating the root administrator marks the instance initialized in the same save, after which every `/setup`
   route answers 404 and the token is useless, and a concurrent second attempt loses on the row's concurrency token.
-  `/setup` answers 404 to a request that is not HTTPS in Production, rate-limits `POST /setup/api/token` and
+  `/setup` answers 404 to a request that is not HTTPS, except a request from a loopback remote address when
+  `LocalDevelopment:Enabled` is set, rate-limits `POST /setup/api/token` and
   `POST /setup/api/root` together to 10 requests per minute per client address (a refused attempt answers `429` with
   `Retry-After` and `Cache-Control: no-store`), serves its page with a nonce Content-Security-Policy and `no-store`
   caching, and never writes its request or response bodies to HTTP logging. The
@@ -4344,9 +4360,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#829](https://github.com/NCodeGroup/identity/issues/829),
   [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 
-- **`AddProductionSafety` refuses the `BootstrapAdmin` section in Production.** The bootstrap client, a development and
-  test convenience whose secret confers `GlobalAdmin`, is refused like the other development seeders, and only the
-  development environment (`AddDevelopmentEnvironment`) registers it, so a Production instance's first administrator is
+- **`AddDeploymentSafety` refuses the `BootstrapAdmin` section in a deployment.** The bootstrap client, a development
+  and test convenience whose secret confers `GlobalAdmin`, is refused like the other development seeders, and only the
+  development environment (`AddDevelopmentEnvironment`) registers it, so a deployed instance's first administrator is
   the root that setup creates
   ([#777](https://github.com/NCodeGroup/identity/issues/777),
   [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md),
@@ -4486,37 +4502,41 @@ Until the first stable release, the [Unreleased] section describes the product a
   `AddDevelopmentEnvironment(configuration)` registers the developer CORS policy, the developer and conformance seeders,
   and the developer key pruning, and reads only configuration, not the host environment: each piece does nothing unless
   its own configuration section is present, so a host can leave the call wired unconditionally and a further convenience
-  inherits the same rule. `AddProductionSafety` is the one Production check, and it refuses each of those sections
+  inherits the same rule. `AddDeploymentSafety` is the one deployment check, and it refuses each of those sections
   ([#441](https://github.com/NCodeGroup/identity/issues/441),
-  [ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
+  [ADR-1370](docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)).
 
-- **The server refuses to start in Production with development-only settings or unprotected secrets.**
-  `AddProductionSafety(configuration, hostEnvironment)` validates configuration during composition and throws before the
-  port is bound. It checks the secret-protection configuration (a root key that outlives the process, not held inline in
+- **The server refuses to start as a deployment with development-only settings or unprotected secrets.**
+  `AddDeploymentSafety(configuration)` validates configuration during composition and throws before the
+  port is bound, in every host environment, unless `LocalDevelopment:Enabled` is set. It checks the secret-protection
+  configuration (a root key that outlives the process, not held inline in
   configuration, and a decision about recovering a lost root key), `AllowedHosts` (unset or `*`), and the
   `DeveloperKeys`, `Cors`, `DeveloperInteractiveSeed` and `ConformanceSeed` sections, and reports **every** finding in
   one message so a misconfigured deployment is fixed in a single pass. As the host starts it also refuses a Data
-  Protection key ring with no repository or no `IXmlEncryptor`, and configured platform settings whose `environment_type`
-  is a registered non-production type. It is inert in every non-Production environment, so local, test, and conformance
-  hosts keep their conveniences. Each setting checked is correct in Development, dangerous on a public origin, and
+  Protection key ring with no repository or no `IXmlEncryptor`, a PBKDF2 work factor below
+  `Pbkdf2SecretVerifierOptions.MinimumDeploymentIterations`, and configured platform settings whose `environment_type`
+  is a registered non-production type. A local inner-loop host sets the switch and keeps its conveniences. Each setting
+  checked is correct on a developer machine, dangerous on a public origin, and
   silent — a deployment that forgets to override it starts, serves traffic, and looks healthy — so each is a startup
   failure rather than a log warning
-  ([ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
+  ([ADR-1370](docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)).
 
-- **The hosts serve HTTPS only in Production and refuse to start otherwise.** `AddTransportSecurity(hostEnvironment)`
-  (`NCode.Identity.AspNetCore`, composed by `AddProductionSafety` for the reference host and called by the management
-  console host) registers a check that runs as the host finishes starting, after Kestrel has bound: the server must be
+- **The hosts serve HTTPS only and refuse to start otherwise.** `AddTransportSecurity(configuration)`
+  (`NCode.Identity.AspNetCore`, composed by `AddDeploymentSafety` for the reference host and called by the management
+  console host) registers a check that runs as the host finishes starting, after Kestrel has bound, in every host
+  environment unless `LocalDevelopment:Enabled` is set: the server must be
   Kestrel and bind at least one endpoint, every endpoint must be HTTPS on a TCP port, and the certificate each serves,
   read over a loopback TLS handshake that also proves its private key, must be inside its validity period, have an RSA
   key of at least 2048 bits or an ECDSA key, be signed with SHA-256 or stronger and not be the ASP.NET Core development
-  certificate. A self-signed certificate passes; the proxy decides whether to trust it. Production adds no HTTPS
-  redirection (`UseHttpsRedirectionOutsideProduction`), because it has no plain-HTTP endpoint, and a TLS-terminating
+  certificate. A self-signed certificate passes; the proxy decides whether to trust it. A deployment adds no HTTPS
+  redirection, because it has no plain-HTTP endpoint (`UseLocalDevelopmentHttpsRedirection` adds the framework's
+  redirect only when the switch is set), and a TLS-terminating
   proxy that speaks plain HTTP to a pod is not supported. The image serves HTTPS on port 8443, and the chart's pods,
   probes, Service and Ingress backend do the same, with the proxy's verification of the pod's certificate on (a private
   CA per release is the default; a pinned self-signed certificate is accepted, and one with verification off is
   unauthenticated encryption)
   ([#774](https://github.com/NCodeGroup/identity/issues/774),
-  [ADR-1504](docs/decisions/1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md)).
+  [ADR-1504](docs/decisions/1504-the-hosts-serve-https-only-and-verify-their-certificate-at-startup.md)).
 
 - **The pods can require the reverse proxy's client certificate.** The `ProxyClientCertificate` section (`Required`,
   `CertificateAuthorityPath`, `AllowedSubjects`) of `NCode.Identity.AspNetCore` makes the OpenID host and the management
@@ -4535,8 +4555,8 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The Data Protection key ring is encrypted at rest under a root key outside the database.** The host persists the key
   ring to the same database as the secrets it unprotects, and encrypts it under the platform master key, whose root key
   the `SecretProtection` section names and which lives outside the database, so a database dump or backup is useless
-  without it. In Production, `AddProductionSafety` refuses to start the host when the key ring has no repository or no
-  `IXmlEncryptor`
+  without it. Unless `LocalDevelopment:Enabled` is set, `AddDeploymentSafety` refuses to start the host when the key
+  ring has no repository or no `IXmlEncryptor`
   ([ADR-1235](docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 
 - **Forwarded headers are trusted only from configured proxies (`AddTrustedForwardedHeaders` /
@@ -4551,7 +4571,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   the host. `NCode.Identity.AspNetCore` holds it, and the reference host and the management console host compose it
   ([#611](https://github.com/NCodeGroup/identity/issues/611),
   [ADR-1139](docs/decisions/1139-setting-names-are-a-closed-vocabulary-changed-outright-and-settings-the-server-cannot-honor-fail-loudly.md),
-  [ADR-1447](docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md)).
+  [ADR-1447](docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package.md)).
 
 - **Host configuration sections are bound strictly and validated.** `InteractiveAuthentication`, `DeveloperKeys` and
   `Cors` are bound strictly into `InteractiveAuthenticationOptions`, `DeveloperKeysOptions` (read through
@@ -4560,16 +4580,16 @@ Until the first stable release, the [Unreleased] section describes the product a
   wildcard) stops the host with an error naming the entry. `TrustedForwardedHeadersOptions` and `InteractiveAuthenticationOptions`
   are resolved through `IOptions<T>` ([ADR-1137](docs/decisions/1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
 
-- **The reference host and the management console host send `Strict-Transport-Security` on every HTTPS response outside
-  Development.** `AddStrictTransportSecurity` (`NCode.Identity.AspNetCore`) binds `StrictTransportSecurityOptions` strictly from
-  the `StrictTransportSecurity` section (`Enabled`, `MaxAge`, `IncludeSubDomains`, `Preload`, `ExcludedHosts`) and
-  validates it when the host starts, and `UseStrictTransportSecurity`, which a host calls right after
-  `UseTrustedForwardedHeaders`, adds the header to every response to a request that arrived over HTTPS, directly or
-  through a trusted proxy. The default is
+- **The reference host and the management console host send `Strict-Transport-Security` on every HTTPS response unless
+  `LocalDevelopment:Enabled` is set.** `AddStrictTransportSecurity` (`NCode.Identity.AspNetCore`) binds
+  `StrictTransportSecurityOptions` strictly from the `StrictTransportSecurity` section (`Enabled`, `MaxAge`,
+  `IncludeSubDomains`, `Preload`, `ExcludedHosts`) and validates it when the host starts, and
+  `UseStrictTransportSecurity`, which a host calls right after `UseTrustedForwardedHeaders`, adds the header to every
+  response to a request that arrived over HTTPS, directly or through a trusted proxy. The default is
   `max-age=31536000; includeSubDomains`; `Preload` requires `IncludeSubDomains` and a `MaxAge` of at least 365 days;
   `localhost`, `127.0.0.1` and `[::1]` never receive it; a deployment whose TLS-terminating proxy sends the header sets
   `StrictTransportSecurity:Enabled` to `false`
-  ([ADR-1447](docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md),
+  ([ADR-1447](docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package.md),
   issues [#304](https://github.com/NCodeGroup/identity/issues/304),
   [#611](https://github.com/NCodeGroup/identity/issues/611)).
 
@@ -4588,7 +4608,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   are required whenever their seeder has something to seed, and the host does not start without them; the named tenant
   may be the root tenant. Tenants created at runtime are seeded through the same pipeline, so none of them receives a
   client whose tokens carry `GlobalAdmin` or accounts with well-known passwords. The `GlobalAdmin` stamp is carried only
-  by the bootstrap client in its tenant, not by a client that shares its identifier elsewhere; a Production instance's
+  by the bootstrap client in its tenant, not by a client that shares its identifier elsewhere; a deployed instance's
   root administrator holds a role assignment instead
   ([ADR-1166](docs/decisions/1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md),
   [#777](https://github.com/NCodeGroup/identity/issues/777),
@@ -4607,13 +4627,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   administrator, and without the conformance credentials the seed skips those clients and the test user; the
   `Conformance` profile starts by hand after `Get-ConformanceSeedCredentials.ps1 -SetEnvironment`
   ([#496](https://github.com/NCodeGroup/identity/issues/496), [#514](https://github.com/NCodeGroup/identity/issues/514),
-  [ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md),
+  [ADR-1370](docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md),
   [#777](https://github.com/NCodeGroup/identity/issues/777),
   [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 
 - **The host chart takes its root key by reference, and its README documents rotating it by hand.**
-  `secretProtection.rootKeyProvider` selects `local`, `aws-kms`, `azure-key-vault` or `google-cloud-kms` (`ephemeral`
-  only outside Production); a local root key lives in a Secret the chart mounts, and
+  `secretProtection.rootKeyProvider` selects `local`, `aws-kms`, `azure-key-vault` or `google-cloud-kms` (the chart
+  refuses `ephemeral` because the host does, and the chart never sets `LocalDevelopment:Enabled`); a local root key
+  lives in a Secret the chart mounts, and
   `secretProtection.local.previousKeySecrets` keep older root keys available so the master keys they wrapped still
   unwrap through a rotation. The README warns never to overwrite a root key in place, such as by writing other contents
   into the same Secret, because that destroys the only key that can unwrap the existing master keys and leaves the
@@ -4808,10 +4829,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   setting; set `local`, `aws-kms`, `azure-key-vault`, `google-cloud-kms` or another registered provider, or `ephemeral`
   for local development and tests. The reference host's `appsettings.Development.json` and
   `appsettings.Conformance.json` select `ephemeral`, and the Helm chart refuses an empty
-  `secretProtection.rootKeyProvider` in every environment. Production refuses the ephemeral root key provider, an inline
-  local root key (whatever provider is selected), and running without a recovery-key decision, and reports them with
-  every other production-safety finding as "setting(s) are unsafe for a production deployment"
-  ([ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md),
+  `secretProtection.rootKeyProvider` in every environment. A deployment refuses the ephemeral root key provider, an
+  inline local root key (whatever provider is selected), and running without a recovery-key decision, and reports them
+  with every other deployment-safety finding as "setting(s) are unsafe for a deployment"
+  ([ADR-1370](docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md),
   [#495](https://github.com/NCodeGroup/identity/issues/495)).
 
 - **A client secret that is only compared is stored as a one-way verifier, and its verification is bounded.** The
@@ -4820,7 +4841,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   `$ncode-sha256$…` for a secret the server generates, and `$ncode-pbkdf2-sha256$…`, the format and parameters of the
   family's password hashes, for one an operator supplies. A client whose method keys from its secret
   (`client_secret_jwt`) keeps it reversible. `Pbkdf2SecretVerifierOptions.Iterations` sets the PBKDF2 work factor
-  (600,000, the least a Production host may set), and every verification with a work factor takes a turn of the
+  (600,000, the least a deployment may set), and every verification with a work factor takes a turn of the
   process's `ISecretVerificationGate`, sized by `SecretVerificationGateOptions` (`MaxConcurrency`, `MaxQueueLength`,
   `QueueTimeout`), so a flood of presented secrets neither occupies every processor nor queues without bound
   ([#163](https://github.com/NCodeGroup/identity/issues/163), [ADR-1391](docs/decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md)).
@@ -4855,14 +4876,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   `secretProtection` values, which the chart's schema, render-time refusals and CI releases check.
   `DataProtectionKeyRingGate` checks the live keys after the platform's protector loads and before Data Protection loads
   its key ring, and the host names each undecryptable key rather than letting Data Protection write a default key over
-  them; a Development host revokes the key and logs a warning. `DataProtectionKeyRing:RevokedKeyIds`
-  (`DataProtectionKeyRingOptions`) revokes keys by ID, and `AddConfiguration` registers Data Protection
-  ([ADR-1247](docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md),
+  them; a host with `LocalDevelopment:Enabled` set revokes the key and logs a warning, and any other host stops.
+  `DataProtectionKeyRing:RevokedKeyIds` (`DataProtectionKeyRingOptions`) revokes keys by ID, and `AddConfiguration`
+  registers Data Protection ([ADR-1247](docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md),
   [#239](https://github.com/NCodeGroup/identity/issues/239)).
 
 - **Every host signs with the keys tenant provisioning persists.** Tests included, no host signs with ephemeral
   in-memory developer keys; development conveniences run through the production path
-  ([ADR-1370](docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md),
+  ([ADR-1370](docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md),
   [#441](https://github.com/NCodeGroup/identity/issues/441)).
 
 - **Outbound calls to caller-supplied URLs share one guarded, bounded client.** Every fetch of, and delivery to, a
@@ -5731,7 +5752,7 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The bootstrap administrator's `ClientSecret` is supplied Base64Url-encoded and kept off the GC heap.** The seed
   handler decodes it into a pinned, zeroed buffer (threaded as `ReadOnlyMemory<byte>`) and stores it as a PBKDF2
   verifier, because the administrator registers `client_secret_basic`, and the OpenAPI example and
-  Scalar prefill that surface the presentable secret appear only in the development environment. See
+  Scalar prefill that surface the presentable secret appear only when `LocalDevelopment:Enabled` is set. See
   [ADR-1044](docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md), [ADR-1266](docs/decisions/1266-binary-data-uses-bufferfactory-rentals-with-explicit-sensitivity-and-text-only-strict-encodings.md), [ADR-1391](docs/decisions/1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md) and [ADR-1481](docs/decisions/1481-the-composition-layer-serves-the-api-reference-only-where-a-host-enables-it-and-each-management-problem-says-when-it-occurs.md).
 
 - **Every owner's keys are imported and updated under the client-key policy.** The client, tenant and
@@ -5851,10 +5872,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1293](docs/decisions/1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md)).
 
 - **No published URL comes from the request's `Host`.** Each frontend's `PublicOrigin` is required: the absolute URL the BFF is
-  published at (scheme, host, optional port and path base; `https` outside Development), from which it builds its
-  `redirect_uri` and `post_logout_redirect_uri`; set it to the URL the BFF's callback is registered under. The
-  interactive surface's login redirect is root-relative, so a forged `Host` header cannot choose where any of them point
-  ([#493](https://github.com/NCodeGroup/identity/issues/493),
+  published at (scheme, host, optional port and path base; `https` unless `LocalDevelopment:Enabled` is set), from which
+  it builds its `redirect_uri` and `post_logout_redirect_uri`; set it to the URL the BFF's callback is registered under.
+  The interactive surface's login redirect is root-relative, so a forged `Host` header cannot choose where any of them
+  point ([#493](https://github.com/NCodeGroup/identity/issues/493),
   [ADR-1365](docs/decisions/1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md)).
 
 - **Every `/bff/*` response is uncacheable the same way the OP's are.** The BFF's endpoints send
@@ -6101,10 +6122,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   ([ADR-1212](docs/decisions/1212-deleting-a-client-resource-server-principal-or-tenant-removes-what-it-owns.md),
   [#250](https://github.com/NCodeGroup/identity/issues/250)).
 
-- **A production tenant gets production guardrails, and a production host refuses a non-production platform default.** The
+- **A production tenant gets production guardrails, and a deployment refuses a non-production platform default.** The
   `production` security profile, which the `production` and `staging` environment types select, drops plain `http`
   redirect URIs, forbids anonymous client registration and turns `deletion_protection` on, which makes `DELETE
-  /api/tenants/{tenantId}` answer `409`. In the Production host environment `AddProductionSafety` refuses to start when
+  /api/tenants/{tenantId}` answer `409`. A deployment's `AddDeploymentSafety` refuses to start when
   `OpenId:Platform:Settings:environment_type` names a registered type whose `IsProduction` is false
   ([ADR-1289](docs/decisions/1289-a-tenant-declares-its-environment-type-which-selects-its-guardrails.md),
   [#410](https://github.com/NCodeGroup/identity/issues/410)).

@@ -17,7 +17,8 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-# ASPNETCORE_ENVIRONMENT. Production turns on the host's production-safety gate.
+# ASPNETCORE_ENVIRONMENT. The chart runs the host's deployment posture under every value and never sets
+# LocalDevelopment:Enabled. The image carries no local-development overlay, so no environment value turns the switch on.
 environment: Production
 
 # The host names the host answers to (AllowedHosts). Required; '*' is refused.
@@ -104,7 +105,8 @@ valkey:
 # Stored secrets and the Data Protection key ring are encrypted under a root key held outside the database; see "Secret
 # protection" in the chart's README.
 secretProtection:
-  # Required: local, aws-kms, azure-key-vault or google-cloud-kms once its values are set; ephemeral only outside Production.
+  # Required: one of local, aws-kms, azure-key-vault or google-cloud-kms once its values are set. The chart refuses
+  # ephemeral because the host's deployment posture does.
   rootKeyProvider: ""
   local:
     # Secret holding the root key under the key 'key' (base64url, 32 bytes).
@@ -212,7 +214,7 @@ secretProtection:
     backoffLimit: 0
     activeDeadlineSeconds: 3600
 
-# The first-run setup of a Production instance (ADR-1512): the one-time setup token that guards the /setup wizard, and an
+# The first-run setup of a deployed instance (ADR-1512): the one-time setup token that guards the /setup wizard, and an
 # opt-in Job that creates the root administrator without a browser. The chart never creates these Secrets; the operator
 # does, and removes them once the instance is initialized.
 setup:
@@ -250,7 +252,7 @@ setup:
     jwks: ""
   # A platform-owned client_credentials machine client with the GlobalAdmin role, which the setup Job registers in the same
   # save as the root administrator (Setup__Automation__*), so a GitOps install manages the instance without the
-  # development bootstrap client. The platform must enable client_credentials (first-production-instance.md, section 6).
+  # development bootstrap client. The platform must enable client_credentials (first-deployed-instance.md, section 6).
   automation:
     # The automation client's client_id. Setting it registers the client; the Job then needs jwks too.
     clientId: ""
@@ -263,9 +265,9 @@ platform:
   # as client_credentials for the setup Job's automation client. Empty adds none.
   grantTypesEnabled: []
 
-# TLS between the ingress and the pods (ADR-1504). The pods serve HTTPS only, and the host refuses to start in
-# Production without a certificate it can serve. The chart mounts the certificate at /etc/ncode-identity/tls and points
-# the probes, the Service and the Ingress at the pods' HTTPS port.
+# TLS between the ingress and the pods (ADR-1504). The pods serve HTTPS only, and the host refuses to start without a
+# certificate it can serve, because the chart never sets LocalDevelopment:Enabled. The chart mounts the certificate at
+# /etc/ncode-identity/tls and points the probes, the Service and the Ingress at the pods' HTTPS port.
 backendTls:
   # A kubernetes.io/tls Secret the operator created, with tls.crt, tls.key and ca.crt. Its certificate names the
   # Service's DNS names: <service>, <service>.<namespace>, <service>.<namespace>.svc and

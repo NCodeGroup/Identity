@@ -46,16 +46,16 @@ enables a body.**
    and JWKS are public and lose nothing.
 4. **The options are validated in every environment.** The `HttpLoggingOptions` validator refuses, when the host
    starts, a body, query or trailer field and an allow-listed `Authorization`, `Proxy-Authorization`, `Cookie`, `DPoP`,
-   `Set-Cookie` or `Location`. `AddProductionSafety` adds no check, because a Production-only refusal leaves
-   Development and Staging logs, which collectors ship too, open, and the opt-in is reviewed code rather than an
+   `Set-Cookie` or `Location`. `AddDeploymentSafety` adds no check, because a refusal that `LocalDevelopment:Enabled`
+   skips leaves local-development logs, which collectors ship too, open, and the opt-in is reviewed code rather than an
    operator's setting.
 5. **Routing runs first.** A host calls `UseHttpLogging()` right after `UseRouting()`.
 
 ## Options considered
 
-- **Development-only body logging behind a configuration section that `AddProductionSafety` refuses in Production.**
-  Rejected: it decides per environment, not per endpoint, a Development host logs passwords, and Production is one
-  setting away.
+- **Local-development-only body logging behind a configuration section that `AddDeploymentSafety` refuses in a
+  deployment.** Rejected: it decides per host, not per endpoint, a local-development host logs passwords, and a
+  deployment is one setting away.
 - **The framework's own endpoint metadata as the opt-in.** Rejected: it enables any field, the query string included,
   on any endpoint, a credential-bearing one too.
 - **Marking each credential-bearing endpoint.** Rejected: a missed or later endpoint could opt in. Marking route groups

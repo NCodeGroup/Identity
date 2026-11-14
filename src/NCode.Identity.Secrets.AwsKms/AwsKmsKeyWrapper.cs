@@ -58,6 +58,18 @@ internal class AwsKmsKeyWrapper(
     public string Name => KeyWrapperNames.AwsKms;
 
     /// <inheritdoc />
+    public IReadOnlyList<string> GetConfigurationFailures() =>
+        AwsKmsKeyArn.IsValid(RootKeyOptions.Value.KeyArn)
+            ? []
+            :
+            [
+                "SecretProtection:RootKeyProviders:AwsKms:KeyArn must be the ARN of a KMS key or alias, such as arn:aws:kms:us-west-2:111122223333:alias/ncode-identity-root.",
+            ];
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> GetReferenceConfigurationFailures() => [];
+
+    /// <inheritdoc />
     /// <exception cref="InvalidOperationException">
     /// Thrown when the configured key ARN is not the ARN of a KMS key or alias.
     /// </exception>

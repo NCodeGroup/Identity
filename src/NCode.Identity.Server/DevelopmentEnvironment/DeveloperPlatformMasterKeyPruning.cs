@@ -20,8 +20,8 @@ namespace NCode.Identity.Server.DevelopmentEnvironment;
 /// warmup whatever the registration order. When the platform's master keys cannot be unwrapped, it removes them and
 /// evicts the platform from the key ring; the warmup then creates a new master key. It also revokes every Data
 /// Protection key, because each key of the ring is encrypted under the removed master keys and none can be read again.
-/// Production never registers it: there, a master key that cannot be unwrapped signals a lost or changed root key, and
-/// the host stops until the root key is restored.
+/// A deployment refuses its section, so there a master key that cannot be unwrapped signals a lost or changed root
+/// key, and the host stops until the root key is restored.
 /// </remarks>
 // See ADR-1247.
 internal sealed class DeveloperPlatformMasterKeyPruning(

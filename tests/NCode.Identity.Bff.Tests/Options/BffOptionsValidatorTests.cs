@@ -3,6 +3,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Tests.Frontends;
@@ -23,17 +24,17 @@ public class BffOptionsValidatorTests : BaseTests
     }
 
     private BffOptionsValidator CreateValidator(
-        string environmentName = "Production",
+        bool localDevelopment = false,
         string? contentRootPath = null
     )
     {
         var mockEnvironment = CreateStrictMock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.EnvironmentName).Returns(environmentName).Verifiable();
         if (contentRootPath is not null)
             mockEnvironment.Setup(x => x.ContentRootPath).Returns(contentRootPath).Verifiable();
 
         return new BffOptionsValidator(
             mockEnvironment.Object,
+            new LocalDevelopmentMode(localDevelopment),
             [new HostBffFrontendSelector(), new PathBffFrontendSelector()]
         );
     }
@@ -76,9 +77,9 @@ public class BffOptionsValidatorTests : BaseTests
     public void Validate_WhenARuleIsRegisteredTwice_Fails()
     {
         var mockEnvironment = CreateStrictMock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.EnvironmentName).Returns("Production").Verifiable();
         var validator = new BffOptionsValidator(
             mockEnvironment.Object,
+            new LocalDevelopmentMode(false),
             [new HostBffFrontendSelector(), new HostBffFrontendSelector()]
         );
 
@@ -112,18 +113,62 @@ public class BffOptionsValidatorTests : BaseTests
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Frontends:web:Authority"));
+        Assert.Contains(
+            result.Failures ?? [],
+            x =>
+                x.Contains("Bff:Frontends:web:Authority", StringComparison.Ordinal)
+                && x.Contains("LocalDevelopment:Enabled", StringComparison.Ordinal)
+        );
     }
 
     [Fact]
-    public void Validate_WhenHttpAuthorityInDevelopment_Succeeds()
+    public void Validate_WhenHttpAuthorityAndTheSwitchIsOn_Succeeds()
     {
         var options = CreateValidOptions();
         Frontend(options).Authority = "http://localhost:5000";
 
-        var result = CreateValidator("Development").Validate(null, options);
+        var result = CreateValidator(localDevelopment: true).Validate(null, options);
 
         Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_WhenHttpAuthorityAndTheSwitchIsOff_Fails()
+    {
+        var options = CreateValidOptions();
+        Frontend(options).Authority = "http://localhost:5000";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            result.Failures ?? [],
+            x =>
+                x.Contains("Bff:Frontends:web:Authority", StringComparison.Ordinal)
+                && x.Contains("LocalDevelopment:Enabled", StringComparison.Ordinal)
+        );
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("op.example.com")]
+    [InlineData("https://op .example.com")]
+    public void Validate_WhenAuthorityInvalidAndTheSwitchIsOn_FailsWithoutTheSwitchClause(
+        string authority
+    )
+    {
+        var options = CreateValidOptions();
+        Frontend(options).Authority = authority;
+
+        var result = CreateValidator(localDevelopment: true).Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            result.Failures ?? [],
+            x =>
+                x.Contains("Bff:Frontends:web:Authority", StringComparison.Ordinal)
+                && x.Contains("'https:' or 'http:'", StringComparison.Ordinal)
+        );
     }
 
     [Theory]
@@ -218,12 +263,12 @@ public class BffOptionsValidatorTests : BaseTests
     }
 
     [Fact]
-    public void Validate_WhenHttpPublicOriginInDevelopment_Succeeds()
+    public void Validate_WhenHttpPublicOriginAndTheSwitchIsOn_Succeeds()
     {
         var options = CreateValidOptions();
         Frontend(options).PublicOrigin = "http://localhost:5000";
 
-        var result = CreateValidator("Development").Validate(null, options);
+        var result = CreateValidator(localDevelopment: true).Validate(null, options);
 
         Assert.True(result.Succeeded);
     }
@@ -323,12 +368,12 @@ public class BffOptionsValidatorTests : BaseTests
     }
 
     [Fact]
-    public void Validate_WhenHttpTrustedOriginInDevelopment_Succeeds()
+    public void Validate_WhenHttpTrustedOriginAndTheSwitchIsOn_Succeeds()
     {
         var options = CreateValidOptions();
         Frontend(options).TrustedOrigins = ["http://localhost:3000"];
 
-        var result = CreateValidator("Development").Validate(null, options);
+        var result = CreateValidator(localDevelopment: true).Validate(null, options);
 
         Assert.True(result.Succeeded);
     }

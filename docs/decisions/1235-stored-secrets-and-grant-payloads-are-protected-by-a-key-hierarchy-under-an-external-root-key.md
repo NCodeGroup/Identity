@@ -32,7 +32,7 @@ root lives outside the database.
    `local`, `aws-kms`, `azure-key-vault`, `google-cloud-kms` or any wrapper a package registers
    ([ADR-1260](1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md)). No provider is a default, and a
    host always names one
-   ([ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
+   ([ADR-1370](1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)).
    The root key only wraps master keys, binding the owner and key id as associated data (the KMS encryption context)
    where the service supports it.
 2. **Master keys.** One 256-bit, versioned key per owner, where the owners are the platform (`SecretOwner.Platform`) and
@@ -69,9 +69,9 @@ root lives outside the database.
    or `Unprotect`) makes the grant absent (`null`, `false` or skipped) and logs the Warning event
    `GrantPayloadUnreadable`. This fails closed: an altered or foreign row never authorizes anything.
    `ConsumeOnceOrDefault` checks the payload before it marks a grant consumed.
-9. **Production** refuses the `ephemeral` provider, an inline local key under any provider (an unused root key in
-   configuration is still a leaked key), and a missing decision about recovery, reporting them together with every other
-   production-safety finding.
+9. **A deployment** refuses the `ephemeral` provider, an inline local key under any provider (an unused root key in
+   configuration is still a leaked key), and a missing decision about recovery, reporting them together with every
+   other deployment-safety finding.
 10. **Deletion.** Deleting a tenant deletes its master keys, so its secrets and grant payloads are unreadable in the live
     database. A backup that holds the wrapped master key stays readable until it expires.
 11. **Buffers** follow
@@ -130,7 +130,7 @@ root lives outside the database.
   master key loads.
 - A grant whose master key was lost or replaced reads as absent and logs a warning rather than failing the request.
 - Tests cover the envelope binding to owner, purpose and item id, the case-insensitive binding, the partial unique index,
-  unreadable-payload handling and the production-safety findings.
+  unreadable-payload handling and the deployment-safety findings.
 
 ## References
 

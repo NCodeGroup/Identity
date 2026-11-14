@@ -14,6 +14,7 @@ using Microsoft.Extensions.Http.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Hosting;
 using NCode.Identity.Bff.Options;
@@ -320,6 +321,42 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
         var options = provider.GetRequiredService<IOptions<BffOptions>>();
         var exception = Assert.Throws<InvalidOperationException>(() => options.Value);
         Assert.Contains("NoSuchKey", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AddBffLibrary_WithoutConfiguration_TheSwitchIsOff()
+    {
+        ClientBuilder.AddBffLibrary(EventsBuilder);
+
+        var provider = BuildProvider();
+
+        Assert.False(provider.GetRequiredService<LocalDevelopmentMode>().Enabled);
+    }
+
+    [Fact]
+    public void AddBffConfiguration_WithTheSwitchOn_ReadsIt()
+    {
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(
+                new Dictionary<string, string?> { ["LocalDevelopment:Enabled"] = "true" }
+            )
+            .Build();
+        ClientBuilder.AddBffLibrary(EventsBuilder).AddBffConfiguration(configuration);
+
+        var provider = BuildProvider();
+
+        Assert.True(provider.GetRequiredService<LocalDevelopmentMode>().Enabled);
+    }
+
+    [Fact]
+    public void AddBffConfiguration_WithoutTheSwitch_TheSwitchIsOff()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        ClientBuilder.AddBffLibrary(EventsBuilder).AddBffConfiguration(configuration);
+
+        var provider = BuildProvider();
+
+        Assert.False(provider.GetRequiredService<LocalDevelopmentMode>().Enabled);
     }
 
     [Fact]

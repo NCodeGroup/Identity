@@ -1,7 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using Microsoft.Extensions.Hosting;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.ManagementConsole.Options;
 using Xunit;
 
@@ -25,12 +25,9 @@ public class ManagementConsoleOptionsValidatorTests : BaseTests
             },
         };
 
-    private ManagementConsoleOptionsValidator CreateValidator(string environmentName = "Production")
-    {
-        var mockEnvironment = CreateStrictMock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.EnvironmentName).Returns(environmentName).Verifiable();
-        return new ManagementConsoleOptionsValidator(mockEnvironment.Object);
-    }
+    private static ManagementConsoleOptionsValidator CreateValidator(
+        bool localDevelopment = false
+    ) => new(new LocalDevelopmentMode(localDevelopment));
 
     #region Validate Tests
 
@@ -61,7 +58,6 @@ public class ManagementConsoleOptionsValidatorTests : BaseTests
     [InlineData("", "")]
     [InlineData("   ", "   ")]
     [InlineData("id.example.com/api", "id.example.com/api")]
-    [InlineData("http://id.example.com/api", "http://id.example.com/api")]
     [InlineData("https://user:secret@id.example.com/api", "https://id.example.com/api")]
     [InlineData("https://id.example.com/api?x=1", "https://id.example.com/api")]
     [InlineData("https://id.example.com/api#section", "https://id.example.com/api")]
@@ -101,14 +97,44 @@ public class ManagementConsoleOptionsValidatorTests : BaseTests
     }
 
     [Fact]
-    public void Validate_WhenHttpManagementApiUrlInDevelopment_Succeeds()
+    public void Validate_WhenHttpManagementApiUrlAndTheSwitchIsOn_Succeeds()
     {
         var options = CreateValidOptions();
         options.ManagementApiUrl = "http://localhost:5000/api";
 
-        var result = CreateValidator("Development").Validate(null, options);
+        var result = CreateValidator(localDevelopment: true).Validate(null, options);
 
         Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public void Validate_WhenHttpManagementApiUrlAndTheSwitchIsOff_Fails()
+    {
+        var options = CreateValidOptions();
+        options.ManagementApiUrl = "http://localhost:5000/api";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "ManagementConsole:ManagementApiUrl is 'http://localhost:5000/api' and must use 'https' unless LocalDevelopment:Enabled is true.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenHttpManagementApiUrlHasUserInfoAndTheSwitchIsOff_DoesNotImplyTheSwitchFixesIt()
+    {
+        var options = CreateValidOptions();
+        options.ManagementApiUrl = "http://user:secret@localhost:5000/api";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "ManagementConsole:ManagementApiUrl must be an absolute https URL without user info, query or fragment; it is 'http://localhost:5000/api'.",
+            result.Failures ?? []
+        );
     }
 
     [Theory]

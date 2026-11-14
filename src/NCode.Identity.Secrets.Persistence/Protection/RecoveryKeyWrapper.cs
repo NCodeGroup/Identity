@@ -97,6 +97,9 @@ internal class RecoveryKeyWrapper : IRecoveryKeyWrapper, IDisposable
     public string Name => WrapperName;
 
     /// <inheritdoc />
+    public IReadOnlyList<string> GetConfigurationFailures() => [];
+
+    /// <inheritdoc />
     public bool IsConfigured => PublicKey is not null;
 
     /// <inheritdoc />

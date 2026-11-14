@@ -12,10 +12,10 @@ namespace NCode.Identity.OpenId.Setup;
 
 /// <summary>
 /// Answers the setup page's three API calls: the status of an uninitialized instance, the check of the setup token
-/// and the creation of its root administrator. All answer <c>404</c> once the instance is initialized, and in
-/// Production when the request is not HTTPS, so the surface does not exist for any. Checking the token and creating
-/// the root are limited per client address, need the setup token, and never write the token, the password or any
-/// other part of the request to a log.
+/// and the creation of its root administrator. All answer <c>404</c> once the instance is initialized, and when the
+/// request is not HTTPS (unless <c>LocalDevelopment:Enabled</c> admits a loopback request), so the surface does not
+/// exist for any. Checking the token and creating the root are limited per client address, need the setup token, and
+/// never write the token, the password or any other part of the request to a log.
 /// </summary>
 internal sealed class SetupApiHandler(
     IInstanceSetupService instanceSetupService,

@@ -5,7 +5,6 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 using NCode.Identity.Registration;
 using NCode.Identity.Secrets.AzureKeyVault.Facades;
 using NCode.Identity.Secrets.AzureKeyVault.Options;
@@ -69,13 +68,6 @@ public static class DefaultRegistration
                     section.BindStrictly(options);
                 })
                 .ValidateOnStart();
-
-            serviceCollection.TryAddEnumerable(
-                ServiceDescriptor.Singleton<
-                    IValidateOptions<AzureKeyVaultKeyWrapperOptions>,
-                    AzureKeyVaultKeyWrapperOptionsValidator
-                >()
-            );
 
             serviceCollection.TryAddSingleton(TimeProvider.System);
             serviceCollection.TryAddSingleton<

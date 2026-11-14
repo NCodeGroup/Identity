@@ -5,7 +5,6 @@ using JetBrains.Annotations;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId;
@@ -19,7 +18,7 @@ namespace NCode.Identity.Server;
 /// Provides endpoint mapping for the OpenID server's API reference: the OpenAPI document and a Scalar page wired
 /// to the OpenID Provider's own security schemes. It maps only what <see cref="IdentityServerApiReferenceOptions"/>
 /// enables. The client-credentials login is configured only on the page, and the bootstrap administrator's secret is
-/// pre-filled only during development.
+/// pre-filled only when <c>LocalDevelopment:Enabled</c> is true.
 /// </summary>
 [PublicAPI]
 public static class IdentityServerApiReferenceEndpointRouteBuilderExtensions
@@ -68,9 +67,9 @@ public static class IdentityServerApiReferenceEndpointRouteBuilderExtensions
         /// Maps the OpenAPI document when <see cref="IdentityServerApiReferenceOptions.DocumentEnabled"/> is set and a
         /// Scalar API reference page when <see cref="IdentityServerApiReferenceOptions.PageEnabled"/> is set, as the
         /// options bound from the <c>ApiReference</c> section say. The OAuth 2.0 client-credentials scheme is
-        /// preferred on the page so an operator can authenticate the whole dashboard; during development, when a
-        /// bootstrap administrator is configured, its credentials are pre-filled for a one-click login. The login is
-        /// configured only when the page is mapped.
+        /// preferred on the page so an operator can authenticate the whole dashboard; when
+        /// <c>LocalDevelopment:Enabled</c> is true and a bootstrap administrator is configured, its credentials are
+        /// pre-filled for a one-click login. The login is configured only when the page is mapped.
         /// </summary>
         /// <returns>The same <see cref="IEndpointRouteBuilder"/> instance for method chaining.</returns>
         public IEndpointRouteBuilder MapIdentityServerApiReference()
@@ -90,7 +89,7 @@ public static class IdentityServerApiReferenceEndpointRouteBuilderExtensions
                 return endpoints;
             }
 
-            var environment = services.GetRequiredService<IHostEnvironment>();
+            var localDevelopment = services.GetRequiredService<LocalDevelopmentMode>();
             var bootstrap = services.GetRequiredService<IOptions<BootstrapAdminOptions>>().Value;
 
             endpoints.MapScalarApiReference(
@@ -113,11 +112,12 @@ public static class IdentityServerApiReferenceEndpointRouteBuilderExtensions
                         SecuritySchemeDocumentTransformer.OAuth2SchemeName
                     );
 
-                    // Wire the non-secret parts of the client-credentials login in every environment so an operator can
-                    // authenticate the dashboard out of the box (HTTP Basic credentials, matching the bootstrap client's
-                    // registered client_secret_basic, the token URL, and the audience-binding scope) -- this is the
-                    // production bootstrap path too. Only the secret is pre-filled, and only during development, so it is
-                    // never embedded in the served configuration.
+                    // Wire the non-secret parts of the client-credentials login in every host so an operator
+                    // can authenticate the dashboard out of the box (HTTP Basic credentials, matching the bootstrap
+                    // client's registered client_secret_basic, the token URL, and the audience-binding scope) -- this
+                    // is the deployment bootstrap path too. Only the secret is pre-filled, and only when
+                    // LocalDevelopment:Enabled is true, so it is never embedded in the served configuration of a
+                    // deployment.
                     scalarOptions.AddClientCredentialsFlow(
                         SecuritySchemeDocumentTransformer.OAuth2SchemeName,
                         flow =>
@@ -129,7 +129,7 @@ public static class IdentityServerApiReferenceEndpointRouteBuilderExtensions
                                 .WithCredentialsLocation(CredentialsLocation.Header);
 
                             if (
-                                environment.IsDevelopment()
+                                localDevelopment.Enabled
                                 && bootstrap.ClientId is { Length: > 0 } clientId
                                 && bootstrap.GetPresentableClientSecretOrDefault()
                                     is { Length: > 0 } clientSecret

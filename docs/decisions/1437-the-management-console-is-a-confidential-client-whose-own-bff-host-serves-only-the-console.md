@@ -71,7 +71,7 @@ management API at `/api` on the origin of its authority.**
    chart derives it and has no override value ([ADR-1458](1458-the-host-chart-deploys-the-server-and-an-opt-in-management-console-and-refuses-unsafe-releases.md)).
    The console derives nothing itself: it reads the setting as configuration, and `ManagementConsoleOptionsValidator`
    refuses at start a value that is not an absolute `https` URL without user info, query or fragment (`http` is
-   accepted only in the Development environment).
+   accepted only when `LocalDevelopment:Enabled` is set).
 5. **The console's host routes every path to the console.** Its cookie never reaches another process. A machine caller
    uses `/api` on the origin of the control-plane tenant's issuer, which the server's Ingress serves. On the hosted
    platform ([ADR-1495](1495-the-hosted-platform-runs-customer-environments-as-tenants-on-production-under-the-ncodeid-net-platform-domain.md))
@@ -84,7 +84,7 @@ management API at `/api` on the origin of its authority.**
    - a deployment registers `jwks_uri` = `<origin>/bff/jwks`
      ([ADR-1294](1294-a-bff-client-is-registered-with-explicit-metadata-not-a-bff-security-profile.md)); the developer
      seed registers the public key by value, because the OP's outbound guard never reaches a loopback address
-     ([ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)
+     ([ADR-1370](1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)
      holds the seeder).
 7. **The `mgmt` frontend.**
    - Key rings `mgmt-client` and `mgmt-dpop`, with `DPoP:Mode` `required` and `Jwks:Enabled`.
@@ -93,8 +93,8 @@ management API at `/api` on the origin of its authority.**
      ([ADR-1026](1026-resource-servers-own-scopes-settings-and-keys-and-decide-a-clients-scopes-and-token-audiences.md)).
    - `UserInfo:Load`, and `UserClaims` `preferred_username` and `email` for `/bff/user`.
    - `ReturnUrls` `/`.
-8. **Host filtering.** `ManagementConsoleHostFilteringValidator` refuses an empty or wildcard `AllowedHosts` in the
-   Production environment, so a deployment lists its own host names.
+8. **Host filtering.** `ManagementConsoleHostFilteringValidator` refuses an empty or wildcard `AllowedHosts` unless
+   `LocalDevelopment:Enabled` is set, so a deployment lists its own host names.
 9. **Local development.** The AppHost ([ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md))
    runs the console host on `https://localhost:5005` and `http://localhost:5004`. It generates per-machine P-256 keys
    `mgmt-client.pem` and `mgmt-dpop.pem` beside the other development secrets, passes their paths to the console as

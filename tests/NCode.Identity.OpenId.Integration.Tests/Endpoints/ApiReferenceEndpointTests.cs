@@ -3,7 +3,6 @@
 
 using System.Net;
 using System.Text.RegularExpressions;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using NCode.Identity.OpenId.Host;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
@@ -16,20 +15,29 @@ public sealed class ApiReferenceEndpointTests
 {
     private const string BaseAddress = "https://op.integration.test/";
 
-    // Qualified because the NCode.Identity.OpenId.Environments namespace shadows the framework's Environments class.
-    private static string StagingEnvironment { get; } =
-        Microsoft.Extensions.Hosting.Environments.Staging;
+    // The base address's host is the one the strict posture's explicit AllowedHosts admits.
+    private const string HostName = "op.integration.test";
+
+    private static Dictionary<string, string?> StrictSettings(
+        params (string Key, string? Value)[] extra
+    )
+    {
+        var settings = new Dictionary<string, string?> { ["AllowedHosts"] = HostName };
+        foreach (var (key, value) in extra)
+        {
+            settings[key] = value;
+        }
+
+        return settings;
+    }
 
     #region Map Tests
 
     [Fact]
-    public async Task GetOpenApiDocument_OutsideDevelopmentByDefault_ReturnsNotFound()
+    public async Task GetOpenApiDocument_WithoutLocalDevelopmentByDefault_ReturnsNotFound()
     {
-        using var factory = new HostApplicationFactory();
-        using var staging = factory.WithWebHostBuilder(builder =>
-            builder.UseEnvironment(StagingEnvironment)
-        );
-        using var client = CreateClient(staging);
+        using var factory = new StrictPostureHostApplicationFactory(StrictSettings());
+        using var client = CreateClient(factory);
 
         using var response = await client.GetAsync("/openapi/v1.json");
 
@@ -37,13 +45,10 @@ public sealed class ApiReferenceEndpointTests
     }
 
     [Fact]
-    public async Task GetApiReferencePage_OutsideDevelopmentByDefault_ReturnsNotFound()
+    public async Task GetApiReferencePage_WithoutLocalDevelopmentByDefault_ReturnsNotFound()
     {
-        using var factory = new HostApplicationFactory();
-        using var staging = factory.WithWebHostBuilder(builder =>
-            builder.UseEnvironment(StagingEnvironment)
-        );
-        using var client = CreateClient(staging);
+        using var factory = new StrictPostureHostApplicationFactory(StrictSettings());
+        using var client = CreateClient(factory);
 
         using var response = await client.GetAsync(IdentityServerApiReferenceOptions.PagePath);
 
@@ -51,15 +56,12 @@ public sealed class ApiReferenceEndpointTests
     }
 
     [Fact]
-    public async Task GetOpenApiDocument_WhenEnabledOutsideDevelopment_ReturnsTheDocument()
+    public async Task GetOpenApiDocument_WhenEnabledWithoutLocalDevelopment_ReturnsTheDocument()
     {
-        using var factory = new ConfiguredHostApplicationFactory(
-            new Dictionary<string, string?> { ["ApiReference:DocumentEnabled"] = "true" }
+        using var factory = new StrictPostureHostApplicationFactory(
+            StrictSettings(("ApiReference:DocumentEnabled", "true"))
         );
-        using var staging = factory.WithWebHostBuilder(builder =>
-            builder.UseEnvironment(StagingEnvironment)
-        );
-        using var client = CreateClient(staging);
+        using var client = CreateClient(factory);
 
         using var response = await client.GetAsync("/openapi/v1.json");
 
@@ -70,13 +72,10 @@ public sealed class ApiReferenceEndpointTests
     [Fact]
     public async Task GetApiReferencePage_WhenOnlyTheDocumentIsEnabled_ReturnsNotFound()
     {
-        using var factory = new ConfiguredHostApplicationFactory(
-            new Dictionary<string, string?> { ["ApiReference:DocumentEnabled"] = "true" }
+        using var factory = new StrictPostureHostApplicationFactory(
+            StrictSettings(("ApiReference:DocumentEnabled", "true"))
         );
-        using var staging = factory.WithWebHostBuilder(builder =>
-            builder.UseEnvironment(StagingEnvironment)
-        );
-        using var client = CreateClient(staging);
+        using var client = CreateClient(factory);
 
         using var response = await client.GetAsync(IdentityServerApiReferenceOptions.PagePath);
 
@@ -84,7 +83,7 @@ public sealed class ApiReferenceEndpointTests
     }
 
     [Fact]
-    public async Task GetApiReferencePage_InDevelopment_SendsAStrictContentSecurityPolicyWithItsNonce()
+    public async Task GetApiReferencePage_WithLocalDevelopment_SendsAStrictContentSecurityPolicyWithItsNonce()
     {
         using var factory = new HostApplicationFactory();
         using var client = CreateClient(factory);
@@ -111,7 +110,7 @@ public sealed class ApiReferenceEndpointTests
     }
 
     [Fact]
-    public async Task GetApiReferencePage_InDevelopment_NamesNoExternalOrigin()
+    public async Task GetApiReferencePage_WithLocalDevelopment_NamesNoExternalOrigin()
     {
         using var factory = new HostApplicationFactory();
         using var client = CreateClient(factory);
@@ -131,7 +130,7 @@ public sealed class ApiReferenceEndpointTests
     }
 
     [Fact]
-    public async Task GetApiReferencePage_InDevelopment_DisablesTelemetryAgentMcpAndDefaultFonts()
+    public async Task GetApiReferencePage_WithLocalDevelopment_DisablesTelemetryAgentMcpAndDefaultFonts()
     {
         using var factory = new HostApplicationFactory();
         using var client = CreateClient(factory);

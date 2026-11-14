@@ -15,7 +15,7 @@ Two facts shape where the setting lives:
 
 - **The hosts compose their hardening from `NCode.Identity.AspNetCore`.** Forwarded-header trust and strict transport
   security come from one general package, and each host calls the same registrations
-  ([ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md)).
+  ([ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package.md)).
 - **Each host has one `ConfigureKestrel` call, and `ConfigureHttpsDefaults` keeps only its last action.** That call is
   about TLS
   ([ADR-1499](1499-the-host-accepts-only-tls-1-2-and-1-3-with-aead-cipher-suites.md)), so a second setting placed in it
@@ -45,6 +45,6 @@ TLS. Any host composed from the family calls it the same way.
 
 - Issue [#808](https://github.com/NCodeGroup/identity/issues/808)
 - [OWASP HTTP Headers Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/HTTP_Headers_Cheat_Sheet.html)
-- [ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md),
+- [ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package.md),
   [ADR-1499](1499-the-host-accepts-only-tls-1-2-and-1-3-with-aead-cipher-suites.md)
 - `src/NCode.Identity.AspNetCore/ServerHeaderRegistration.cs`

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Server.SecretProtection;
 using Xunit;
@@ -496,6 +497,33 @@ public class SecretProtectionRegistrationTests : BaseTests
         var options = serviceProvider.GetRequiredService<IOptions<KeyManagementOptions>>().Value;
 
         Assert.IsType<MasterKeyXmlEncryptor>(options.XmlEncryptor);
+    }
+
+    [Fact]
+    public void AddSecretProtection_WithNoLocalDevelopmentMode_RegistersOneThatIsOff()
+    {
+        var serviceCollection = AddSecretProtection([]);
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var mode = serviceProvider.GetRequiredService<LocalDevelopmentMode>();
+
+        Assert.False(mode.Enabled);
+    }
+
+    [Fact]
+    public void AddSecretProtection_WithALocalDevelopmentMode_KeepsIt()
+    {
+        var mode = new LocalDevelopmentMode(true);
+        var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(mode);
+
+        AddSecretProtection([], serviceCollection);
+
+        var descriptor = Assert.Single(
+            serviceCollection,
+            descriptor => descriptor.ServiceType == typeof(LocalDevelopmentMode)
+        );
+        Assert.Same(mode, descriptor.ImplementationInstance);
     }
 
     #endregion

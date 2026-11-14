@@ -9,15 +9,16 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Moq;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence.Options;
-using NCode.Identity.Server.ProductionSafety;
+using NCode.Identity.Server.DeploymentSafety;
 using Xunit;
 
 namespace NCode.Identity.Server.Tests;
 
-public class ProductionSafetyRegistrationTests
+public class DeploymentSafetyRegistrationTests
 {
     #region Helpers
 
@@ -42,7 +43,7 @@ public class ProductionSafetyRegistrationTests
     /// <summary>
     /// A configuration whose secret protection is safe, plus <paramref name="values"/>.
     /// </summary>
-    private static IConfiguration CreateProductionConfiguration(
+    private static IConfiguration CreateDeploymentConfiguration(
         params (string Key, string Value)[] values
     ) => CreateConfiguration([.. values, .. SafeSecretProtectionSettings]);
 
@@ -51,7 +52,13 @@ public class ProductionSafetyRegistrationTests
     /// secret protection configuration.
     /// </summary>
     private static IConfiguration CreateSafeConfiguration() =>
-        CreateProductionConfiguration(("AllowedHosts", "op.example.com"));
+        CreateDeploymentConfiguration(("AllowedHosts", "op.example.com"));
+
+    /// <summary>
+    /// A configuration that turns on the local inner-loop switch, with a host filter and no secret protection.
+    /// </summary>
+    private static IConfiguration CreateLocalDevelopmentConfiguration() =>
+        CreateConfiguration(("LocalDevelopment:Enabled", "true"), ("AllowedHosts", "*"));
 
     private static IHostEnvironment CreateEnvironment(string environmentName)
     {
@@ -62,34 +69,67 @@ public class ProductionSafetyRegistrationTests
         return mock.Object;
     }
 
-    #endregion
-
-    #region AddProductionSafety
-
-    [Fact]
-    public void AddProductionSafety_WhenProductionAndUnsafe_Throws()
+    /// <summary>
+    /// A service collection that hosts the registrations under test in the environment named
+    /// <paramref name="environmentName"/>.
+    /// </summary>
+    private static ServiceCollection CreateServiceCollection(string environmentName)
     {
         var serviceCollection = new ServiceCollection();
+        serviceCollection.AddSingleton(CreateEnvironment(environmentName));
+        return serviceCollection;
+    }
+
+    #endregion
+
+    #region AddDeploymentSafety
+
+    [Theory]
+    [InlineData("Production")]
+    [InlineData("Development")]
+    [InlineData("Staging")]
+    [InlineData("Conformance")]
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOffAndUnsafe_Throws(
+        string environmentName
+    )
+    {
+        var serviceCollection = CreateServiceCollection(environmentName);
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            serviceCollection.AddProductionSafety(
-                CreateConfiguration(("AllowedHosts", "*")),
-                CreateEnvironment(Environments.Production)
+            serviceCollection.AddDeploymentSafety(CreateConfiguration(("AllowedHosts", "*")))
+        );
+
+        Assert.Contains("Refusing to start a deployment", exception.Message);
+        Assert.Contains("LocalDevelopment:Enabled", exception.Message);
+    }
+
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Staging")]
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOffAndADeveloperSectionIsPresent_Throws(
+        string environmentName
+    )
+    {
+        var serviceCollection = CreateServiceCollection(environmentName);
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            serviceCollection.AddDeploymentSafety(
+                CreateDeploymentConfiguration(
+                    ("AllowedHosts", "op.example.com"),
+                    ("DeveloperKeys:PruneUnreadableKeys", "true")
+                )
             )
         );
 
-        Assert.Contains("Refusing to start in the Production environment", exception.Message);
+        Assert.Contains("- DeveloperKeys: ", exception.Message);
     }
 
     [Fact]
-    public void AddProductionSafety_WhenProductionAndSafe_DoesNotThrow()
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOffAndSafe_DoesNotThrow()
     {
-        var serviceCollection = new ServiceCollection();
+        var serviceCollection = CreateServiceCollection(Environments.Production);
 
-        var result = serviceCollection.AddProductionSafety(
-            CreateSafeConfiguration(),
-            CreateEnvironment(Environments.Production)
-        );
+        var result = serviceCollection.AddDeploymentSafety(CreateSafeConfiguration());
 
         Assert.Same(serviceCollection, result);
     }
@@ -98,30 +138,24 @@ public class ProductionSafetyRegistrationTests
     [InlineData("Development")]
     [InlineData("Staging")]
     [InlineData("Conformance")]
-    public void AddProductionSafety_WhenNotProduction_IgnoresUnsafeConfiguration(
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOn_IgnoresUnsafeConfiguration(
         string environmentName
     )
     {
-        var serviceCollection = new ServiceCollection();
+        var serviceCollection = CreateServiceCollection(environmentName);
 
-        // The same configuration that fails under Production above.
-        var result = serviceCollection.AddProductionSafety(
-            CreateConfiguration(("AllowedHosts", "*")),
-            CreateEnvironment(environmentName)
-        );
+        // The same configuration that fails with the switch off above.
+        var result = serviceCollection.AddDeploymentSafety(CreateLocalDevelopmentConfiguration());
 
         Assert.Same(serviceCollection, result);
     }
 
     [Fact]
-    public void AddProductionSafety_WhenProduction_RegistersTheTransportSecurityCheck()
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOff_RegistersTheTransportSecurityCheck()
     {
-        var serviceCollection = new ServiceCollection();
+        var serviceCollection = CreateServiceCollection(Environments.Production);
 
-        serviceCollection.AddProductionSafety(
-            CreateSafeConfiguration(),
-            CreateEnvironment(Environments.Production)
-        );
+        serviceCollection.AddDeploymentSafety(CreateSafeConfiguration());
 
         Assert.Single(
             serviceCollection,
@@ -135,16 +169,33 @@ public class ProductionSafetyRegistrationTests
     [InlineData("Development")]
     [InlineData("Staging")]
     [InlineData("Conformance")]
-    public void AddProductionSafety_WhenNotProduction_RegistersNoTransportSecurityCheck(
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOffInAnyEnvironment_RegistersTheTransportSecurityCheck(
         string environmentName
     )
     {
-        var serviceCollection = new ServiceCollection();
+        var serviceCollection = CreateServiceCollection(environmentName);
 
-        serviceCollection.AddProductionSafety(
-            CreateSafeConfiguration(),
-            CreateEnvironment(environmentName)
+        serviceCollection.AddDeploymentSafety(CreateSafeConfiguration());
+
+        Assert.Single(
+            serviceCollection,
+            descriptor =>
+                descriptor.ServiceType == typeof(IHostedService)
+                && descriptor.ImplementationType?.Name == "TransportSecurityStartupCheck"
         );
+    }
+
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Staging")]
+    [InlineData("Conformance")]
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOn_RegistersNoTransportSecurityCheck(
+        string environmentName
+    )
+    {
+        var serviceCollection = CreateServiceCollection(environmentName);
+
+        serviceCollection.AddDeploymentSafety(CreateLocalDevelopmentConfiguration());
 
         Assert.DoesNotContain(
             serviceCollection,
@@ -153,9 +204,9 @@ public class ProductionSafetyRegistrationTests
     }
 
     [Fact]
-    public void AddProductionSafety_WhenProductionAndMultipleProblems_ReportsAllAtOnce()
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOffAndMultipleProblems_ReportsAllAtOnce()
     {
-        var serviceCollection = new ServiceCollection();
+        var serviceCollection = CreateServiceCollection(Environments.Production);
         var configuration = CreateConfiguration(
             ("AllowedHosts", "*"),
             ("DeveloperKeys:PruneUnreadableKeys", "true"),
@@ -163,10 +214,7 @@ public class ProductionSafetyRegistrationTests
         );
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            serviceCollection.AddProductionSafety(
-                configuration,
-                CreateEnvironment(Environments.Production)
-            )
+            serviceCollection.AddDeploymentSafety(configuration)
         );
 
         // An operator should be able to fix every problem in one pass, not one restart per problem.
@@ -176,23 +224,20 @@ public class ProductionSafetyRegistrationTests
     }
 
     [Fact]
-    public void AddProductionSafety_WhenProductionAndSecretProtectionMissing_Throws()
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOffAndSecretProtectionMissing_Throws()
     {
-        var serviceCollection = new ServiceCollection();
+        var serviceCollection = CreateServiceCollection(Environments.Production);
         var configuration = CreateConfiguration(
             ("AllowedHosts", "op.example.com"),
             ("SecretProtection:RootKeyProviders:Local:Key", "inline-root-key-value")
         );
 
         var exception = Assert.Throws<InvalidOperationException>(() =>
-            serviceCollection.AddProductionSafety(
-                configuration,
-                CreateEnvironment(Environments.Production)
-            )
+            serviceCollection.AddDeploymentSafety(configuration)
         );
 
         Assert.Contains(
-            "Refusing to start in the Production environment: 3 setting(s) are unsafe for a production deployment.",
+            "Refusing to start a deployment: 3 setting(s) are unsafe for a deployment.",
             exception.Message
         );
         Assert.Contains("- SecretProtection:RootKeyProvider: ", exception.Message);
@@ -202,26 +247,25 @@ public class ProductionSafetyRegistrationTests
     }
 
     [Fact]
-    public void AddProductionSafety_WhenNotProduction_IgnoresMissingSecretProtection()
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOn_IgnoresMissingSecretProtection()
     {
-        var serviceCollection = new ServiceCollection();
+        var serviceCollection = CreateServiceCollection(Environments.Development);
 
-        var result = serviceCollection.AddProductionSafety(
-            CreateConfiguration(("AllowedHosts", "op.example.com")),
-            CreateEnvironment(Environments.Development)
+        var result = serviceCollection.AddDeploymentSafety(
+            CreateConfiguration(
+                ("LocalDevelopment:Enabled", "true"),
+                ("AllowedHosts", "op.example.com")
+            )
         );
 
         Assert.Same(serviceCollection, result);
     }
 
     [Fact]
-    public void AddProductionSafety_WhenProductionAndKeyRingUnprotected_FailsOnStart()
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOffAndKeyRingUnprotected_FailsOnStart()
     {
-        var serviceCollection = new ServiceCollection();
-        serviceCollection.AddProductionSafety(
-            CreateSafeConfiguration(),
-            CreateEnvironment(Environments.Production)
-        );
+        var serviceCollection = CreateServiceCollection(Environments.Production);
+        serviceCollection.AddDeploymentSafety(CreateSafeConfiguration());
         serviceCollection.Configure<KeyManagementOptions>(options =>
             options.XmlRepository = new Mock<IXmlRepository>(MockBehavior.Strict).Object
         );
@@ -231,17 +275,14 @@ public class ProductionSafetyRegistrationTests
             serviceProvider.GetRequiredService<IStartupValidator>().Validate()
         );
 
-        Assert.Equal([ProductionSafetyRegistration.KeyRingUnprotectedMessage], exception.Failures);
+        Assert.Equal([DeploymentSafetyRegistration.KeyRingUnprotectedMessage], exception.Failures);
     }
 
     [Fact]
-    public void AddProductionSafety_WhenProductionAndKeyRingHasNoRepository_FailsOnStart()
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOffAndKeyRingHasNoRepository_FailsOnStart()
     {
-        var serviceCollection = new ServiceCollection();
-        serviceCollection.AddProductionSafety(
-            CreateSafeConfiguration(),
-            CreateEnvironment(Environments.Production)
-        );
+        var serviceCollection = CreateServiceCollection(Environments.Production);
+        serviceCollection.AddDeploymentSafety(CreateSafeConfiguration());
         using var serviceProvider = serviceCollection.BuildServiceProvider();
 
         var exception = Assert.Throws<OptionsValidationException>(() =>
@@ -250,28 +291,46 @@ public class ProductionSafetyRegistrationTests
 
         Assert.Equal(
             [
-                ProductionSafetyRegistration.KeyRingRepositoryMissingMessage,
-                ProductionSafetyRegistration.KeyRingUnprotectedMessage,
+                DeploymentSafetyRegistration.KeyRingRepositoryMissingMessage,
+                DeploymentSafetyRegistration.KeyRingUnprotectedMessage,
             ],
             exception.Failures
         );
     }
 
-    [Fact]
-    public void AddProductionSafety_WhenProductionAndPbkdf2IterationsAreBelowTheRecommendation_FailsOnStart()
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Staging")]
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOffInAnyEnvironmentAndKeyRingHasNoRepository_FailsOnStart(
+        string environmentName
+    )
     {
-        var serviceCollection = new ServiceCollection();
-        serviceCollection.AddProductionSafety(
-            CreateSafeConfiguration(),
-            CreateEnvironment(Environments.Production)
+        var serviceCollection = CreateServiceCollection(environmentName);
+        serviceCollection.AddDeploymentSafety(CreateSafeConfiguration());
+        using var serviceProvider = serviceCollection.BuildServiceProvider();
+
+        var exception = Assert.Throws<OptionsValidationException>(() =>
+            serviceProvider.GetRequiredService<IStartupValidator>().Validate()
         );
+
+        Assert.Contains(
+            DeploymentSafetyRegistration.KeyRingRepositoryMissingMessage,
+            exception.Failures
+        );
+    }
+
+    [Fact]
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOffAndPbkdf2IterationsAreBelowTheRecommendation_FailsOnStart()
+    {
+        var serviceCollection = CreateServiceCollection(Environments.Production);
+        serviceCollection.AddDeploymentSafety(CreateSafeConfiguration());
         serviceCollection.Configure<KeyManagementOptions>(options =>
         {
             options.XmlRepository = new Mock<IXmlRepository>(MockBehavior.Strict).Object;
             options.XmlEncryptor = new Mock<IXmlEncryptor>(MockBehavior.Strict).Object;
         });
         serviceCollection.Configure<Pbkdf2SecretVerifierOptions>(options =>
-            options.Iterations = Pbkdf2SecretVerifierOptions.MinimumProductionIterations - 1
+            options.Iterations = Pbkdf2SecretVerifierOptions.MinimumDeploymentIterations - 1
         );
         using var serviceProvider = serviceCollection.BuildServiceProvider();
 
@@ -281,8 +340,8 @@ public class ProductionSafetyRegistrationTests
 
         Assert.Equal(
             [
-                ProductionPbkdf2IterationsValidator.CreateMessage(
-                    Pbkdf2SecretVerifierOptions.MinimumProductionIterations - 1
+                DeploymentPbkdf2IterationsValidator.CreateMessage(
+                    Pbkdf2SecretVerifierOptions.MinimumDeploymentIterations - 1
                 ),
             ],
             exception.Failures
@@ -290,27 +349,21 @@ public class ProductionSafetyRegistrationTests
     }
 
     [Fact]
-    public void AddProductionSafety_WhenNotProduction_AllowsAnyPbkdf2Iterations()
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOn_AllowsAnyPbkdf2Iterations()
     {
-        var serviceCollection = new ServiceCollection();
-        serviceCollection.AddProductionSafety(
-            CreateSafeConfiguration(),
-            CreateEnvironment(Environments.Development)
-        );
+        var serviceCollection = CreateServiceCollection(Environments.Development);
+        serviceCollection.AddDeploymentSafety(CreateLocalDevelopmentConfiguration());
         serviceCollection.Configure<Pbkdf2SecretVerifierOptions>(options => options.Iterations = 1);
         using var serviceProvider = serviceCollection.BuildServiceProvider();
 
-        Assert.Null(serviceProvider.GetService<IStartupValidator>());
+        serviceProvider.GetRequiredService<IStartupValidator>().Validate();
     }
 
     [Fact]
-    public void AddProductionSafety_WhenProductionAndKeyRingProtected_StartsCleanly()
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOffAndKeyRingProtected_StartsCleanly()
     {
-        var serviceCollection = new ServiceCollection();
-        serviceCollection.AddProductionSafety(
-            CreateSafeConfiguration(),
-            CreateEnvironment(Environments.Production)
-        );
+        var serviceCollection = CreateServiceCollection(Environments.Production);
+        serviceCollection.AddDeploymentSafety(CreateSafeConfiguration());
         serviceCollection.Configure<KeyManagementOptions>(options =>
         {
             options.XmlRepository = new Mock<IXmlRepository>(MockBehavior.Strict).Object;
@@ -322,64 +375,94 @@ public class ProductionSafetyRegistrationTests
     }
 
     [Fact]
-    public void AddProductionSafety_WhenNotProduction_LeavesTheKeyRingUnchecked()
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOn_RegistersNoGate()
     {
-        var serviceCollection = new ServiceCollection();
+        var configuration = CreateLocalDevelopmentConfiguration();
 
-        serviceCollection.AddProductionSafety(
-            CreateSafeConfiguration(),
-            CreateEnvironment(Environments.Development)
-        );
+        var expected = CreateServiceCollection(Environments.Development);
+        expected.AddLocalDevelopmentOptions(configuration);
+        expected.AddTransportSecurity(configuration);
 
-        Assert.Empty(serviceCollection);
+        var actual = CreateServiceCollection(Environments.Development);
+        actual.AddDeploymentSafety(configuration);
+
+        // The switch adds no gate beyond the switch's and transport security's options.
+        Assert.Equal(Project(expected), Project(actual));
+
+        static IEnumerable<(Type, Type?, Type?, bool)> Project(
+            IServiceCollection serviceCollection
+        ) =>
+            serviceCollection.Select(descriptor =>
+                (
+                    descriptor.ServiceType,
+                    descriptor.ImplementationType,
+                    descriptor.ImplementationInstance?.GetType(),
+                    descriptor.ImplementationFactory is not null
+                )
+            );
     }
 
     [Fact]
-    public void AddProductionSafety_WhenProductionAndPlatformEnvironmentTypeIsNotProduction_FailsOnStart()
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOffAndPlatformEnvironmentTypeIsNotProduction_FailsOnStart()
     {
-        using var serviceProvider = BuildProtectedProvider("development");
+        using var serviceProvider = BuildProtectedProvider("development", Environments.Production);
 
         var exception = Assert.Throws<OptionsValidationException>(() =>
             serviceProvider.GetRequiredService<IStartupValidator>().Validate()
         );
 
         var failure = Assert.Single(exception.Failures);
-        Assert.Contains(ProductionEnvironmentTypeValidator.ConfigurationKey, failure);
+        Assert.Contains(DeploymentEnvironmentTypeValidator.ConfigurationKey, failure);
         Assert.Contains("'development'", failure);
+    }
+
+    [Theory]
+    [InlineData("Development")]
+    [InlineData("Staging")]
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOffInAnyEnvironmentAndPlatformEnvironmentTypeIsNotProduction_FailsOnStart(
+        string environmentName
+    )
+    {
+        using var serviceProvider = BuildProtectedProvider("development", environmentName);
+
+        var exception = Assert.Throws<OptionsValidationException>(() =>
+            serviceProvider.GetRequiredService<IStartupValidator>().Validate()
+        );
+
+        var failure = Assert.Single(exception.Failures);
+        Assert.Contains(DeploymentEnvironmentTypeValidator.ConfigurationKey, failure);
     }
 
     [Theory]
     [InlineData("production")]
     [InlineData("unregistered")]
     [InlineData(null)]
-    public void AddProductionSafety_WhenProductionAndPlatformEnvironmentTypeIsNotANonProductionType_StartsCleanly(
+    public void AddDeploymentSafety_WhenLocalDevelopmentIsOffAndPlatformEnvironmentTypeIsNotANonProductionType_StartsCleanly(
         string? typeName
     )
     {
-        using var serviceProvider = BuildProtectedProvider(typeName);
+        using var serviceProvider = BuildProtectedProvider(typeName, Environments.Production);
 
         serviceProvider.GetRequiredService<IStartupValidator>().Validate();
     }
 
     /// <summary>
-    /// A Production provider with a protected key ring, the registered <c>production</c> and <c>development</c> types,
-    /// and configured platform settings that select <paramref name="typeName"/> (or no type when it is null).
+    /// A provider for a host without the local inner-loop switch, with a protected key ring, the registered
+    /// <c>production</c> and <c>development</c> types, and configured platform settings that select
+    /// <paramref name="typeName"/> (or no type when it is null).
     /// </summary>
-    private static ServiceProvider BuildProtectedProvider(string? typeName)
+    private static ServiceProvider BuildProtectedProvider(string? typeName, string environmentName)
     {
         (string Key, string Value)[] settings = typeName is null
             ? []
-            : [(ProductionEnvironmentTypeValidator.ConfigurationKey, typeName)];
+            : [(DeploymentEnvironmentTypeValidator.ConfigurationKey, typeName)];
         var configuration = CreateConfiguration([
             .. settings,
             ("AllowedHosts", "op.example.com"),
             .. SafeSecretProtectionSettings,
         ]);
-        var serviceCollection = new ServiceCollection();
-        serviceCollection.AddProductionSafety(
-            configuration,
-            CreateEnvironment(Environments.Production)
-        );
+        var serviceCollection = CreateServiceCollection(environmentName);
+        serviceCollection.AddDeploymentSafety(configuration);
         serviceCollection.Configure<KeyManagementOptions>(options =>
         {
             options.XmlRepository = new Mock<IXmlRepository>(MockBehavior.Strict).Object;
@@ -414,7 +497,7 @@ public class ProductionSafetyRegistrationTests
     [Fact]
     public void FindViolations_WhenSafe_ReturnsEmpty()
     {
-        var violations = ProductionSafetyRegistration.FindViolations(CreateSafeConfiguration());
+        var violations = DeploymentSafetyRegistration.FindViolations(CreateSafeConfiguration());
 
         Assert.Empty(violations);
     }
@@ -422,8 +505,8 @@ public class ProductionSafetyRegistrationTests
     [Fact]
     public void FindViolations_WhenDeveloperKeysSectionIsPresent_ReportsIt()
     {
-        var violations = ProductionSafetyRegistration.FindViolations(
-            CreateProductionConfiguration(
+        var violations = DeploymentSafetyRegistration.FindViolations(
+            CreateDeploymentConfiguration(
                 ("AllowedHosts", "op.example.com"),
                 ("DeveloperKeys:PruneUnreadableKeys", "true")
             )
@@ -436,8 +519,8 @@ public class ProductionSafetyRegistrationTests
     [Fact]
     public void FindViolations_WhenDeveloperKeysSectionIsAbsent_ReportsNothingForKeys()
     {
-        var violations = ProductionSafetyRegistration.FindViolations(
-            CreateProductionConfiguration(("AllowedHosts", "op.example.com"))
+        var violations = DeploymentSafetyRegistration.FindViolations(
+            CreateDeploymentConfiguration(("AllowedHosts", "op.example.com"))
         );
 
         Assert.Empty(violations);
@@ -449,8 +532,8 @@ public class ProductionSafetyRegistrationTests
     [InlineData("op.example.com;*")]
     public void FindViolations_WhenAllowedHostsAcceptsAnything_ReportsViolation(string allowedHosts)
     {
-        var violations = ProductionSafetyRegistration.FindViolations(
-            CreateProductionConfiguration(("AllowedHosts", allowedHosts))
+        var violations = DeploymentSafetyRegistration.FindViolations(
+            CreateDeploymentConfiguration(("AllowedHosts", allowedHosts))
         );
 
         Assert.Contains(violations, violation => violation.ConfigurationKey == "AllowedHosts");
@@ -459,8 +542,8 @@ public class ProductionSafetyRegistrationTests
     [Fact]
     public void FindViolations_WhenAllowedHostsIsExplicit_DoesNotReportHostViolation()
     {
-        var violations = ProductionSafetyRegistration.FindViolations(
-            CreateProductionConfiguration(("AllowedHosts", "op.example.com;id.example.com"))
+        var violations = DeploymentSafetyRegistration.FindViolations(
+            CreateDeploymentConfiguration(("AllowedHosts", "op.example.com;id.example.com"))
         );
 
         Assert.DoesNotContain(
@@ -477,8 +560,8 @@ public class ProductionSafetyRegistrationTests
     {
         // The Cors section is development-only: it admits cross-origin calls from the origins it lists, whether it
         // names a loopback dev server or a real origin.
-        var violations = ProductionSafetyRegistration.FindViolations(
-            CreateProductionConfiguration(
+        var violations = DeploymentSafetyRegistration.FindViolations(
+            CreateDeploymentConfiguration(
                 ("AllowedHosts", "op.example.com"),
                 ("Cors:AllowedOrigins:0", origin)
             )
@@ -493,8 +576,8 @@ public class ProductionSafetyRegistrationTests
     [InlineData("ConformanceSeed")]
     public void FindViolations_WhenSeedSectionPresent_ReportsViolation(string sectionName)
     {
-        var violations = ProductionSafetyRegistration.FindViolations(
-            CreateProductionConfiguration(
+        var violations = DeploymentSafetyRegistration.FindViolations(
+            CreateDeploymentConfiguration(
                 ("AllowedHosts", "op.example.com"),
                 ($"{sectionName}:Enabled", "true")
             )
@@ -506,8 +589,8 @@ public class ProductionSafetyRegistrationTests
     [Fact]
     public void FindViolations_WhenBootstrapAdminSectionPresent_ReportsIt()
     {
-        var violations = ProductionSafetyRegistration.FindViolations(
-            CreateProductionConfiguration(
+        var violations = DeploymentSafetyRegistration.FindViolations(
+            CreateDeploymentConfiguration(
                 ("AllowedHosts", "op.example.com"),
                 ("BootstrapAdmin:ClientSecret", "c2VjcmV0")
             )
@@ -523,7 +606,7 @@ public class ProductionSafetyRegistrationTests
     [InlineData("   ")]
     public void FindViolations_WhenRootKeyProviderBlank_ReportsRootKeyProvider(string provider)
     {
-        var violations = ProductionSafetyRegistration.FindViolations(
+        var violations = DeploymentSafetyRegistration.FindViolations(
             CreateConfiguration(
                 ("AllowedHosts", "op.example.com"),
                 ("SecretProtection:RootKeyProvider", provider),
@@ -540,7 +623,7 @@ public class ProductionSafetyRegistrationTests
     [Fact]
     public void FindViolations_WhenRootKeyProviderUnset_ReportsRootKeyProvider()
     {
-        var violations = ProductionSafetyRegistration.FindViolations(
+        var violations = DeploymentSafetyRegistration.FindViolations(
             CreateConfiguration(
                 ("AllowedHosts", "op.example.com"),
                 ("SecretProtection:Recovery:Disabled", "true")
@@ -559,7 +642,7 @@ public class ProductionSafetyRegistrationTests
     [Fact]
     public void FindViolations_WhenRootKeyProviderEphemeral_ReportsRootKeyProvider()
     {
-        var violations = ProductionSafetyRegistration.FindViolations(
+        var violations = DeploymentSafetyRegistration.FindViolations(
             CreateConfiguration(
                 ("AllowedHosts", "op.example.com"),
                 ("SecretProtection:RootKeyProvider", "ephemeral"),
@@ -581,7 +664,7 @@ public class ProductionSafetyRegistrationTests
     public void FindViolations_WhenLocalKeyInline_ReportsLocalKey(string provider)
     {
         // An inline root key is a leaked key even when another provider is the one selected.
-        var violations = ProductionSafetyRegistration.FindViolations(
+        var violations = DeploymentSafetyRegistration.FindViolations(
             CreateConfiguration(
                 ("AllowedHosts", "op.example.com"),
                 ("SecretProtection:RootKeyProvider", provider),
@@ -600,7 +683,7 @@ public class ProductionSafetyRegistrationTests
     [Fact]
     public void FindViolations_WhenRecoveryNeitherConfiguredNorDisabled_ReportsRecovery()
     {
-        var violations = ProductionSafetyRegistration.FindViolations(
+        var violations = DeploymentSafetyRegistration.FindViolations(
             CreateConfiguration(
                 ("AllowedHosts", "op.example.com"),
                 ("SecretProtection:RootKeyProvider", "local")
@@ -620,7 +703,7 @@ public class ProductionSafetyRegistrationTests
     public void FindViolations_WhenRecoveryDisabledIsNotTrue_ReportsRecovery(string disabled)
     {
         // Only a value that parses as true declines recovery; anything else counts as not disabled.
-        var violations = ProductionSafetyRegistration.FindViolations(
+        var violations = DeploymentSafetyRegistration.FindViolations(
             CreateConfiguration(
                 ("AllowedHosts", "op.example.com"),
                 ("SecretProtection:RootKeyProvider", "local"),
@@ -635,7 +718,7 @@ public class ProductionSafetyRegistrationTests
     [Fact]
     public void FindViolations_WhenRecoveryDisabled_DoesNotReportRecovery()
     {
-        var violations = ProductionSafetyRegistration.FindViolations(
+        var violations = DeploymentSafetyRegistration.FindViolations(
             CreateConfiguration(
                 ("AllowedHosts", "op.example.com"),
                 ("SecretProtection:RootKeyProvider", "local"),
@@ -649,7 +732,7 @@ public class ProductionSafetyRegistrationTests
     [Fact]
     public void FindViolations_WhenRecoveryPublicKeyConfigured_DoesNotReportRecovery()
     {
-        var violations = ProductionSafetyRegistration.FindViolations(
+        var violations = DeploymentSafetyRegistration.FindViolations(
             CreateConfiguration(
                 ("AllowedHosts", "op.example.com"),
                 ("SecretProtection:RootKeyProvider", "local"),

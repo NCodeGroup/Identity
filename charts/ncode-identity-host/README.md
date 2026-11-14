@@ -163,10 +163,8 @@ Rendering fails, before anything is applied, when:
   `setup.job.existingSecret`, `setup.job.userNameKey` or `setup.job.passwordKey` is empty;
 - the `StaticSingle` strategy has no `https` issuer;
 - `secretProtection.rootKeyProvider` is empty, in any environment, because the host does not start without one;
-- `environment` is `Production` and `secretProtection.rootKeyProvider` is `ephemeral`, which would leave no root key
-  outside the pod;
-- `environment` is `Production`, `secretProtection.rootKeyProvider` is `local`, and `secretProtection.local.keySecret`
-  is empty;
+- `secretProtection.rootKeyProvider` is `ephemeral`, in any environment, which would leave no root key outside the pod;
+- `secretProtection.rootKeyProvider` is `local`, in any environment, and `secretProtection.local.keySecret` is empty;
 - `secretProtection.rootKeyProvider` is `aws-kms`, in any environment, and `secretProtection.awsKms.keyArn` is empty or
   is not the ARN of a KMS key or alias;
 - `secretProtection.rootKeyProvider` is `azure-key-vault`, in any environment, and
@@ -190,7 +188,7 @@ Rendering fails, before anything is applied, when:
   with the pod's ambient identity, such as EKS Pod Identity or Workload Identity Federation for GKE. The console's
   identities under `managementConsole.secretProtection` are checked the same way for each vendor a console remote key
   names;
-- `environment` is `Production`, `secretProtection.recovery.publicKeyConfigMap` is empty, and
+- `secretProtection.recovery.publicKeyConfigMap` is empty, in any environment, and
   `secretProtection.recovery.disabled` is not `true`, because losing the root key would then lose every stored secret;
 - `replicaCount` is above 1 without `valkey.existingSecret` or `valkey.parts.existingSecret`, because replicas share
   single-use state through Valkey;
@@ -276,23 +274,24 @@ created either. Setup imports each JWK Set by value, so neither client needs a `
 - **The management console's client** is a confidential client of the control-plane tenant, with the metadata that
   [Management console](#management-console) lists, except `jwks_uri`. Set `setup.managementConsole.baseUrl` to the origin
   of `managementConsole.host` and `setup.managementConsole.jwks` to the public JWK Set of the console's `mgmt-client.pem`
-  ([how to derive it](../../docs/first-production-instance.md#the-management-consoles-client)).
+  ([how to derive it](../../docs/first-deployed-instance.md#the-management-consoles-client)).
 - **The automation client** is a platform-owned `client_credentials` machine client that holds `GlobalAdmin` and
   authenticates with `private_key_jwt`, so a GitOps install manages the instance without the development bootstrap
   client. Setting `setup.automation.clientId` and `setup.automation.jwks` registers it. The platform's
   grant list must include `client_credentials`, or setup fails as a whole; set
   `platform.grantTypesEnabled` to `[client_credentials]`, which the chart passes to the host as the platform setting
-  `grant_types_enabled` (the [first-use guide](../../docs/first-production-instance.md#6-enable-grants) describes it).
+  `grant_types_enabled` (the [first-use guide](../../docs/first-deployed-instance.md#6-enable-grants) describes it).
 
 Delete both Secrets once the instance is initialized. The guide
-[The first use of a Production instance](../../docs/first-production-instance.md) walks through the whole first use.
+[The first use of a deployed instance](../../docs/first-deployed-instance.md) walks through the whole first use.
 
 ## Secret protection
 
 The host encrypts every stored secret, and the Data Protection key ring, under a root key held outside the database, so
 a database dump or backup is useless without it
 ([ADR-1235](../../docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
-`secretProtection.rootKeyProvider` chooses where the root key lives, is required, and Production refuses `ephemeral`:
+`secretProtection.rootKeyProvider` chooses where the root key lives, is required, and the host refuses `ephemeral`,
+because the chart never sets `LocalDevelopment:Enabled`:
 
 - `local`: an AES key in a Secret the chart mounts into the pod. It suits a homelab: the key is outside the database,
   but anyone who can read the Secret can read the key.
@@ -879,11 +878,11 @@ service and the request rate fits the service's quota
 ## Transport security
 
 The pods serve HTTPS only, on port 8443. The Service listens on `service.port` (443 by default) with
-`appProtocol: https`, and the Ingress backend names the Service's `https` port. The host refuses to start in
-Production unless Kestrel serves only HTTPS endpoints whose certificate loads, is valid now, has an RSA key of at least
+`appProtocol: https`, and the Ingress backend names the Service's `https` port. The host refuses to start
+unless Kestrel serves only HTTPS endpoints whose certificate loads, is valid now, has an RSA key of at least
 2048 bits or an ECDSA key, is signed with SHA-256 or stronger, and is not the ASP.NET Core development certificate. A
 TLS-terminating proxy that speaks plain HTTP to the pods is not supported
-([ADR-1504](../../docs/decisions/1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md)).
+([ADR-1504](../../docs/decisions/1504-the-hosts-serve-https-only-and-verify-their-certificate-at-startup.md)).
 
 The probes use HTTPS, and the kubelet does not verify the certificate a probe meets. The host checks its certificate as
 it starts, and Kestrel loads renewed certificate files it watches.
@@ -1060,9 +1059,10 @@ and `200` on them, and a `BackendTLSPolicy` that holds a foreign CA gets `503`.
 
 ## Strict-Transport-Security
 
-Outside Development, the host sends `Strict-Transport-Security: max-age=31536000; includeSubDomains` on every response
+Unless `LocalDevelopment:Enabled` is set, which the chart never does, the host sends
+`Strict-Transport-Security: max-age=31536000; includeSubDomains` on every response
 to a request that reached it over HTTPS
-([ADR-1447](../../docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md)). The pods
+([ADR-1447](../../docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package.md)). The pods
 serve HTTPS, so the host sees HTTPS on every request and sends the header whether or not `forwardedHeaders` trusts the
 ingress. Trusting the ingress (`forwardedHeaders.knownNetworks` or `forwardedHeaders.knownProxies`) is how the host
 learns the client's address and the original host, so set it to cover the ingress controller.

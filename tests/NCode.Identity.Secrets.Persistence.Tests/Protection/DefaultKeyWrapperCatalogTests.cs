@@ -61,7 +61,9 @@ public class DefaultKeyWrapperCatalogTests : BaseTests
     {
         var local = CreateProvider(KeyWrapperNames.Local);
         var awsKms = CreateReferencedProvider(KeyWrapperNames.AwsKms);
+        awsKms.Setup(x => x.GetReferenceConfigurationFailures()).Returns([]).Verifiable();
         var azureKeyVault = CreateReferencedProvider(KeyWrapperNames.AzureKeyVault);
+        azureKeyVault.Setup(x => x.GetReferenceConfigurationFailures()).Returns([]).Verifiable();
 
         var catalog = CreateCatalog(
             [local.Object, awsKms.Object, azureKeyVault.Object],
@@ -144,6 +146,7 @@ public class DefaultKeyWrapperCatalogTests : BaseTests
     public void Constructor_BlankAndRepeatedOwnerProviders_AreLeftToTheValidator()
     {
         var awsKms = CreateReferencedProvider(KeyWrapperNames.AwsKms);
+        awsKms.Setup(x => x.GetReferenceConfigurationFailures()).Returns([]).Verifiable();
 
         var catalog = CreateCatalog(
             [awsKms.Object],
@@ -151,6 +154,93 @@ public class DefaultKeyWrapperCatalogTests : BaseTests
         );
 
         Assert.Same(awsKms.Object, catalog.GetReferenced(KeyWrapperNames.AwsKms));
+    }
+
+    [Fact]
+    public void Constructor_RootProviderWithConfigurationFailure_ThrowsWithTheMessage()
+    {
+        var local = CreateProvider(KeyWrapperNames.Local);
+        var awsKms = CreateProvider(KeyWrapperNames.AwsKms);
+        awsKms
+            .Setup(x => x.GetConfigurationFailures())
+            .Returns(["the root key is bad."])
+            .Verifiable();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            CreateCatalog([local.Object, awsKms.Object], rootKeyProvider: KeyWrapperNames.AwsKms)
+        );
+
+        Assert.Equal("the root key is bad.", exception.Message);
+    }
+
+    [Fact]
+    public void Constructor_UnselectedProvider_NeverAsksForItsConfigurationFailures()
+    {
+        var local = CreateProvider(KeyWrapperNames.Local);
+        local.Setup(x => x.GetConfigurationFailures()).Returns([]).Verifiable();
+        var awsKms = CreateReferencedProvider(KeyWrapperNames.AwsKms);
+
+        var catalog = CreateCatalog(
+            [local.Object, awsKms.Object],
+            rootKeyProvider: KeyWrapperNames.Local
+        );
+
+        Assert.Same(local.Object, catalog.GetConfigured());
+    }
+
+    [Fact]
+    public void Constructor_OwnerProviderWithReferenceConfigurationFailure_ThrowsWithTheMessage()
+    {
+        var local = CreateProvider(KeyWrapperNames.Local);
+        var awsKms = CreateReferencedProvider(KeyWrapperNames.AwsKms);
+        awsKms
+            .Setup(x => x.GetReferenceConfigurationFailures())
+            .Returns(["the reference is bad."])
+            .Verifiable();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            CreateCatalog([local.Object, awsKms.Object], ownerProviders: [KeyWrapperNames.AwsKms])
+        );
+
+        Assert.Equal("the reference is bad.", exception.Message);
+    }
+
+    [Fact]
+    public void Constructor_OwnerProviderListedTwice_AsksForItsFailuresOnce()
+    {
+        var awsKms = CreateReferencedProvider(KeyWrapperNames.AwsKms);
+        awsKms.Setup(x => x.GetReferenceConfigurationFailures()).Returns([]).Verifiable(Times.Once);
+
+        CreateCatalog(
+            [awsKms.Object],
+            ownerProviders: [KeyWrapperNames.AwsKms, KeyWrapperNames.AwsKms]
+        );
+    }
+
+    [Fact]
+    public void Constructor_OwnerAndWrapperFailures_ThrowsOnceWithAllOfThem()
+    {
+        var local = CreateProvider(KeyWrapperNames.Local);
+        var awsKms = CreateReferencedProvider(KeyWrapperNames.AwsKms);
+        awsKms
+            .Setup(x => x.GetConfigurationFailures())
+            .Returns(["the root key is bad."])
+            .Verifiable();
+        awsKms
+            .Setup(x => x.GetReferenceConfigurationFailures())
+            .Returns(["the reference is bad."])
+            .Verifiable();
+
+        var exception = Assert.Throws<InvalidOperationException>(() =>
+            CreateCatalog(
+                [local.Object, awsKms.Object],
+                rootKeyProvider: KeyWrapperNames.AwsKms,
+                ownerProviders: [KeyWrapperNames.Local, KeyWrapperNames.AwsKms]
+            )
+        );
+
+        Assert.Contains($"names '{KeyWrapperNames.Local}', which is registered", exception.Message);
+        Assert.EndsWith("the root key is bad. the reference is bad.", exception.Message);
     }
 
     #endregion
@@ -231,6 +321,7 @@ public class DefaultKeyWrapperCatalogTests : BaseTests
     {
         var ephemeral = CreateProvider(KeyWrapperNames.Ephemeral);
         var local = CreateProvider(KeyWrapperNames.Local);
+        local.Setup(x => x.GetConfigurationFailures()).Returns([]).Verifiable();
         var catalog = CreateCatalog(
             [ephemeral.Object, local.Object],
             rootKeyProvider: KeyWrapperNames.Local

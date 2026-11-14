@@ -126,10 +126,10 @@ composition root chooses: in-process for one replica, Valkey for several.**
    ([ADR-1071](1071-the-aspire-apphost-runs-the-local-stack-in-health-gated-order-after-checking-the-frontend-toolchain.md))
    runs a Valkey container and injects its connection string, so local development runs the adapter a multi-replica
    deployment runs.
-9. **The artifact that sets the replica count enforces it.** The production-safety gate does not require Valkey, because a
-   replica cannot know how many replicas run and a single-replica production deployment on the in-process adapters is
-   correct. The host's Helm chart, which sets the replica count, fails a `replicaCount` above 1 without
-   `valkey.existingSecret` or `valkey.parts.existingSecret`.
+9. **The artifact that sets the replica count enforces it.** The deployment gate (`AddDeploymentSafety`) does not
+   require Valkey, because a replica cannot know how many replicas run and a single-replica production deployment on
+   the in-process adapters is correct. The host's Helm chart, which sets the replica count, fails a `replicaCount` above
+   1 without `valkey.existingSecret` or `valkey.parts.existingSecret`.
 10. **Metrics.** Operations are recorded under the shared-state meter, `value_set.*` and `index_set.*` among them
     ([ADR-1197](1197-telemetry-has-one-owner-per-signal-bounded-attributes-and-spans-that-mirror-their-histograms.md)).
 
@@ -144,8 +144,8 @@ composition root chooses: in-process for one replica, Valkey for several.**
   self-hosters included, would carry a Redis client. The adapter is opt-in.
 - **The Valkey GLIDE client.** Rejected: it carries a native core per runtime identifier, and the adapters need no
   Valkey-only command. The client sits behind the ports, so a later switch changes one class per port.
-- **Refusing the in-process adapter in Production.** Rejected: a single-replica production deployment is legitimate, and
-  the server cannot count replicas.
+- **Refusing the in-process adapter in a deployment.** Rejected: a single-replica production deployment is
+  legitimate, and the server cannot count replicas.
 - **Hashing the tenant into the digest.** Rejected: the tenant in clear lets an operator find or remove one tenant's
   records; tenant identifiers are host labels
   ([ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)), and the digest at

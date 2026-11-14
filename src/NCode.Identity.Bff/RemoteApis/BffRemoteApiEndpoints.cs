@@ -4,7 +4,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
@@ -36,11 +36,11 @@ internal static class BffRemoteApiEndpoints
     )
     {
         var services = endpoints.ServiceProvider;
-        var environment = services.GetRequiredService<IHostEnvironment>();
+        var localDevelopment = services.GetRequiredService<LocalDevelopmentMode>();
         var catalog = services.GetRequiredService<BffFrontendCatalog>();
 
         List<string> failures = [];
-        BffRemoteApiValidation.Validate(key, api, environment.IsDevelopment(), failures);
+        BffRemoteApiValidation.Validate(key, api, localDevelopment.Enabled, failures);
         if (failures.Count > 0)
             throw new InvalidOperationException(string.Join(" ", failures));
 

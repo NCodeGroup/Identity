@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 /// <see cref="HostApplicationFactory"/> is given, the console reaches that provider's endpoints and its management API
 /// through its test server.
 /// </summary>
-public sealed class ManagementConsoleApplicationFactory
+public class ManagementConsoleApplicationFactory
     : WebApplicationFactory<ManagementConsoleHostMarker>
 {
     /// <summary>
@@ -139,6 +139,9 @@ public sealed class ManagementConsoleApplicationFactory
         // Resolve the content root to the host project so its appsettings.json is loaded.
         builder.UseSolutionRelativeContentRoot("hosts/NCode.Identity.ManagementConsole.Host");
         builder.UseEnvironment(Microsoft.Extensions.Hosting.Environments.Development);
+
+        // The host reads the switch while it registers its services, so it is also a host setting.
+        builder.UseSetting("LocalDevelopment:Enabled", "true");
 
         builder.ConfigureAppConfiguration(configurationBuilder =>
             configurationBuilder.AddInMemoryCollection(

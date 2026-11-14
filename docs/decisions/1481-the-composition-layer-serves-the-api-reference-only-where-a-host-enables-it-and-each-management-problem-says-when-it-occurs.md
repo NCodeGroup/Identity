@@ -17,8 +17,9 @@ management API, authenticate against it and read, for every route, when each pro
   management route and scope, and the reference page is an interactive client beside the sign-in pages.
 - **Publishing a description is the operator's choice.** A public developer-facing deployment wants the reference; a
   deployment that does not want it must get neither the document nor the page from the defaults.
-- **The environment is decided in one place.** [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)
-  keeps the environment decision in `AddProductionSafety`, and a convenience is inert unless configured.
+- **The posture is decided in one place.** [ADR-1370](1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)
+  keeps the deployment decision in `AddDeploymentSafety` and the `LocalDevelopment:Enabled` switch, and a convenience is
+  inert unless configured.
 - **The page is a page the server writes.** It falls under the strict Content-Security-Policy of
   [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md).
 - **Scalar's defaults call its own services.** Its telemetry, AI agent, MCP integration and CDN fonts reach a third
@@ -59,7 +60,7 @@ group describes the shared problems once, and tests pin both.**
 
 1. **`NCode.Identity.Server` owns the document contributions.** `AddIdentityServer()` registers renderer-agnostic
    `AddOpenApi` document transformers: `TagGroupsDocumentTransformer` with `ManagementOpenApiTags`,
-   `SecuritySchemeDocumentTransformer`, `TokenEndpointExamplesDocumentTransformer` and the Development-only
+   `SecuritySchemeDocumentTransformer`, `TokenEndpointExamplesDocumentTransformer` and the local-development-only
    `BootstrapTokenExampleDocumentTransformer`. A host never re-declares them.
 2. **The security scheme is a bearer scheme** with the OAuth2 `client_credentials` flow against the token endpoint,
    which the management operations reference.
@@ -88,10 +89,10 @@ group describes the shared problems once, and tests pin both.**
 7. **The client-credentials login exists only with the page.** The token URL, the audience-binding scope and the
    credentials location `Header` are part of the page's configuration and are built only when the page is mapped,
    because the bootstrap client registers `client_secret_basic`
-   ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)). The bootstrap client id and secret are
-   pre-filled only in Development. Elsewhere the operator types them into the Authorize dialog, so the served
-   configuration holds no secret. The document's security scheme describes the API and is present whenever the
-   document is served.
+   ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)). The
+   bootstrap client id and secret are pre-filled only when `LocalDevelopment:Enabled` is set. Otherwise the operator
+   types them into the Authorize dialog, so the served configuration holds no secret. The document's security scheme
+   describes the API and is present whenever the document is served.
 8. **Form bodies are shaped in the document, not the renderer.** A form-urlencoded field that must be pre-filled is
    marked `required` with a schema `Default`; the document never relies on a renderer applying a named example.
 
@@ -114,8 +115,8 @@ group describes the shared problems once, and tests pin both.**
    shared and route-owned sentences read as written.
 
 The rule: the document is a property of the server; the host serves it and its page only where the operator enables
-them; no secret is pre-filled into a served document outside Development; and a client reads from the document when each
-problem occurs.
+them; no secret is pre-filled into a served document unless `LocalDevelopment:Enabled` is set; and a client reads from
+the document when each problem occurs.
 
 ## Options considered
 
@@ -127,8 +128,8 @@ problem occurs.
 - **Pre-filling the secret in every environment.** It embeds a secret in the served OpenAPI and Scalar configuration
   ([ADR-1050](1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md)). The login works in production anyway, because the operator types the
   secret once, so the convenience does not justify the exposure. Rejected.
-- **Gating the whole login on Development.** It breaks the production bootstrap path, which is the purpose of the
-  bootstrap administrator. Only the pre-fill is environment-gated. Rejected.
+- **Gating the whole login on the local-development switch.** It breaks the deployment bootstrap path, which is the
+  purpose of the bootstrap administrator. Only the pre-fill is gated by `LocalDevelopment:Enabled`. Rejected.
 - **A `<response>` for every status on every route.** The shared sentences repeat on every route, and a change to one
   meaning misses routes. Rejected.
 - **Response descriptions on endpoint metadata.** ApiExplorer drops them, so they never reach the document. Rejected.
@@ -141,11 +142,11 @@ problem occurs.
 - **A host-name restriction switch.** An operator who wants the reference on an internal host only routes `/openapi/`
   and `/scalar/` there at the ingress, which already routes by host and path; a second, host-level copy of that rule
   would drift from it. Rejected.
-- **An environment-based library default.** [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)
-  makes `AddProductionSafety` the one place that decides the environment, and a convenience is inert unless
-  configured. Rejected.
-- **Refusing an enabled reference in Production.** Publishing an API description is the operator's choice, not a
-  development convenience, so `AddProductionSafety` stays out of it. Rejected.
+- **An environment-based library default.** [ADR-1370](1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)
+  makes `AddDeploymentSafety` and the `LocalDevelopment:Enabled` switch the one place that decides the posture, and a
+  convenience is inert unless configured. Rejected.
+- **Refusing an enabled reference in a deployment.** Publishing an API description is the operator's choice, not a
+  development convenience, so `AddDeploymentSafety` stays out of it. Rejected.
 - **Chosen: the composition layer serves the reference where configuration enables it, routes describe their own
   answers, and one operation transformer writes the shared ones.** One place per concern keeps every route true to one
   sentence.
@@ -158,7 +159,7 @@ problem occurs.
   management API and no interactive client on the issuer's origin.
 - The security-scheme, example and form-shaping knowledge lives once, next to the endpoints it describes, and a new
   renderer is a change in the map extension alone.
-- Where the operator enables the page in Production, the operator bootstraps from it by entering the bootstrap
+- Where the operator enables the page in a deployment, the operator bootstraps from it by entering the bootstrap
   credentials in the Authorize dialog; nothing secret is served.
 - A client reads from the OpenAPI document when each problem of a route occurs, in the route's own words for its own
   answers and in one shared sentence for the rest.
@@ -186,7 +187,7 @@ problem occurs.
   `src/NCode.Identity.Server/OpenApi/` (document transformers), `src/NCode.Identity.Server/IdentityServerBuilder.cs`.
 - [ADR-1256](1256-every-page-the-server-writes-has-a-strict-content-security-policy-and-is-framed-only-by-design.md):
   the page's Content-Security-Policy.
-- [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md):
-  environment decisions stay in `AddProductionSafety`.
+- [ADR-1370](1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md):
+  posture decisions stay in `AddDeploymentSafety` and the `LocalDevelopment:Enabled` switch.
 - [#706](https://github.com/NCodeGroup/identity/issues/706)
 - [#779](https://github.com/NCodeGroup/identity/issues/779)

@@ -71,8 +71,11 @@ one adapter package named for the service, `NCode.Identity.Secrets.<Vendor>`.**
    registers on the `SecretsLibrary` builder. A role is a namespace of the contracts, not a package segment, and a
    package that adds another service names itself the same way.
 8. **An adapter is inert until selected.** A registered adapter is used only when the root, an owner's root provider or
-   a remote key provider selects it: its validator skips otherwise, no client or credential is created before the first
-   wrap or unwrap, and credentials come only from the SDK's keyless chain, never from configuration.
+   a remote key provider selects it: its key configuration is checked only for a selected provider, by the wrapper's
+   `IKeyWrapper.GetConfigurationFailures` for the root and `IReferencedKeyWrapper.GetReferenceConfigurationFailures`
+   for an owner-selectable provider, which `DefaultKeyWrapperCatalog` collects as the host starts, with the messages
+   the adapter reports. No client or credential is created before the first wrap or unwrap, and credentials come only
+   from the SDK's keyless chain, never from configuration.
 9. **AWS KMS** (`aws-kms`): the key is an ARN, and the region comes from it.
 10. **Google Cloud KMS** (`google-cloud-kms`; `Google.Cloud.Kms.V1`). `KeyName` is a crypto key resource name without a
     version. Encrypt names that key, so the service encrypts with its primary version, and sends the context as

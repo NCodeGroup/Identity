@@ -19,8 +19,8 @@ public sealed class BffRemoteApiOptions
 
     /// <summary>
     /// Gets or sets the absolute base URL that the BFF forwards to, such as <c>https://orders.example.com/</c>. The
-    /// rest of the request path after <see cref="Path"/> is appended to it. It must use <c>https</c> outside
-    /// Development and has no user info, query or fragment.
+    /// rest of the request path after <see cref="Path"/> is appended to it. It must use <c>https</c> unless
+    /// <c>LocalDevelopment:Enabled</c> is true, and has no user info, query or fragment.
     /// </summary>
     public string Destination { get; set; } = string.Empty;
 

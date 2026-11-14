@@ -169,7 +169,7 @@ in place
 ([ADR-1508](docs/decisions/1508-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md)). Cite a template record as `project-template ADR-NNNN`. The family numbers its records from
 1000 and the template below 1000
 ([project-template ADR-0012](docs/decisions/project-template/0012-the-templates-records-are-numbered-below-1000-a-projects-from-1000.md)),
-so a bare ADR number names one record. Ten family records override template records:
+so a bare ADR number names one record. Eleven family records override template records:
 
 - [ADR-1261](docs/decisions/1261-the-main-branch-takes-only-reviewed-pull-requests-squash-merged-by-the-merge-queue-past-required-checks.md) supersedes
   project-template ADR-0013, because `main` takes pull requests squash-merged through the merge queue.
@@ -201,6 +201,10 @@ so a bare ADR number names one record. Ten family records override template reco
 - [ADR-1508](docs/decisions/1508-a-decision-record-is-rewritten-when-its-decision-changes-and-relates-only-to-template-records.md)
   supersedes project-template ADR-0010's consequence that a reversal is a new record superseding the old one, because
   a family record is rewritten in place and relates only to template records.
+- [ADR-1370](docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)
+  supersedes project-template ADR-0119's decision 5 and decision 3's Production condition, because a host runs the
+  deployment posture in every environment unless `LocalDevelopment:Enabled` is set, and an environment name relaxes
+  nothing.
 
 One family record conflicts with a template record:
 [ADR-1242](docs/decisions/1242-deferred-work-runs-through-a-replaceable-job-dispatch-port-with-a-concurrent-in-process-default.md) with

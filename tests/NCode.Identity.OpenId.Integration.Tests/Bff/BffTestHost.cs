@@ -102,6 +102,7 @@ internal sealed class BffTestHost : IAsyncDisposable
         builder.Configuration.AddInMemoryCollection(
             new Dictionary<string, string?>
             {
+                ["LocalDevelopment:Enabled"] = "true",
                 [$"{ConfigurationPrefix}:Authority"] = HostApplicationFactory.TestServerIssuer,
                 [$"{ConfigurationPrefix}:PublicOrigin"] = "https://bff.example",
                 [$"{ConfigurationPrefix}:ClientId"] = ClientId,

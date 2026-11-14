@@ -111,12 +111,12 @@ var api = builder
 // defines its own OpenId:Platform:Settings root ceiling that advertises the available-but-off-by-default capabilities
 // (Session Management, Front-Channel Logout, the client_credentials grant — ADR-1088) so the conformance dashboard
 // reports them, while the `api` above stays the locked-down secure default. The same overlay sets Cors:AllowedOrigins
-// (the Development CORS default does not apply outside Development) so the 5175 dashboard can read its discovery
-// cross-origin, and serves its own `conformance` tenant: every tenant is published under its own stored issuer
-// (ADR-1165), so the two instances cannot share the `default` tenant in the shared database — the launch profile pins
-// this one's issuer to https://localhost:5003. WaitForCompletion(migrations) holds it until the shared schema is
-// applied. It gets the same development root key as the `api`, because both unwrap the master keys in the one database,
-// and the per-machine credentials of the conformance seed, which the overlay lists without them.
+// (the CORS policy follows the Cors section, and AddDeveloperCors registers nothing without one) so the 5175 dashboard
+// can read its discovery cross-origin, and serves its own `conformance` tenant: every tenant is published under its own
+// stored issuer (ADR-1165), so the two instances cannot share the `default` tenant in the shared database — the launch
+// profile pins this one's issuer to https://localhost:5003. WaitForCompletion(migrations) holds it until the shared
+// schema is applied. It gets the same development root key as the `api`, because both unwrap the master keys in the one
+// database, and the per-machine credentials of the conformance seed, which the overlay lists without them.
 var conformanceApi = builder
     .AddProject<Projects.NCode_Identity_OpenId_Host>(
         "conformanceapi",

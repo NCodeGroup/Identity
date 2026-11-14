@@ -119,7 +119,8 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
     // Every host this factory builds, including WithWebHostBuilder derivatives that share its database, must unwrap the
     // same master keys, so they share one root key. The hosts also share the factory's key ring, which that root key
-    // protects. An inline key is allowed outside Production; this one is generated per run and never committed.
+    // protects. The factory's LocalDevelopment:Enabled allows an inline key; this one is generated per run and never
+    // committed.
     private string RootKey { get; } = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
 
     /// <summary>
@@ -1398,6 +1399,9 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         // Resolve the content root to the host project so its appsettings.json is loaded.
         builder.UseSolutionRelativeContentRoot("hosts/NCode.Identity.OpenId.Host");
         builder.UseEnvironment(Microsoft.Extensions.Hosting.Environments.Development);
+
+        // The deployment gate reads the switch while the host registers its services, so it is also a host setting.
+        builder.UseSetting("LocalDevelopment:Enabled", "true");
 
         // A tenant is served only beneath its issuer, so the static tenant is pinned to the TestServer's own origin,
         // the way a deployment pins its public one. A derived factory that changes the tenant path or strategy layers

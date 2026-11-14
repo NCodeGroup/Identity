@@ -1,17 +1,18 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId;
 
 namespace NCode.Identity.ManagementConsole.Options;
 
 /// <summary>
 /// Validates <see cref="ManagementConsoleOptions"/> when the host starts, so a setting that cannot work stops the host
-/// instead of failing on the first request.
+/// instead of failing on the first request. A host configured for local development (<c>LocalDevelopment:Enabled</c>)
+/// may use an <c>http</c> management API URL.
 /// </summary>
-internal sealed class ManagementConsoleOptionsValidator(IHostEnvironment environment)
+internal sealed class ManagementConsoleOptionsValidator(LocalDevelopmentMode localDevelopment)
     : IValidateOptions<ManagementConsoleOptions>
 {
     private const string Key = ManagementConsoleDefaults.ConfigurationSectionName;
@@ -30,7 +31,7 @@ internal sealed class ManagementConsoleOptionsValidator(IHostEnvironment environ
         return $"{schemeAndServer}{uri.AbsolutePath}";
     }
 
-    private static bool IsValidManagementApiUrl(string? url, bool isDevelopment)
+    private static bool IsValidManagementApiUrl(string? url, bool isLocalDevelopment)
     {
         if (
             !AbsoluteUri.TryParse(url, out var uri)
@@ -46,7 +47,7 @@ internal sealed class ManagementConsoleOptionsValidator(IHostEnvironment environ
 
         return string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)
             || (
-                isDevelopment
+                isLocalDevelopment
                 && string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal)
             );
     }
@@ -57,12 +58,19 @@ internal sealed class ManagementConsoleOptionsValidator(IHostEnvironment environ
         ArgumentNullException.ThrowIfNull(options);
 
         List<string> failures = [];
-        var isDevelopment = environment.IsDevelopment();
+        var isLocalDevelopment = localDevelopment.Enabled;
 
-        if (!IsValidManagementApiUrl(options.ManagementApiUrl, isDevelopment))
+        var isWellFormed = IsValidManagementApiUrl(options.ManagementApiUrl, true);
+        var isValid = isLocalDevelopment
+            ? isWellFormed
+            : IsValidManagementApiUrl(options.ManagementApiUrl, false);
+
+        if (!isValid)
         {
             failures.Add(
-                $"{Key}:ManagementApiUrl must be an absolute https URL without user info, query or fragment; it is '{Describe(options.ManagementApiUrl)}'."
+                isWellFormed
+                    ? $"{Key}:ManagementApiUrl is '{Describe(options.ManagementApiUrl)}' and must use 'https' unless LocalDevelopment:Enabled is true."
+                    : $"{Key}:ManagementApiUrl must be an absolute https URL without user info, query or fragment; it is '{Describe(options.ManagementApiUrl)}'."
             );
         }
 

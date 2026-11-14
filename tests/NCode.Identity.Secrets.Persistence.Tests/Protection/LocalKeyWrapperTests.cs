@@ -44,6 +44,20 @@ public class LocalKeyWrapperTests : IDisposable
         return path;
     }
 
+    #region GetConfigurationFailures Tests
+
+    [Fact]
+    public void GetConfigurationFailures_ReturnsNone()
+    {
+        using var provider = CreateProvider(new LocalKeyWrapperOptions());
+
+        var failures = provider.GetConfigurationFailures();
+
+        Assert.Empty(failures);
+    }
+
+    #endregion
+
     #region WrapAsync and UnwrapAsync Tests
 
     [Fact]

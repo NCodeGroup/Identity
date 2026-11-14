@@ -16,17 +16,17 @@ namespace NCode.Identity.Secrets.Persistence.Options;
 public sealed class Pbkdf2SecretVerifierOptions
 {
     /// <summary>
-    /// Gets the fewest PBKDF2-HMAC-SHA256 iterations a Production host of the server may configure: <c>600000</c>, the
+    /// Gets the fewest PBKDF2-HMAC-SHA256 iterations a deployment of the server may configure: <c>600000</c>, the
     /// OWASP recommendation for PBKDF2-HMAC-SHA256.
     /// </summary>
-    public const int MinimumProductionIterations = 600_000;
+    public const int MinimumDeploymentIterations = 600_000;
 
     /// <summary>
     /// Gets or sets the number of PBKDF2-HMAC-SHA256 iterations of a new verifier. The default is <c>600000</c>, the
     /// OWASP recommendation for PBKDF2-HMAC-SHA256 and the default of the family's password hashes; it must be at least
-    /// <c>1</c>, and a Production host of the server may not set fewer than <see cref="MinimumProductionIterations"/>.
+    /// <c>1</c>, and a deployment of the server may not set fewer than <see cref="MinimumDeploymentIterations"/>.
     /// Each verifier records its own count, so a change applies to secrets stored afterward and every stored verifier
     /// keeps verifying.
     /// </summary>
-    public int Iterations { get; set; } = MinimumProductionIterations;
+    public int Iterations { get; set; } = MinimumDeploymentIterations;
 }

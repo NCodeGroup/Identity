@@ -56,7 +56,7 @@ which releases exactly its own lease by the owner token it holds when it finishe
    (`RefreshLeaseReleaseFailed`, event 19004, Warning) and changes nothing else: the refresh's own result or exception
    stands, and the lease expires on its own after the lease duration.
 5. **The lease duration.** `Bff:Tokens:RefreshLeaseDuration` is 40 s, within 10 s to 5 min.
-   `BffRefreshLeaseValidator` in `NCode.Identity.Bff.Server` refuses at start a lease shorter than twice
+   `BffRefreshLeaseStartupCheck` in `NCode.Identity.Bff.Server` refuses at start a lease shorter than twice
    `OpenIdClientOptions.TotalTimeout` plus 10 s, because a DPoP nonce retry sends the refresh request twice under one
    lease ([ADR-1336](1336-the-protocol-client-bounds-every-call-with-a-polly-core-pipeline-and-retries-only-safe-requests.md)).
 6. **The losers.** A replica that cannot take the lease polls the session with backoff (50 ms, doubling to 800 ms) until

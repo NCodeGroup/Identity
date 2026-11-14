@@ -4,6 +4,7 @@
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using NCode.Identity.AspNetCore;
 
 namespace NCode.Identity.ManagementConsole;
 
@@ -19,7 +20,9 @@ public static class DefaultRegistration
         /// <summary>
         /// Composes the management console in one call: the backend for frontend (BFF) that serves it, configured from
         /// the <c>Bff</c> section of <paramref name="configuration"/>, and the console's own services, configured from
-        /// the <c>ManagementConsole</c> section. The configuration must define the <c>mgmt</c> BFF frontend.
+        /// the <c>ManagementConsole</c> section. The configuration must define the <c>mgmt</c> BFF frontend. The
+        /// <c>LocalDevelopment</c> section turns on the relaxations a local inner-loop host needs; without it the
+        /// console validates its hosts and URLs strictly.
         /// </summary>
         /// <param name="configuration">The configuration whose sections configure the BFF and the console.</param>
         /// <returns>The <see cref="IManagementConsoleBuilder"/> instance for additional configuration.</returns>
@@ -27,6 +30,8 @@ public static class DefaultRegistration
         {
             ArgumentNullException.ThrowIfNull(serviceCollection);
             ArgumentNullException.ThrowIfNull(configuration);
+
+            serviceCollection.AddLocalDevelopmentOptions(configuration);
 
             return new ManagementConsoleBuilder(serviceCollection, configuration);
         }

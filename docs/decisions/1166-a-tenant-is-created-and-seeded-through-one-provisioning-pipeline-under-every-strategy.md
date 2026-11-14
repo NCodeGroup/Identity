@@ -117,7 +117,7 @@ Adding a contributor is one registered handler.
 `BootstrapAdmin:TenantId`, `DeveloperInteractiveSeed:TenantId` and `ConformanceSeed:TenantId` are required whenever the
 seeder has something to seed, and the host refuses to start without them. Each seeds exactly that tenant, in either
 plane, because a multi-tenant platform's operators belong in the root tenant. The `GlobalAdmin` stamp is carried only by
-the development bootstrap client, in the bootstrap tenant; a Production instance's root administrator holds a role
+the development bootstrap client, in the bootstrap tenant; a deployed instance's root administrator holds a role
 assignment instead ([ADR-1512](1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 
 ## Options considered

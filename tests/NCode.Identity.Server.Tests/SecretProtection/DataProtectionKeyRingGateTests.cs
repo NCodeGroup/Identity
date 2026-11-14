@@ -8,11 +8,11 @@ using Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationM
 using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.AspNetCore.DataProtection.Repositories;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.SecretProtection;
 using Xunit;
@@ -49,25 +49,18 @@ public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
         return mockKeyManager;
     }
 
-    private IHostEnvironment CreateEnvironment(string environmentName)
-    {
-        var mockEnvironment = CreateStrictMock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.EnvironmentName).Returns(environmentName).Verifiable();
-        return mockEnvironment.Object;
-    }
-
     private static FakeTimeProvider CreateTimeProvider() => new(Now);
 
     private DataProtectionKeyRingGate CreateGate(
         IKeyManager keyManager,
-        IHostEnvironment hostEnvironment,
         TimeProvider timeProvider,
-        DataProtectionKeyRingOptions? keyRingOptions = null
+        DataProtectionKeyRingOptions? keyRingOptions = null,
+        bool localDevelopmentEnabled = false
     ) =>
         new(
             keyManager,
             Options.Create(keyRingOptions ?? new DataProtectionKeyRingOptions()),
-            hostEnvironment,
+            new LocalDevelopmentMode(localDevelopmentEnabled),
             timeProvider,
             CreateLooseMock<ILogger<DataProtectionKeyRingGate>>().Object
         );
@@ -128,11 +121,7 @@ public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
         var descriptor = CreateStrictMock<IAuthenticatedEncryptorDescriptor>().Object;
         var key = CreateLiveKey(LiveKeyId);
         key.Setup(x => x.Descriptor).Returns(descriptor).Verifiable();
-        var gate = CreateGate(
-            CreateKeyManager(key.Object).Object,
-            CreateStrictMock<IHostEnvironment>().Object,
-            CreateTimeProvider()
-        );
+        var gate = CreateGate(CreateKeyManager(key.Object).Object, CreateTimeProvider());
 
         await gate.StartAsync(CancellationToken.None);
     }
@@ -142,22 +131,24 @@ public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
     {
         var key = CreateLiveKey(LiveKeyId);
         key.Setup(x => x.Descriptor).Throws<CryptographicException>().Verifiable();
-        var gate = CreateGate(
-            CreateKeyManager(key.Object).Object,
-            CreateEnvironment(Environments.Production),
-            CreateTimeProvider()
-        );
+        var gate = CreateGate(CreateKeyManager(key.Object).Object, CreateTimeProvider());
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             gate.StartAsync(CancellationToken.None)
         );
 
         Assert.Contains(LiveKeyId.ToString(), exception.Message, StringComparison.Ordinal);
+        Assert.StartsWith(
+            "Refusing to start a deployment",
+            exception.Message,
+            StringComparison.Ordinal
+        );
         Assert.Contains(
             "DataProtectionKeyRing:RevokedKeyIds",
             exception.Message,
             StringComparison.Ordinal
         );
+        Assert.Contains("LocalDevelopment:Enabled", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -169,7 +160,6 @@ public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
         second.Setup(x => x.Descriptor).Throws<CryptographicException>().Verifiable();
         var gate = CreateGate(
             CreateKeyManager(first.Object, second.Object).Object,
-            CreateEnvironment(Environments.Production),
             CreateTimeProvider()
         );
 
@@ -189,7 +179,6 @@ public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
         var expiredKey = CreateKey(OtherKeyId, false, Now.AddDays(-1));
         var gate = CreateGate(
             CreateKeyManager(revokedKey.Object, expiredKey.Object).Object,
-            CreateStrictMock<IHostEnvironment>().Object,
             CreateTimeProvider()
         );
 
@@ -208,7 +197,6 @@ public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
             .Verifiable();
         var gate = CreateGate(
             keyManager.Object,
-            CreateStrictMock<IHostEnvironment>().Object,
             CreateTimeProvider(),
             new DataProtectionKeyRingOptions { RevokedKeyIds = [LiveKeyId] }
         );
@@ -222,7 +210,6 @@ public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
         var key = CreateKey(LiveKeyId, true, Now.AddDays(30));
         var gate = CreateGate(
             CreateKeyManager(key.Object).Object,
-            CreateStrictMock<IHostEnvironment>().Object,
             CreateTimeProvider(),
             new DataProtectionKeyRingOptions { RevokedKeyIds = [LiveKeyId] }
         );
@@ -231,20 +218,20 @@ public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
     }
 
     [Fact]
-    public async Task StartAsync_WhenALiveKeyCannotBeDecryptedInDevelopment_RevokesIt()
+    public async Task StartAsync_WhenALiveKeyCannotBeDecryptedAndLocalDevelopmentIsEnabled_RevokesIt()
     {
         var key = CreateLiveKey(LiveKeyId);
         key.Setup(x => x.Descriptor).Throws<CryptographicException>().Verifiable();
         var keyManager = CreateKeyManager(key.Object);
         keyManager
             .Setup(x =>
-                x.RevokeKey(LiveKeyId, DataProtectionKeyRingGate.DevelopmentRevocationReason)
+                x.RevokeKey(LiveKeyId, DataProtectionKeyRingGate.LocalDevelopmentRevocationReason)
             )
             .Verifiable();
         var gate = CreateGate(
             keyManager.Object,
-            CreateEnvironment(Environments.Development),
-            CreateTimeProvider()
+            CreateTimeProvider(),
+            localDevelopmentEnabled: true
         );
 
         await gate.StartAsync(CancellationToken.None);
@@ -260,11 +247,7 @@ public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
         var servicesB = CreateDataProtectionServices(repository, holderB);
         var now = TimeProvider.System.GetUtcNow();
         var key = servicesA.GetRequiredService<IKeyManager>().CreateNewKey(now, now.AddDays(90));
-        var gate = CreateGate(
-            servicesB.GetRequiredService<IKeyManager>(),
-            CreateEnvironment(Environments.Production),
-            TimeProvider.System
-        );
+        var gate = CreateGate(servicesB.GetRequiredService<IKeyManager>(), TimeProvider.System);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(() =>
             gate.StartAsync(CancellationToken.None)
@@ -281,11 +264,7 @@ public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
         var servicesA = CreateDataProtectionServices(repository, holderA);
         var now = TimeProvider.System.GetUtcNow();
         servicesA.GetRequiredService<IKeyManager>().CreateNewKey(now, now.AddDays(90));
-        var gate = CreateGate(
-            servicesA.GetRequiredService<IKeyManager>(),
-            CreateStrictMock<IHostEnvironment>().Object,
-            TimeProvider.System
-        );
+        var gate = CreateGate(servicesA.GetRequiredService<IKeyManager>(), TimeProvider.System);
 
         await gate.StartAsync(CancellationToken.None);
     }
@@ -299,7 +278,6 @@ public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
     {
         var gate = CreateGate(
             CreateStrictMock<IKeyManager>().Object,
-            CreateStrictMock<IHostEnvironment>().Object,
             CreateStrictMock<TimeProvider>().Object
         );
 

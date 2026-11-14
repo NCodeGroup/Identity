@@ -86,7 +86,7 @@ public sealed class DeveloperCorsRegistrationTests : BaseTests
         using var serviceProvider = serviceCollection.BuildServiceProvider();
 
         // Strict: the mock has no Use(...) setup, so adding middleware would fail the test — which is exactly what a
-        // Production host, where the developer policy is never registered, must not do.
+        // deployment, where the developer policy is never registered, must not do.
         var app = CreateStrictMock<IApplicationBuilder>();
         app.Setup(x => x.ApplicationServices).Returns(serviceProvider).Verifiable();
 

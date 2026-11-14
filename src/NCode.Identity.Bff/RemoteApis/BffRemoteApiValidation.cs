@@ -18,12 +18,15 @@ internal static class BffRemoteApiValidation
     /// </summary>
     /// <param name="key">The configuration key that failure messages name, such as <c>Bff:Frontends:web:RemoteApis:orders</c>.</param>
     /// <param name="api">The options to validate.</param>
-    /// <param name="isDevelopment">Whether the host runs in Development, which allows an <c>http</c> destination.</param>
+    /// <param name="isLocalDevelopment">
+    /// Whether the host is configured for local development (<c>LocalDevelopment:Enabled</c>), which allows an
+    /// <c>http</c> destination.
+    /// </param>
     /// <param name="failures">The list that each failure is added to.</param>
     public static void Validate(
         string key,
         BffRemoteApiOptions? api,
-        bool isDevelopment,
+        bool isLocalDevelopment,
         List<string> failures
     )
     {
@@ -40,10 +43,10 @@ internal static class BffRemoteApiValidation
             );
         }
 
-        if (!IsValidDestination(api.Destination, isDevelopment))
+        if (!IsValidDestination(api.Destination, isLocalDevelopment))
         {
             failures.Add(
-                $"{key}:Destination {QuoteUrl(api.Destination)} must be an absolute URL without user info, a query or a fragment, and must use 'https' outside Development."
+                $"{key}:Destination {QuoteUrl(api.Destination)} must be an absolute URL without user info, a query or a fragment, and must use 'https' unless LocalDevelopment:Enabled is true."
             );
         }
 
@@ -97,7 +100,7 @@ internal static class BffRemoteApiValidation
         return path.All(c => char.IsAsciiLetterOrDigit(c) || c is '/' or '-' or '.' or '_' or '~');
     }
 
-    private static bool IsValidDestination(string? destination, bool isDevelopment) =>
+    private static bool IsValidDestination(string? destination, bool isLocalDevelopment) =>
         AbsoluteUri.TryParse(destination, out var uri)
         && uri.UserInfo.Length == 0
         && uri.Query.Length == 0
@@ -107,7 +110,7 @@ internal static class BffRemoteApiValidation
         && (
             string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)
             || (
-                isDevelopment
+                isLocalDevelopment
                 && string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal)
             )
         );

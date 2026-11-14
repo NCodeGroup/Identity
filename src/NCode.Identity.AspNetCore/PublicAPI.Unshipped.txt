@@ -138,10 +138,10 @@ NCode.Identity.AspNetCore.SinglePageBundle<TIndex>.TryGetAsset(string! assetPath
 NCode.Identity.AspNetCore.SinglePageBundle<TIndex>.TryReadIndexAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<TIndex?>
 NCode.Identity.AspNetCore.TransportSecurityRegistration
 NCode.Identity.AspNetCore.TransportSecurityRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
-NCode.Identity.AspNetCore.TransportSecurityRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddTransportSecurity(Microsoft.Extensions.Hosting.IHostEnvironment! hostEnvironment) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.AspNetCore.TransportSecurityRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddTransportSecurity(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
 NCode.Identity.AspNetCore.TransportSecurityApplicationBuilderExtensions
 NCode.Identity.AspNetCore.TransportSecurityApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!)
-NCode.Identity.AspNetCore.TransportSecurityApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseHttpsRedirectionOutsideProduction() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
+NCode.Identity.AspNetCore.TransportSecurityApplicationBuilderExtensions.extension(Microsoft.AspNetCore.Builder.IApplicationBuilder!).UseLocalDevelopmentHttpsRedirection() -> Microsoft.AspNetCore.Builder.IApplicationBuilder!
 NCode.Identity.AspNetCore.HttpBodyLoggingEndpointExtensions
 NCode.Identity.AspNetCore.HttpBodyLoggingEndpointExtensions.extension(Microsoft.AspNetCore.Http.Endpoint?)
 NCode.Identity.AspNetCore.HttpBodyLoggingEndpointExtensions.extension(Microsoft.AspNetCore.Http.Endpoint?).HasConfidentialBodies.get -> bool
@@ -155,3 +155,17 @@ NCode.Identity.AspNetCore.RemoteAddressPartition
 NCode.Identity.AspNetCore.GuardedHttpLoggingRegistration
 NCode.Identity.AspNetCore.GuardedHttpLoggingRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.AspNetCore.GuardedHttpLoggingRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddGuardedHttpLogging() -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+const NCode.Identity.AspNetCore.Options.LocalDevelopmentOptions.DefaultSectionName = "LocalDevelopment" -> string!
+NCode.Identity.AspNetCore.LocalDevelopmentConfiguration
+NCode.Identity.AspNetCore.LocalDevelopmentConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!)
+NCode.Identity.AspNetCore.LocalDevelopmentConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!).IsLocalDevelopment() -> bool
+NCode.Identity.AspNetCore.LocalDevelopmentMode
+NCode.Identity.AspNetCore.LocalDevelopmentMode.Enabled.get -> bool
+NCode.Identity.AspNetCore.LocalDevelopmentMode.LocalDevelopmentMode(bool enabled) -> void
+NCode.Identity.AspNetCore.LocalDevelopmentRegistration
+NCode.Identity.AspNetCore.LocalDevelopmentRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
+NCode.Identity.AspNetCore.LocalDevelopmentRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddLocalDevelopmentOptions(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!
+NCode.Identity.AspNetCore.Options.LocalDevelopmentOptions
+NCode.Identity.AspNetCore.Options.LocalDevelopmentOptions.Enabled.get -> bool
+NCode.Identity.AspNetCore.Options.LocalDevelopmentOptions.Enabled.init -> void
+NCode.Identity.AspNetCore.Options.LocalDevelopmentOptions.LocalDevelopmentOptions() -> void

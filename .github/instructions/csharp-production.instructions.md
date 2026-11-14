@@ -412,7 +412,7 @@ than inlining the rationale.
   [Configuration and Options](csharp.instructions.md#configuration-and-options). Bind through `NCode.Identity.Registration`'s
   `BindStrictly`, which names the section in the error. A seeded client's id and redirect URIs have no library default:
   the host's environment overlay declares them beside the configuration that publishes them
-  ([ADR-1370](../../docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
+  ([ADR-1370](../../docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)).
   An extension binds its own section rather than adding keys to one the server owns. Parse an absolute URI with
   `NCode.Identity.OpenId.AbsoluteUri.TryParse`, which requires its own `scheme:` and no whitespace, never with
   `Uri.TryCreate` alone, and keep a value compared verbatim, such as a CORS origin, in the form it is compared in. An
@@ -550,7 +550,7 @@ than inlining the rationale.
   the server (`AddIdentityServer()`) is turnkey: the owning package registers routing, `IHttpClientFactory`,
   `AddAuthentication()` and a default `IIdGenerator<long>` with `TryAdd*`. Only the database provider and connection
   string and the production signing key stay host inputs
-  ([ADR-1370](../../docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)); host wiring that works only by pulling in a
+  ([ADR-1370](../../docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)); host wiring that works only by pulling in a
   framework service by accident, such as `AddControllers` dragging in authentication, is a smell.
 - 👁 **A singleton service is stateless** — template
   [DI Registration and Extension Methods](csharp.instructions.md#di-registration-and-extension-methods); a
@@ -579,11 +579,13 @@ than inlining the rationale.
 - 👁 **A start step that must precede the warmup runs in `IHostedLifecycleService.StartingAsync`**
   (`DeveloperPlatformMasterKeyPruning`), because every `StartingAsync` runs before any `StartAsync`
   ([ADR-1247](../../docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)).
-- 👁 **A `SecretProtectionOptions` validator resolves no key wrapper.** Each KMS adapter's options validator reads
-  `IOptions<SecretProtectionOptions>`, so a `SecretProtectionOptions` validator that takes `IEnumerable<IKeyWrapper>`
-  closes a dependency cycle that stops every host that registers an adapter. The validators check the options' own
-  shape; a check against the registered wrappers runs in `DefaultKeyWrapperCatalog` as it is composed, which the server
-  does as it starts. An adapter's registration test composes it with `ValidateOnBuild` to keep the graph acyclic
+- 👁 **An options validator reads no other options** — template ADR-0106 decision 3. An `IValidateOptions<T>` takes no
+  `IOptions<…>`, `IOptionsMonitor<…>` or `IOptionsSnapshot<…>`: the local-development switch is the registered
+  `LocalDevelopmentMode`, a check across two options types is a start check (`BffRefreshLeaseStartupCheck`), and a key
+  wrapper reports its own configuration through `IKeyWrapper.GetConfigurationFailures` and
+  `IReferencedKeyWrapper.GetReferenceConfigurationFailures`, which `DefaultKeyWrapperCatalog` collects for the selected
+  providers as it is composed on every host start. A `SecretProtectionOptions` validator resolves no key wrapper; an
+  adapter's registration test composes it with `ValidateOnBuild` to keep the graph acyclic
   ([ADR-1414](../../docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)).
 - 👁 **A single-use or freshness check records into `IExpiringKeySet`, never a get-then-set** — template
   [Concurrency and Shared State](csharp.instructions.md#concurrency-and-shared-state). A replay guard (a `jti`) or a
@@ -1130,9 +1132,10 @@ says for a pre-release project.
   [ADR-1481](../../docs/decisions/1481-the-composition-layer-serves-the-api-reference-only-where-a-host-enables-it-and-each-management-problem-says-when-it-occurs.md).
 - 👁 **Never embed secret material in a served OpenAPI document or renderer configuration.** A renderer may pre-fill
   credentials for a one-click login, but pre-filling a **secret** bakes it into the served config where anyone who can
-  load the reference page can read it — pre-fill a secret **only in Development**. The login flow itself (for example
-  OAuth2 `client_credentials`) must be wired in **every** environment so the production cold-start/bootstrap path works;
-  only the secret pre-fill is environment-gated. See
+  load the reference page can read it — pre-fill a secret **only when `LocalDevelopment:Enabled` is set**. The login
+  flow itself (for example OAuth2 `client_credentials`) must be wired in **every** host so the deployment
+  cold-start/bootstrap path works; only the secret pre-fill is gated by the switch (the host's convenience gate is
+  `LocalDevelopment:Enabled`, never the Development environment). See
   [ADR-1481](../../docs/decisions/1481-the-composition-layer-serves-the-api-reference-only-where-a-host-enables-it-and-each-management-problem-says-when-it-occurs.md) and
   [ADR-1050](../../docs/decisions/1050-a-secret-is-generated-by-the-server-revealed-once-and-never-cached.md).
 - 👁 **A renderer builds a `x-www-form-urlencoded` body from the schema, not from examples.** Optional schema
@@ -1324,6 +1327,9 @@ MethodImplOptions.AggressiveOptimization)]`, manual unrolling of tiny fixed-coun
 
 - 👁 **Configuration is a strongly-typed options class in an `Options/` folder** — template
   [Configuration and Options](csharp.instructions.md#configuration-and-options), bound through `BindStrictly` (§4).
+- 👁 **A host's posture keys on `LocalDevelopment:Enabled`, never on the host environment's name; where the template's
+  `csharp.instructions.md` says "outside Development" or "In Production", read "unless `LocalDevelopment:Enabled`"**
+  ([ADR-1370](../../docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)).
 - 👁 **`IOptions<T>` for start-up-fixed values and `IOptionsMonitor<T>` for values that change at runtime; an options
   class is a data type (§2)** — template [Configuration and Options](csharp.instructions.md#configuration-and-options).
 - 👁 **A rule that validates configured data also validates the same data written at runtime** — template

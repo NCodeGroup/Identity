@@ -3,24 +3,24 @@
 
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.OpenApi;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId;
 
 namespace NCode.Identity.Server.DevelopmentEnvironment.OpenApi;
 
 /// <summary>
-/// An OpenAPI transformer that, <strong>in the development environment only</strong>, appends a pre-filled
-/// <c>client_credentials</c> example for the configured bootstrap administrator to the token endpoint, so an operator
-/// can obtain the GlobalAdmin token from a renderer such as Scalar in one click. It also marks the four
+/// An OpenAPI transformer that, <strong>when <c>LocalDevelopment:Enabled</c> is true only</strong>, appends a
+/// pre-filled <c>client_credentials</c> example for the configured bootstrap administrator to the token endpoint, so an
+/// operator can obtain the GlobalAdmin token from a renderer such as Scalar in one click. It also marks the four
 /// <c>client_credentials</c> form fields required with default values so the renderer shows them pre-checked and
-/// populated (otherwise every optional field starts unchecked and is omitted from the request). It is inert outside
-/// development and unless the bootstrap administrator is configured, so the secret never appears in a non-development
+/// populated (otherwise every optional field starts unchecked and is omitted from the request). It is inert unless
+/// the switch is on and the bootstrap administrator is configured, so the secret never appears in a deployment's
 /// document, and runs after the generic token examples are added by the composition root.
 /// </summary>
 internal sealed class BootstrapTokenExampleDocumentTransformer(
-    IHostEnvironment hostEnvironment,
+    LocalDevelopmentMode localDevelopment,
     IOptions<BootstrapAdminOptions> optionsAccessor
 ) : IOpenApiDocumentTransformer
 {
@@ -36,8 +36,8 @@ internal sealed class BootstrapTokenExampleDocumentTransformer(
         CancellationToken cancellationToken
     )
     {
-        // The pre-filled example embeds the (decoded) bootstrap secret, so it is a development-only convenience.
-        if (!hostEnvironment.IsDevelopment())
+        // The pre-filled example embeds the (decoded) bootstrap secret, so it is a local-development convenience.
+        if (!localDevelopment.Enabled)
         {
             return Task.CompletedTask;
         }

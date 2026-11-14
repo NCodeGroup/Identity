@@ -31,12 +31,13 @@ usage, is valid and has a subject listed in `ProxyClientCertificate__AllowedSubj
 are refused while `Required` is false
 ([ADR-1506](../../docs/decisions/1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
 
-The image starts in the `Production` environment, which refuses to start until the deployment provides:
+The image never sets `LocalDevelopment:Enabled`, so the host runs the deployment posture, which refuses to start until
+the deployment provides:
 
 - A serving certificate: the host serves HTTPS only. It refuses to start when an endpoint is plain HTTP, no endpoint is
   bound, or the certificate it serves has no usable private key, is expired or not yet valid, has an RSA key under 2048
   bits or a signature weaker than SHA-256, or is the ASP.NET Core development certificate
-  ([ADR-1504](../../docs/decisions/1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md)).
+  ([ADR-1504](../../docs/decisions/1504-the-hosts-serve-https-only-and-verify-their-certificate-at-startup.md)).
   A self-signed certificate is accepted; the proxy decides whether to trust it.
 - `AllowedHosts`: the console's public host name. A missing value or `*` is refused.
 - `Bff__Frontends__mgmt__Authority`: the OP's issuer URL.

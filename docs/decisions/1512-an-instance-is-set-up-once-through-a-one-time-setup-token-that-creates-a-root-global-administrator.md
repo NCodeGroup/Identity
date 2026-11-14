@@ -6,7 +6,7 @@
 
 ## Context
 
-A Production instance starts with an empty database: it has no administrator, and no credential is safe to ship as a
+A new instance starts with an empty database: it has no administrator, and no credential is safe to ship as a
 default. Every management authority is a role assignment
 ([ADR-1417](1417-management-authority-is-a-role-assignment-at-a-node-of-the-platform-team-and-tenant-hierarchy.md)),
 so the first administrator has to come from somewhere an operator controls (issues
@@ -43,7 +43,10 @@ administrator.**
 3. **Setup is single use.** Creating the root administrator marks the `InstanceSetup` row initialized in the same save.
    Once the instance is initialized, every `/setup` route answers 404 for good, and a concurrent second attempt loses on
    the concurrency token and answers 404.
-4. **The setup surface is hardened.** `/setup` answers 404 to a request that is not HTTPS in Production. It rate-limits
+4. **The setup surface is hardened.** `/setup` answers 404 to a request that is not HTTPS, unless the host sets
+   `LocalDevelopment:Enabled` and the request comes from a loopback remote address
+   ([ADR-1370](1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)).
+   A request with no remote address is not loopback. It rate-limits
    `POST /setup/api/token` and `POST /setup/api/root` to 10 requests per minute per client address and answers 429
    beyond that, with `Retry-After` giving the seconds until the next attempt and `Cache-Control: no-store`. It serves
    its page with a nonce Content-Security-Policy (`script-src 'nonce-…' 'strict-dynamic'`,
@@ -65,8 +68,9 @@ administrator.**
    already initialized, so a Job can run it on every release. The chart references an operator Secret for the token
    (`setup.token.existingSecret` and `setup.token.key`, passed as `Setup__Token`) and offers an opt-in `setup.job` that
    runs the `setup` command with `Setup__Root__*` from an operator Secret. The chart generates no token Secret.
-7. **`BootstrapAdmin` is a development convenience.** The Production safety check refuses the `BootstrapAdmin` section
-   in Production like the other development seeders, so the setup token is the Production path
+7. **`BootstrapAdmin` is a development convenience.** The deployment safety check refuses the `BootstrapAdmin` section
+   in every host that does not set `LocalDevelopment:Enabled`, like the other development seeders, so the setup token is
+   the deployment path
    ([ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)).
 8. **Setup can register the management console's client.** The wizard's console step, which opens with registration
    checked, the client ID and the console's URL filled, and the console's public JWK Set fetched (decision 10), or

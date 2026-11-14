@@ -34,7 +34,7 @@ internal static class BffFrontendOptionsValidation
     internal static void Validate(
         string key,
         BffFrontendOptions? options,
-        bool isDevelopment,
+        bool isLocalDevelopment,
         List<string> failures
     )
     {
@@ -49,8 +49,8 @@ internal static class BffFrontendOptionsValidation
             failures.Add($"{key}:Selection must be set.");
         }
 
-        ValidateAuthority(key, options.Authority, isDevelopment, failures);
-        ValidatePublicOrigin(key, options.PublicOrigin, isDevelopment, failures);
+        ValidateAuthority(key, options.Authority, isLocalDevelopment, failures);
+        ValidatePublicOrigin(key, options.PublicOrigin, isLocalDevelopment, failures);
 
         if (string.IsNullOrWhiteSpace(options.ClientId))
         {
@@ -70,7 +70,7 @@ internal static class BffFrontendOptionsValidation
         }
 
         ValidatePathPrefix(key, options.PathPrefix, failures);
-        ValidateTrustedOrigins(key, options.TrustedOrigins, isDevelopment, failures);
+        ValidateTrustedOrigins(key, options.TrustedOrigins, isLocalDevelopment, failures);
         ValidateSession(key, options.Session, failures);
         ValidateDPoP(key, options.DPoP, failures);
         ValidateIdToken(key, options.IdToken, options.ClientAuthentication, failures);
@@ -79,7 +79,13 @@ internal static class BffFrontendOptionsValidation
         ValidateJwks(key, options.Jwks, options.ClientAuthentication, failures);
         ValidateUserClaims(key, options.UserClaims, failures);
         ValidateLoginParameters(key, options.LoginParameters, failures);
-        ValidateRemoteApis(key, options.RemoteApis, options.PathPrefix, isDevelopment, failures);
+        ValidateRemoteApis(
+            key,
+            options.RemoteApis,
+            options.PathPrefix,
+            isLocalDevelopment,
+            failures
+        );
     }
 
     internal static void ValidateSession(
@@ -395,7 +401,7 @@ internal static class BffFrontendOptionsValidation
         string key,
         Dictionary<string, BffRemoteApiOptions>? remoteApis,
         string? pathPrefix,
-        bool isDevelopment,
+        bool isLocalDevelopment,
         List<string> failures
     )
     {
@@ -409,7 +415,7 @@ internal static class BffFrontendOptionsValidation
         foreach (var (name, api) in remoteApis)
         {
             var apiKey = $"{key}:RemoteApis:{name}";
-            BffRemoteApiValidation.Validate(apiKey, api, isDevelopment, failures);
+            BffRemoteApiValidation.Validate(apiKey, api, isLocalDevelopment, failures);
             if (string.IsNullOrEmpty(api?.Path))
                 continue;
 
@@ -446,7 +452,7 @@ internal static class BffFrontendOptionsValidation
     internal static void ValidateAuthority(
         string key,
         string? authority,
-        bool isDevelopment,
+        bool isLocalDevelopment,
         List<string> failures
     )
     {
@@ -459,15 +465,18 @@ internal static class BffFrontendOptionsValidation
             && AbsoluteUri.TryParse(authority, out _)
             && (
                 authority.StartsWith(https, StringComparison.OrdinalIgnoreCase)
-                || (isDevelopment && authority.StartsWith(http, StringComparison.OrdinalIgnoreCase))
+                || (
+                    isLocalDevelopment
+                    && authority.StartsWith(http, StringComparison.OrdinalIgnoreCase)
+                )
             );
 
         if (!isValid)
         {
             failures.Add(
-                isDevelopment
+                isLocalDevelopment
                     ? $"{key}:Authority {QuoteUrl(authority)} must be an absolute 'https:' or 'http:' URI without whitespace."
-                    : $"{key}:Authority {QuoteUrl(authority)} must be an absolute 'https:' URI without whitespace."
+                    : $"{key}:Authority {QuoteUrl(authority)} must be an absolute 'https:' URI without whitespace unless LocalDevelopment:Enabled is true."
             );
         }
     }
@@ -475,7 +484,7 @@ internal static class BffFrontendOptionsValidation
     internal static void ValidatePublicOrigin(
         string key,
         string? publicOrigin,
-        bool isDevelopment,
+        bool isLocalDevelopment,
         List<string> failures
     )
     {
@@ -491,7 +500,7 @@ internal static class BffFrontendOptionsValidation
             && (
                 string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)
                 || (
-                    isDevelopment
+                    isLocalDevelopment
                     && string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal)
                 )
             );
@@ -499,7 +508,7 @@ internal static class BffFrontendOptionsValidation
         if (!isValid)
         {
             failures.Add(
-                $"{key}:PublicOrigin {QuoteUrl(publicOrigin)} must be the absolute URL the BFF is published at — scheme, host, optional port and path base, without user info, a query, a fragment or a trailing '/' — and must use 'https' outside Development."
+                $"{key}:PublicOrigin {QuoteUrl(publicOrigin)} must be the absolute URL the BFF is published at — scheme, host, optional port and path base, without user info, a query, a fragment or a trailing '/' — and must use 'https' unless LocalDevelopment:Enabled is true."
             );
         }
     }
@@ -550,7 +559,7 @@ internal static class BffFrontendOptionsValidation
     internal static void ValidateTrustedOrigins(
         string key,
         List<string>? trustedOrigins,
-        bool isDevelopment,
+        bool isLocalDevelopment,
         List<string> failures
     )
     {
@@ -565,14 +574,14 @@ internal static class BffFrontendOptionsValidation
                     StringComparison.Ordinal
                 )
                 && (
-                    isDevelopment
+                    isLocalDevelopment
                     || string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal)
                 );
 
             if (!isValid)
             {
                 failures.Add(
-                    $"{key}:TrustedOrigins entry '{entry}' must be an origin (scheme, host and optional port) without a path or trailing '/', and must use 'https' outside Development."
+                    $"{key}:TrustedOrigins entry '{entry}' must be an origin (scheme, host and optional port) without a path or trailing '/', and must use 'https' unless LocalDevelopment:Enabled is true."
                 );
             }
         }

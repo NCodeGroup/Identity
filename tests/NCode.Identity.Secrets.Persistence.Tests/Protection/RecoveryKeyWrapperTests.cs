@@ -241,6 +241,20 @@ public class RecoveryKeyWrapperTests : IDisposable
 
     #endregion
 
+    #region GetConfigurationFailures Tests
+
+    [Fact]
+    public void GetConfigurationFailures_ReturnsNone()
+    {
+        using var wrapper = CreateWrapper(new RecoveryKeyOptions());
+
+        var failures = wrapper.GetConfigurationFailures();
+
+        Assert.Empty(failures);
+    }
+
+    #endregion
+
     #region RecoveryKeyId Property Tests
 
     [Fact]

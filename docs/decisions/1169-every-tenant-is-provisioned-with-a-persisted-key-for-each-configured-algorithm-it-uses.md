@@ -8,7 +8,7 @@
 
 A tenant signs with the keys in its persisted secrets, and the JSON Web Key Set publishes the same keys. Outside
 development, nothing would create such a key unless the server did. Creating keys by default is open to three
-objections ([ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)):
+objections ([ADR-1370](1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)):
 
 - keys regenerated on every restart invalidate every issued token;
 - replicas would each mint their own keys;
@@ -91,7 +91,7 @@ management API read that one source.**
 7. **An unreadable key fails the tenant.** A key that cannot be unprotected counts as held, so nothing is generated
    beside it. The tenant load fails with a message that names the tenant and the lost or changed key. Only the
    development opt-in `DeveloperKeys:PruneUnreadableKeys` (`AddDeveloperKeyPruning`,
-   [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md))
+   [ADR-1370](1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md))
    removes such a key first, through a contributor that runs before provisioning.
 8. **Concurrent seeds converge.** Adding a tenant secret checks the tenant row's concurrency token, so two seeds of a
    new tenant, from two replicas or two requests that missed the tenant cache, cannot both commit keys.
@@ -150,7 +150,7 @@ management API read that one source.**
 
 ## References
 
-- [ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)
+- [ADR-1370](1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)
   — development conveniences and the pruning opt-in.
 - [ADR-1044](1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)
   — the bootstrap administrator whose first token needs a key.

@@ -3,6 +3,7 @@
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Secrets.RemoteKeys;
 
@@ -10,10 +11,12 @@ namespace NCode.Identity.Bff.Options;
 
 /// <summary>
 /// Validates <see cref="BffOptions"/> when the host starts, so a setting that cannot work stops the host instead of
-/// failing on the first request.
+/// failing on the first request. A host configured for local development (<c>LocalDevelopment:Enabled</c>) may use
+/// <c>http</c> URLs.
 /// </summary>
 internal class BffOptionsValidator(
     IHostEnvironment environment,
+    LocalDevelopmentMode localDevelopment,
     IEnumerable<IBffFrontendSelector> selectors
 ) : IValidateOptions<BffOptions>
 {
@@ -129,10 +132,10 @@ internal class BffOptionsValidator(
         ArgumentNullException.ThrowIfNull(options);
 
         List<string> failures = [];
-        var isDevelopment = environment.IsDevelopment();
+        var isLocalDevelopment = localDevelopment.Enabled;
 
         ValidateSelectors(failures);
-        ValidateFrontends(options.Frontends, isDevelopment, failures);
+        ValidateFrontends(options.Frontends, isLocalDevelopment, failures);
         ValidateAntiforgery(options.Antiforgery, failures);
         ValidateTokens(options.Tokens, failures);
         ValidateSessionRetirement(options.SessionRetirement, failures);
@@ -258,7 +261,7 @@ internal class BffOptionsValidator(
 
     private void ValidateFrontends(
         Dictionary<string, BffFrontendOptions>? frontends,
-        bool isDevelopment,
+        bool isLocalDevelopment,
         List<string> failures
     )
     {
@@ -292,7 +295,12 @@ internal class BffOptionsValidator(
             }
 
             var frontendKey = $"{Key}:Frontends:{name}";
-            BffFrontendOptionsValidation.Validate(frontendKey, frontend, isDevelopment, failures);
+            BffFrontendOptionsValidation.Validate(
+                frontendKey,
+                frontend,
+                isLocalDevelopment,
+                failures
+            );
 
             if (frontend is null)
                 continue;

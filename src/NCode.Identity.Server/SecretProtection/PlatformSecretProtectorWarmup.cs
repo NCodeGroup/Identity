@@ -4,6 +4,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Server.Logging;
@@ -16,13 +17,14 @@ namespace NCode.Identity.Server.SecretProtection;
 /// platform master key a live ring key names. It must start before the hosted service that loads the key ring.
 /// </summary>
 /// <remarks>
-/// It also warns when a Production host protects its master keys under a root key that is a local file.
+/// It also warns when a deployment, a host without <c>LocalDevelopment:Enabled</c>, protects its master keys under a
+/// root key that is a local file.
 /// </remarks>
 // See ADR-1235 and ADR-1407.
 internal class PlatformSecretProtectorWarmup(
     PlatformSecretProtectorLoader loader,
     IOptions<SecretProtectionOptions> protectionOptions,
-    IHostEnvironment hostEnvironment,
+    LocalDevelopmentMode localDevelopment,
     ILogger<PlatformSecretProtectorWarmup> logger
 ) : IHostedService
 {
@@ -31,7 +33,7 @@ internal class PlatformSecretProtectorWarmup(
     private IOptions<SecretProtectionOptions> ProtectionOptionsAccessor { get; } =
         protectionOptions;
 
-    private IHostEnvironment HostEnvironment { get; } = hostEnvironment;
+    private LocalDevelopmentMode LocalDevelopment { get; } = localDevelopment;
 
     private ILogger<PlatformSecretProtectorWarmup> Logger { get; } = logger;
 
@@ -41,7 +43,7 @@ internal class PlatformSecretProtectorWarmup(
         await Loader.LoadAsync(cancellationToken);
 
         if (
-            HostEnvironment.IsProduction()
+            !LocalDevelopment.Enabled
             && string.Equals(
                 ProtectionOptionsAccessor.Value.RootKeyProvider,
                 KeyWrapperNames.Local,
@@ -49,7 +51,7 @@ internal class PlatformSecretProtectorWarmup(
             )
         )
         {
-            Logger.LocalRootKeyInProduction();
+            Logger.LocalRootKeyInDeployment();
         }
     }
 

@@ -13,7 +13,8 @@ namespace NCode.Identity.OpenId.Setup;
 /// Serves the setup bundle's <c>index.html</c> and its content-hashed assets. Each page response carries a fresh nonce,
 /// written in place of the bundle's nonce placeholder, and the Content-Security-Policy that allows only that nonce. The
 /// page is never cached, because its nonce is unique to the response. Every route answers <c>404</c> once the instance
-/// is initialized, and in Production when the request is not HTTPS, so the surface does not exist for either.
+/// is initialized, and when the request is not HTTPS (unless <c>LocalDevelopment:Enabled</c> admits a loopback
+/// request), so the surface does not exist for either.
 /// </summary>
 internal sealed class SetupPageHandler(
     IOptions<SetupOptions> optionsAccessor,
@@ -34,8 +35,8 @@ internal sealed class SetupPageHandler(
     public void Dispose() => Bundle.Dispose();
 
     /// <summary>
-    /// Writes the setup page, or <c>404</c> when the instance is initialized, when a Production request is not HTTPS,
-    /// or when no bundle is readable.
+    /// Writes the setup page, or <c>404</c> when the instance is initialized, when the request is not HTTPS (unless
+    /// <c>LocalDevelopment:Enabled</c> admits a loopback request), or when no bundle is readable.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>
@@ -68,8 +69,9 @@ internal sealed class SetupPageHandler(
 
     /// <summary>
     /// Serves a file of the setup bundle's assets directory, such as a hashed script or style, named by the
-    /// <see cref="AssetRouteParameterName"/> route value, or <c>404</c> when the instance is initialized, when a
-    /// Production request is not HTTPS, or when there is no such file.
+    /// <see cref="AssetRouteParameterName"/> route value, or <c>404</c> when the instance is initialized, when the
+    /// request is not HTTPS (unless <c>LocalDevelopment:Enabled</c> admits a loopback request), or when there is no
+    /// such file.
     /// </summary>
     /// <param name="httpContext">The <see cref="HttpContext"/> for the current request.</param>
     /// <param name="cancellationToken">The token to monitor for cancellation requests.</param>

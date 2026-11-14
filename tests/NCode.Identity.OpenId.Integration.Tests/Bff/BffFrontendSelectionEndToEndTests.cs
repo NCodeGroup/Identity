@@ -165,6 +165,7 @@ public class BffFrontendSelectionEndToEndTests
         builder.Configuration.AddInMemoryCollection(
             new Dictionary<string, string?>
             {
+                ["LocalDevelopment:Enabled"] = "true",
                 [$"{shop}:Authority"] = "https://op.example",
                 [$"{shop}:PublicOrigin"] = ShopOrigin,
                 [$"{shop}:ClientId"] = "shop-client",

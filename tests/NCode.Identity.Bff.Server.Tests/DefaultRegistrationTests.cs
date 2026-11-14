@@ -161,7 +161,7 @@ public class DefaultRegistrationTests : BaseTests
     }
 
     [Fact]
-    public void AddIdentityBff_Always_RegistersTheRefreshLeaseValidator()
+    public void AddIdentityBff_Always_RegistersTheRefreshLeaseStartupCheck()
     {
         var serviceCollection = CreateServices();
 
@@ -170,8 +170,8 @@ public class DefaultRegistrationTests : BaseTests
         Assert.Contains(
             serviceCollection,
             x =>
-                x.ServiceType == typeof(IValidateOptions<BffOptions>)
-                && x.ImplementationType == typeof(BffRefreshLeaseValidator)
+                x.ServiceType == typeof(IHostedService)
+                && x.ImplementationType == typeof(BffRefreshLeaseStartupCheck)
                 && x.Lifetime == ServiceLifetime.Singleton
         );
     }

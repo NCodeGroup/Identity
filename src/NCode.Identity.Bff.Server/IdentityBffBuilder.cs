@@ -4,8 +4,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
-using NCode.Identity.Bff.Options;
+using Microsoft.Extensions.Hosting;
 using NCode.Identity.Events;
 using NCode.Identity.Jose;
 using NCode.Identity.Jwt;
@@ -74,7 +73,7 @@ internal sealed class IdentityBffBuilder : ServiceBuilder<IdentityBff>, IIdentit
         // Only the composition root knows both the BFF and the protocol client, so it checks the lease against the
         // client's request timeout (ADR-1291).
         serviceCollection.TryAddEnumerable(
-            ServiceDescriptor.Singleton<IValidateOptions<BffOptions>, BffRefreshLeaseValidator>()
+            ServiceDescriptor.Singleton<IHostedService, BffRefreshLeaseStartupCheck>()
         );
     }
 }

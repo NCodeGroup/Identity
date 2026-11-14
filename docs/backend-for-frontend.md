@@ -1303,7 +1303,7 @@ client `mgmt-console` of the control-plane tenant
 `MapManagementConsole()` maps the console's endpoints. The host's `Program.cs` adds only the transport layer every host
 composes from `NCode.Identity.AspNetCore`: forwarded headers trusted from the proxies the `ForwardedHeaders` section names, and
 `Strict-Transport-Security` outside Development
-([ADR-1447](decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md)).
+([ADR-1447](decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package.md)).
 The console host
 answers these paths:
 

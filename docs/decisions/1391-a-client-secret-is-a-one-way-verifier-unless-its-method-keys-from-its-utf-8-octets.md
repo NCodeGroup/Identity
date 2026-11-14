@@ -54,8 +54,8 @@ case it is stored as reversible octets.**
   sufficient, and `ncode-pbkdf2-sha256` for supplied ones: 600,000 iterations, a 16-byte salt, a 32-byte key, and the
   octets not normalized.
 - `SharedSecretVerifierOptions.GeneratedSecretScheme` and `SuppliedSecretScheme`, and
-  `Pbkdf2SecretVerifierOptions.Iterations`, are validated at start. Production refuses fewer than
-  `MinimumProductionIterations` (600,000).
+  `Pbkdf2SecretVerifierOptions.Iterations`, are validated at start. A deployment refuses fewer than
+  `MinimumDeploymentIterations` (600,000).
 - An unregistered or malformed stored verifier authenticates nothing.
 
 ### Creating secrets

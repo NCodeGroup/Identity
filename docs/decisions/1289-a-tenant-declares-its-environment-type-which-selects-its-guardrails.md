@@ -73,10 +73,10 @@ a tenant that declares nothing is `production`.**
 10. **The hosts declare their own environments.** `appsettings.Development.json` declares
     `OpenId:Platform:Settings:environment_type` as `development`, and `appsettings.Conformance.json` as `testing`,
     because the conformance suite registers clients anonymously, which the `production` profile forbids.
-11. **A Production host refuses a non-production platform-wide type.** In the Production host environment
-    `AddProductionSafety` (`ProductionEnvironmentTypeValidator`) refuses to start when the configured platform
+11. **A deployment refuses a non-production platform-wide type.** In a host without `LocalDevelopment:Enabled`
+    `AddDeploymentSafety` (`DeploymentEnvironmentTypeValidator`) refuses to start when the configured platform
     `environment_type` names a registered type whose `IsProduction` is `false`; the registered types decide, so a
-    contributed type is judged by its own flag. Non-production tenants in a Production host declare their type on the
+    contributed type is judged by its own flag. Non-production tenants in a deployment declare their type on the
     tenant.
 12. **A changed platform reaches cached tenants at once.** A platform settings change clears every cached team and
     tenant on the replica, so the implied profiles follow immediately
@@ -102,8 +102,8 @@ a tenant that declares nothing is `production`.**
   would bind development tenants too (decision 6).
 - **`development` as the default.** Rejected: it fails open, and a forgotten declaration would drop the guardrails
   (decision 4).
-- **Refusing non-production types in every host.** Rejected: development and conformance hosts declare one on purpose
-  (decision 10); only the Production host environment refuses it (decision 11).
+- **Refusing non-production types in every host.** Rejected: local-development and conformance hosts declare one on
+  purpose (decision 10); only a host without `LocalDevelopment:Enabled` refuses it (decision 11).
 - **Passing the type from each management handler.** Rejected: dozens of call sites would each have to remember it;
   resolving it in the recorder stamps every event that names a tenant (decision 9).
 - **Chosen:** a registered, open type vocabulary whose production type is the default and selects a registered profile

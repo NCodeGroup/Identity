@@ -73,7 +73,8 @@ HTTP client that a host configures.
 7. **A remote API is forwarded through YARP's `IHttpForwarder`.** `MapBffRemoteApi(pattern, destination, configure)`
    and the frontend's `RemoteApis` entries map a local path prefix to an absolute destination. An entry has `Path`,
    `Destination`, `TokenRequirement` (default `user`), `Resource`, `Scope`, `AllowedMethods` and `Timeout` (default
-   100 seconds). The destination uses `https` outside Development and has no user info, query or fragment.
+   100 seconds). The destination uses `https` unless `LocalDevelopment:Enabled` is set and has no user info, query or
+   fragment.
    - The endpoint is a BFF API, so the session and the anti-forgery header are required as for any other BFF API.
    - The forwarder answers `400` for a remaining path with a dot segment, an encoded `/` or `\`, or a backslash, which
      could leave the destination's base path once the upstream server decodes it. It answers `405` for a method

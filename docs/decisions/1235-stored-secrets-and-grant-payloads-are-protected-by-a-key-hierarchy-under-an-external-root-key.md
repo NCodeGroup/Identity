@@ -32,7 +32,7 @@ root lives outside the database.
    `local`, `aws-kms`, `azure-key-vault`, `google-cloud-kms` or any wrapper a package registers
    ([ADR-1260](1260-a-key-wrapper-is-one-open-contract-and-each-key-management-service-has-one-adapter-package.md)). No provider is a default, and a
    host always names one
-   ([ADR-1370](1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
+   ([ADR-1370](1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)).
    The root key only wraps master keys, binding the owner and key id as associated data (the KMS encryption context)
    where the service supports it.
 2. **Master keys.** One 256-bit, versioned key per owner, where the owners are the platform (`SecretOwner.Platform`) and

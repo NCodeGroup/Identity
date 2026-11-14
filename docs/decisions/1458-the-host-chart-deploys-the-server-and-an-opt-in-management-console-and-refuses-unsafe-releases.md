@@ -70,7 +70,7 @@ release the host or the console would refuse.**
    escalate privileges, uses the `RuntimeDefault` seccomp profile, has a read-only root filesystem with an `emptyDir` at
    `/tmp`, and has no service-account token. Secret files mount with mode `0440` under `fsGroup` 1654.
 6. **Probes and draining match the host.** The pods serve HTTPS only, so the probes use `scheme: HTTPS`
-   ([ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md) holds the Certificate, the Service and the
+   ([ADR-1504](1504-the-hosts-serve-https-only-and-verify-their-certificate-at-startup.md) holds the Certificate, the Service and the
    rest of the TLS contract). The startup and liveness probes call `/health/live`, and readiness calls
    `/health/ready`. The kubelet sends the pod's IP as `Host`, which `AllowedHosts` rejects, so each probe sends
    `probes.host`, or else the first allowed host. A terminating pod keeps serving for `preStopSleepSeconds` (10) through

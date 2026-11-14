@@ -159,7 +159,7 @@ limit until its window ends, the way a rate limit refuses.**
 - Every confidential client behind one address shares the address's allowance: an attacker behind a client's NAT
   gateway can make that client wait until the window ends. A public client is never refused. A host behind a reverse
   proxy must trust it through the `ForwardedHeaders` section
-  ([ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md)),
+  ([ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package.md)),
   or every caller shares the proxy's address; a host that
   sees no remote address at all is not limited, and its log says so once.
 - A failed lookup of a public `client_id` is not bounded; the response tells a caller whether a `client_id` exists and
@@ -175,7 +175,7 @@ limit until its window ends, the way a rate limit refuses.**
 - [OWASP Credential Stuffing Prevention Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Credential_Stuffing_Prevention_Cheat_Sheet.html).
 - [ADR-1246](1246-rate-limits-are-registered-descriptors-counted-in-a-shared-expiring-counter-set.md),
   [ADR-1237](1237-failed-password-attempts-are-limited-per-account-and-a-refusal-costs-what-a-wrong-password-costs.md),
-  [ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md),
+  [ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package.md),
   [ADR-1391](1391-a-client-secret-is-a-one-way-verifier-unless-its-method-keys-from-its-utf-8-octets.md).
 - Code: `NCode.Identity.OpenId.Authentication.Clients.IClientAuthenticationAttemptLimiter`,
   `NCode.Identity.OpenId.Authentication.Clients.DefaultClientAuthenticationAttemptLimiter`,

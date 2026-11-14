@@ -71,8 +71,8 @@ client that configuration seeds.**
    `BootstrapAdmin:ClientSecret` (Base64Url-encoded) and `BootstrapAdmin:TenantId` are required once configured, and
    `TenantId` names a host's static tenant or the root tenant. Without an id and a secret nothing is seeded or
    conferred. `AddDevelopmentEnvironment` is the only registration that binds the section and registers the client's
-   handlers; elsewhere `IOptions<BootstrapAdminOptions>` resolves unbound and disabled. `AddProductionSafety` refuses a
-   configured bootstrap client in Production, where the first
+   handlers; elsewhere `IOptions<BootstrapAdminOptions>` resolves unbound and disabled. `AddDeploymentSafety` refuses a
+   configured bootstrap client unless `LocalDevelopment:Enabled` is set, because the first
    administrator is the root that instance setup creates
    ([ADR-1512](1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 8. **`BootstrapAdminSeedHandler` seeds the client.** It is an `ICommandHandler<SeedTenantCommand>`
@@ -100,7 +100,7 @@ client that configuration seeds.**
     grants it adds; a configured `grant_types_supported` is the platform's whole list. Until the effective list holds
     `client_credentials`, the token request is refused `unauthorized_client`.
 13. **The bootstrap client provisions durable administrators**, human or machine, as role assignments. A lost
-    credential is recovered by seeding again from configuration. A Production instance does not use it: its
+    credential is recovered by seeding again from configuration. A deployed instance does not use it: its
     administrators descend from the root that setup creates.
 
 ## Options considered
@@ -118,8 +118,8 @@ client that configuration seeds.**
 - **A persisted `GlobalAdmin` assignment or a human as the first administrator.** Rejected: operators automate cold
   start with a machine credential, and on a fresh deployment no administrator exists to write the assignment. A
   durable `GlobalAdmin` is a role assignment at the platform node, which the bootstrap client grants.
-- **A configured bootstrap client in Production.** Rejected: a long-lived credential that holds `GlobalAdmin` and
-  sits in configuration is a development and test convenience. A Production instance creates its first administrator
+- **A configured bootstrap client in a deployment.** Rejected: a long-lived credential that holds `GlobalAdmin` and
+  sits in configuration is a development and test convenience. A deployed instance creates its first administrator
   once, through instance setup ([ADR-1512](1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 - **An empty `200` for an anonymous who-am-I request.** Rejected: the answer describes nobody and hides a missing or
   expired token from a client that would sign in again.
@@ -137,7 +137,7 @@ client that configuration seeds.**
 - A development or test deployment reaches the control plane from configuration alone: the bootstrap credential is
   durable, rotatable and idempotent across restarts and replicas, and never logged. Scope it to cold start and
   provision durable administrators promptly.
-- A Production instance refuses the bootstrap client, and its first administrator is the root that instance setup
+- A deployed instance refuses the bootstrap client, and its first administrator is the root that instance setup
   creates ([ADR-1512](1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 - The platform's `grant_types_enabled` array adds to the baseline list, so a host that adds `client_credentials` names
   only that grant. A configured `grant_types_supported` array is the platform's whole list.
@@ -164,7 +164,7 @@ client that configuration seeds.**
   [ADR-1483](1483-every-management-error-is-a-problem-document-that-its-route-declares.md): the
   authenticated-caller routes.
 - [ADR-1512](1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md):
-  the root administrator of a Production instance.
+  the root administrator of a deployed instance.
 - RFC 6750 section 3.
 - [#715](https://github.com/NCodeGroup/identity/issues/715),
   [#716](https://github.com/NCodeGroup/identity/issues/716)

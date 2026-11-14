@@ -64,7 +64,7 @@ misordered pipeline fails every such request instead of serving it unguarded.**
    compared ordinally, because a sibling subdomain is same-site and the BFF cannot read the application's CORS decision
    ([ADR-1442](1442-a-bff-serves-the-frontends-its-configuration-lists-each-selected-per-request-by-an-open-rule.md) holds the per-frontend
    settings). Every other value, or a repeated header, is refused. Startup validation requires each trusted origin to be
-   a bare origin, `https` outside Development.
+   a bare origin, `https` unless `LocalDevelopment:Enabled` is set.
 4. **Pages accept every method.** `GET`, `HEAD`, `OPTIONS` and `TRACE` pass, because a cross-site page cannot make them
    change anything. Any other method needs two checks: the Fetch Metadata rule of decision 3, then
    `IAntiforgery.IsRequestValidAsync` under the session's principal. `UseBff()` makes both, so the guarantee does not

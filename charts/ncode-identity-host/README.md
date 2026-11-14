@@ -883,7 +883,7 @@ The pods serve HTTPS only, on port 8443. The Service listens on `service.port` (
 Production unless Kestrel serves only HTTPS endpoints whose certificate loads, is valid now, has an RSA key of at least
 2048 bits or an ECDSA key, is signed with SHA-256 or stronger, and is not the ASP.NET Core development certificate. A
 TLS-terminating proxy that speaks plain HTTP to the pods is not supported
-([ADR-1504](../../docs/decisions/1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md)).
+([ADR-1504](../../docs/decisions/1504-the-hosts-serve-https-only-and-verify-their-certificate-at-startup.md)).
 
 The probes use HTTPS, and the kubelet does not verify the certificate a probe meets. The host checks its certificate as
 it starts, and Kestrel loads renewed certificate files it watches.
@@ -1062,7 +1062,7 @@ and `200` on them, and a `BackendTLSPolicy` that holds a foreign CA gets `503`.
 
 Outside Development, the host sends `Strict-Transport-Security: max-age=31536000; includeSubDomains` on every response
 to a request that reached it over HTTPS
-([ADR-1447](../../docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md)). The pods
+([ADR-1447](../../docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package.md)). The pods
 serve HTTPS, so the host sees HTTPS on every request and sends the header whether or not `forwardedHeaders` trusts the
 ingress. Trusting the ingress (`forwardedHeaders.knownNetworks` or `forwardedHeaders.knownProxies`) is how the host
 learns the client's address and the original host, so set it to cover the ingress controller.

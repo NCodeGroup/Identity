@@ -1,4 +1,4 @@
-# 1504. The hosts serve HTTPS only in Production and verify their certificate at startup
+# 1504. The hosts serve HTTPS only and verify their certificate at startup
 
 - **Status:** Accepted
 - **Date:** 2026-11-11
@@ -25,9 +25,11 @@ Three facts shape the check:
 
 ## Decision
 
-**In the Production environment each host refuses to start unless every endpoint Kestrel bound is HTTPS and the
-certificate it serves is usable. There is no opt-out, and a TLS-terminating proxy that speaks plain HTTP to the pod is
-not a deployment shape.** Development, Staging, Conformance and every other environment are untouched.
+**Each host refuses to start unless every endpoint Kestrel bound is HTTPS and the certificate it serves is usable. There
+is no opt-out, and a TLS-terminating proxy that speaks plain HTTP to the pod is not a deployment shape.** The check runs
+in every host environment. The one exception is a host that sets `LocalDevelopment:Enabled`, the explicit switch for a
+local inner loop ([ADR-1370](1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)).
+The environment's name never skips the check.
 
 1. **The check runs after Kestrel has bound.** `TransportSecurityStartupCheck` is an `IHostedLifecycleService` and
    checks at `StartedAsync`, as `BffEndpointStartupCheck` does
@@ -46,13 +48,14 @@ not a deployment shape.** Development, Staging, Conformance and every other envi
       is the proxy's and the platform's job.
 2. **No opt-out.** The check has no setting that turns it off and no plain-HTTP deployment shape. Kestrel is bound for
    the interval between binding and the check, and the host exits before a readiness probe passes.
-3. **One implementation.** `AddTransportSecurity(IHostEnvironment)` in `NCode.Identity.AspNetCore` registers the check
-   only in Production. `AddProductionSafety` composes it for the OpenID host, and the management console host calls it
-   directly, so the Production gate stays the one Production check and both hosts share one implementation.
-4. **No redirect in Production.** `UseHttpsRedirectionOutsideProduction()` in `NCode.Identity.AspNetCore` adds the
-   framework's HTTPS redirection in every environment except Production. Production has no plain-HTTP endpoint, so it
-   has nothing to redirect. Development keeps the framework's redirect, which it relies on when it binds HTTPS and
-   HTTP together.
+3. **One implementation.** `AddTransportSecurity(IConfiguration)` in `NCode.Identity.AspNetCore` registers the check
+   unless `LocalDevelopment:Enabled` is set. `AddDeploymentSafety` composes it for the OpenID host, and the management
+   console host calls it directly, so the deployment gate stays the one deployment check and both hosts share one
+   implementation.
+4. **No redirect in a deployment.** `UseLocalDevelopmentHttpsRedirection()` in `NCode.Identity.AspNetCore` adds the
+   framework's HTTPS redirection only when `LocalDevelopment:Enabled` is set. A deployment has no plain-HTTP endpoint,
+   so it has nothing to redirect. A local-development host keeps the framework's redirect, which it relies on when it
+   binds HTTPS and HTTP together.
 5. **The image's TLS contract.** Both images set `ASPNETCORE_URLS=https://+:8443`, which takes precedence over the base
    image's `ASPNETCORE_HTTP_PORTS`, read the certificate from `/etc/ncode-identity/tls/tls.crt` and the key from
    `/etc/ncode-identity/tls/tls.key` (`Kestrel__Certificates__Default__Path` and `__KeyPath`), and expose port 8443.
@@ -97,18 +100,21 @@ not a deployment shape.** Development, Staging, Conformance and every other envi
   watches, and the check runs at start only.
 - A TLS-terminating proxy has to speak HTTPS to the pod and, to meet the preferred trust tier, verify the pod's
   certificate.
-- The HTTPS redirect of the pipeline applies outside Production only.
-- The unit tests of the inspectors and the probe, the check against real Kestrel, the Production gate and the chart's CI
+- The HTTPS redirect of the pipeline applies only to a host that sets `LocalDevelopment:Enabled`.
+- A host that sets `LocalDevelopment:Enabled` skips the check, and the Production environment refuses that setting.
+- The unit tests of the inspectors and the probe, the check against real Kestrel, the deployment gate and the chart's CI
   gate prove the wiring.
 
 ## References
 
 - Issue [#774](https://github.com/NCodeGroup/identity/issues/774)
 - [ADR-1433](1433-a-bff-host-checks-every-endpoints-bff-metadata-at-start-and-again-whenever-the-endpoints-change.md),
-  [ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package-outside-development.md),
+  [ADR-1370](1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md),
+  [ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package.md),
   [ADR-1499](1499-the-host-accepts-only-tls-1-2-and-1-3-with-aead-cipher-suites.md),
   [ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md),
   [ADR-1507](1507-the-host-chart-routes-to-its-https-only-pods-through-gateway-api-a-traefik-ingress-or-the-operators-own-ingress.md)
 - `src/NCode.Identity.AspNetCore/TransportSecurity/`
 - `src/NCode.Identity.AspNetCore/TransportSecurityRegistration.cs`
+- `src/NCode.Identity.AspNetCore/TransportSecurityApplicationBuilderExtensions.cs`
 - `charts/ncode-identity-host`

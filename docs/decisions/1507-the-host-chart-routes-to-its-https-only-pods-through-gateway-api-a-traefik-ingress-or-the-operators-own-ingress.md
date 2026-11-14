@@ -7,7 +7,7 @@
 ## Context
 
 The pods serve HTTPS only
-([ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md)), so whatever
+([ADR-1504](1504-the-hosts-serve-https-only-and-verify-their-certificate-at-startup.md)), so whatever
 routes traffic to them must speak HTTPS to the Service and verify the pods' certificate, and, when the pods require it,
 present the ingress controller's client certificate
 ([ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
@@ -111,7 +111,7 @@ Traefik mode against the ingress controller's own Secret.**
 ## References
 
 - Issue [#792](https://github.com/NCodeGroup/identity/issues/792)
-- [ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md)
+- [ADR-1504](1504-the-hosts-serve-https-only-and-verify-their-certificate-at-startup.md)
 - [ADR-1506](1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)
 - [GEP-3155: Complete Backend mutual TLS Configuration](https://gateway-api.sigs.k8s.io/geps/gep-3155/)
 - `charts/ncode-identity-host`

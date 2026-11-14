@@ -7,7 +7,7 @@
 ## Context
 
 The pods' certificate authenticates the pod to whatever routes traffic to it
-([ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md),
+([ADR-1504](1504-the-hosts-serve-https-only-and-verify-their-certificate-at-startup.md),
 [ADR-1507](1507-the-host-chart-routes-to-its-https-only-pods-through-gateway-api-a-traefik-ingress-or-the-operators-own-ingress.md)). Three gaps
 remain on that hop:
 
@@ -58,7 +58,7 @@ client's.**
    certificates or without a distinguished name in `AllowedSubjects`.
    - **The handshake asks and accepts.** While `Required` is true, the hosts' Kestrel HTTPS defaults use
      `ClientCertificateMode.AllowCertificate` and accept any certificate, so the kubelet's probes and the startup
-     check's loopback handshake ([ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md))
+     check's loopback handshake ([ADR-1504](1504-the-hosts-serve-https-only-and-verify-their-certificate-at-startup.md))
      connect without one.
    - **A middleware, first in the pipeline, decides.** It lets exactly `HealthProbeDefaults.LivenessPath` and
      `ReadinessPath` through without a certificate and answers `403` to every other request whose connection
@@ -135,7 +135,7 @@ client's.**
   [#789](https://github.com/NCodeGroup/identity/issues/789),
   [#790](https://github.com/NCodeGroup/identity/issues/790) and
   [#791](https://github.com/NCodeGroup/identity/issues/791)
-- [ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md),
+- [ADR-1504](1504-the-hosts-serve-https-only-and-verify-their-certificate-at-startup.md),
   [ADR-1507](1507-the-host-chart-routes-to-its-https-only-pods-through-gateway-api-a-traefik-ingress-or-the-operators-own-ingress.md),
   [ADR-1172](1172-a-forwarded-client-certificate-is-decoded-by-the-decoder-registered-for-its-format.md),
   [ADR-1173](1173-a-mutual-tls-client-is-authenticated-by-its-registered-certificate-chained-to-configured-trust-anchors.md),

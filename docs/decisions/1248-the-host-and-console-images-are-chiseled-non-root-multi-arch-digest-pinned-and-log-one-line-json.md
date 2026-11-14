@@ -30,7 +30,7 @@ logs.
 - The final stage of `hosts/NCode.Identity.OpenId.Host/Dockerfile` is `mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra`:
   distroless, with no shell or package manager, and with ICU and time-zone data. It runs as the non-root `app` user by
   numeric id (`USER $APP_UID`) and serves HTTPS only, on port 8443, so TLS ends at the pod
-  ([ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md) holds the transport rule and the certificate mount).
+  ([ADR-1504](1504-the-hosts-serve-https-only-and-verify-their-certificate-at-startup.md) holds the transport rule and the certificate mount).
 - The host image builds `apps/auth` in a Node stage with the workspace's pinned pnpm, serves it from `/app/auth` with
   `InteractiveAuthentication__BundleRootPath=/app/auth`, and carries the migration worker in `/app/migrations`.
 - `hosts/NCode.Identity.ManagementConsole.Host/Dockerfile` mirrors it with the same pinned bases. It builds
@@ -86,7 +86,7 @@ from `version.json`, whose assembly version omits git height. The version an ima
 The `Host image` workflow (a required check) and the `Console image` workflow (job `Build console image`) build both
 architectures without pushing, on the same triggers, `merge_group` included. They fail unless `docker image inspect` of
 the amd64 image lists the three logging settings and the TLS contract of
-[ADR-1504](1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md), and exposes only
+[ADR-1504](1504-the-hosts-serve-https-only-and-verify-their-certificate-at-startup.md), and exposes only
 8443. `ProgramTests` pins the `json` formatter.
 
 ## Options considered

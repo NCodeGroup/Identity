@@ -58,7 +58,7 @@ A **Production** host refuses to start without a real root key, and a root key m
 
 The setting is required: a host that leaves it unset stops when it starts, naming it. `ephemeral` keeps the root key in
 memory, so it suits only development and tests, and Production refuses it
-([ADR-1370](../../docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
+([ADR-1370](../../docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)).
 
 Further providers ship as packages that register themselves by name. The reference host registers the three below, and
 each stays inert until `SecretProtection:RootKeyProvider` selects it. `aws-kms` takes
@@ -190,7 +190,7 @@ The `BootstrapAdmin` client and the seeded `admin` account below are for develop
 Production creates its first administrator through `/setup`, above.
 
 No development credential is committed
-([ADR-1370](../../docs/decisions/1370-development-conveniences-are-inert-unless-configured-and-a-host-always-names-its-root-key-provider.md)).
+([ADR-1370](../../docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)).
 On first run the AppHost writes `bootstrap-admin-secret` and `admin-password` beside `root-key` in
 `LocalApplicationData/NCode.Identity/LocalDev` (`%LOCALAPPDATA%` on Windows, `~/.local/share` on Linux,
 `~/Library/Application Support` on macOS) and hands them to the hosts. It also writes `mgmt-client.pem` and
@@ -359,7 +359,7 @@ The image starts in the `Production` environment, which refuses to start until t
 - A serving certificate: the host serves HTTPS only. It refuses to start when an endpoint is plain HTTP, no endpoint is
   bound, or the certificate it serves has no usable private key, is expired or not yet valid, has an RSA key under 2048
   bits or a signature weaker than SHA-256, or is the ASP.NET Core development certificate
-  ([ADR-1504](../../docs/decisions/1504-the-hosts-serve-https-only-in-production-and-verify-their-certificate-at-startup.md)).
+  ([ADR-1504](../../docs/decisions/1504-the-hosts-serve-https-only-and-verify-their-certificate-at-startup.md)).
   A self-signed certificate is accepted; the proxy decides whether to trust it.
 - `AllowedHosts`: the public host names. A missing value or `*` is refused.
 - `SecretProtection__RootKeyProvider`: a real root key provider (not `ephemeral`) with its settings, such as

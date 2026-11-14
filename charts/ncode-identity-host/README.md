@@ -1166,11 +1166,12 @@ ConfigMap as it is, from `kubectl -n identity create configmap identity-recovery
 --dry-run=client -o yaml`. Never commit a Secret unencrypted, because Git keeps it in its history, and keep the root key
 and the recovery private key backed up offline as [Secret protection](#secret-protection) says: the encrypted manifest
 is a backup only when its age key is one too. Once the instance is initialized, set `setup.job.enabled` to `false` and
-delete the setup Secrets.
+remove the setup Secrets from Git and from the cluster, with
+`kubectl -n identity delete secret identity-setup-token identity-setup-root`.
 
-Flux never deletes the prerequisites: the `identity-prerequisites` Kustomization sets `prune: false`, and the namespace
-carries the prune-disabled annotation, so removing a Secret or the ConfigMap from Git leaves it in the cluster until an
-operator deletes it, which a retired deployment does on purpose.
+Flux never deletes the prerequisites: the `identity-prerequisites` `Kustomization` sets `prune: false`, and the
+namespace carries the prune-disabled annotation, so a Secret or the ConfigMap that leaves Git stays in the cluster until
+an operator deletes it, as the command above does for the setup Secrets.
 
 ### Pod Security
 

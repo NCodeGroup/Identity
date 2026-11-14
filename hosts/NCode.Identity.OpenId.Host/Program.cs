@@ -79,9 +79,9 @@ serviceCollection.AddTrustedForwardedHeaders(configuration);
 // 'ProxyClientCertificate' section (ADR-1506). Inert unless 'ProxyClientCertificate:Required' is true.
 serviceCollection.AddProxyClientCertificate(configuration);
 
-// Send Strict-Transport-Security on every HTTPS response outside Development, as configured by the
-// 'StrictTransportSecurity' section (one year with includeSubDomains by default). A deployment whose TLS-terminating
-// proxy sends the header sets StrictTransportSecurity:Enabled to false. See ADR-1447.
+// Send Strict-Transport-Security on every HTTPS response unless 'LocalDevelopment:Enabled' is set, as configured by
+// the 'StrictTransportSecurity' section (one year with includeSubDomains by default). A deployment whose
+// TLS-terminating proxy sends the header sets StrictTransportSecurity:Enabled to false. See ADR-1447.
 serviceCollection.AddStrictTransportSecurity(configuration);
 
 // Send no Server response header, in every environment. See ADR-1511.
@@ -178,7 +178,8 @@ serviceCollection.AddDatabaseDeveloperPageExceptionFilter();
 // database itself. The developer data-protection key ring is persisted in the same database, so one purge resets the
 // OpenID data, the seeded signing key, the tenants' master keys, and the ring together. Stored secrets are encrypted
 // under their owners' master keys and the ring under the platform master key, whose root key lives outside the database
-// (the 'SecretProtection' section); the production gate refuses to start without a real root key (ADR-1235).
+// (the 'SecretProtection' section); AddDeploymentSafety refuses to start without a real root key unless
+// 'LocalDevelopment:Enabled' is set (ADR-1235).
 
 var connectionString = HostDatabaseConnection.Resolve(configuration);
 if (!string.IsNullOrEmpty(connectionString))
@@ -202,8 +203,8 @@ if (!string.IsNullOrEmpty(connectionString))
 else
 {
     // No connection string: hermetic test hosts boot this composition root and replace the OpenID context and the Data
-    // Protection key ring with stores of their own; Data Protection otherwise keeps its default repository, which the
-    // production gate refuses.
+    // Protection key ring with stores of their own; Data Protection otherwise keeps its default repository, which
+    // AddDeploymentSafety refuses.
     serviceCollection.AddDbContextFactory<OpenIdDbContext>(dbOptions =>
         dbOptions.UseInMemoryDatabase("OpenId")
     );
@@ -231,17 +232,12 @@ app.UseProxyClientCertificate();
 // trusted proxy.
 app.UseTrustedForwardedHeaders();
 
-// Right after the forwarded headers, so a request a trusted proxy received over HTTPS counts as HTTPS. A no-op in
-// Development. See ADR-1447.
+// Right after the forwarded headers, so a request a trusted proxy received over HTTPS counts as HTTPS. A no-op when
+// 'LocalDevelopment:Enabled' is set. See ADR-1447.
 app.UseStrictTransportSecurity();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseDeveloperExceptionPage();
-}
-
 // The OpenAPI document and the Scalar API reference page, mapped only where the ApiReference section enables them.
-// Both are off by default and appsettings.Development.json turns both on (ADR-1481).
+// Both are off by default and the local development profile's configuration turns both on (ADR-1481).
 app.MapIdentityServerApiReference();
 
 // A deployment binds HTTPS endpoints only (AddDeploymentSafety refuses to start otherwise), so it adds no redirect;

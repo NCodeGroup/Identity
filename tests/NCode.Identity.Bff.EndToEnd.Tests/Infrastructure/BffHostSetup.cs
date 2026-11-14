@@ -41,7 +41,13 @@ internal static class BffHostSetup
     public const string DPoPKeyRing = "e2e-dpop";
 
     /// <summary>
-    /// Creates the configuration of the frontend.
+    /// The configuration key that turns on the relaxations of a local inner-loop host.
+    /// </summary>
+    public const string LocalDevelopmentKey = "LocalDevelopment:Enabled";
+
+    /// <summary>
+    /// Creates the configuration of the frontend and turns on local development, because the BFF runs against a
+    /// loopback OpenID Provider.
     /// </summary>
     public static Dictionary<string, string?> CreateConfiguration(
         BffApplicationSettings settings,
@@ -50,6 +56,7 @@ internal static class BffHostSetup
     {
         var configuration = new Dictionary<string, string?>
         {
+            [LocalDevelopmentKey] = "true",
             [$"{ConfigurationPrefix}:Authority"] = settings.Authority,
             [$"{ConfigurationPrefix}:PublicOrigin"] = origin,
             [$"{ConfigurationPrefix}:ClientId"] = settings.ClientId,

@@ -25,8 +25,8 @@ spec:
       retries: 3
       remediateLastFailure: true
   values:
-    # The release's values: one replica behind Traefik, the management console on its own host, and the root administrator
-    # created by the setup Job. Every Secret and the ConfigMap named here exists before the release.
+    # The release's values: one replica behind Traefik, the management console on its own host, and the root
+    # administrator created by the setup Job. Every Secret and the ConfigMap named here exists before the release.
     allowedHosts:
       - id.example.com
     tenantResolution:

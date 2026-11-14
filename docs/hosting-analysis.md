@@ -243,7 +243,7 @@ Why this shape:
   ([ADR-1166](decisions/1166-a-tenant-is-created-and-seeded-through-one-provisioning-pipeline-under-every-strategy.md)),
   and its first administrator is created once through `/setup` on that host
   ([ADR-1512](decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md),
-  [first use of a Production instance](first-production-instance.md)); `BootstrapAdmin` is development-only, and a
+  [first use of a deployed instance](first-deployed-instance.md)); `BootstrapAdmin` is development-only, and a
   host without `LocalDevelopment:Enabled` refuses it. `/api` is served on
   `auth.ncodeid.net`, the control-plane tenant's origin, because the OP accepts the console's DPoP-bound call only at
   that origin plus `/api` ([ADR-1437](decisions/1437-the-management-console-is-a-confidential-client-whose-own-bff-host-serves-only-the-console.md)); the API authenticates by the control-plane tenant whichever host or path addresses it

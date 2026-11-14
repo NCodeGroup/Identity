@@ -21,7 +21,7 @@ Until the first stable release, the [Unreleased] section describes the product a
   The done page lists the instance's addresses as links with copy buttons (the management console, the issuer, the
   discovery document, the management API and the API reference when it is served, all computed from the control-plane
   tenant's issuer), shows the root user and the tenant, and lists the remaining configuration with a link to
-  `docs/first-production-instance.md`, naming the setup token Secret only when the token was configured. The root
+  `docs/first-deployed-instance.md`, naming the setup token Secret only when the token was configured. The root
   administrator is a local account in the control-plane tenant holding
   `GlobalAdmin` at the platform node; the account, its identity, that role assignment and the initialized mark of the
   `InstanceSetup` row are saved together, so one setup creates one root. `NCode.Identity.OpenId.Setup.Abstractions`

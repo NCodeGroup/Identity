@@ -89,11 +89,10 @@ group describes the shared problems once, and tests pin both.**
 7. **The client-credentials login exists only with the page.** The token URL, the audience-binding scope and the
    credentials location `Header` are part of the page's configuration and are built only when the page is mapped,
    because the bootstrap client registers `client_secret_basic`
-   ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)). The bootstrap client id and secret are
-   pre-filled only when `LocalDevelopment:Enabled` is set. Otherwise the operator types them into the Authorize dialog,
-   so the served
-   configuration holds no secret. The document's security scheme describes the API and is present whenever the
-   document is served.
+   ([ADR-1145](1145-a-client-authenticates-only-with-its-registered-method-which-a-registered-descriptor-names.md)). The
+   bootstrap client id and secret are pre-filled only when `LocalDevelopment:Enabled` is set. Otherwise the operator
+   types them into the Authorize dialog, so the served configuration holds no secret. The document's security scheme
+   describes the API and is present whenever the document is served.
 8. **Form bodies are shaped in the document, not the renderer.** A form-urlencoded field that must be pre-filled is
    marked `required` with a schema `Default`; the document never relies on a renderer applying a named example.
 
@@ -117,8 +116,7 @@ group describes the shared problems once, and tests pin both.**
 
 The rule: the document is a property of the server; the host serves it and its page only where the operator enables
 them; no secret is pre-filled into a served document unless `LocalDevelopment:Enabled` is set; and a client reads from
-the document when each
-problem occurs.
+the document when each problem occurs.
 
 ## Options considered
 
@@ -146,8 +144,7 @@ problem occurs.
   would drift from it. Rejected.
 - **An environment-based library default.** [ADR-1370](1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)
   makes `AddDeploymentSafety` and the `LocalDevelopment:Enabled` switch the one place that decides the posture, and a
-  convenience is inert unless
-  configured. Rejected.
+  convenience is inert unless configured. Rejected.
 - **Refusing an enabled reference in a deployment.** Publishing an API description is the operator's choice, not a
   development convenience, so `AddDeploymentSafety` stays out of it. Rejected.
 - **Chosen: the composition layer serves the reference where configuration enables it, routes describe their own

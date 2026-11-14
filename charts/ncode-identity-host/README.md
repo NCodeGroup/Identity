@@ -274,16 +274,16 @@ created either. Setup imports each JWK Set by value, so neither client needs a `
 - **The management console's client** is a confidential client of the control-plane tenant, with the metadata that
   [Management console](#management-console) lists, except `jwks_uri`. Set `setup.managementConsole.baseUrl` to the origin
   of `managementConsole.host` and `setup.managementConsole.jwks` to the public JWK Set of the console's `mgmt-client.pem`
-  ([how to derive it](../../docs/first-production-instance.md#the-management-consoles-client)).
+  ([how to derive it](../../docs/first-deployed-instance.md#the-management-consoles-client)).
 - **The automation client** is a platform-owned `client_credentials` machine client that holds `GlobalAdmin` and
   authenticates with `private_key_jwt`, so a GitOps install manages the instance without the development bootstrap
   client. Setting `setup.automation.clientId` and `setup.automation.jwks` registers it. The platform's
   grant list must include `client_credentials`, or setup fails as a whole; set
   `platform.grantTypesEnabled` to `[client_credentials]`, which the chart passes to the host as the platform setting
-  `grant_types_enabled` (the [first-use guide](../../docs/first-production-instance.md#6-enable-grants) describes it).
+  `grant_types_enabled` (the [first-use guide](../../docs/first-deployed-instance.md#6-enable-grants) describes it).
 
 Delete both Secrets once the instance is initialized. The guide
-[The first use of a Production instance](../../docs/first-production-instance.md) walks through the whole first use.
+[The first use of a deployed instance](../../docs/first-deployed-instance.md) walks through the whole first use.
 
 ## Secret protection
 

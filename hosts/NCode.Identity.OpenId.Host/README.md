@@ -164,9 +164,9 @@ process. `--owner` limits the run to one owner such as `tenant:acme`, and `--dry
 without writing. The exit code is `0` when no key failed, `1` otherwise or when the configuration is invalid, and `2`
 for a usage error. A run is repeatable.
 
-### First administrator in Production
+### First administrator of a deployment
 
-A Production instance starts with no administrator. Its first one, the root global administrator, is created once
+A deployed instance starts with no administrator. Its first one, the root global administrator, is created once
 through setup, a wizard at `/setup` guarded by a one-time setup token
 ([ADR-1512](../../docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 Set `Setup__Token` (at least 32 characters) to choose the token. Without it, an uninitialized instance generates a
@@ -185,7 +185,7 @@ instance is already initialized, `2` for a usage error and `1` when the creation
 dotnet NCode.Identity.OpenId.Host.dll setup
 ```
 
-The Helm chart's opt-in `setup.job` runs it. [First use of a Production instance](../../docs/first-production-instance.md)
+The Helm chart's opt-in `setup.job` runs it. [First use of a deployed instance](../../docs/first-deployed-instance.md)
 walks the whole sequence.
 
 ### Development credentials

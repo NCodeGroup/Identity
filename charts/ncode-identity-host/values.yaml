@@ -214,7 +214,7 @@ secretProtection:
     backoffLimit: 0
     activeDeadlineSeconds: 3600
 
-# The first-run setup of a Production instance (ADR-1512): the one-time setup token that guards the /setup wizard, and an
+# The first-run setup of a deployed instance (ADR-1512): the one-time setup token that guards the /setup wizard, and an
 # opt-in Job that creates the root administrator without a browser. The chart never creates these Secrets; the operator
 # does, and removes them once the instance is initialized.
 setup:
@@ -252,7 +252,7 @@ setup:
     jwks: ""
   # A platform-owned client_credentials machine client with the GlobalAdmin role, which the setup Job registers in the same
   # save as the root administrator (Setup__Automation__*), so a GitOps install manages the instance without the
-  # development bootstrap client. The platform must enable client_credentials (first-production-instance.md, section 6).
+  # development bootstrap client. The platform must enable client_credentials (first-deployed-instance.md, section 6).
   automation:
     # The automation client's client_id. Setting it registers the client; the Job then needs jwks too.
     clientId: ""

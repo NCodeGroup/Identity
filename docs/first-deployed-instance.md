@@ -1,14 +1,13 @@
-# The first use of a Production instance
+# The first use of a deployed instance
 
 - **Status:** Living guide — update it in the same change as anything it describes.
-- **Audience:** an operator who brings up an `NCode.Identity.OpenId.Host` instance in Production and creates its first
-  administrator.
+- **Audience:** an operator who deploys an `NCode.Identity.OpenId.Host` instance and creates its first administrator.
 - **Scope:** from an empty database to a signed-in root administrator, a registered management console and the grants
   the instance serves. The Helm chart's [README](../charts/ncode-identity-host/README.md) and the host's
   [README](../hosts/NCode.Identity.OpenId.Host/README.md) describe every setting.
 
-A Production instance starts with an empty database and no administrator, and it ships no default credential. The
-operator creates the first administrator, the root global administrator, once, through setup
+A deployed instance starts with an empty database and no administrator, and it ships no default credential. The operator
+creates the first administrator, the root global administrator, once, through setup
 ([ADR-1512](decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 The `BootstrapAdmin` configuration is a development convenience, and a host without `LocalDevelopment:Enabled` refuses
 it

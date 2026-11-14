@@ -144,8 +144,8 @@ composition root chooses: in-process for one replica, Valkey for several.**
   self-hosters included, would carry a Redis client. The adapter is opt-in.
 - **The Valkey GLIDE client.** Rejected: it carries a native core per runtime identifier, and the adapters need no
   Valkey-only command. The client sits behind the ports, so a later switch changes one class per port.
-- **Refusing the in-process adapter in Production.** Rejected: a single-replica production deployment is legitimate, and
-  the server cannot count replicas.
+- **Refusing the in-process adapter in a deployment.** Rejected: a single-replica production deployment is
+  legitimate, and the server cannot count replicas.
 - **Hashing the tenant into the digest.** Rejected: the tenant in clear lets an operator find or remove one tenant's
   records; tenant identifiers are host labels
   ([ADR-1160](1160-a-tenant-is-named-by-its-creator-validated-by-its-strategy-and-never-reissued.md)), and the digest at

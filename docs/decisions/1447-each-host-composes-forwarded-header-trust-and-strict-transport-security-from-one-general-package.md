@@ -61,15 +61,13 @@ includeSubDomains`.**
    `Strict-Transport-Security: max-age=31536000; includeSubDomains` on every response to an HTTPS request unless
    `LocalDevelopment:Enabled` is set, which is every response in a deployment. The HTTPS redirect that pairs with the
    header is added only when `LocalDevelopment:Enabled` is set (`UseLocalDevelopmentHttpsRedirection()`). `Enabled` is
-   `true`, `MaxAge` is 365 days, `IncludeSubDomains` is `true` and `Preload` is `false`. The
-   issuer's subdomains, such as tenant hosts and the mutual-TLS alias host, are served over HTTPS by the same
-   deployment.
+   `true`, `MaxAge` is 365 days, `IncludeSubDomains` is `true` and `Preload` is `false`. The issuer's subdomains, such
+   as tenant hosts and the mutual-TLS alias host, are served over HTTPS by the same deployment.
 4. **The validator guards preload and age.** It refuses `Preload` without `IncludeSubDomains`, `Preload` with a
    `MaxAge` under 365 days, and a negative `MaxAge`. `max-age=0` is allowed: it withdraws the policy.
 5. **Local-development and loopback hosts never receive it.** A host that sets `LocalDevelopment:Enabled` adds nothing.
-   `localhost`, `127.0.0.1` and `[::1]`
-   are always excluded. `ExcludedHosts` entries are DNS names, IPv4 addresses or bracketed IPv6 addresses, without a
-   scheme or a port.
+   `localhost`, `127.0.0.1` and `[::1]` are always excluded. `ExcludedHosts` entries are DNS names, IPv4 addresses or
+   bracketed IPv6 addresses, without a scheme or a port.
 6. **One component owns the header.** A deployment whose proxy sends `Strict-Transport-Security` sets `Enabled` to
    `false`. Otherwise the host trusts the proxy in `ForwardedHeaders`, so it sees HTTPS and sends the header.
 7. **The Helm chart carries the configuration.** It sets `ForwardedHeaders__…` from its `forwardedHeaders` values and

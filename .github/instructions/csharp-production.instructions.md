@@ -579,11 +579,13 @@ than inlining the rationale.
 - 👁 **A start step that must precede the warmup runs in `IHostedLifecycleService.StartingAsync`**
   (`DeveloperPlatformMasterKeyPruning`), because every `StartingAsync` runs before any `StartAsync`
   ([ADR-1247](../../docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md)).
-- 👁 **A `SecretProtectionOptions` validator resolves no key wrapper.** Each KMS adapter's options validator reads
-  `IOptions<SecretProtectionOptions>`, so a `SecretProtectionOptions` validator that takes `IEnumerable<IKeyWrapper>`
-  closes a dependency cycle that stops every host that registers an adapter. The validators check the options' own
-  shape; a check against the registered wrappers runs in `DefaultKeyWrapperCatalog` as it is composed, which the server
-  does as it starts. An adapter's registration test composes it with `ValidateOnBuild` to keep the graph acyclic
+- 👁 **An options validator reads no other options** — template ADR-0106 decision 3. An `IValidateOptions<T>` takes no
+  `IOptions<…>`, `IOptionsMonitor<…>` or `IOptionsSnapshot<…>`: the local-development switch is the registered
+  `LocalDevelopmentMode`, a check across two options types is a start check (`BffRefreshLeaseStartupCheck`), and a key
+  wrapper reports its own configuration through `IKeyWrapper.GetConfigurationFailures` and
+  `IReferencedKeyWrapper.GetReferenceConfigurationFailures`, which `DefaultKeyWrapperCatalog` collects for the selected
+  providers as it is composed on every host start. A `SecretProtectionOptions` validator resolves no key wrapper; an
+  adapter's registration test composes it with `ValidateOnBuild` to keep the graph acyclic
   ([ADR-1414](../../docs/decisions/1414-a-tenant-can-wrap-its-master-keys-under-a-root-key-it-controls.md)).
 - 👁 **A single-use or freshness check records into `IExpiringKeySet`, never a get-then-set** — template
   [Concurrency and Shared State](csharp.instructions.md#concurrency-and-shared-state). A replay guard (a `jti`) or a

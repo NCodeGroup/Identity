@@ -3,8 +3,7 @@
 
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
-using NCode.Identity.AspNetCore.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.Bff.Tests.Frontends;
@@ -35,17 +34,10 @@ public class BffOptionsValidatorTests : BaseTests
 
         return new BffOptionsValidator(
             mockEnvironment.Object,
-            CreateLocalDevelopmentOptions(localDevelopment),
+            new LocalDevelopmentMode(localDevelopment),
             [new HostBffFrontendSelector(), new PathBffFrontendSelector()]
         );
     }
-
-    private static IOptions<LocalDevelopmentOptions> CreateLocalDevelopmentOptions(
-        bool localDevelopment
-    ) =>
-        Microsoft.Extensions.Options.Options.Create(
-            new LocalDevelopmentOptions { Enabled = localDevelopment }
-        );
 
     private const string WebFrontend = "web";
 
@@ -87,7 +79,7 @@ public class BffOptionsValidatorTests : BaseTests
         var mockEnvironment = CreateStrictMock<IHostEnvironment>();
         var validator = new BffOptionsValidator(
             mockEnvironment.Object,
-            CreateLocalDevelopmentOptions(localDevelopment: false),
+            new LocalDevelopmentMode(false),
             [new HostBffFrontendSelector(), new HostBffFrontendSelector()]
         );
 

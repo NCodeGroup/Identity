@@ -12,7 +12,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
-using NCode.Identity.AspNetCore.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Bff.Auditing;
 using NCode.Identity.Bff.Authentication;
 using NCode.Identity.Bff.Cookies;
@@ -66,7 +66,8 @@ public static class DefaultRegistration
             serviceCollection.TryAddSingleton(TimeProvider.System);
             serviceCollection.AddHttpContextAccessor();
 
-            serviceCollection.AddOptions<LocalDevelopmentOptions>();
+            // The strict posture holds unless the host's configuration turns the local development switch on.
+            serviceCollection.TryAddSingleton(new LocalDevelopmentMode(false));
             serviceCollection.AddOptions<BffOptions>().ValidateOnStart();
             serviceCollection.TryAddEnumerable(
                 ServiceDescriptor.Singleton<IValidateOptions<BffOptions>, BffOptionsValidator>()

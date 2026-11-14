@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
-using NCode.Identity.AspNetCore.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Bff.Cookies;
 using NCode.Identity.Bff.Endpoints;
 using NCode.Identity.Bff.Frontends;
@@ -68,11 +68,7 @@ public sealed class BffRemoteApiEndpointsTests : BaseTests
         );
         var serviceCollection = builder.Services;
 
-        serviceCollection.AddSingleton(
-            Microsoft.Extensions.Options.Options.Create(
-                new LocalDevelopmentOptions { Enabled = localDevelopment }
-            )
-        );
+        serviceCollection.AddSingleton(new LocalDevelopmentMode(localDevelopment));
         var requirement = CreateLooseMock<IBffTokenRequirement>();
         requirement.SetupGet(x => x.Name).Returns(BffTokenRequirementNames.User);
         serviceCollection.AddSingleton(requirement.Object);

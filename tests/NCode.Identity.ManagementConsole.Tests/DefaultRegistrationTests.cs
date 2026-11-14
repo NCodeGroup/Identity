@@ -153,9 +153,7 @@ public class DefaultRegistrationTests : BaseTests
 
         await using var provider = serviceCollection.BuildServiceProvider();
 
-        Assert.False(
-            provider.GetRequiredService<IOptions<LocalDevelopmentOptions>>().Value.Enabled
-        );
+        Assert.False(provider.GetRequiredService<LocalDevelopmentMode>().Enabled);
     }
 
     [Fact]
@@ -166,7 +164,7 @@ public class DefaultRegistrationTests : BaseTests
 
         await using var provider = serviceCollection.BuildServiceProvider();
 
-        Assert.True(provider.GetRequiredService<IOptions<LocalDevelopmentOptions>>().Value.Enabled);
+        Assert.True(provider.GetRequiredService<LocalDevelopmentMode>().Enabled);
     }
 
     [Fact]

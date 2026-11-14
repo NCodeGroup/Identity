@@ -3,7 +3,7 @@
 
 using Microsoft.AspNetCore.HostFiltering;
 using Microsoft.Extensions.Options;
-using NCode.Identity.AspNetCore.Options;
+using NCode.Identity.AspNetCore;
 
 namespace NCode.Identity.ManagementConsole.Options;
 
@@ -12,9 +12,8 @@ namespace NCode.Identity.ManagementConsole.Options;
 /// header stops at startup instead of serving the console for a host name it does not own. A host configured for
 /// local development (<c>LocalDevelopment:Enabled</c>) may accept any host.
 /// </summary>
-internal sealed class ManagementConsoleHostFilteringValidator(
-    IOptions<LocalDevelopmentOptions> localDevelopmentOptions
-) : IValidateOptions<HostFilteringOptions>
+internal sealed class ManagementConsoleHostFilteringValidator(LocalDevelopmentMode localDevelopment)
+    : IValidateOptions<HostFilteringOptions>
 {
     private const string Wildcard = "*";
 
@@ -23,7 +22,7 @@ internal sealed class ManagementConsoleHostFilteringValidator(
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        if (localDevelopmentOptions.Value.Enabled)
+        if (localDevelopment.Enabled)
         {
             return ValidateOptionsResult.Success;
         }

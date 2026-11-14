@@ -1,7 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
-using NCode.Identity.AspNetCore.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.ManagementConsole.Options;
 using Xunit;
 
@@ -27,12 +27,7 @@ public class ManagementConsoleOptionsValidatorTests : BaseTests
 
     private static ManagementConsoleOptionsValidator CreateValidator(
         bool localDevelopment = false
-    ) =>
-        new(
-            Microsoft.Extensions.Options.Options.Create(
-                new LocalDevelopmentOptions { Enabled = localDevelopment }
-            )
-        );
+    ) => new(new LocalDevelopmentMode(localDevelopment));
 
     #region Validate Tests
 

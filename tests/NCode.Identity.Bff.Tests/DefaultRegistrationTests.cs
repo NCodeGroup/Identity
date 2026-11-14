@@ -14,7 +14,7 @@ using Microsoft.Extensions.Http.Logging;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using NCode.Identity.AspNetCore.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Bff.Hosting;
 using NCode.Identity.Bff.Options;
@@ -330,9 +330,7 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
 
         var provider = BuildProvider();
 
-        Assert.False(
-            provider.GetRequiredService<IOptions<LocalDevelopmentOptions>>().Value.Enabled
-        );
+        Assert.False(provider.GetRequiredService<LocalDevelopmentMode>().Enabled);
     }
 
     [Fact]
@@ -347,7 +345,7 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
 
         var provider = BuildProvider();
 
-        Assert.True(provider.GetRequiredService<IOptions<LocalDevelopmentOptions>>().Value.Enabled);
+        Assert.True(provider.GetRequiredService<LocalDevelopmentMode>().Enabled);
     }
 
     [Fact]
@@ -358,9 +356,7 @@ public sealed class DefaultRegistrationTests : IAsyncLifetime
 
         var provider = BuildProvider();
 
-        Assert.False(
-            provider.GetRequiredService<IOptions<LocalDevelopmentOptions>>().Value.Enabled
-        );
+        Assert.False(provider.GetRequiredService<LocalDevelopmentMode>().Enabled);
     }
 
     [Fact]

@@ -3,7 +3,7 @@
 
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using NCode.Identity.AspNetCore.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Bff.Frontends;
 using NCode.Identity.Secrets.RemoteKeys;
 
@@ -16,7 +16,7 @@ namespace NCode.Identity.Bff.Options;
 /// </summary>
 internal class BffOptionsValidator(
     IHostEnvironment environment,
-    IOptions<LocalDevelopmentOptions> localDevelopmentOptions,
+    LocalDevelopmentMode localDevelopment,
     IEnumerable<IBffFrontendSelector> selectors
 ) : IValidateOptions<BffOptions>
 {
@@ -132,7 +132,7 @@ internal class BffOptionsValidator(
         ArgumentNullException.ThrowIfNull(options);
 
         List<string> failures = [];
-        var isLocalDevelopment = localDevelopmentOptions.Value.Enabled;
+        var isLocalDevelopment = localDevelopment.Enabled;
 
         ValidateSelectors(failures);
         ValidateFrontends(options.Frontends, isLocalDevelopment, failures);

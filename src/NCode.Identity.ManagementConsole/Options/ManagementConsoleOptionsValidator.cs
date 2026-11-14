@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.Extensions.Options;
-using NCode.Identity.AspNetCore.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId;
 
 namespace NCode.Identity.ManagementConsole.Options;
@@ -12,9 +12,8 @@ namespace NCode.Identity.ManagementConsole.Options;
 /// instead of failing on the first request. A host configured for local development (<c>LocalDevelopment:Enabled</c>)
 /// may use an <c>http</c> management API URL.
 /// </summary>
-internal sealed class ManagementConsoleOptionsValidator(
-    IOptions<LocalDevelopmentOptions> localDevelopmentOptions
-) : IValidateOptions<ManagementConsoleOptions>
+internal sealed class ManagementConsoleOptionsValidator(LocalDevelopmentMode localDevelopment)
+    : IValidateOptions<ManagementConsoleOptions>
 {
     private const string Key = ManagementConsoleDefaults.ConfigurationSectionName;
 
@@ -59,7 +58,7 @@ internal sealed class ManagementConsoleOptionsValidator(
         ArgumentNullException.ThrowIfNull(options);
 
         List<string> failures = [];
-        var isLocalDevelopment = localDevelopmentOptions.Value.Enabled;
+        var isLocalDevelopment = localDevelopment.Enabled;
 
         var isWellFormed = IsValidManagementApiUrl(options.ManagementApiUrl, true);
         var isValid = isLocalDevelopment

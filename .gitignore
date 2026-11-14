@@ -62,6 +62,7 @@ hosts/NCode.Identity.OpenId.Host/App_Data/
 [Dd]ebugPublic/
 [Rr]elease/
 [Rr]eleases/
+!charts/**/examples/flux/release/
 x64/
 x86/
 bld/

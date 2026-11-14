@@ -34,8 +34,9 @@ audited; and a caller reads its own assignments, teams and tenants from `GET /ap
    `GET` reads the list, `POST` grants and `DELETE …/{principalId}` revokes.
 2. **The contracts name no role and no owner.** `GET` answers `RoleListResource { items, canChange }`. An item, and the
    answer to a grant, is `RoleHolderResource { assignmentId, principalId, roleName }`. A grant's body is
-   `AddRoleHolderRequest { principalId }`. `RoleAssignmentResource`, which names its node, serves the assignments that
-   are read across nodes.
+   `AddRoleHolderRequest { principalId }`, whose `principalId` is the one on the resource of the local account or client
+   to grant (`LocalAccountResource`, `ClientResource`). `RoleAssignmentResource`, which names its node, serves the
+   assignments that are read across nodes.
 3. **`canChange` says whether the caller's grant or revoke of the role at the node passes every refusal that does not
    depend on the principal named.** Those refusals are `Update` at the node for owners, `Create` for administrators,
    and, for a client's owners, a client the host does not manage and custody of a machine client

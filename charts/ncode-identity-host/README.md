@@ -1073,6 +1073,294 @@ one component owns it. Change the policy the same way with `StrictTransportSecur
 only after submitting the domain to the browsers' preload list: it requires `IncludeSubDomains` and a `MaxAge` of at
 least 365 days, and the host refuses to start without them.
 
+## GitOps
+
+A GitOps tool applies a release from Git, so what `helm install` is given by hand becomes manifests: the namespace, the
+Secrets the chart references, the chart's source and the release's values. This section deploys the chart with
+[Flux](https://fluxcd.io/) 2.3 or later, whose `HelmRelease` is the `helm.toolkit.fluxcd.io/v2` API. `examples/flux/`
+holds the manifests, and `ci/gitops-values.yaml` holds the release's values as a values file, which the `Host chart`
+workflow lints and renders ([What CI proves for the example](#what-ci-proves-for-the-example)).
+
+The release needs cert-manager, which issues the pods' certificates, and an ingress controller; the example uses
+Traefik with its Kubernetes CRD provider (see [Routing to the pods](#routing-to-the-pods)). Make the Flux
+`Kustomization` or `HelmRelease` of each add-on a `dependsOn` of the release, so their CRDs exist before the chart's
+`Certificate` and `ServersTransport` are applied.
+
+The manifests live in the cluster's Git repository in two folders:
+
+```text
+identity/
+  prerequisites/   the namespace, the Secrets and the ConfigMap the release references
+  release/         the HelmRepository and the HelmRelease
+```
+
+Two Flux `Kustomization`s apply the folders in order. The release's `dependsOn` names the prerequisites, so Flux creates
+every Secret before a pod asks for one. They live with Flux's own manifests for the cluster, and their `sourceRef`
+names its `GitRepository`, `flux-system` here (`examples/flux/kustomizations.yaml`):
+
+```yaml
+# The two Flux Kustomizations that deploy the host chart: the prerequisites first, then the release.
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: identity-prerequisites
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./identity/prerequisites
+  # Key material is never pruned: removing a manifest from Git leaves its object in the cluster.
+  prune: false
+  wait: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  decryption:
+    provider: sops
+    secretRef:
+      name: sops-age
+---
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: identity
+  namespace: flux-system
+spec:
+  interval: 10m
+  path: ./identity/release
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+  dependsOn:
+    - name: identity-prerequisites
+```
+
+### The prerequisites
+
+The chart takes no secret values, so every Secret and ConfigMap it names exists before the release; a pod that names a
+missing Secret stays in `CreateContainerConfigError`. The example's release names these, in the `identity` namespace:
+
+| Kind        | Name                       | Keys                            | Holds                                                                                              |
+|-------------|----------------------------|---------------------------------|----------------------------------------------------------------------------------------------------|
+| `Secret`    | `identity-database`        | `connection-string`             | The Npgsql connection string of the database, or use `database.parts.existingSecret`.              |
+| `Secret`    | `identity-root-key`        | `key`                           | The local root key; see [Creating the local root key Secret](#creating-the-local-root-key-secret). |
+| `ConfigMap` | `identity-recovery-key`    | `recovery-public.pem`           | The recovery public key; see [Creating the recovery key](#creating-the-recovery-key).              |
+| `Secret`    | `identity-setup-token`     | `token`                         | The setup token, at least 32 characters; see [First use](#first-use).                              |
+| `Secret`    | `identity-setup-root`      | `userName`, `email`, `password` | The root administrator's credential for the setup Job; the password has at least 15 characters.    |
+| `Secret`    | `identity-mgmt-client-key` | `mgmt-client.pem`               | The console's client key; see [Management console](#management-console).                           |
+| `Secret`    | `identity-mgmt-dpop-key`   | `mgmt-dpop.pem`                 | The console's DPoP key; see [Management console](#management-console).                             |
+
+Generate each manifest with `kubectl create ... --dry-run=client -o yaml`, encrypt a Secret's `data` with
+[SOPS](https://fluxcd.io/flux/guides/mozilla-sops/), and commit the result under `prerequisites/`:
+
+```bash
+kubectl -n identity create secret generic identity-setup-token \
+  --from-literal=token="$(openssl rand -base64 32)" --dry-run=client -o yaml > prerequisites/identity-setup-token.yaml
+sops --encrypt --encrypted-regex '^(data|stringData)$' --in-place prerequisites/identity-setup-token.yaml
+```
+
+The `identity-prerequisites` `Kustomization` decrypts them with the age key in the `sops-age` Secret of `flux-system`
+(`decryption` in `examples/flux/kustomizations.yaml`). An External Secrets `ExternalSecret` or a Sealed Secret that
+writes the same Secret with the same keys works the same way. The recovery public key is not secret: commit its
+ConfigMap as it is, from `kubectl -n identity create configmap identity-recovery-key --from-file=recovery-public.pem
+--dry-run=client -o yaml`. Never commit a Secret unencrypted, because Git keeps it in its history, and keep the root key
+and the recovery private key backed up offline as [Secret protection](#secret-protection) says: the encrypted manifest
+is a backup only when its age key is one too. Once the instance is initialized, set `setup.job.enabled` to `false` and
+remove the setup Secrets from Git and from the cluster, with
+`kubectl -n identity delete secret identity-setup-token identity-setup-root`.
+
+Flux never deletes the prerequisites: the `identity-prerequisites` `Kustomization` sets `prune: false`, and the
+namespace carries the prune-disabled annotation, so a Secret or the ConfigMap that leaves Git stays in the cluster until
+an operator deletes it, as the command above does for the setup Secrets.
+
+### Pod Security
+
+The release's namespace should enforce the `restricted` Pod Security level, which the chart's pods and Jobs are built
+for: a namespace that enforces it rejects any pod that asks for more. The example's namespace also audits and warns on
+`restricted`, and its `kustomize.toolkit.fluxcd.io/prune: disabled` annotation stops Flux from pruning the namespace,
+which would delete the release, its Secrets and its pods (`examples/flux/prerequisites/namespace.yaml`):
+
+```yaml
+# The release's namespace enforces the restricted Pod Security Standard, which the chart's pods meet.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: identity
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+  annotations:
+    # Pruning the namespace would delete the release, its Secrets and its pods.
+    kustomize.toolkit.fluxcd.io/prune: disabled
+```
+
+### The chart source and the release
+
+The chart is an OCI artifact in GHCR ([Published artifacts](#published-artifacts)), so its source is a `HelmRepository`
+of `type: oci`. The package is public, so the repository needs no `secretRef`
+(`examples/flux/release/helmrepository.yaml`):
+
+```yaml
+# The chart is published as an OCI artifact; a HelmRepository of type oci names the registry path that holds it. The
+# package is public, so the repository needs no secretRef.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: ncode-identity
+  namespace: identity
+spec:
+  type: oci
+  interval: 1h
+  url: oci://ghcr.io/ncodegroup/charts
+```
+
+The `HelmRelease` names the chart, a version range and the release's values
+(`examples/flux/release/helmrelease.yaml`):
+
+```yaml
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: identity
+  namespace: identity
+spec:
+  interval: 10m
+  # Helm waits for the pre-install and pre-upgrade migration Job, so the timeout outlasts the Job's
+  # migrations.activeDeadlineSeconds (600 seconds).
+  timeout: 15m
+  chart:
+    spec:
+      chart: ncode-identity-host
+      # The chart's appVersion pins both images, so a range that includes prereleases rolls the images out too.
+      version: ">=0.0.1-alpha"
+      sourceRef:
+        kind: HelmRepository
+        name: ncode-identity
+  install:
+    remediation:
+      retries: 3
+  upgrade:
+    cleanupOnFail: true
+    remediation:
+      retries: 3
+      remediateLastFailure: true
+  values:
+    # The release's values: one replica behind Traefik, the management console on its own host, and the root
+    # administrator created by the setup Job. Every Secret and the ConfigMap named here exists before the release.
+    allowedHosts:
+      - id.example.com
+    tenantResolution:
+      staticSingle:
+        issuer: https://id.example.com
+    forwardedHeaders:
+      knownNetworks:
+        - 10.42.0.0/16
+    database:
+      existingSecret: identity-database
+    secretProtection:
+      rootKeyProvider: local
+      local:
+        keySecret: identity-root-key
+      recovery:
+        publicKeyConfigMap: identity-recovery-key
+    setup:
+      token:
+        existingSecret: identity-setup-token
+      job:
+        enabled: true
+        existingSecret: identity-setup-root
+    ingress:
+      enabled: true
+      controller: traefik
+      className: traefik
+      annotations:
+        cert-manager.io/cluster-issuer: letsencrypt
+        external-dns.alpha.kubernetes.io/ttl: "300"
+      hosts:
+        - host: id.example.com
+          paths:
+            - path: /
+              pathType: Prefix
+      tls:
+        - secretName: id-example-com-tls
+          hosts:
+            - id.example.com
+    managementConsole:
+      enabled: true
+      host: manage.example.com
+      keyRings:
+        client:
+          pemSecret: identity-mgmt-client-key
+        dpop:
+          pemSecret: identity-mgmt-dpop-key
+      ingress:
+        enabled: true
+        className: traefik
+        annotations:
+          cert-manager.io/cluster-issuer: letsencrypt
+          external-dns.alpha.kubernetes.io/ttl: "300"
+        tls:
+          - secretName: manage-example-com-tls
+            hosts:
+              - manage.example.com
+```
+
+- `version: ">=0.0.1-alpha"` selects the newest chart version in the range, prereleases included, which covers every
+  `0.0.1-alpha.<n>` that a merge to `main` publishes. The chart's `appVersion` pins both images, so a newer chart
+  version rolls the host and the console out too. Name one exact version to stop following.
+- `timeout` is Helm's wait for each operation, the migration Job included, so it outlasts the Job's
+  `migrations.activeDeadlineSeconds` (600 seconds). Raise both for a long migration.
+- `install.remediation` retries a failed install three times, uninstalling between attempts. `upgrade.remediation`
+  retries a failed upgrade three times and rolls the last failure back to the previous revision, and
+  `upgrade.cleanupOnFail` removes the resources the failed upgrade created.
+- `values` is the release's values, the same text as `ci/gitops-values.yaml`. The example runs one replica without
+  Valkey, so each update has a short outage ([Updates](#updates)). For a rolling update, set `replicaCount` above 1 and
+  name `valkey.existingSecret` or `valkey.parts.existingSecret`.
+
+### Migrations and failed releases
+
+The migration Job is a Helm `pre-install,pre-upgrade` hook ([Migrations](#migrations)), so Flux waits for it as Helm
+does, up to `timeout`. A failed migration fails the Helm action before any pod is replaced, and the `HelmRelease`
+reports `Ready=False` with the reason `InstallFailed` or `UpgradeFailed`; the previous revision's pods keep serving.
+Flux remediates a failed upgrade by rolling back to the previous revision, which runs no migration, and a failed install
+by uninstalling and retrying, up to three times each. After the last retry the `HelmRelease` stays `Ready=False` and
+Helm has rolled the release back or uninstalled it, but the failed migration Job and its logs remain, because the chart
+deletes the Job only when it succeeds:
+
+```bash
+kubectl -n identity logs job/identity-ncode-identity-host-migrations
+```
+
+Fix the cause, then run `flux reconcile helmrelease identity -n identity --reset`, which resets the failure count and
+tries the release again.
+
+### The ingress
+
+`ingress.className` names the cluster's `IngressClass` (`traefik`), and `ingress.controller` tells the chart which
+router it renders for ([Routing to the pods](#routing-to-the-pods)). `ingress.annotations` and
+`managementConsole.ingress.annotations` add to the annotations the chart renders. In the example,
+`cert-manager.io/cluster-issuer` names a `ClusterIssuer` of yours, so cert-manager issues the Secret each `tls` entry
+names, and `external-dns.alpha.kubernetes.io/ttl` is read by ExternalDNS, which creates the DNS records for the
+Ingress's hosts. Put the annotations of the controllers your cluster runs in the same place.
+`forwardedHeaders.knownNetworks` is k3s's default pod CIDR, `10.42.0.0/16`: set it to the pod CIDR of your cluster, so
+the host trusts the `X-Forwarded-*` headers of the ingress controller.
+
+### What CI proves for the example
+
+The `Host chart` workflow lints `ci/gitops-values.yaml` strictly and renders it with every other values file, and it
+checks that:
+
+- `ci/gitops-values.yaml` is the `values` of `examples/flux/release/helmrelease.yaml`;
+- this README shows each file under `examples/flux/` as it is;
+- the `HelmRelease` names the chart and the `HelmRepository`, its version range includes prereleases, and its `timeout`
+  outlasts the migration Job's `migrations.activeDeadlineSeconds`;
+- every manifest under `examples/flux/` is valid against the CRD schemas that Flux v2.10.0 publishes, with unknown
+  fields refused.
+
+CI does not run Flux: it proves the values render, the manifests agree with the chart and this README, and every
+manifest is valid against Flux's schemas.
+
 ## API reference
 
 The host serves neither the OpenAPI document (`/openapi/v1.json`) nor the Scalar API reference page (`/scalar/v1`) by

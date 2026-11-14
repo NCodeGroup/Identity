@@ -1,0 +1,58 @@
+# The release's values: one replica behind Traefik, the management console on its own host, and the root
+# administrator created by the setup Job. Every Secret and the ConfigMap named here exists before the release.
+allowedHosts:
+  - id.example.com
+tenantResolution:
+  staticSingle:
+    issuer: https://id.example.com
+forwardedHeaders:
+  knownNetworks:
+    - 10.42.0.0/16
+database:
+  existingSecret: identity-database
+secretProtection:
+  rootKeyProvider: local
+  local:
+    keySecret: identity-root-key
+  recovery:
+    publicKeyConfigMap: identity-recovery-key
+setup:
+  token:
+    existingSecret: identity-setup-token
+  job:
+    enabled: true
+    existingSecret: identity-setup-root
+ingress:
+  enabled: true
+  controller: traefik
+  className: traefik
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt
+    external-dns.alpha.kubernetes.io/ttl: "300"
+  hosts:
+    - host: id.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: id-example-com-tls
+      hosts:
+        - id.example.com
+managementConsole:
+  enabled: true
+  host: manage.example.com
+  keyRings:
+    client:
+      pemSecret: identity-mgmt-client-key
+    dpop:
+      pemSecret: identity-mgmt-dpop-key
+  ingress:
+    enabled: true
+    className: traefik
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt
+      external-dns.alpha.kubernetes.io/ttl: "300"
+    tls:
+      - secretName: manage-example-com-tls
+        hosts:
+          - manage.example.com

@@ -1346,9 +1346,12 @@ checks that:
 - `ci/gitops-values.yaml` is the `values` of `examples/flux/release/helmrelease.yaml`;
 - this README shows each file under `examples/flux/` as it is;
 - the `HelmRelease` names the chart and the `HelmRepository`, its version range includes prereleases, and its `timeout`
-  outlasts the migration Job's `migrations.activeDeadlineSeconds`.
+  outlasts the migration Job's `migrations.activeDeadlineSeconds`;
+- every manifest under `examples/flux/` is valid against the CRD schemas that Flux v2.10.0 publishes, with unknown
+  fields refused;
 
-CI does not run Flux: it proves the values render and the manifests agree with the chart and this README.
+CI does not run Flux: it proves the values render, the manifests agree with the chart and this README, and every
+manifest is valid against Flux's schemas.
 
 ## API reference
 

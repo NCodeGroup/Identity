@@ -1,6 +1,7 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -11,7 +12,7 @@ using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Identity.Server.DevelopmentEnvironment.OpenApi;
 using Xunit;
 
-namespace NCode.Identity.Server.Tests.OpenApi;
+namespace NCode.Identity.Server.Tests.DevelopmentEnvironment.OpenApi;
 
 public class BootstrapTokenExampleDocumentTransformerTests
 {
@@ -48,6 +49,7 @@ public class BootstrapTokenExampleDocumentTransformerTests
                 Properties = new Dictionary<string, IOpenApiSchema>(StringComparer.Ordinal)
                 {
                     [OpenIdProtocol.Parameters.ClientId] = new OpenApiSchema(),
+                    [OpenIdProtocol.Parameters.ClientSecret] = new OpenApiSchema(),
                 },
             },
         };
@@ -112,6 +114,15 @@ public class BootstrapTokenExampleDocumentTransformerTests
         var schema = Assert.IsType<OpenApiSchema>(mediaType.Schema);
         Assert.NotNull(schema.Required);
         Assert.Contains(OpenIdProtocol.Parameters.ClientId, schema.Required);
+        Assert.NotNull(schema.Properties);
+        var clientIdDefault = Assert.IsAssignableFrom<JsonValue>(
+            schema.Properties[OpenIdProtocol.Parameters.ClientId].Default
+        );
+        Assert.Equal("bootstrap", clientIdDefault.GetValue<string>());
+        var clientSecretDefault = Assert.IsAssignableFrom<JsonValue>(
+            schema.Properties[OpenIdProtocol.Parameters.ClientSecret].Default
+        );
+        Assert.Equal("secret", clientSecretDefault.GetValue<string>());
     }
 
     [Fact]

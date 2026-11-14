@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Moq;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId;
 using NCode.Identity.OpenId.Tenants;
 using NCode.Identity.Secrets.Persistence.Options;
@@ -376,19 +377,29 @@ public class DeploymentSafetyRegistrationTests
     [Fact]
     public void AddDeploymentSafety_WhenLocalDevelopmentIsOn_RegistersNoGate()
     {
-        var serviceCollection = CreateServiceCollection(Environments.Development);
+        var configuration = CreateLocalDevelopmentConfiguration();
 
-        serviceCollection.AddDeploymentSafety(CreateLocalDevelopmentConfiguration());
+        var expected = CreateServiceCollection(Environments.Development);
+        expected.AddLocalDevelopmentOptions(configuration);
+        expected.AddTransportSecurity(configuration);
 
-        // Only the switch's own options remain: no key ring, verifier, platform or transport check is registered.
-        Assert.DoesNotContain(
-            serviceCollection,
-            descriptor =>
-                descriptor.ServiceType == typeof(IValidateOptions<KeyManagementOptions>)
-                || descriptor.ServiceType == typeof(IValidateOptions<Pbkdf2SecretVerifierOptions>)
-                || descriptor.ServiceType == typeof(IValidateOptions<OpenIdOptions>)
-                || descriptor.ServiceType == typeof(IHostedService)
-        );
+        var actual = CreateServiceCollection(Environments.Development);
+        actual.AddDeploymentSafety(configuration);
+
+        // The switch adds no gate beyond the switch's and transport security's options.
+        Assert.Equal(Project(expected), Project(actual));
+
+        static IEnumerable<(Type, Type?, Type?, bool)> Project(
+            IServiceCollection serviceCollection
+        ) =>
+            serviceCollection.Select(descriptor =>
+                (
+                    descriptor.ServiceType,
+                    descriptor.ImplementationType,
+                    descriptor.ImplementationInstance?.GetType(),
+                    descriptor.ImplementationFactory is not null
+                )
+            );
     }
 
     [Fact]

@@ -476,7 +476,7 @@ internal static class BffFrontendOptionsValidation
             failures.Add(
                 isLocalDevelopment
                     ? $"{key}:Authority {QuoteUrl(authority)} must be an absolute 'https:' or 'http:' URI without whitespace."
-                    : $"{key}:Authority {QuoteUrl(authority)} must be an absolute 'https:' URI without whitespace."
+                    : $"{key}:Authority {QuoteUrl(authority)} must be an absolute 'https:' URI without whitespace unless LocalDevelopment:Enabled is true."
             );
         }
     }

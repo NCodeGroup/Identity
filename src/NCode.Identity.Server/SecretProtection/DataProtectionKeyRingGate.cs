@@ -103,10 +103,11 @@ internal class DataProtectionKeyRingGate(
 
         var keyIds = string.Join(", ", undecryptableKeyIds);
         throw new InvalidOperationException(
-            $"Refusing to start: the Data Protection key ring holds {undecryptableKeyIds.Count} live key(s) that "
-                + $"the platform's master key cannot decrypt: {keyIds}. Restore the master key that encrypted them, or "
-                + "revoke them by listing their IDs under 'DataProtectionKeyRing:RevokedKeyIds' and start the host "
-                + "again."
+            $"Refusing to start a deployment: the Data Protection key ring holds {undecryptableKeyIds.Count} live "
+                + $"key(s) that the platform's master key cannot decrypt: {keyIds}. Restore the master key that "
+                + "encrypted them, or revoke them by listing their IDs under 'DataProtectionKeyRing:RevokedKeyIds' "
+                + "and start the host again. A host for local development sets 'LocalDevelopment:Enabled' to true "
+                + "and has such a key revoked."
         );
     }
 

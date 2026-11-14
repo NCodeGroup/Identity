@@ -64,7 +64,9 @@ internal sealed class ManagementConsoleOptionsValidator(
         if (!IsValidManagementApiUrl(options.ManagementApiUrl, isLocalDevelopment))
         {
             failures.Add(
-                $"{Key}:ManagementApiUrl must be an absolute https URL without user info, query or fragment; it is '{Describe(options.ManagementApiUrl)}'."
+                !isLocalDevelopment && IsValidManagementApiUrl(options.ManagementApiUrl, true)
+                    ? $"{Key}:ManagementApiUrl is '{Describe(options.ManagementApiUrl)}' and must use 'https' unless LocalDevelopment:Enabled is true."
+                    : $"{Key}:ManagementApiUrl must be an absolute https URL without user info, query or fragment; it is '{Describe(options.ManagementApiUrl)}'."
             );
         }
 

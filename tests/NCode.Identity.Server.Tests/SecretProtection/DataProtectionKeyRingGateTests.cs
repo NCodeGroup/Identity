@@ -138,11 +138,17 @@ public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
         );
 
         Assert.Contains(LiveKeyId.ToString(), exception.Message, StringComparison.Ordinal);
+        Assert.StartsWith(
+            "Refusing to start a deployment",
+            exception.Message,
+            StringComparison.Ordinal
+        );
         Assert.Contains(
             "DataProtectionKeyRing:RevokedKeyIds",
             exception.Message,
             StringComparison.Ordinal
         );
+        Assert.Contains("LocalDevelopment:Enabled", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

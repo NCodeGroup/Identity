@@ -121,7 +121,12 @@ public class BffOptionsValidatorTests : BaseTests
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Frontends:web:Authority"));
+        Assert.Contains(
+            result.Failures ?? [],
+            x =>
+                x.Contains("Bff:Frontends:web:Authority", StringComparison.Ordinal)
+                && x.Contains("LocalDevelopment:Enabled", StringComparison.Ordinal)
+        );
     }
 
     [Fact]
@@ -144,7 +149,34 @@ public class BffOptionsValidatorTests : BaseTests
         var result = CreateValidator().Validate(null, options);
 
         Assert.True(result.Failed);
-        Assert.Contains(result.Failures ?? [], x => x.Contains("Bff:Frontends:web:Authority"));
+        Assert.Contains(
+            result.Failures ?? [],
+            x =>
+                x.Contains("Bff:Frontends:web:Authority", StringComparison.Ordinal)
+                && x.Contains("LocalDevelopment:Enabled", StringComparison.Ordinal)
+        );
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("op.example.com")]
+    [InlineData("https://op .example.com")]
+    public void Validate_WhenAuthorityInvalidAndTheSwitchIsOn_FailsWithoutTheSwitchClause(
+        string authority
+    )
+    {
+        var options = CreateValidOptions();
+        Frontend(options).Authority = authority;
+
+        var result = CreateValidator(localDevelopment: true).Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            result.Failures ?? [],
+            x =>
+                x.Contains("Bff:Frontends:web:Authority", StringComparison.Ordinal)
+                && x.Contains("'https:' or 'http:'", StringComparison.Ordinal)
+        );
     }
 
     [Theory]

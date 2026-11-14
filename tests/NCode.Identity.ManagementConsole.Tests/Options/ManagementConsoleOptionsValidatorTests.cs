@@ -63,7 +63,6 @@ public class ManagementConsoleOptionsValidatorTests : BaseTests
     [InlineData("", "")]
     [InlineData("   ", "   ")]
     [InlineData("id.example.com/api", "id.example.com/api")]
-    [InlineData("http://id.example.com/api", "http://id.example.com/api")]
     [InlineData("https://user:secret@id.example.com/api", "https://id.example.com/api")]
     [InlineData("https://id.example.com/api?x=1", "https://id.example.com/api")]
     [InlineData("https://id.example.com/api#section", "https://id.example.com/api")]
@@ -118,6 +117,21 @@ public class ManagementConsoleOptionsValidatorTests : BaseTests
     {
         var options = CreateValidOptions();
         options.ManagementApiUrl = "http://localhost:5000/api";
+
+        var result = CreateValidator().Validate(null, options);
+
+        Assert.True(result.Failed);
+        Assert.Contains(
+            "ManagementConsole:ManagementApiUrl is 'http://localhost:5000/api' and must use 'https' unless LocalDevelopment:Enabled is true.",
+            result.Failures ?? []
+        );
+    }
+
+    [Fact]
+    public void Validate_WhenHttpManagementApiUrlHasUserInfoAndTheSwitchIsOff_DoesNotImplyTheSwitchFixesIt()
+    {
+        var options = CreateValidOptions();
+        options.ManagementApiUrl = "http://user:secret@localhost:5000/api";
 
         var result = CreateValidator().Validate(null, options);
 

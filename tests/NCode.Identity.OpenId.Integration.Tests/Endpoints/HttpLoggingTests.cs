@@ -39,7 +39,7 @@ public sealed class HttpLoggingTests
     #region PostToken Tests
 
     [Fact]
-    public async Task PostToken_WithDebugLoggingOutsideDevelopment_WritesNoBodyAndNoCredentialHeaderValue()
+    public async Task PostToken_WithDebugLoggingWithoutLocalDevelopment_WritesNoBodyAndNoCredentialHeaderValue()
     {
         using var factory = new StrictPostureHostApplicationFactory(DebugLogging);
         using var staging = factory.WithWebHostBuilder(builder =>
@@ -111,7 +111,7 @@ public sealed class HttpLoggingTests
     #region GetAuthorization Tests
 
     [Fact]
-    public async Task GetAuthorization_WithDebugLoggingOutsideDevelopment_WritesNoQueryString()
+    public async Task GetAuthorization_WithDebugLoggingWithoutLocalDevelopment_WritesNoQueryString()
     {
         using var factory = new StrictPostureHostApplicationFactory(DebugLogging);
         using var staging = factory.WithWebHostBuilder(builder =>

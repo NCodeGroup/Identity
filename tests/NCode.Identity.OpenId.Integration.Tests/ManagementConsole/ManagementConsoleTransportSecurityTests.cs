@@ -25,7 +25,7 @@ public sealed class ManagementConsoleTransportSecurityTests
         Microsoft.Extensions.Hosting.Environments.Staging;
 
     [Fact]
-    public async Task GetHealth_OverHttpsOutsideDevelopment_SendsStrictTransportSecurity()
+    public async Task GetHealth_OverHttpsWithoutLocalDevelopment_SendsStrictTransportSecurity()
     {
         await using var factory = new ManagementConsoleApplicationFactory();
         await using var staging = CreateStaging(factory, trustLoopback: false);

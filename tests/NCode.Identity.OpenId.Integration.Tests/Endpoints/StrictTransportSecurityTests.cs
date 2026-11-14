@@ -22,7 +22,7 @@ public sealed class StrictTransportSecurityTests
         new() { ["AllowedHosts"] = "op.integration.test" };
 
     [Fact]
-    public async Task GetHealth_OverHttpsOutsideDevelopment_SendsStrictTransportSecurity()
+    public async Task GetHealth_OverHttpsWithoutLocalDevelopment_SendsStrictTransportSecurity()
     {
         using var factory = new StrictPostureHostApplicationFactory(StrictSettings);
         using var client = CreateClient(factory, HttpsBaseAddress);
@@ -37,7 +37,7 @@ public sealed class StrictTransportSecurityTests
     }
 
     [Fact]
-    public async Task GetHealth_InDevelopment_SendsNoStrictTransportSecurity()
+    public async Task GetHealth_WithLocalDevelopment_SendsNoStrictTransportSecurity()
     {
         using var factory = new HostApplicationFactory();
         using var client = CreateClient(factory, HttpsBaseAddress);
@@ -49,7 +49,7 @@ public sealed class StrictTransportSecurityTests
     }
 
     [Fact]
-    public async Task GetHealth_OverHttpOutsideDevelopment_SendsNoStrictTransportSecurity()
+    public async Task GetHealth_OverHttpWithoutLocalDevelopment_SendsNoStrictTransportSecurity()
     {
         using var factory = new StrictPostureHostApplicationFactory(StrictSettings);
         using var client = CreateClient(factory, HttpBaseAddress);

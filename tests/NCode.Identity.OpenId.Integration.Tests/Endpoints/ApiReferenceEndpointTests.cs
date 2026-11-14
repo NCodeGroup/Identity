@@ -34,7 +34,7 @@ public sealed class ApiReferenceEndpointTests
     #region Map Tests
 
     [Fact]
-    public async Task GetOpenApiDocument_OutsideDevelopmentByDefault_ReturnsNotFound()
+    public async Task GetOpenApiDocument_WithoutLocalDevelopmentByDefault_ReturnsNotFound()
     {
         using var factory = new StrictPostureHostApplicationFactory(StrictSettings());
         using var client = CreateClient(factory);
@@ -45,7 +45,7 @@ public sealed class ApiReferenceEndpointTests
     }
 
     [Fact]
-    public async Task GetApiReferencePage_OutsideDevelopmentByDefault_ReturnsNotFound()
+    public async Task GetApiReferencePage_WithoutLocalDevelopmentByDefault_ReturnsNotFound()
     {
         using var factory = new StrictPostureHostApplicationFactory(StrictSettings());
         using var client = CreateClient(factory);
@@ -56,7 +56,7 @@ public sealed class ApiReferenceEndpointTests
     }
 
     [Fact]
-    public async Task GetOpenApiDocument_WhenEnabledOutsideDevelopment_ReturnsTheDocument()
+    public async Task GetOpenApiDocument_WhenEnabledWithoutLocalDevelopment_ReturnsTheDocument()
     {
         using var factory = new StrictPostureHostApplicationFactory(
             StrictSettings(("ApiReference:DocumentEnabled", "true"))
@@ -83,7 +83,7 @@ public sealed class ApiReferenceEndpointTests
     }
 
     [Fact]
-    public async Task GetApiReferencePage_InDevelopment_SendsAStrictContentSecurityPolicyWithItsNonce()
+    public async Task GetApiReferencePage_WithLocalDevelopment_SendsAStrictContentSecurityPolicyWithItsNonce()
     {
         using var factory = new HostApplicationFactory();
         using var client = CreateClient(factory);
@@ -110,7 +110,7 @@ public sealed class ApiReferenceEndpointTests
     }
 
     [Fact]
-    public async Task GetApiReferencePage_InDevelopment_NamesNoExternalOrigin()
+    public async Task GetApiReferencePage_WithLocalDevelopment_NamesNoExternalOrigin()
     {
         using var factory = new HostApplicationFactory();
         using var client = CreateClient(factory);
@@ -130,7 +130,7 @@ public sealed class ApiReferenceEndpointTests
     }
 
     [Fact]
-    public async Task GetApiReferencePage_InDevelopment_DisablesTelemetryAgentMcpAndDefaultFonts()
+    public async Task GetApiReferencePage_WithLocalDevelopment_DisablesTelemetryAgentMcpAndDefaultFonts()
     {
         using var factory = new HostApplicationFactory();
         using var client = CreateClient(factory);

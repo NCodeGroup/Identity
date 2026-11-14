@@ -1,0 +1,11 @@
+# The chart is published as an OCI artifact; a HelmRepository of type oci names the registry path that holds it. The
+# package is public, so the repository needs no secretRef.
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: ncode-identity
+  namespace: identity
+spec:
+  type: oci
+  interval: 1h
+  url: oci://ghcr.io/ncodegroup/charts

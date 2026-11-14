@@ -699,6 +699,102 @@ public class LocalAccountLifecycleTests
     }
 
     [Fact]
+    public async Task Create_ThenGrantTenantAdmin_UsesOnlyThePrincipalIdOfTheCreateAnswer()
+    {
+        using var factory = new BootstrapAdminApplicationFactory();
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
+
+        using var create = await administrator.PostAsync(
+            $"{TenantApiPath}/local-accounts",
+            JsonContent.Create(new { userName = "first-admin", password = "first-admin-password" })
+        );
+
+        var createBody = await create.Content.ReadAsStringAsync();
+        Assert.True(create.StatusCode == HttpStatusCode.Created, createBody);
+        var created = JsonElement.Parse(createBody);
+        var principalId = created.GetProperty("principalId").GetString();
+        Assert.False(string.IsNullOrEmpty(principalId), createBody);
+
+        using var grant = await administrator.PostAsync(
+            $"{TenantApiPath}/admins",
+            JsonContent.Create(new { principalId })
+        );
+
+        var grantBody = await grant.Content.ReadAsStringAsync();
+        Assert.True(grant.StatusCode == HttpStatusCode.Created, grantBody);
+        var granted = JsonElement.Parse(grantBody);
+        Assert.Equal(principalId, granted.GetProperty("principalId").GetString());
+        Assert.False(string.IsNullOrEmpty(granted.GetProperty("roleName").GetString()), grantBody);
+    }
+
+    [Fact]
+    public async Task Get_AfterCreate_ReturnsThePrincipalIdOfTheCreateAnswer()
+    {
+        using var factory = new BootstrapAdminApplicationFactory();
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
+
+        using var create = await administrator.PostAsync(
+            $"{TenantApiPath}/local-accounts",
+            JsonContent.Create(new { userName = "first-admin", password = "first-admin-password" })
+        );
+
+        var createBody = await create.Content.ReadAsStringAsync();
+        Assert.True(create.StatusCode == HttpStatusCode.Created, createBody);
+        var created = JsonElement.Parse(createBody);
+        var localAccountId = created.GetProperty("localAccountId").GetString();
+        var principalId = created.GetProperty("principalId").GetString();
+        Assert.False(string.IsNullOrEmpty(localAccountId), createBody);
+        Assert.False(string.IsNullOrEmpty(principalId), createBody);
+
+        using var get = await administrator.GetAsync(
+            $"{TenantApiPath}/local-accounts/{localAccountId}"
+        );
+
+        var getBody = await get.Content.ReadAsStringAsync();
+        Assert.True(get.StatusCode == HttpStatusCode.OK, getBody);
+        Assert.Equal(
+            principalId,
+            JsonElement.Parse(getBody).GetProperty("principalId").GetString()
+        );
+    }
+
+    [Fact]
+    public async Task List_AfterCreate_ReturnsThePrincipalIdOfTheCreateAnswer()
+    {
+        using var factory = new BootstrapAdminApplicationFactory();
+        using var administrator = await factory.CreateAdministratorClientAsync(
+            CancellationToken.None
+        );
+
+        using var create = await administrator.PostAsync(
+            $"{TenantApiPath}/local-accounts",
+            JsonContent.Create(new { userName = "first-admin", password = "first-admin-password" })
+        );
+
+        var createBody = await create.Content.ReadAsStringAsync();
+        Assert.True(create.StatusCode == HttpStatusCode.Created, createBody);
+        var created = JsonElement.Parse(createBody);
+        var localAccountId = created.GetProperty("localAccountId").GetString();
+        var principalId = created.GetProperty("principalId").GetString();
+        Assert.False(string.IsNullOrEmpty(localAccountId), createBody);
+        Assert.False(string.IsNullOrEmpty(principalId), createBody);
+
+        using var list = await administrator.GetAsync($"{TenantApiPath}/local-accounts");
+
+        var listBody = await list.Content.ReadAsStringAsync();
+        Assert.True(list.StatusCode == HttpStatusCode.OK, listBody);
+        var listed = Assert.Single(
+            JsonElement.Parse(listBody).GetProperty("items").EnumerateArray(),
+            item => item.GetProperty("localAccountId").GetString() == localAccountId
+        );
+        Assert.Equal(principalId, listed.GetProperty("principalId").GetString());
+    }
+
+    [Fact]
     public async Task ResetPassword_WhenThePolicyRefusesThePassword_KeepsThePassword()
     {
         using var factory = new BootstrapAdminApplicationFactory();

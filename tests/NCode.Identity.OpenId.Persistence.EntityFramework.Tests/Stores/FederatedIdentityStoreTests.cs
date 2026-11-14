@@ -146,6 +146,83 @@ public sealed class FederatedIdentityStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task GetByIssuerSubjectsAsync_WhenSomeSubjectsMatch_ReturnsOnlyTheMatchingIdentitiesOfTheIssuer()
+    {
+        const string secondPrincipalId = "principal-2";
+        const string secondSubject = "upstream-subject-2";
+        await SeedPrincipalAsync(PrincipalId, CancellationToken.None);
+        await SeedPrincipalAsync(secondPrincipalId, CancellationToken.None);
+        await Store.AddAsync(
+            CreateIdentity("identity-1", PrincipalId, Issuer, Subject),
+            CancellationToken.None
+        );
+        await Store.AddAsync(
+            CreateIdentity("identity-2", secondPrincipalId, Issuer, secondSubject),
+            CancellationToken.None
+        );
+        await Store.AddAsync(
+            CreateIdentity("identity-3", PrincipalId, "https://other.example", Subject),
+            CancellationToken.None
+        );
+        await DbContext.SaveChangesAsync();
+
+        var loaded = await Store.GetByIssuerSubjectsAsync(
+            Issuer,
+            [Subject, secondSubject, "missing"],
+            CancellationToken.None
+        );
+
+        Assert.Equal(2, loaded.Count);
+        Assert.Equal(
+            PrincipalId,
+            Assert
+                .Single(loaded, identity => identity.FederatedIdentityId == "identity-1")
+                .PrincipalId
+        );
+        Assert.Equal(
+            secondPrincipalId,
+            Assert
+                .Single(loaded, identity => identity.FederatedIdentityId == "identity-2")
+                .PrincipalId
+        );
+    }
+
+    [Fact]
+    public async Task GetByIssuerSubjectsAsync_WhenTheSubjectsDifferInCase_MatchesThem()
+    {
+        await SeedPrincipalAsync(PrincipalId, CancellationToken.None);
+        await Store.AddAsync(
+            CreateIdentity("identity-1", PrincipalId, Issuer, Subject),
+            CancellationToken.None
+        );
+        await DbContext.SaveChangesAsync();
+
+        var loaded = await Store.GetByIssuerSubjectsAsync(
+            Issuer,
+            [Subject.ToUpperInvariant()],
+            CancellationToken.None
+        );
+
+        var identity = Assert.Single(loaded);
+        Assert.Equal(PrincipalId, identity.PrincipalId);
+    }
+
+    [Fact]
+    public async Task GetByIssuerSubjectsAsync_WhenNoSubjects_ReturnsNone()
+    {
+        await SeedPrincipalAsync(PrincipalId, CancellationToken.None);
+        await Store.AddAsync(
+            CreateIdentity("identity-1", PrincipalId, Issuer, Subject),
+            CancellationToken.None
+        );
+        await DbContext.SaveChangesAsync();
+
+        var loaded = await Store.GetByIssuerSubjectsAsync(Issuer, [], CancellationToken.None);
+
+        Assert.Empty(loaded);
+    }
+
+    [Fact]
     public async Task GetByPrincipalAsync_ReturnsAllIdentitiesOfThePrincipal()
     {
         await SeedPrincipalAsync(PrincipalId, CancellationToken.None);

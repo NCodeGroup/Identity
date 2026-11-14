@@ -535,6 +535,18 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1510](docs/decisions/1510-the-host-chart-passes-a-valkey-servers-address-and-password-as-parts-and-the-adapter-assembles-the-connection.md),
   issue [#780](https://github.com/NCodeGroup/identity/issues/780)).
 
+- **The host chart's README documents a GitOps deployment with Flux, and CI checks the example.** The `GitOps` section
+  deploys the chart from Git: two Flux `Kustomization`s apply a namespace that enforces the restricted Pod Security
+  level and the prerequisite Secrets and ConfigMap, then a `HelmRepository` of type `oci`
+  (`oci://ghcr.io/ncodegroup/charts`) and a `HelmRelease` whose version range includes prereleases, so following the
+  chart follows the images its `appVersion` pins. The `HelmRelease`'s `timeout` outlasts the pre-install and
+  pre-upgrade migration Job, a failed migration fails the release before any pod is replaced, and a failed upgrade
+  rolls back to the previous revision. The manifests under `examples/flux/` and `ci/gitops-values.yaml` hold the same
+  values: the `Host chart` workflow lints and renders them, and checks that the README shows each manifest as it is,
+  that the release names the chart and its source, follows prereleases and outlasts the migration Job, and that every
+  manifest is valid against the CRD schemas of the pinned Flux release, with unknown fields refused
+  ([#784](https://github.com/NCodeGroup/identity/issues/784)).
+
 - **The family builds with repository-wide engineering conventions.** These are Central Package Management, lockstep
   Nerdbank.GitVersioning versioning, SourceLink-to-GitHub provenance with portable symbols, a scripted Definition of
   Done, CSharpier formatting, and scoped coding-convention instruction files. `global.json` requires .NET SDK 10.0.403
@@ -2548,10 +2560,14 @@ Until the first stable release, the [Unreleased] section describes the product a
   disable and enable a local account, reset its credential, manage its profile claims, and read and set its server-owned
   metadata. Creating an account provisions its owning `FederatedPrincipal` and its one-to-one self-issued
   `FederatedIdentity` in the same unit of work, so principal-level metadata (`ProfileMetadata` / `SystemMetadata`) has a
-  target from the moment the account exists; the metadata endpoint is the administrator-gated write path that keeps
-  `SystemMetadata` never end-user-writable. Local accounts are end-user subjects rather than ownable resources, so every
-  operation authorizes against the owning tenant scope (`TenantScopeResource`), gated by `*:local_accounts` scopes. The
-  endpoints, their validator (`ILocalAccountValidator` / `DefaultLocalAccountValidator`), the wire contracts (namespace
+  target from the moment the account exists; `LocalAccountResource.principalId` carries that principal's identifier in
+  the create, get and list answers (`null` for an account without a self-issued identity), so an account is granted a
+  role through `AddRoleHolderRequest.principalId` from its own resource, and
+  `IFederatedIdentityStore.GetByIssuerSubjectsAsync` resolves a list page's principals in one call; the metadata
+  endpoint is the administrator-gated write path that keeps `SystemMetadata` never end-user-writable. Local accounts are
+  end-user subjects rather than ownable resources, so every operation authorizes against the owning tenant scope
+  (`TenantScopeResource`), gated by `*:local_accounts` scopes. The endpoints, their validator (`ILocalAccountValidator`
+  / `DefaultLocalAccountValidator`), the wire contracts (namespace
   `NCode.Identity.OpenId.Accounts.Management.Contracts`) and `LocalAccountChangedAuditEvent` live in the account-owned
   packages `NCode.Identity.OpenId.Accounts.Management` (`AddLocalAccountManagement()`) and
   `NCode.Identity.OpenId.Accounts.Management.Abstractions`, so `NCode.Identity.OpenId.Management` does not reference
@@ -2562,8 +2578,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   `Operations`, `TenantScopeResource`, the `ManagementEndpointGroups.Tenant` group-name constant for attaching a keyed
   `IEndpointProvider` to the tenant group, and the generic audit seam
   `RecordResourceChangeAsync(HttpContext, ResourceChangeAuditEvent)`. See
-  [ADR-1057](docs/decisions/1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md) and
-  [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md).
+  [ADR-1057](docs/decisions/1057-local-account-management-is-an-opt-in-capability-that-provisions-the-principal-eagerly-and-authorizes-per-tenant.md),
+  [ADR-1051](docs/decisions/1051-a-local-account-is-a-self-issued-connection-behind-one-pluggable-store-seam.md) and
+  issue [#781](https://github.com/NCodeGroup/identity/issues/781).
 
 - **The management API looks up audit records.** `GET api/tenants/{tenantId}/audit-records` lists the tenant's records
   from the audit store, newest first by event time with ties broken by id, filtered by `startTime`/`endTime`,

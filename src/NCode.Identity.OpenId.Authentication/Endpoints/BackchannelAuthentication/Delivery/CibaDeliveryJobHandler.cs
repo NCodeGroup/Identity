@@ -95,11 +95,12 @@ internal sealed class CibaDeliveryJobHandler(
         catch (Exception exception)
             when (OutboundFetchFailureReasons.IsFetchFailure(exception, cancellationToken))
         {
-            // The delivery has no timeout source of its own: the guarded client's resilience timeout
-            // surfaces as a TimeoutException in the chain, which Classify names.
-            var uriForLog = OutboundUriRedaction.ForLog(job.EndpointUrl);
-            var reason = OutboundFetchFailureReasons.Classify(exception, timedOut: false);
-            Logger.CibaDeliveryFailed(job.ClientId, uriForLog, reason, exception);
+            OutboundDeliveryFailureLog.Report(
+                job.EndpointUrl,
+                exception,
+                (uriForLog, reason) =>
+                    Logger.CibaDeliveryFailed(job.ClientId, uriForLog, reason, exception)
+            );
 
             throw;
         }

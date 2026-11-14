@@ -1139,15 +1139,15 @@ spec:
 The chart takes no secret values, so every Secret and ConfigMap it names exists before the release; a pod that names a
 missing Secret stays in `CreateContainerConfigError`. The example's release names these, in the `identity` namespace:
 
-| Kind        | Name                       | Keys                            | Holds                                                                                  |
-|-------------|----------------------------|---------------------------------|----------------------------------------------------------------------------------------|
-| `Secret`    | `identity-database`        | `connection-string`             | The Npgsql connection string of the database, or use `database.parts.existingSecret`.  |
+| Kind        | Name                       | Keys                            | Holds                                                                                              |
+|-------------|----------------------------|---------------------------------|----------------------------------------------------------------------------------------------------|
+| `Secret`    | `identity-database`        | `connection-string`             | The Npgsql connection string of the database, or use `database.parts.existingSecret`.              |
 | `Secret`    | `identity-root-key`        | `key`                           | The local root key; see [Creating the local root key Secret](#creating-the-local-root-key-secret). |
-| `ConfigMap` | `identity-recovery-key`    | `recovery-public.pem`           | The recovery public key; see [Creating the recovery key](#creating-the-recovery-key).  |
-| `Secret`    | `identity-setup-token`     | `token`                         | The setup token, at least 32 characters; see [First use](#first-use).                  |
-| `Secret`    | `identity-setup-root`      | `userName`, `email`, `password` | The root administrator's credential for the setup Job; the password has at least 15 characters. |
-| `Secret`    | `identity-mgmt-client-key` | `mgmt-client.pem`               | The console's client key; see [Management console](#management-console).               |
-| `Secret`    | `identity-mgmt-dpop-key`   | `mgmt-dpop.pem`                 | The console's DPoP key; see [Management console](#management-console).                 |
+| `ConfigMap` | `identity-recovery-key`    | `recovery-public.pem`           | The recovery public key; see [Creating the recovery key](#creating-the-recovery-key).              |
+| `Secret`    | `identity-setup-token`     | `token`                         | The setup token, at least 32 characters; see [First use](#first-use).                              |
+| `Secret`    | `identity-setup-root`      | `userName`, `email`, `password` | The root administrator's credential for the setup Job; the password has at least 15 characters.    |
+| `Secret`    | `identity-mgmt-client-key` | `mgmt-client.pem`               | The console's client key; see [Management console](#management-console).                           |
+| `Secret`    | `identity-mgmt-dpop-key`   | `mgmt-dpop.pem`                 | The console's DPoP key; see [Management console](#management-console).                             |
 
 Generate each manifest with `kubectl create ... --dry-run=client -o yaml`, encrypt a Secret's `data` with
 [SOPS](https://fluxcd.io/flux/guides/mozilla-sops/), and commit the result under `prerequisites/`:
@@ -1301,8 +1301,8 @@ spec:
 ```
 
 - `version: ">=0.0.1-alpha"` selects the newest chart version in the range, prereleases included, which covers every
-  `0.0.1-alpha.<n>` that a merge to `main` publishes. The chart's `appVersion` pins both images, so a newer chart version
-  rolls the host and the console out too. Name one exact version to stop following.
+  `0.0.1-alpha.<n>` that a merge to `main` publishes. The chart's `appVersion` pins both images, so a newer chart
+  version rolls the host and the console out too. Name one exact version to stop following.
 - `timeout` is Helm's wait for each operation, the migration Job included, so it outlasts the Job's
   `migrations.activeDeadlineSeconds` (600 seconds). Raise both for a long migration.
 - `install.remediation` retries a failed install three times, uninstalling between attempts. `upgrade.remediation`
@@ -1315,10 +1315,12 @@ spec:
 ### Migrations and failed releases
 
 The migration Job is a Helm `pre-install,pre-upgrade` hook ([Migrations](#migrations)), so Flux waits for it as Helm
-does, up to `timeout`. A failed migration fails the Helm action before any pod is replaced, and the `HelmRelease` reports
-`Ready=False` with the reason `InstallFailed` or `UpgradeFailed`; the previous revision's pods keep serving. A failed
-upgrade is remediated by a rollback to the previous revision, which runs no migration, and a failed install by an
-uninstall and a retry. After the last retry the release stays failed, with the Job and its logs in place:
+does, up to `timeout`. A failed migration fails the Helm action before any pod is replaced, and the `HelmRelease`
+reports `Ready=False` with the reason `InstallFailed` or `UpgradeFailed`; the previous revision's pods keep serving.
+Flux remediates a failed upgrade by rolling back to the previous revision, which runs no migration, and a failed install
+by uninstalling and retrying, up to three times each. After the last retry the `HelmRelease` stays `Ready=False` and
+Helm has rolled the release back or uninstalled it, but the failed migration Job and its logs remain, because the chart
+deletes the Job only when it succeeds:
 
 ```bash
 kubectl -n identity logs job/identity-ncode-identity-host-migrations
@@ -1348,7 +1350,7 @@ checks that:
 - the `HelmRelease` names the chart and the `HelmRepository`, its version range includes prereleases, and its `timeout`
   outlasts the migration Job's `migrations.activeDeadlineSeconds`;
 - every manifest under `examples/flux/` is valid against the CRD schemas that Flux v2.10.0 publishes, with unknown
-  fields refused;
+  fields refused.
 
 CI does not run Flux: it proves the values render, the manifests agree with the chart and this README, and every
 manifest is valid against Flux's schemas.

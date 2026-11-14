@@ -291,6 +291,10 @@ applied. Rendered for its side effect only.
 {{- if and .Values.setup.job.enabled .Values.setup.automation.clientId (not .Values.setup.automation.jwks) }}
 {{- fail "setup.automation.jwks must hold the automation client's public JWK Set when setup.automation.clientId is set and setup.job.enabled is true." }}
 {{- end }}
+{{- /*
+The chart never sets LocalDevelopment:Enabled, and the image carries no local-development overlay, so the host runs the
+deployment posture under every environment value. The checks below are the chart's own refusals at render time.
+*/}}
 {{- if not .Values.secretProtection.rootKeyProvider }}
 {{- fail "secretProtection.rootKeyProvider is required: local, aws-kms, azure-key-vault or google-cloud-kms, or ephemeral outside Production." }}
 {{- end }}

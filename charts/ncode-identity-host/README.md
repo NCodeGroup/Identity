@@ -292,7 +292,8 @@ Delete both Secrets once the instance is initialized. The guide
 The host encrypts every stored secret, and the Data Protection key ring, under a root key held outside the database, so
 a database dump or backup is useless without it
 ([ADR-1235](../../docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
-`secretProtection.rootKeyProvider` chooses where the root key lives, is required, and Production refuses `ephemeral`:
+`secretProtection.rootKeyProvider` chooses where the root key lives, is required, and the host refuses `ephemeral`,
+because the chart never sets `LocalDevelopment:Enabled`:
 
 - `local`: an AES key in a Secret the chart mounts into the pod. It suits a homelab: the key is outside the database,
   but anyone who can read the Secret can read the key.
@@ -879,8 +880,8 @@ service and the request rate fits the service's quota
 ## Transport security
 
 The pods serve HTTPS only, on port 8443. The Service listens on `service.port` (443 by default) with
-`appProtocol: https`, and the Ingress backend names the Service's `https` port. The host refuses to start in
-Production unless Kestrel serves only HTTPS endpoints whose certificate loads, is valid now, has an RSA key of at least
+`appProtocol: https`, and the Ingress backend names the Service's `https` port. The host refuses to start
+unless Kestrel serves only HTTPS endpoints whose certificate loads, is valid now, has an RSA key of at least
 2048 bits or an ECDSA key, is signed with SHA-256 or stronger, and is not the ASP.NET Core development certificate. A
 TLS-terminating proxy that speaks plain HTTP to the pods is not supported
 ([ADR-1504](../../docs/decisions/1504-the-hosts-serve-https-only-and-verify-their-certificate-at-startup.md)).
@@ -1060,7 +1061,8 @@ and `200` on them, and a `BackendTLSPolicy` that holds a foreign CA gets `503`.
 
 ## Strict-Transport-Security
 
-Outside Development, the host sends `Strict-Transport-Security: max-age=31536000; includeSubDomains` on every response
+Unless `LocalDevelopment:Enabled` is set, which the chart never does, the host sends
+`Strict-Transport-Security: max-age=31536000; includeSubDomains` on every response
 to a request that reached it over HTTPS
 ([ADR-1447](../../docs/decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package.md)). The pods
 serve HTTPS, so the host sees HTTPS on every request and sends the header whether or not `forwardedHeaders` trusts the

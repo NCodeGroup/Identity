@@ -17,7 +17,8 @@ imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-# ASPNETCORE_ENVIRONMENT. Production turns on the host's production-safety gate.
+# ASPNETCORE_ENVIRONMENT. The chart runs the host's deployment posture under every value and never sets
+# LocalDevelopment:Enabled. The image carries no local-development overlay, so no environment value turns the switch on.
 environment: Production
 
 # The host names the host answers to (AllowedHosts). Required; '*' is refused.
@@ -104,7 +105,8 @@ valkey:
 # Stored secrets and the Data Protection key ring are encrypted under a root key held outside the database; see "Secret
 # protection" in the chart's README.
 secretProtection:
-  # Required: local, aws-kms, azure-key-vault or google-cloud-kms once its values are set; ephemeral only outside Production.
+  # Required: local, aws-kms, azure-key-vault or google-cloud-kms once its values are set. The chart renders ephemeral
+  # only outside Production, and the host's deployment posture refuses it.
   rootKeyProvider: ""
   local:
     # Secret holding the root key under the key 'key' (base64url, 32 bytes).

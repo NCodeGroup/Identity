@@ -39,7 +39,8 @@ one purge resets all of them consistently.
 
 Every stored secret, including the key ring, is encrypted under a key hierarchy whose root key lives **outside** the
 database ([ADR-1235](../../docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
-A **Production** host refuses to start without a real root key, and a root key must never be committed. The
+A host without `LocalDevelopment:Enabled` refuses to start without a real root key, and a root key must never be
+committed. The
 `SecretProtection` section selects it (environment variables use `__`, for example
 `SecretProtection__RootKeyProvider=local`):
 
@@ -47,7 +48,7 @@ A **Production** host refuses to start without a real root key, and a root key m
 |---------------------------------------------------|----------------------------------------------------------------------------------------------------|
 | `SecretProtection:RootKeyProvider`                | Required: `local`, `aws-kms`, `azure-key-vault`, `google-cloud-kms`, `ephemeral` or another name   |
 | `SecretProtection:RootKeyProviders:Local:KeyPath` | File with a base64url 32-byte key (the `local` provider)                                           |
-| `SecretProtection:RootKeyProviders:Local:Key`     | The same key inline: Development and tests only                                                    |
+| `SecretProtection:RootKeyProviders:Local:Key`     | The same key inline: local development and tests only                                              |
 | `SecretProtection:Recovery:PublicKeyPath`         | Offline recovery RSA public key (PEM) that also wraps the keys                                     |
 | `SecretProtection:Recovery:Disabled`              | `true` only to acknowledge running without a recovery key                                          |
 | `SecretProtection:MasterKeys:RotationPeriod`      | How long an active master key lives before the background pass rotates it (default `365.00:00:00`) |
@@ -57,7 +58,7 @@ A **Production** host refuses to start without a real root key, and a root key m
 | `SecretProtection:MasterKeys:DestroyRetired`      | `false` keeps retired master keys for good (default `true`)                                        |
 
 The setting is required: a host that leaves it unset stops when it starts, naming it. `ephemeral` keeps the root key in
-memory, so it suits only development and tests, and Production refuses it
+memory, so it suits only local development and tests, and a host without `LocalDevelopment:Enabled` refuses it
 ([ADR-1370](../../docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)).
 
 Further providers ship as packages that register themselves by name. The reference host registers the three below, and
@@ -76,7 +77,11 @@ starts, the `api` and the conformance instance, which share the one database. Th
 `build/dev-db-reset.ps1` resets the database and keeps the key; to replace the key, stop the AppHost, delete the file
 and reset the database together. A host started without the AppHost selects `ephemeral` in
 `appsettings.Development.json`, and in `appsettings.Conformance.json` for the `Conformance` profile, which suits its
-in-memory database: its stored secrets do not survive a restart. The server never discards or replaces a key it cannot
+in-memory database: its stored secrets do not survive a restart. Both files set `LocalDevelopment:Enabled`, the one
+switch that turns on the local inner-loop relaxations (the host environment's name relaxes nothing, and the `Production`
+environment refuses the switch), and neither file is published with the image
+([ADR-1370](../../docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)).
+The server never discards or replaces a key it cannot
 unprotect: a tenant whose keys were protected under another root key is not served, and its error says that the key
 that protected them is missing or has changed
 ([ADR-1169](../../docs/decisions/1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md)). Restore the root key, or
@@ -168,7 +173,8 @@ Set `Setup__Token` (at least 32 characters) to choose the token. Without it, an 
 token, stores only its SHA-256 hash and logs it once at Warning level in one replica's log. `Setup__GeneratedTokenLifetime`
 sets how long a generated token lives (default one hour, between one minute and 24 hours), and a restart issues a fresh
 one. Browse to `https://<host>/setup/#token=<token>`: the fragment never reaches the server's logs or a `Referer`.
-`/setup` answers 404 to a request that is not HTTPS in Production, rate-limits its API to 10 requests per minute per
+`/setup` answers 404 to a request that is not HTTPS, except a plain-HTTP request from a loopback address when
+`LocalDevelopment:Enabled` is set, rate-limits its API to 10 requests per minute per
 client IP address, and answers 404 for good once the instance is initialized.
 
 The `setup` command runs the same setup with no browser and no token, so a Job can run it on every release. It reads
@@ -184,10 +190,10 @@ walks the whole sequence.
 
 ### Development credentials
 
-The `BootstrapAdmin` client and the seeded `admin` account below are for development only, and the host refuses
-`BootstrapAdmin` in Production
+The `BootstrapAdmin` client and the seeded `admin` account below are for development only, and a host without
+`LocalDevelopment:Enabled` refuses `BootstrapAdmin`
 ([ADR-1044](../../docs/decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)).
-Production creates its first administrator through `/setup`, above.
+A deployment creates its first administrator through `/setup`, above.
 
 No development credential is committed
 ([ADR-1370](../../docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)).
@@ -197,7 +203,8 @@ On first run the AppHost writes `bootstrap-admin-secret` and `admin-password` be
 `mgmt-dpop.pem`, the management console's client and DPoP keys, and hands the public key set of the client key to this
 host's developer seed. Sign in to the management console at `https://localhost:5005` as `admin` with the text of
 `admin-password`. The `bootstrap-admin` client authenticates with `client_secret_basic` and the text of
-`bootstrap-admin-secret`, which the Development API reference prefills. Delete a file and restart the AppHost to get a
+`bootstrap-admin-secret`, which the API reference prefills when `LocalDevelopment:Enabled` is set. Delete a file and
+restart the AppHost to get a
 new value; the developer seed updates the console's registered key on that start when `mgmt-client.pem` is the file
 deleted.
 
@@ -319,7 +326,7 @@ When enabled, both are anonymous. The document lists every management route, sch
 API itself still requires a management access token. The page runs only scripts and styles that carry the response's
 nonce, connects only to its own origin, cannot be framed, and turns off Scalar's telemetry, AI agent, MCP integration
 and CDN fonts. Its Authorize dialog runs the client-credentials login, pre-filled with the bootstrap administrator only
-in Development
+when `LocalDevelopment:Enabled` is set
 ([ADR-1481](../../docs/decisions/1481-the-composition-layer-serves-the-api-reference-only-where-a-host-enables-it-and-each-management-problem-says-when-it-occurs.md)).
 
 ## Container image
@@ -354,7 +361,8 @@ are refused while `Required` is false. The connection's certificate is the proxy
 protocol mutual TLS behind the proxy reads `OpenId__MutualTls__CertificateHeaderName`
 ([ADR-1506](../../docs/decisions/1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
 
-The image starts in the `Production` environment, which refuses to start until the deployment provides:
+The image starts in the `Production` environment and runs the deployment posture, which refuses to start until the
+deployment provides:
 
 - A serving certificate: the host serves HTTPS only. It refuses to start when an endpoint is plain HTTP, no endpoint is
   bound, or the certificate it serves has no usable private key, is expired or not yet valid, has an RSA key under 2048

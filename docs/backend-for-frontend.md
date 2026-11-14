@@ -873,8 +873,9 @@ that limits XSS riding the session (RFC 10017 §6.1.4.1).
 **Topology.** The paved path is **one origin**: the SPA and the BFF behind one reverse proxy, so no call needs a
 preflight. The absolute URLs the BFF publishes, the `redirect_uri` and the `post_logout_redirect_uri`, come from
 `Bff:Frontends:{name}:PublicOrigin`, the URL the frontend is published at, never from the request's `Host` or a forwarded header
-([ADR-1365](decisions/1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md)). Startup fails outside
-Development unless it is `https`. Because `__Host-` forbids `Domain`, a split across subdomains needs one BFF per host. Several frontends of one BFF
+([ADR-1365](decisions/1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md)). Startup fails unless
+it is `https`, or `LocalDevelopment:Enabled` is set (the Production environment refuses the switch). Because `__Host-`
+forbids `Domain`, a split across subdomains needs one BFF per host. Several frontends of one BFF
 deployment each have their own `PublicOrigin` and callback, and the `host` rule tells the hosts apart
 ([§5.10](#510-frontends)).
 
@@ -1134,14 +1135,14 @@ source registers the keyed provider in code and configures no entry for it
   path lies outside a `path` rule's values.
 - Two frontends of the same rule select the same requests, or two frontends have the same `PublicOrigin` and
   `PathPrefix`, so they would share a callback.
-- `Bff:Frontends:{name}:Authority` is not `https` (outside Development), or `ClientId` is blank.
+- `Bff:Frontends:{name}:Authority` is not `https` (unless `LocalDevelopment:Enabled` is set), or `ClientId` is blank.
 - `Bff:Frontends:{name}:PublicOrigin` is missing, not an absolute URL in canonical form, has user info, a query, a
-  fragment or a trailing `/`, or is not `https` (outside Development).
+  fragment or a trailing `/`, or is not `https` (unless `LocalDevelopment:Enabled` is set).
 - The client-authentication method or the token requirement names something not registered.
 - `Bff:Frontends:{name}:ClientAuthentication:KeyRing` or `DPoP:KeyRing` names a key ring that is not registered.
 - There are no `Bff:Frontends:{name}:ReturnUrls`, or an entry is not a same-origin relative path.
-- A remote API's destination is not `https` (outside Development), or its path overlaps the frontend's `PathPrefix` or
-  another of its APIs' local prefixes.
+- A remote API's destination is not `https` (unless `LocalDevelopment:Enabled` is set), or its path overlaps the
+  frontend's `PathPrefix` or another of its APIs' local prefixes.
 - `Bff:Frontends:{name}:Jwks:Enabled` is `true` without `ClientAuthentication:KeyRing`.
 - `Bff:Frontends:{name}:SecurityHeaders` is missing, or a header value is blank or has a character outside printable
   ASCII.
@@ -1302,7 +1303,7 @@ client `mgmt-console` of the control-plane tenant
 `AddManagementConsole(configuration)` composes `AddIdentityBff` and binds the `ManagementConsole` section strictly, and
 `MapManagementConsole()` maps the console's endpoints. The host's `Program.cs` adds only the transport layer every host
 composes from `NCode.Identity.AspNetCore`: forwarded headers trusted from the proxies the `ForwardedHeaders` section names, and
-`Strict-Transport-Security` outside Development
+`Strict-Transport-Security` unless `LocalDevelopment:Enabled` is set
 ([ADR-1447](decisions/1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package.md)).
 The console host
 answers these paths:

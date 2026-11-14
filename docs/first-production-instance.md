@@ -10,19 +10,22 @@
 A Production instance starts with an empty database and no administrator, and it ships no default credential. The
 operator creates the first administrator, the root global administrator, once, through setup
 ([ADR-1512](decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
-The `BootstrapAdmin` configuration is a development convenience, and the host refuses it in Production
+The `BootstrapAdmin` configuration is a development convenience, and a host without `LocalDevelopment:Enabled` refuses
+it
 ([ADR-1044](decisions/1044-the-management-api-authenticates-its-own-access-tokens-and-a-configured-client-bootstraps-the-first-globaladmin.md)).
 
 ## 1. Prerequisites
 
 - **A Postgres database.** One database holds the host's schema and its Data Protection key ring.
-- **A root key provider and a recovery key.** Production refuses the `ephemeral` root key provider. Create the root key
+- **A root key provider and a recovery key.** The host refuses the `ephemeral` root key provider unless
+  `LocalDevelopment:Enabled` is set, which a deployment never sets. Create the root key
   and the recovery key pair before the first start, back up the root key, and keep the recovery private key offline:
   losing the root key without a recovery key loses every stored secret. See
   [Secret protection](../charts/ncode-identity-host/README.md#secret-protection).
 - **Allowed hosts.** `AllowedHosts` (the chart's `allowedHosts`) lists the public host names. A missing value or `*` is
   refused.
-- **TLS.** The host serves HTTPS only, and the setup wizard answers 404 to a request that is not HTTPS in Production.
+- **TLS.** The host serves HTTPS only, and the setup wizard answers 404 to a request that is not HTTPS (a deployment
+  never sets `LocalDevelopment:Enabled`, the only setting that admits plain HTTP from a loopback address).
   Give the pods a serving certificate.
 - **Valkey** when the instance runs more than one replica, so replicas share single-use state.
 

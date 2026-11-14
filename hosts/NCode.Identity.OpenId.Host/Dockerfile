@@ -65,8 +65,8 @@ EXPOSE 8080
 # The production image: a chiseled (distroless) runtime with no shell or package manager, running as the non-root
 # 'app' user by numeric id so Kubernetes can enforce runAsNonRoot. The "extra" variant carries ICU and time zone data.
 # The image serves HTTPS only on 8443 (ASPNETCORE_URLS takes precedence over the base image's ASPNETCORE_HTTP_PORTS)
-# from the PEM certificate and key mounted at /etc/ncode-identity/tls; the host refuses to start in Production without a
-# usable certificate (ADR-1504).
+# from the PEM certificate and key mounted at /etc/ncode-identity/tls; the host refuses to start without a usable
+# certificate unless LocalDevelopment:Enabled is set (ADR-1504).
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled-extra@sha256:cae5b962bfb786606def03d250c6a645cc98839095c89e806e4bd8978a68115b AS final
 WORKDIR /app
 COPY --from=build /app/publish ./

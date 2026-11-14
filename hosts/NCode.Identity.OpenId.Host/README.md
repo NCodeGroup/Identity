@@ -361,8 +361,8 @@ are refused while `Required` is false. The connection's certificate is the proxy
 protocol mutual TLS behind the proxy reads `OpenId__MutualTls__CertificateHeaderName`
 ([ADR-1506](../../docs/decisions/1506-the-ingress-controller-holds-a-client-certificate-the-pods-can-require-and-never-read-as-an-end-clients.md)).
 
-The image starts in the `Production` environment and runs the deployment posture, which refuses to start until the
-deployment provides:
+The image never sets `LocalDevelopment:Enabled`, so the host runs the deployment posture, which refuses to start until
+the deployment provides:
 
 - A serving certificate: the host serves HTTPS only. It refuses to start when an endpoint is plain HTTP, no endpoint is
   bound, or the certificate it serves has no usable private key, is expired or not yet valid, has an RSA key under 2048

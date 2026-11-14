@@ -4,8 +4,7 @@
 namespace NCode.Identity.OpenId.Authentication.OutboundHttp;
 
 /// <summary>
-/// Names the cause of a failed outbound delivery and hands the redacted URL and the reason to the caller's
-/// log call.
+/// Logs the redacted target and failure reason of a failed outbound delivery.
 /// </summary>
 internal static class OutboundDeliveryFailureLog
 {
@@ -22,9 +21,8 @@ internal static class OutboundDeliveryFailureLog
     {
         // A delivery has no timeout source of its own: the guarded client's resilience timeout surfaces as a
         // TimeoutException in the exception chain, which Classify names.
-        log(
-            OutboundUriRedaction.ForLog(uri),
-            OutboundFetchFailureReasons.Classify(exception, timedOut: false)
-        );
+        var uriForLog = OutboundUriRedaction.ForLog(uri);
+        var reason = OutboundFetchFailureReasons.Classify(exception, timedOut: false);
+        log(uriForLog, reason);
     }
 }

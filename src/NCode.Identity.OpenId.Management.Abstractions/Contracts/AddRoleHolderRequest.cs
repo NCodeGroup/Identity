@@ -15,7 +15,8 @@ namespace NCode.Identity.OpenId.Management.Contracts;
 public sealed class AddRoleHolderRequest
 {
     /// <summary>
-    /// Gets the identifier of the principal to grant the role to: the <c>principalId</c> of the resource of the local account or client to grant, which names the principal that account or client acts as.
+    /// Gets the identifier of the principal to grant the role to: the <c>principalId</c> of the resource of the local
+    /// account or client to grant, which names the principal that account or client acts as.
     /// </summary>
     public required string PrincipalId { get; init; }
 }

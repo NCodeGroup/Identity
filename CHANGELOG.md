@@ -2553,9 +2553,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   role through `AddRoleHolderRequest.principalId` from its own resource, and
   `IFederatedIdentityStore.GetByIssuerSubjectsAsync` resolves a list page's principals in one call; the metadata
   endpoint is the administrator-gated write path that keeps `SystemMetadata` never end-user-writable. Local accounts are
-  end-user subjects rather than ownable resources, so every
-  operation authorizes against the owning tenant scope (`TenantScopeResource`), gated by `*:local_accounts` scopes. The
-  endpoints, their validator (`ILocalAccountValidator` / `DefaultLocalAccountValidator`), the wire contracts (namespace
+  end-user subjects rather than ownable resources, so every operation authorizes against the owning tenant scope
+  (`TenantScopeResource`), gated by `*:local_accounts` scopes. The endpoints, their validator (`ILocalAccountValidator`
+  / `DefaultLocalAccountValidator`), the wire contracts (namespace
   `NCode.Identity.OpenId.Accounts.Management.Contracts`) and `LocalAccountChangedAuditEvent` live in the account-owned
   packages `NCode.Identity.OpenId.Accounts.Management` (`AddLocalAccountManagement()`) and
   `NCode.Identity.OpenId.Accounts.Management.Abstractions`, so `NCode.Identity.OpenId.Management` does not reference

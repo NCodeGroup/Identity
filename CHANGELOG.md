@@ -542,8 +542,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   chart follows the images its `appVersion` pins. The `HelmRelease`'s `timeout` outlasts the pre-install and
   pre-upgrade migration Job, a failed migration fails the release before any pod is replaced, and a failed upgrade
   rolls back to the previous revision. The manifests under `examples/flux/` and `ci/gitops-values.yaml` hold the same
-  values: the `Host chart` workflow lints and renders them, and checks that the README shows each manifest as it is and
-  that the release names the chart and its source, follows prereleases and outlasts the migration Job
+  values: the `Host chart` workflow lints and renders them, and checks that the README shows each manifest as it is,
+  that the release names the chart and its source, follows prereleases and outlasts the migration Job, and that every
+  manifest is valid against the CRD schemas of the pinned Flux release, with unknown fields refused
   ([#784](https://github.com/NCodeGroup/identity/issues/784)).
 
 - **The family builds with repository-wide engineering conventions.** These are Central Package Management, lockstep

@@ -16,7 +16,7 @@
 # backend client certificate (ADR-1506, ADR-1507).
 # The chart serves no API reference unless its values enable it (ADR-1481).
 # The README's GitOps example, the Flux manifests under examples/flux/, must agree with ci/gitops-values.yaml, the chart
-# and the README (issue #784).
+# and the README, and validate against the CRD schemas of the pinned Flux release (issue #784).
 # The Publish artifacts workflow publishes the chart (ADR-1505).
 name: Host chart
 

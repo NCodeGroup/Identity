@@ -14,18 +14,24 @@ namespace NCode.Identity.Bff.Server.Tests;
 
 public class DefaultRegistrationTests : BaseTests
 {
-    private static IConfiguration CreateConfiguration() =>
-        new ConfigurationBuilder()
-            .AddInMemoryCollection(
-                new Dictionary<string, string?>
-                {
-                    ["Bff:Frontends:web:Authority"] = "https://op.example",
-                    ["Bff:Frontends:web:PublicOrigin"] = "https://orders.example",
-                    ["Bff:Frontends:web:ClientId"] = "orders-web",
-                    ["Bff:Frontends:web:ReturnUrls:0"] = "/",
-                }
-            )
-            .Build();
+    private static IConfiguration CreateConfiguration(
+        string authority = "https://op.example",
+        string publicOrigin = "https://orders.example",
+        bool? localDevelopment = null
+    )
+    {
+        var values = new Dictionary<string, string?>
+        {
+            ["Bff:Frontends:web:Authority"] = authority,
+            ["Bff:Frontends:web:PublicOrigin"] = publicOrigin,
+            ["Bff:Frontends:web:ClientId"] = "orders-web",
+            ["Bff:Frontends:web:ReturnUrls:0"] = "/",
+        };
+        if (localDevelopment is { } enabled)
+            values["LocalDevelopment:Enabled"] = enabled ? "true" : "false";
+
+        return new ConfigurationBuilder().AddInMemoryCollection(values).Build();
+    }
 
     // The BFF reads the host environment, which a host's builder registers.
     private static ServiceCollection CreateServices()
@@ -56,6 +62,70 @@ public class DefaultRegistrationTests : BaseTests
         Assert.NotNull(provider.GetRequiredService<IExpiringKeySet>());
         Assert.NotNull(provider.GetRequiredService<IExpiringValueSet>());
         Assert.NotNull(provider.GetRequiredService<IExpiringIndexSet>());
+    }
+
+    [Fact]
+    public async Task AddIdentityBff_WithHttpUrlsAndTheSwitchOn_ValidatesTheOptions()
+    {
+        var serviceCollection = CreateServices();
+        serviceCollection.AddIdentityBff(
+            CreateConfiguration(
+                authority: "http://localhost:5000",
+                publicOrigin: "http://localhost:5001",
+                localDevelopment: true
+            )
+        );
+
+        await using var provider = serviceCollection.BuildServiceProvider();
+
+        var options = provider.GetRequiredService<IOptions<BffOptions>>().Value;
+        Assert.Equal("http://localhost:5000", options.Frontends["web"].Authority);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(false)]
+    public async Task AddIdentityBff_WithHttpUrlsAndTheSwitchOff_FailsValidation(
+        bool? localDevelopment
+    )
+    {
+        var serviceCollection = CreateServices();
+        serviceCollection.AddIdentityBff(
+            CreateConfiguration(
+                authority: "http://localhost:5000",
+                publicOrigin: "http://localhost:5001",
+                localDevelopment: localDevelopment
+            )
+        );
+        await using var provider = serviceCollection.BuildServiceProvider();
+
+        var exception = Assert.Throws<OptionsValidationException>(() =>
+            provider.GetRequiredService<IOptions<BffOptions>>().Value
+        );
+
+        Assert.Contains(exception.Failures, x => x.Contains("Bff:Frontends:web:Authority"));
+    }
+
+    [Fact]
+    public async Task AddIdentityBff_WithHttpUrlsInDevelopmentWithoutTheSwitch_FailsValidation()
+    {
+        var serviceCollection = CreateServices();
+        var mockEnvironment = CreateLooseMock<IHostEnvironment>();
+        mockEnvironment.SetupGet(x => x.EnvironmentName).Returns("Development");
+        serviceCollection.AddSingleton(mockEnvironment.Object);
+        serviceCollection.AddIdentityBff(
+            CreateConfiguration(
+                authority: "http://localhost:5000",
+                publicOrigin: "http://localhost:5001"
+            )
+        );
+        await using var provider = serviceCollection.BuildServiceProvider();
+
+        var exception = Assert.Throws<OptionsValidationException>(() =>
+            provider.GetRequiredService<IOptions<BffOptions>>().Value
+        );
+
+        Assert.Contains(exception.Failures, x => x.Contains("Bff:Frontends:web:Authority"));
     }
 
     [Fact]

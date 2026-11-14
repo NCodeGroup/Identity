@@ -14,10 +14,10 @@ public class BffRemoteApiValidationTests : BaseTests
     private static BffRemoteApiOptions CreateValidApi() =>
         new() { Path = "/api/orders", Destination = "https://api.example.com/v1" };
 
-    private static List<string> Validate(BffRemoteApiOptions? api, bool isDevelopment = false)
+    private static List<string> Validate(BffRemoteApiOptions? api, bool isLocalDevelopment = false)
     {
         List<string> failures = [];
-        BffRemoteApiValidation.Validate(Key, api, isDevelopment, failures);
+        BffRemoteApiValidation.Validate(Key, api, isLocalDevelopment, failures);
         return failures;
     }
 
@@ -110,14 +110,31 @@ public class BffRemoteApiValidationTests : BaseTests
     }
 
     [Fact]
-    public void Validate_HttpDestinationInDevelopment_HasNoFailures()
+    public void Validate_HttpDestinationWhenTheSwitchIsOn_HasNoFailures()
     {
         var api = CreateValidApi();
         api.Destination = "http://localhost:5001";
 
-        var failures = Validate(api, isDevelopment: true);
+        var failures = Validate(api, isLocalDevelopment: true);
 
         Assert.Empty(failures);
+    }
+
+    [Fact]
+    public void Validate_HttpDestinationWhenTheSwitchIsOff_Fails()
+    {
+        var api = CreateValidApi();
+        api.Destination = "http://localhost:5001";
+
+        var failures = Validate(api, isLocalDevelopment: false);
+
+        var failure = Assert.Single(failures);
+        Assert.StartsWith(
+            $"{Key}:Destination 'http://localhost:5001'",
+            failure,
+            StringComparison.Ordinal
+        );
+        Assert.Contains("LocalDevelopment:Enabled", failure, StringComparison.Ordinal);
     }
 
     [Theory]

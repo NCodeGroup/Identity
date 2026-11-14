@@ -58,6 +58,18 @@ internal class GoogleCloudKmsKeyWrapper(
     public string Name => KeyWrapperNames.GoogleCloudKms;
 
     /// <inheritdoc />
+    public IReadOnlyList<string> GetConfigurationFailures() =>
+        GoogleCloudKmsKeyName.IsCryptoKeyName(RootKeyOptions.Value.KeyName)
+            ? []
+            :
+            [
+                "SecretProtection:RootKeyProviders:GoogleCloudKms:KeyName must be the resource name of a Cloud KMS crypto key, such as projects/my-project/locations/us-central1/keyRings/ncode-identity/cryptoKeys/root.",
+            ];
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> GetReferenceConfigurationFailures() => [];
+
+    /// <inheritdoc />
     /// <exception cref="InvalidOperationException">
     /// Thrown when the configured key name is not the resource name of a Cloud KMS crypto key.
     /// </exception>

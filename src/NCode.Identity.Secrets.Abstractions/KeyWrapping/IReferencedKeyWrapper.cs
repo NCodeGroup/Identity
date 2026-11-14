@@ -21,6 +21,15 @@ namespace NCode.Identity.Secrets.KeyWrapping;
 public interface IReferencedKeyWrapper : IKeyWrapper
 {
     /// <summary>
+    /// Gets the problems with the configuration that this wrapper needs to wrap keys under a key that a caller names,
+    /// without reaching the key management service.
+    /// </summary>
+    /// <returns>
+    /// One message per problem, each naming the configuration entry; empty when the configuration is usable.
+    /// </returns>
+    IReadOnlyList<string> GetReferenceConfigurationFailures();
+
+    /// <summary>
     /// Checks the syntax of a key reference, without reaching the key management service.
     /// </summary>
     /// <param name="keyReference">The reference to the key encryption key, such as a key identifier or an ARN.</param>

@@ -53,6 +53,12 @@ public sealed class TestReferencedKeyWrapper : IReferencedKeyWrapper
     /// <inheritdoc />
     public string Name => WrapperName;
 
+    /// <inheritdoc />
+    public IReadOnlyList<string> GetConfigurationFailures() => [];
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> GetReferenceConfigurationFailures() => [];
+
     /// <summary>
     /// Gets every access binding that a wrap or an unwrap through an access identity presented, in order.
     /// </summary>

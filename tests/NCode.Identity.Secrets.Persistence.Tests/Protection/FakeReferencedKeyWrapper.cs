@@ -53,6 +53,12 @@ public sealed class FakeReferencedKeyWrapper(string name = "fake-kms") : IRefere
     /// <inheritdoc />
     public string Name { get; } = name;
 
+    /// <inheritdoc />
+    public IReadOnlyList<string> GetConfigurationFailures() => [];
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> GetReferenceConfigurationFailures() => [];
+
     /// <summary>
     /// Makes wraps and unwraps under the reference throw.
     /// </summary>

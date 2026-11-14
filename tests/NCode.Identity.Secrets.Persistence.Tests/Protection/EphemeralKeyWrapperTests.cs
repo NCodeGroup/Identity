@@ -15,6 +15,20 @@ public class EphemeralKeyWrapperTests
 
     private static byte[] CreateContext() => "root-context"u8.ToArray();
 
+    #region GetConfigurationFailures Tests
+
+    [Fact]
+    public void GetConfigurationFailures_ReturnsNone()
+    {
+        using var provider = new EphemeralKeyWrapper();
+
+        var failures = provider.GetConfigurationFailures();
+
+        Assert.Empty(failures);
+    }
+
+    #endregion
+
     #region WrapAsync and UnwrapAsync Tests
 
     [Fact]

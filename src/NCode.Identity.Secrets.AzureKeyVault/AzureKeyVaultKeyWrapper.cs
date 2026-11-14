@@ -55,12 +55,54 @@ internal class AzureKeyVaultKeyWrapper(
     /// </summary>
     internal const int MinimumWrappedKeySizeBytes = 384;
 
+    private const string SuffixesKey =
+        "SecretProtection:RootKeyProviders:AzureKeyVault:ReferencedKeyHostSuffixes";
+
     private IAzureKeyVaultClientFactory ClientFactory { get; } = clientFactory;
 
     private IOptions<AzureKeyVaultKeyWrapperOptions> RootKeyOptions { get; } = options;
 
     /// <inheritdoc />
     public string Name => KeyWrapperNames.AzureKeyVault;
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> GetConfigurationFailures() =>
+        AzureKeyVaultKeyId.IsKeyId(RootKeyOptions.Value.KeyId)
+            ? []
+            :
+            [
+                "SecretProtection:RootKeyProviders:AzureKeyVault:KeyId must be the identifier of a Key Vault or Managed HSM key, such as https://contoso.vault.azure.net/keys/ncode-identity-root.",
+            ];
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> GetReferenceConfigurationFailures()
+    {
+        var suffixes = RootKeyOptions.Value.ReferencedKeyHostSuffixes;
+        if (suffixes is not { Length: > 0 })
+        {
+            return [$"{SuffixesKey} must list at least one host suffix."];
+        }
+
+        var failures = new List<string>();
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var suffix in suffixes)
+        {
+            if (string.IsNullOrWhiteSpace(suffix))
+            {
+                failures.Add($"{SuffixesKey} must not contain a blank entry.");
+            }
+            else if (!suffix.StartsWith('.'))
+            {
+                failures.Add($"{SuffixesKey} entry '{suffix}' must start with a dot.");
+            }
+            else if (!seen.Add(suffix))
+            {
+                failures.Add($"{SuffixesKey} entry '{suffix}' is listed more than once.");
+            }
+        }
+
+        return failures;
+    }
 
     /// <inheritdoc />
     /// <exception cref="InvalidOperationException">

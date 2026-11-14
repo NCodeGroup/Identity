@@ -63,6 +63,9 @@ internal class LocalKeyWrapper(IOptions<LocalKeyWrapperOptions> options) : IKeyW
     public string Name => KeyWrapperNames.Local;
 
     /// <inheritdoc />
+    public IReadOnlyList<string> GetConfigurationFailures() => [];
+
+    /// <inheritdoc />
     /// <exception cref="InvalidOperationException">
     /// Thrown when the root keys are not configured correctly or cannot be read.
     /// </exception>

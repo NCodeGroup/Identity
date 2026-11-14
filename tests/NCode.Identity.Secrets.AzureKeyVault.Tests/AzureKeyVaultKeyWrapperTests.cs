@@ -640,6 +640,129 @@ public class AzureKeyVaultKeyWrapperTests : BaseTests
 
     #endregion
 
+    #region GetConfigurationFailures Tests
+
+    [Theory]
+    [InlineData(KeyId)]
+    [InlineData(KeyVersionId)]
+    public void GetConfigurationFailures_WithAValidKeyId_ReturnsNone(string keyId)
+    {
+        var provider = CreateProvider(keyId);
+
+        var failures = provider.GetConfigurationFailures();
+
+        Assert.Empty(failures);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("not-a-key")]
+    [InlineData("https://contoso.vault.azure.net/secrets/ncode-identity-root")]
+    public void GetConfigurationFailures_WithAMalformedKeyId_ReturnsTheMessage(string? keyId)
+    {
+        var provider = CreateProvider(keyId);
+
+        var failures = provider.GetConfigurationFailures();
+
+        var failure = Assert.Single(failures);
+        Assert.Equal(
+            "SecretProtection:RootKeyProviders:AzureKeyVault:KeyId must be the identifier of a Key Vault or Managed HSM key, such as https://contoso.vault.azure.net/keys/ncode-identity-root.",
+            failure
+        );
+    }
+
+    #endregion
+
+    #region GetReferenceConfigurationFailures Tests
+
+    private const string SuffixesKey =
+        "SecretProtection:RootKeyProviders:AzureKeyVault:ReferencedKeyHostSuffixes";
+
+    [Fact]
+    public void GetReferenceConfigurationFailures_WithTheDefaultSuffixes_ReturnsNone()
+    {
+        var provider = CreateProvider(KeyId);
+
+        var failures = provider.GetReferenceConfigurationFailures();
+
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public void GetReferenceConfigurationFailures_WithCustomSuffixes_ReturnsNone()
+    {
+        var provider = CreateProvider(KeyId, [".vault.example.net", ".hsm.example.net"]);
+
+        var failures = provider.GetReferenceConfigurationFailures();
+
+        Assert.Empty(failures);
+    }
+
+    [Fact]
+    public void GetReferenceConfigurationFailures_WithNoSuffixes_ReturnsTheMessage()
+    {
+        var provider = CreateProvider(KeyId, []);
+
+        var failures = provider.GetReferenceConfigurationFailures();
+
+        var failure = Assert.Single(failures);
+        Assert.Equal($"{SuffixesKey} must list at least one host suffix.", failure);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("  ")]
+    public void GetReferenceConfigurationFailures_WithABlankSuffix_ReturnsTheMessage(string suffix)
+    {
+        var provider = CreateProvider(KeyId, [".vault.azure.net", suffix]);
+
+        var failures = provider.GetReferenceConfigurationFailures();
+
+        var failure = Assert.Single(failures);
+        Assert.Equal($"{SuffixesKey} must not contain a blank entry.", failure);
+    }
+
+    [Fact]
+    public void GetReferenceConfigurationFailures_WithASuffixWithoutADot_ReturnsTheMessage()
+    {
+        var provider = CreateProvider(KeyId, [".vault.azure.net", "vault.azure.net"]);
+
+        var failures = provider.GetReferenceConfigurationFailures();
+
+        var failure = Assert.Single(failures);
+        Assert.Equal($"{SuffixesKey} entry 'vault.azure.net' must start with a dot.", failure);
+    }
+
+    [Fact]
+    public void GetReferenceConfigurationFailures_WithARepeatedSuffix_ReturnsTheMessage()
+    {
+        var provider = CreateProvider(KeyId, [".vault.azure.net", ".VAULT.azure.net"]);
+
+        var failures = provider.GetReferenceConfigurationFailures();
+
+        var failure = Assert.Single(failures);
+        Assert.Equal($"{SuffixesKey} entry '.VAULT.azure.net' is listed more than once.", failure);
+    }
+
+    [Fact]
+    public void GetReferenceConfigurationFailures_WithSeveralProblems_ReturnsEachMessage()
+    {
+        var provider = CreateProvider(KeyId, ["", "vault.azure.net"]);
+
+        var failures = provider.GetReferenceConfigurationFailures();
+
+        Assert.Equal(
+            [
+                $"{SuffixesKey} must not contain a blank entry.",
+                $"{SuffixesKey} entry 'vault.azure.net' must start with a dot.",
+            ],
+            failures
+        );
+    }
+
+    #endregion
+
     #region UnwrapAsync Tests
 
     [Fact]

@@ -185,10 +185,12 @@ const NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormats.Certificate = "c
 const NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormats.Jwk = "jwk" -> string!
 const NCode.Identity.Secrets.KeyMaterial.SecretKeyImportFormats.Pem = "pem" -> string!
 NCode.Identity.Secrets.KeyWrapping.IKeyWrapper
+NCode.Identity.Secrets.KeyWrapping.IKeyWrapper.GetConfigurationFailures() -> System.Collections.Generic.IReadOnlyList<string!>!
 NCode.Identity.Secrets.KeyWrapping.IKeyWrapper.Name.get -> string!
 NCode.Identity.Secrets.KeyWrapping.IKeyWrapper.UnwrapAsync(NCode.Identity.Secrets.KeyWrapping.WrappedKey! wrappedKey, System.ReadOnlyMemory<byte> context, System.Buffers.IBufferWriter<byte>! destination, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 NCode.Identity.Secrets.KeyWrapping.IKeyWrapper.WrapAsync(System.ReadOnlyMemory<byte> key, System.ReadOnlyMemory<byte> context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<NCode.Identity.Secrets.KeyWrapping.WrappedKey!>
 NCode.Identity.Secrets.KeyWrapping.IReferencedKeyWrapper
+NCode.Identity.Secrets.KeyWrapping.IReferencedKeyWrapper.GetReferenceConfigurationFailures() -> System.Collections.Generic.IReadOnlyList<string!>!
 NCode.Identity.Secrets.KeyWrapping.IReferencedKeyWrapper.TryValidateAccessIdentity(string! accessIdentity, out string? failure) -> bool
 NCode.Identity.Secrets.KeyWrapping.IReferencedKeyWrapper.TryValidateKeyReference(string! keyReference, out string? failure) -> bool
 NCode.Identity.Secrets.KeyWrapping.IReferencedKeyWrapper.UnwrapAsync(NCode.Identity.Secrets.KeyWrapping.WrappedKey! wrappedKey, NCode.Identity.Secrets.KeyWrapping.KeyAccess! access, System.ReadOnlyMemory<byte> context, System.Buffers.IBufferWriter<byte>! destination, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask

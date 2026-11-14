@@ -34,6 +34,13 @@ public sealed class IdentityRecordingKeyWrapper(IReferencedKeyWrapper inner) : I
     public string Name => inner.Name;
 
     /// <inheritdoc />
+    public IReadOnlyList<string> GetConfigurationFailures() => inner.GetConfigurationFailures();
+
+    /// <inheritdoc />
+    public IReadOnlyList<string> GetReferenceConfigurationFailures() =>
+        inner.GetReferenceConfigurationFailures();
+
+    /// <inheritdoc />
     public bool TryValidateKeyReference(
         string keyReference,
         [NotNullWhen(false)] out string? failure

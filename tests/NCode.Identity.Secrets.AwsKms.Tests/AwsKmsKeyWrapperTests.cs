@@ -835,4 +835,52 @@ public class AwsKmsKeyWrapperTests : BaseTests
     }
 
     #endregion
+
+    #region GetConfigurationFailures Tests
+
+    [Theory]
+    [InlineData(KeyArn)]
+    [InlineData(AliasArn)]
+    public void GetConfigurationFailures_WithAValidKeyArn_ReturnsNone(string keyArn)
+    {
+        var provider = CreateProvider(keyArn);
+
+        var failures = provider.GetConfigurationFailures();
+
+        Assert.Empty(failures);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("not-an-arn")]
+    [InlineData("arn:aws:s3:::bucket")]
+    public void GetConfigurationFailures_WithAMalformedKeyArn_ReturnsTheMessage(string? keyArn)
+    {
+        var provider = CreateProvider(keyArn);
+
+        var failures = provider.GetConfigurationFailures();
+
+        var failure = Assert.Single(failures);
+        Assert.Equal(
+            "SecretProtection:RootKeyProviders:AwsKms:KeyArn must be the ARN of a KMS key or alias, such as arn:aws:kms:us-west-2:111122223333:alias/ncode-identity-root.",
+            failure
+        );
+    }
+
+    #endregion
+
+    #region GetReferenceConfigurationFailures Tests
+
+    [Fact]
+    public void GetReferenceConfigurationFailures_ReturnsNone()
+    {
+        var provider = CreateProvider(keyArn: null);
+
+        var failures = provider.GetReferenceConfigurationFailures();
+
+        Assert.Empty(failures);
+    }
+
+    #endregion
 }

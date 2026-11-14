@@ -52,6 +52,9 @@ internal class EphemeralKeyWrapper : IKeyWrapper, IDisposable
     public string Name => KeyWrapperNames.Ephemeral;
 
     /// <inheritdoc />
+    public IReadOnlyList<string> GetConfigurationFailures() => [];
+
+    /// <inheritdoc />
     public ValueTask<WrappedKey> WrapAsync(
         ReadOnlyMemory<byte> key,
         ReadOnlyMemory<byte> context,

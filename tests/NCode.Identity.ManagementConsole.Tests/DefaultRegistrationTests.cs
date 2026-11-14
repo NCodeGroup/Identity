@@ -1,4 +1,4 @@
-﻿// Copyright © NCode Group
+// Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.HostFiltering;
@@ -51,7 +51,7 @@ public class DefaultRegistrationTests : BaseTests
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
         serviceCollection.AddSingleton<IHostEnvironment>(
-            new ProductionHostEnvironment { EnvironmentName = environmentName }
+            new TestHostEnvironment { EnvironmentName = environmentName }
         );
         return serviceCollection;
     }
@@ -218,7 +218,7 @@ public class DefaultRegistrationTests : BaseTests
 
     #endregion
 
-    private sealed class ProductionHostEnvironment : IHostEnvironment
+    private sealed class TestHostEnvironment : IHostEnvironment
     {
         public string EnvironmentName { get; set; } = Environments.Production;
 

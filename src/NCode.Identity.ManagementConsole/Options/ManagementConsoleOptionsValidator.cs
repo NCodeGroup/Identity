@@ -61,10 +61,15 @@ internal sealed class ManagementConsoleOptionsValidator(
         List<string> failures = [];
         var isLocalDevelopment = localDevelopmentOptions.Value.Enabled;
 
-        if (!IsValidManagementApiUrl(options.ManagementApiUrl, isLocalDevelopment))
+        var isWellFormed = IsValidManagementApiUrl(options.ManagementApiUrl, true);
+        var isValid = isLocalDevelopment
+            ? isWellFormed
+            : IsValidManagementApiUrl(options.ManagementApiUrl, false);
+
+        if (!isValid)
         {
             failures.Add(
-                !isLocalDevelopment && IsValidManagementApiUrl(options.ManagementApiUrl, true)
+                isWellFormed
                     ? $"{Key}:ManagementApiUrl is '{Describe(options.ManagementApiUrl)}' and must use 'https' unless LocalDevelopment:Enabled is true."
                     : $"{Key}:ManagementApiUrl must be an absolute https URL without user info, query or fragment; it is '{Describe(options.ManagementApiUrl)}'."
             );

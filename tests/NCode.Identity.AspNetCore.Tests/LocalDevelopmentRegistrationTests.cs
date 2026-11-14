@@ -54,19 +54,62 @@ public sealed class LocalDevelopmentRegistrationTests
     }
 
     [Fact]
-    public void AddLocalDevelopmentOptions_WithAnUnknownKey_ThrowsWhenTheOptionsAreRead()
+    public void AddLocalDevelopmentOptions_WhenEnabledIsTrue_RegistersAnEnabledMode()
     {
         var serviceCollection = CreateServiceCollection();
         serviceCollection.AddLocalDevelopmentOptions(
             CreateConfiguration(
-                new Dictionary<string, string?> { ["LocalDevelopment:Enabeld"] = "true" }
+                new Dictionary<string, string?> { ["LocalDevelopment:Enabled"] = "true" }
             )
         );
 
         using var provider = serviceCollection.BuildServiceProvider();
 
+        Assert.True(provider.GetRequiredService<LocalDevelopmentMode>().Enabled);
+    }
+
+    [Fact]
+    public void AddLocalDevelopmentOptions_WhenSectionIsAbsent_RegistersADisabledMode()
+    {
+        var serviceCollection = CreateServiceCollection();
+        serviceCollection.AddLocalDevelopmentOptions(CreateConfiguration([]));
+
+        using var provider = serviceCollection.BuildServiceProvider();
+
+        Assert.False(provider.GetRequiredService<LocalDevelopmentMode>().Enabled);
+    }
+
+    [Fact]
+    public void AddLocalDevelopmentOptions_AfterADisabledModeIsRegistered_ReplacesIt()
+    {
+        var serviceCollection = CreateServiceCollection();
+        serviceCollection.AddSingleton(new LocalDevelopmentMode(false));
+
+        serviceCollection.AddLocalDevelopmentOptions(
+            CreateConfiguration(
+                new Dictionary<string, string?> { ["LocalDevelopment:Enabled"] = "true" }
+            )
+        );
+
+        Assert.Single(
+            serviceCollection,
+            descriptor => descriptor.ServiceType == typeof(LocalDevelopmentMode)
+        );
+        using var provider = serviceCollection.BuildServiceProvider();
+        Assert.True(provider.GetRequiredService<LocalDevelopmentMode>().Enabled);
+    }
+
+    [Fact]
+    public void AddLocalDevelopmentOptions_WithAnUnknownKey_Throws()
+    {
+        var serviceCollection = CreateServiceCollection();
+
         Assert.Throws<InvalidOperationException>(() =>
-            provider.GetRequiredService<IOptions<LocalDevelopmentOptions>>().Value
+            serviceCollection.AddLocalDevelopmentOptions(
+                CreateConfiguration(
+                    new Dictionary<string, string?> { ["LocalDevelopment:Enabeld"] = "true" }
+                )
+            )
         );
     }
 
@@ -86,6 +129,10 @@ public sealed class LocalDevelopmentRegistrationTests
             descriptor =>
                 descriptor.ServiceType == typeof(IValidateOptions<LocalDevelopmentOptions>)
                 && descriptor.ImplementationType == typeof(LocalDevelopmentOptionsValidator)
+        );
+        Assert.Single(
+            serviceCollection,
+            descriptor => descriptor.ServiceType == typeof(LocalDevelopmentMode)
         );
     }
 

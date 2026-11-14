@@ -159,6 +159,9 @@ const NCode.Identity.AspNetCore.Options.LocalDevelopmentOptions.DefaultSectionNa
 NCode.Identity.AspNetCore.LocalDevelopmentConfiguration
 NCode.Identity.AspNetCore.LocalDevelopmentConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!)
 NCode.Identity.AspNetCore.LocalDevelopmentConfiguration.extension(Microsoft.Extensions.Configuration.IConfiguration!).IsLocalDevelopment() -> bool
+NCode.Identity.AspNetCore.LocalDevelopmentMode
+NCode.Identity.AspNetCore.LocalDevelopmentMode.Enabled.get -> bool
+NCode.Identity.AspNetCore.LocalDevelopmentMode.LocalDevelopmentMode(bool enabled) -> void
 NCode.Identity.AspNetCore.LocalDevelopmentRegistration
 NCode.Identity.AspNetCore.LocalDevelopmentRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!)
 NCode.Identity.AspNetCore.LocalDevelopmentRegistration.extension(Microsoft.Extensions.DependencyInjection.IServiceCollection!).AddLocalDevelopmentOptions(Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IServiceCollection!

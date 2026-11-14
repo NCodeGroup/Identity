@@ -36,7 +36,7 @@ public static class StrictTransportSecurityApplicationBuilderExtensions
             var services = app.ApplicationServices;
 
             // Read the switch first: a local inner-loop host never sends the header (ADR-1447).
-            if (services.GetRequiredService<IOptions<LocalDevelopmentOptions>>().Value.Enabled)
+            if (services.GetRequiredService<LocalDevelopmentMode>().Enabled)
                 return app;
 
             var options = services

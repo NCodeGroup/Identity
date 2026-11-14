@@ -23,12 +23,13 @@ public static class LocalDevelopmentRegistration
     extension(IServiceCollection serviceCollection)
     {
         /// <summary>
-        /// Registers <see cref="LocalDevelopmentOptions"/> from the <c>LocalDevelopment</c> configuration section.
-        /// Calling it more than once registers the options once.
+        /// Registers <see cref="LocalDevelopmentOptions"/> from the <c>LocalDevelopment</c> configuration section, and
+        /// the <see cref="LocalDevelopmentMode"/> it selects. Calling it more than once registers them once.
         /// </summary>
         /// <remarks>
-        /// The section is bound strictly and validated when the host starts: a key that maps to no option, or the
-        /// switch turned on in the Production environment, stops the host with an error naming the entry.
+        /// The section is bound strictly as the services are registered, so a key that maps to no option throws from
+        /// this method, and the options are validated when the host starts, so the switch turned on in the Production
+        /// environment stops the host with an error naming the entry.
         /// </remarks>
         /// <param name="configuration">
         /// The <see cref="IConfiguration"/> read for the <c>LocalDevelopment</c> section.
@@ -62,6 +63,11 @@ public static class LocalDevelopmentRegistration
                     IValidateOptions<LocalDevelopmentOptions>,
                     LocalDevelopmentOptionsValidator
                 >()
+            );
+            serviceCollection.Replace(
+                ServiceDescriptor.Singleton(
+                    new LocalDevelopmentMode(configuration.IsLocalDevelopment())
+                )
             );
 
             return serviceCollection;

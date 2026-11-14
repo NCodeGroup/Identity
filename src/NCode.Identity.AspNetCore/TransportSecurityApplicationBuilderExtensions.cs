@@ -4,8 +4,6 @@
 using JetBrains.Annotations;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using NCode.Identity.AspNetCore.Options;
 
 namespace NCode.Identity.AspNetCore;
 
@@ -34,11 +32,9 @@ public static class TransportSecurityApplicationBuilderExtensions
         {
             ArgumentNullException.ThrowIfNull(app);
 
-            var options = app
-                .ApplicationServices.GetRequiredService<IOptions<LocalDevelopmentOptions>>()
-                .Value;
+            var mode = app.ApplicationServices.GetRequiredService<LocalDevelopmentMode>();
 
-            return options.Enabled ? app.UseHttpsRedirection() : app;
+            return mode.Enabled ? app.UseHttpsRedirection() : app;
         }
     }
 }

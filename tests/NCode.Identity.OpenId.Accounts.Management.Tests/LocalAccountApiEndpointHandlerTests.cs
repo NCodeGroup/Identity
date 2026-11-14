@@ -330,17 +330,17 @@ public sealed class LocalAccountApiEndpointHandlerTests : IDisposable
             .Verifiable();
     }
 
-    // The get route creates one store manager to read the account and another to resolve its principal.
+    // The get route creates one store manager to read the account and resolve its principal.
     private void SetupAccountForGet(PersistedLocalAccount? account)
     {
         MockStoreManagerFactory
             .Setup(x => x.CreateAsync(It.IsAny<CancellationToken>()))
             .ReturnsAsync(MockStoreManager.Object)
-            .Verifiable(Times.Exactly(2));
+            .Verifiable(Times.Once);
         MockStoreManager
             .Setup(x => x.DisposeAsync())
             .Returns(ValueTask.CompletedTask)
-            .Verifiable(Times.Exactly(2));
+            .Verifiable(Times.Once);
         MockStoreManager
             .Setup(x => x.GetStore<ILocalAccountStore>())
             .Returns(MockLocalAccountStore.Object)

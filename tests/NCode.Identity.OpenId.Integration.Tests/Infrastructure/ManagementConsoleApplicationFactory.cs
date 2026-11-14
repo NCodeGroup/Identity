@@ -23,7 +23,7 @@ namespace NCode.Identity.OpenId.Integration.Tests.Infrastructure;
 /// <see cref="HostApplicationFactory"/> is given, the console reaches that provider's endpoints and its management API
 /// through its test server.
 /// </summary>
-public sealed class ManagementConsoleApplicationFactory
+public class ManagementConsoleApplicationFactory
     : WebApplicationFactory<ManagementConsoleHostMarker>
 {
     /// <summary>

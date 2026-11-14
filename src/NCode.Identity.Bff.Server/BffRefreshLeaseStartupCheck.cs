@@ -13,11 +13,11 @@ namespace NCode.Identity.Bff.Server;
 /// client's <see cref="OpenIdClientOptions.TotalTimeout"/>. The composition root makes this check because only it
 /// knows both the BFF and the protocol client: a DPoP nonce retry sends the refresh request twice under one lease, so
 /// a shorter lease could expire while the rotated refresh token is still in flight. It runs as a start check rather
-/// than an options validator, because a validator reads no other options (project-template ADR-0106).
+/// than an options validator, because a validator reads no other options.
 /// </summary>
 /// <param name="bffOptions">The options of the BFF.</param>
 /// <param name="clientOptions">The options of the protocol client that sends the refresh request.</param>
-// See ADR-1291.
+// See ADR-1291 and project-template ADR-0106.
 internal sealed class BffRefreshLeaseStartupCheck(
     IOptions<BffOptions> bffOptions,
     IOptions<OpenIdClientOptions> clientOptions

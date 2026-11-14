@@ -20,10 +20,10 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <see cref="IReferencedKeyWrapper"/>, and when the configuration of the selected root key provider, or of a provider
 /// that owners may choose, is not usable, as <see cref="IKeyWrapper.GetConfigurationFailures"/> and
 /// <see cref="IReferencedKeyWrapper.GetReferenceConfigurationFailures"/> report. Only the selected providers are
-/// checked (project-template ADR-0106). An inconsistent registration or configuration therefore fails when the catalog
+/// checked. An inconsistent registration or configuration therefore fails when the catalog
 /// is composed rather than when a key is wrapped.
 /// </remarks>
-// See ADR-1150, ADR-1235, ADR-1414.
+// See ADR-1150, ADR-1235, ADR-1414 and project-template ADR-0106.
 internal class DefaultKeyWrapperCatalog : IKeyWrapperCatalog
 {
     /// <summary>

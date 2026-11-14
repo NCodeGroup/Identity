@@ -17,8 +17,11 @@ namespace NCode.Identity.Secrets.Persistence.Protection;
 /// <remarks>
 /// The constructor throws an <see cref="InvalidOperationException"/> when more than one registered provider has the
 /// same name, and when a provider that <see cref="OwnerRootKeyOptions.Providers"/> lists is not a registered
-/// <see cref="IReferencedKeyWrapper"/>, so an inconsistent registration or configuration fails when the catalog is
-/// composed rather than when a key is wrapped.
+/// <see cref="IReferencedKeyWrapper"/>, and when the configuration of the selected root key provider, or of a provider
+/// that owners may choose, is not usable, as <see cref="IKeyWrapper.GetConfigurationFailures"/> and
+/// <see cref="IReferencedKeyWrapper.GetReferenceConfigurationFailures"/> report. Only the selected providers are
+/// checked (project-template ADR-0106). An inconsistent registration or configuration therefore fails when the catalog
+/// is composed rather than when a key is wrapped.
 /// </remarks>
 // See ADR-1150, ADR-1235, ADR-1414.
 internal class DefaultKeyWrapperCatalog : IKeyWrapperCatalog
@@ -42,7 +45,14 @@ internal class DefaultKeyWrapperCatalog : IKeyWrapperCatalog
             .ToFrozenDictionary(wrapper => wrapper.Name, StringComparer.Ordinal);
         ProtectionOptions = options;
 
-        ValidateOwnerRootKeyProviders(options.Value.OwnerRootKeys.Providers);
+        var protection = options.Value;
+        var failures = new List<string>();
+
+        ValidateOwnerRootKeyProviders(protection.OwnerRootKeys.Providers, failures);
+        ValidateSelectedWrappers(protection, failures);
+
+        if (failures.Count > 0)
+            throw new InvalidOperationException(string.Join(" ", failures));
     }
 
     private FrozenDictionary<string, IKeyWrapper> ProvidersByName { get; }
@@ -125,7 +135,7 @@ internal class DefaultKeyWrapperCatalog : IKeyWrapperCatalog
         return providersByName.ToFrozenDictionary(StringComparer.Ordinal);
     }
 
-    private void ValidateOwnerRootKeyProviders(string[]? ownerProviders)
+    private void ValidateOwnerRootKeyProviders(string[]? ownerProviders, List<string> failures)
     {
         if (ownerProviders is null || ownerProviders.Length == 0)
             return;
@@ -134,7 +144,6 @@ internal class DefaultKeyWrapperCatalog : IKeyWrapperCatalog
             $"{SecretProtectionOptions.DefaultSectionName}:{nameof(SecretProtectionOptions.OwnerRootKeys)}:{nameof(OwnerRootKeyOptions.Providers)}";
         var choices = FormatChoices(ReferencedByName.Keys);
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        var failures = new List<string>();
 
         foreach (var provider in ownerProviders)
         {
@@ -153,9 +162,32 @@ internal class DefaultKeyWrapperCatalog : IKeyWrapperCatalog
                 $"{key} names '{provider}', which {reason}. The key wrappers that an owner can choose are: {choices}."
             );
         }
+    }
 
-        if (failures.Count > 0)
-            throw new InvalidOperationException(string.Join(" ", failures));
+    private void ValidateSelectedWrappers(SecretProtectionOptions protection, List<string> failures)
+    {
+        var rootKeyProvider = protection.RootKeyProvider;
+
+        if (
+            !string.IsNullOrWhiteSpace(rootKeyProvider)
+            && ProvidersByName.TryGetValue(rootKeyProvider, out var root)
+        )
+            failures.AddRange(root.GetConfigurationFailures());
+
+        var ownerProviders = protection.OwnerRootKeys.Providers;
+        if (ownerProviders is null)
+            return;
+
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+
+        foreach (var provider in ownerProviders)
+        {
+            if (string.IsNullOrWhiteSpace(provider) || !seen.Add(provider))
+                continue;
+
+            if (ReferencedByName.TryGetValue(provider, out var referenced))
+                failures.AddRange(referenced.GetReferenceConfigurationFailures());
+        }
     }
 
     private static string FormatChoices(IEnumerable<string> names) =>

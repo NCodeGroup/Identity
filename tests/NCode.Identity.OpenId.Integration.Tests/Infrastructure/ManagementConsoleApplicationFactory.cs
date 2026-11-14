@@ -147,7 +147,6 @@ public class ManagementConsoleApplicationFactory
             configurationBuilder.AddInMemoryCollection(
                 new Dictionary<string, string?>
                 {
-                    ["LocalDevelopment:Enabled"] = "true",
                     ["Bff:Frontends:mgmt:Authority"] = HostApplicationFactory.TestServerIssuer,
                     ["ManagementConsole:ManagementApiUrl"] = "http://localhost/api",
                     ["ManagementConsole:BundleRootPath"] = BundleRootPath,

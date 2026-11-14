@@ -119,7 +119,8 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
 
     // Every host this factory builds, including WithWebHostBuilder derivatives that share its database, must unwrap the
     // same master keys, so they share one root key. The hosts also share the factory's key ring, which that root key
-    // protects. An inline key is allowed outside Production; this one is generated per run and never committed.
+    // protects. The factory's LocalDevelopment:Enabled allows an inline key; this one is generated per run and never
+    // committed.
     private string RootKey { get; } = Base64Url.EncodeToString(RandomNumberGenerator.GetBytes(32));
 
     /// <summary>
@@ -1409,7 +1410,6 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             configurationBuilder.AddInMemoryCollection(
                 new Dictionary<string, string?>
                 {
-                    ["LocalDevelopment:Enabled"] = "true",
                     ["OpenId:TenantResolution:StaticSingle:Issuer"] = TestServerIssuer,
                     ["SecretProtection:RootKeyProvider"] = "local",
                     ["SecretProtection:RootKeyProviders:Local:Key"] = RootKey,

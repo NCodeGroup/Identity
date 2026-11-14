@@ -1312,6 +1312,44 @@ spec:
   Valkey, so each update has a short outage ([Updates](#updates)). For a rolling update, set `replicaCount` above 1 and
   name `valkey.existingSecret` or `valkey.parts.existingSecret`.
 
+### Migrations and failed releases
+
+The migration Job is a Helm `pre-install,pre-upgrade` hook ([Migrations](#migrations)), so Flux waits for it as Helm
+does, up to `timeout`. A failed migration fails the Helm action before any pod is replaced, and the `HelmRelease` reports
+`Ready=False` with the reason `InstallFailed` or `UpgradeFailed`; the previous revision's pods keep serving. A failed
+upgrade is remediated by a rollback to the previous revision, which runs no migration, and a failed install by an
+uninstall and a retry. After the last retry the release stays failed, with the Job and its logs in place:
+
+```bash
+kubectl -n identity logs job/identity-ncode-identity-host-migrations
+```
+
+Fix the cause, then run `flux reconcile helmrelease identity -n identity --reset`, which resets the failure count and
+tries the release again.
+
+### The ingress
+
+`ingress.className` names the cluster's `IngressClass` (`traefik`), and `ingress.controller` tells the chart which
+router it renders for ([Routing to the pods](#routing-to-the-pods)). `ingress.annotations` and
+`managementConsole.ingress.annotations` add to the annotations the chart renders. In the example,
+`cert-manager.io/cluster-issuer` names a `ClusterIssuer` of yours, so cert-manager issues the Secret each `tls` entry
+names, and `external-dns.alpha.kubernetes.io/ttl` is read by ExternalDNS, which creates the DNS records for the
+Ingress's hosts. Put the annotations of the controllers your cluster runs in the same place.
+`forwardedHeaders.knownNetworks` is k3s's default pod CIDR, `10.42.0.0/16`: set it to the pod CIDR of your cluster, so
+the host trusts the `X-Forwarded-*` headers of the ingress controller.
+
+### What CI proves for the example
+
+The `Host chart` workflow lints `ci/gitops-values.yaml` strictly and renders it with every other values file, and it
+checks that:
+
+- `ci/gitops-values.yaml` is the `values` of `examples/flux/release/helmrelease.yaml`;
+- this README shows each file under `examples/flux/` as it is;
+- the `HelmRelease` names the chart and the `HelmRepository`, its version range includes prereleases, and its `timeout`
+  outlasts the migration Job's `migrations.activeDeadlineSeconds`.
+
+CI does not run Flux: it proves the values render and the manifests agree with the chart and this README.
+
 ## API reference
 
 The host serves neither the OpenAPI document (`/openapi/v1.json`) nor the Scalar API reference page (`/scalar/v1`) by

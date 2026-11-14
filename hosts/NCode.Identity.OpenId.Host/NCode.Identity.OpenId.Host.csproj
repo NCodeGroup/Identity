@@ -42,6 +42,12 @@
         <PackageReference Include="Scalar.AspNetCore" />
     </ItemGroup>
 
+    <ItemGroup>
+        <!-- The local-development overlays set LocalDevelopment:Enabled, so no published host carries them (ADR-1370). -->
+        <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
+        <Content Update="appsettings.Conformance.json" CopyToPublishDirectory="Never" />
+    </ItemGroup>
+
     <!-- build/openapi.ps1 generates the OpenAPI document (ADR-1505). -->
     <PropertyGroup>
         <OpenApiGenerateDocumentsOnBuild>false</OpenApiGenerateDocumentsOnBuild>

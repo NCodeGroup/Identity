@@ -68,9 +68,10 @@ intercepts keys in memory, no root key provider is a default, and no development
     ([ADR-1481](1481-the-composition-layer-serves-the-api-reference-only-where-a-host-enables-it-and-each-management-problem-says-when-it-occurs.md)).
 - **Who sets it.** The repository's local profiles set it in configuration they own: `appsettings.Development.json` of
   both reference hosts and `appsettings.Conformance.json` of the OpenID host, whose overlay runs an `ephemeral` root
-  key and `environment_type: testing`. The chart never sets it, and its `environment` value stays `Production`. A test
-  host sets it in its own in-memory configuration when it needs the relaxations, and a test of the strict posture runs
-  a host that does not set it.
+  key and `environment_type: testing`. The chart never sets it, and its `environment` value stays `Production`.
+  Neither reference host publishes its `appsettings.Development.json` or `appsettings.Conformance.json`, so an image
+  run under any environment name loads no overlay that sets the switch. A test host sets it in its own in-memory
+  configuration when it needs the relaxations, and a test of the strict posture runs a host that does not set it.
 
 ### Inert unless configured
 
@@ -184,6 +185,9 @@ intercepts keys in memory, no root key provider is a default, and no development
   and [`DevelopmentSecretFile.cs`](../../hosts/NCode.Identity.OpenId.LocalDev/DevelopmentSecrets/DevelopmentSecretFile.cs).
 - `hosts/NCode.Identity.OpenId.Host/appsettings.Development.json` and
   `tests/NCode.Identity.OpenId.Integration.Tests/Endpoints/DeveloperSpaClientSeedingTests.cs`.
+- [`NCode.Identity.OpenId.Host.csproj`](../../hosts/NCode.Identity.OpenId.Host/NCode.Identity.OpenId.Host.csproj) and
+  [`NCode.Identity.ManagementConsole.Host.csproj`](../../hosts/NCode.Identity.ManagementConsole.Host/NCode.Identity.ManagementConsole.Host.csproj),
+  which keep the local-development overlays out of the published output.
 - [ADR-1169](1169-every-tenant-is-provisioned-with-a-persisted-key-for-each-configured-algorithm-it-uses.md),
   [ADR-1247](1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md),
   [ADR-1447](1447-each-host-composes-forwarded-header-trust-and-strict-transport-security-from-one-general-package.md),

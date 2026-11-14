@@ -36,6 +36,8 @@ logs.
 - `hosts/NCode.Identity.ManagementConsole.Host/Dockerfile` mirrors it with the same pinned bases. It builds
   `@ncode/app-mgmt`, serves `/app/mgmt` with `ManagementConsole__BundleRootPath=/app/mgmt`, and runs as UID 1654 on
   8443.
+- An image carries only the `appsettings.json` of its host, never the local-development overlays
+  ([ADR-1370](1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md)).
 
 ### Multi-arch without emulation
 

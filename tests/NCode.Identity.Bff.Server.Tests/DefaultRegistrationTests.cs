@@ -3,6 +3,7 @@
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.Bff.Options;
@@ -110,9 +111,9 @@ public class DefaultRegistrationTests : BaseTests
     public async Task AddIdentityBff_WithHttpUrlsInDevelopmentWithoutTheSwitch_FailsValidation()
     {
         var serviceCollection = CreateServices();
-        var mockEnvironment = CreateLooseMock<IHostEnvironment>();
-        mockEnvironment.SetupGet(x => x.EnvironmentName).Returns("Development");
-        serviceCollection.AddSingleton(mockEnvironment.Object);
+        serviceCollection.AddSingleton<IHostEnvironment>(
+            new TestHostEnvironment { EnvironmentName = Environments.Development }
+        );
         serviceCollection.AddIdentityBff(
             CreateConfiguration(
                 authority: "http://localhost:5000",
@@ -188,4 +189,15 @@ public class DefaultRegistrationTests : BaseTests
     }
 
     #endregion
+
+    private sealed class TestHostEnvironment : IHostEnvironment
+    {
+        public string EnvironmentName { get; set; } = string.Empty;
+
+        public string ApplicationName { get; set; } = string.Empty;
+
+        public string ContentRootPath { get; set; } = string.Empty;
+
+        public IFileProvider ContentRootFileProvider { get; set; } = new NullFileProvider();
+    }
 }

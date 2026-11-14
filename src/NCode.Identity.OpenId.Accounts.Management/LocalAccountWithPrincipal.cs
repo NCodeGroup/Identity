@@ -11,7 +11,9 @@ namespace NCode.Identity.OpenId.Accounts.Management;
 /// with the principal while the response's entity tag still derives from the account's concurrency token.
 /// </summary>
 /// <param name="Account">The local account.</param>
-/// <param name="PrincipalId">The identifier of the principal that owns the account, or <c>null</c> when none is linked.</param>
+/// <param name="PrincipalId">
+/// The identifier of the principal that owns the account, or <c>null</c> when none is linked.
+/// </param>
 internal sealed record LocalAccountWithPrincipal(PersistedLocalAccount Account, string? PrincipalId)
     : ISupportConcurrencyToken
 {

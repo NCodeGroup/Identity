@@ -464,10 +464,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   is an existing Secret (`setup.token.existingSecret` and `setup.token.key`) that the pods read as `Setup__Token`, and
   `setup.job` is an opt-in Job that runs the host's `setup` command once per release. Rendering fails for a release the
   host would refuse to start (an empty or wildcard `allowedHosts`, a missing database Secret or one named in both
-  forms, a `StaticSingle` issuer that is not `https`, a missing or incomplete root key provider, `ephemeral` or a local
-  provider without its Secret in a release whose `environment` is `Production`, such a release with no recovery decision, a
-  `setup.token.existingSecret` without its key, an enabled `setup.job` without its Secret), for more than one replica
-  without Valkey, and for unknown values. Without Valkey the chart uses the `Recreate` deployment strategy, which waits for the old pod to
+  forms, a `StaticSingle` issuer that is not `https`, a missing or incomplete root key provider, `ephemeral`, a local
+  provider without its Secret, a release with no recovery decision, a `setup.token.existingSecret` without its key, an
+  enabled `setup.job` without its Secret), in any `environment`, for more than one replica without Valkey, and for
+  unknown values. Without Valkey the chart uses the `Recreate` deployment strategy, which waits for the old pod to
   terminate before starting the next, so it never runs two replicas at once. The `Host chart` CI workflow lints the
   chart, renders each example release, and checks that each unsafe release is refused; the workflow also installs the
   chart with the management console in a kind cluster, behind Traefik and behind an Envoy Gateway, and proves the pods
@@ -4615,8 +4615,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 
 - **The host chart takes its root key by reference, and its README documents rotating it by hand.**
-  `secretProtection.rootKeyProvider` selects `local`, `aws-kms`, `azure-key-vault` or `google-cloud-kms` (`ephemeral`
-  only when the release's `environment` is not `Production`, and the chart never sets `LocalDevelopment:Enabled`); a local root key lives in a Secret the chart mounts, and
+  `secretProtection.rootKeyProvider` selects `local`, `aws-kms`, `azure-key-vault` or `google-cloud-kms` (the chart
+  refuses `ephemeral` because the host does, and the chart never sets `LocalDevelopment:Enabled`); a local root key
+  lives in a Secret the chart mounts, and
   `secretProtection.local.previousKeySecrets` keep older root keys available so the master keys they wrapped still
   unwrap through a rotation. The README warns never to overwrite a root key in place, such as by writing other contents
   into the same Secret, because that destroys the only key that can unwrap the existing master keys and leaves the

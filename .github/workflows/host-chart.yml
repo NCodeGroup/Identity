@@ -99,7 +99,9 @@ jobs:
           refuse --set secretProtection.rootKeyProvider=
           refuse --set secretProtection.rootKeyProvider=ephemeral
           refuse --set environment=Staging --set secretProtection.rootKeyProvider=
+          refuse --set environment=Staging --set secretProtection.rootKeyProvider=ephemeral
           refuse --set secretProtection.local.keySecret=
+          refuse --set environment=Staging --set secretProtection.local.keySecret=
           refuse --set secretProtection.rootKeyProvider=aws-kms
           refuse --set secretProtection.rootKeyProvider=aws-kms --set secretProtection.awsKms.keyArn=not-an-arn
           refuse --set secretProtection.rootKeyProvider=azure-key-vault
@@ -123,6 +125,7 @@ jobs:
           refuse --set secretProtection.remoteKeyProviders.azureKeyVault.vaultUri=https://contoso.vault.azure.net
           refuse --set secretProtection.remoteKeyProviders.googleCloudKms.keyRing=projects/my-project/locations/us-central1/keyRings/ncode-identity-tenant-keys
           refuse --set secretProtection.recovery.publicKeyConfigMap=
+          refuse --set environment=Staging --set secretProtection.recovery.publicKeyConfigMap=
           refuse --set tenantResolution.staticSingle.issuer=
           refuse --set tenantResolution.staticSingle.issuer=http://id.example.com
           refuse --set unknownSetting=true

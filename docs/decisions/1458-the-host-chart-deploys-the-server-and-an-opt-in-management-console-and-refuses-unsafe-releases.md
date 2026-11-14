@@ -56,7 +56,7 @@ release the host or the console would refuse.**
    - `replicaCount` is above 1 without `valkey.existingSecret` or `valkey.parts.existingSecret`;
    - a root key provider's key reference is missing or malformed.
 
-   In Production, rendering also fails on the `ephemeral` provider, on a `local` provider without
+   Rendering also fails, in any environment, on the `ephemeral` provider, on a `local` provider without
    `secretProtection.local.keySecret`, and when there is no recovery decision (`recovery.publicKeyConfigMap` or
    `recovery.disabled`). `values.schema.json` rejects unknown and mistyped values, so a typo fails instead of being
    ignored.

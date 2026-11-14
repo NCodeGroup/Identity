@@ -163,10 +163,8 @@ Rendering fails, before anything is applied, when:
   `setup.job.existingSecret`, `setup.job.userNameKey` or `setup.job.passwordKey` is empty;
 - the `StaticSingle` strategy has no `https` issuer;
 - `secretProtection.rootKeyProvider` is empty, in any environment, because the host does not start without one;
-- `environment` is `Production` and `secretProtection.rootKeyProvider` is `ephemeral`, which would leave no root key
-  outside the pod;
-- `environment` is `Production`, `secretProtection.rootKeyProvider` is `local`, and `secretProtection.local.keySecret`
-  is empty;
+- `secretProtection.rootKeyProvider` is `ephemeral`, in any environment, which would leave no root key outside the pod;
+- `secretProtection.rootKeyProvider` is `local`, in any environment, and `secretProtection.local.keySecret` is empty;
 - `secretProtection.rootKeyProvider` is `aws-kms`, in any environment, and `secretProtection.awsKms.keyArn` is empty or
   is not the ARN of a KMS key or alias;
 - `secretProtection.rootKeyProvider` is `azure-key-vault`, in any environment, and
@@ -190,7 +188,7 @@ Rendering fails, before anything is applied, when:
   with the pod's ambient identity, such as EKS Pod Identity or Workload Identity Federation for GKE. The console's
   identities under `managementConsole.secretProtection` are checked the same way for each vendor a console remote key
   names;
-- `environment` is `Production`, `secretProtection.recovery.publicKeyConfigMap` is empty, and
+- `secretProtection.recovery.publicKeyConfigMap` is empty, in any environment, and
   `secretProtection.recovery.disabled` is not `true`, because losing the root key would then lose every stored secret;
 - `replicaCount` is above 1 without `valkey.existingSecret` or `valkey.parts.existingSecret`, because replicas share
   single-use state through Valkey;

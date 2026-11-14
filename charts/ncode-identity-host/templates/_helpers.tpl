@@ -296,19 +296,17 @@ The chart never sets LocalDevelopment:Enabled, and the image carries no local-de
 deployment posture under every environment value. The checks below are the chart's own refusals at render time.
 */}}
 {{- if not .Values.secretProtection.rootKeyProvider }}
-{{- fail "secretProtection.rootKeyProvider is required: local, aws-kms, azure-key-vault or google-cloud-kms, or ephemeral outside Production." }}
+{{- fail "secretProtection.rootKeyProvider is required: local, aws-kms, azure-key-vault or google-cloud-kms." }}
 {{- end }}
-{{- if eq .Values.environment "Production" }}
 {{- $secretProtection := .Values.secretProtection }}
 {{- if eq $secretProtection.rootKeyProvider "ephemeral" }}
-{{- fail "secretProtection.rootKeyProvider must name a root key held outside the pod in Production: local, aws-kms, azure-key-vault or google-cloud-kms." }}
+{{- fail "secretProtection.rootKeyProvider must name a root key held outside the pod: local, aws-kms, azure-key-vault or google-cloud-kms." }}
 {{- end }}
 {{- if and (eq $secretProtection.rootKeyProvider "local") (not $secretProtection.local.keySecret) }}
 {{- fail "secretProtection.local.keySecret must name the Secret holding the local root key." }}
 {{- end }}
 {{- if and (not $secretProtection.recovery.publicKeyConfigMap) (not $secretProtection.recovery.disabled) }}
 {{- fail "secretProtection.recovery must name the recovery public key ConfigMap, or set disabled to accept that losing the root key loses every stored secret." }}
-{{- end }}
 {{- end }}
 {{- if and (gt (int .Values.replicaCount) 1) (not (include "identity-host.valkeyEnabled" .)) }}
 {{- fail "replicaCount above 1 requires valkey.existingSecret or valkey.parts.existingSecret: replicas share single-use state through Valkey." }}

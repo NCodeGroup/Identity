@@ -105,8 +105,8 @@ valkey:
 # Stored secrets and the Data Protection key ring are encrypted under a root key held outside the database; see "Secret
 # protection" in the chart's README.
 secretProtection:
-  # Required: local, aws-kms, azure-key-vault or google-cloud-kms once its values are set. The chart renders ephemeral
-  # only outside Production, and the host's deployment posture refuses it.
+  # Required: one of local, aws-kms, azure-key-vault or google-cloud-kms once its values are set. The chart refuses
+  # ephemeral because the host's deployment posture does.
   rootKeyProvider: ""
   local:
     # Secret holding the root key under the key 'key' (base64url, 32 bytes).
@@ -265,9 +265,9 @@ platform:
   # as client_credentials for the setup Job's automation client. Empty adds none.
   grantTypesEnabled: []
 
-# TLS between the ingress and the pods (ADR-1504). The pods serve HTTPS only, and the host refuses to start in
-# Production without a certificate it can serve. The chart mounts the certificate at /etc/ncode-identity/tls and points
-# the probes, the Service and the Ingress at the pods' HTTPS port.
+# TLS between the ingress and the pods (ADR-1504). The pods serve HTTPS only, and the host refuses to start without a
+# certificate it can serve, because the chart never sets LocalDevelopment:Enabled. The chart mounts the certificate at
+# /etc/ncode-identity/tls and points the probes, the Service and the Ingress at the pods' HTTPS port.
 backendTls:
   # A kubernetes.io/tls Secret the operator created, with tls.crt, tls.key and ca.crt. Its certificate names the
   # Service's DNS names: <service>, <service>.<namespace>, <service>.<namespace>.svc and

@@ -175,7 +175,12 @@ internal class FederatedIdentityStore(
         }
 
         var normalizedIssuer = Normalize(issuer);
-        var normalizedSubjects = subjects.Select(Normalize).ToList();
+        var normalizedSubjects = new List<string>(subjects.Count);
+        foreach (var subject in subjects)
+        {
+            normalizedSubjects.Add(Normalize(subject));
+        }
+
         var entities = await DbContext
             .FederatedIdentities.Include(entity => entity.FederatedPrincipal)
             .Include(entity => entity.Tenant)

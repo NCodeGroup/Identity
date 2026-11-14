@@ -299,19 +299,30 @@ internal class LocalAccountApiEndpointHandler(
                     new PageRequest { Cursor = cursor, Limit = effectiveLimit },
                     cancellationToken
                 );
+
+                var localAccountIds = new List<string>(page.Items.Count);
+                foreach (var account in page.Items)
+                {
+                    localAccountIds.Add(account.LocalAccountId);
+                }
+
                 var principalIds = await FindSelfIssuedPrincipalIdsAsync(
                     storeManager,
-                    [.. page.Items.Select(account => account.LocalAccountId)],
+                    localAccountIds,
                     cancellationToken
                 );
+
+                var items = new List<(PersistedLocalAccount Account, string? PrincipalId)>(
+                    page.Items.Count
+                );
+                foreach (var account in page.Items)
+                {
+                    items.Add((account, principalIds.GetValueOrDefault(account.LocalAccountId)));
+                }
+
                 return new PagedResult<(PersistedLocalAccount Account, string? PrincipalId)>
                 {
-                    Items =
-                    [
-                        .. page.Items.Select(account =>
-                            (account, principalIds.GetValueOrDefault(account.LocalAccountId))
-                        ),
-                    ],
+                    Items = items,
                     NextCursor = page.NextCursor,
                 };
             },
@@ -339,20 +350,22 @@ internal class LocalAccountApiEndpointHandler(
             async token =>
             {
                 await using var storeManager = await StoreManagerFactory.CreateAsync(token);
-                return await storeManager
+                var account = await storeManager
                     .GetStore<ILocalAccountStore>()
                     .GetByIdOrDefaultAsync(localAccountId, token);
-            },
-            async (account, token) =>
-            {
-                await using var storeManager = await StoreManagerFactory.CreateAsync(token);
+                if (account is null)
+                {
+                    return null;
+                }
+
                 var principalId = await FindSelfIssuedPrincipalIdAsync(
                     storeManager,
                     account.LocalAccountId,
                     token
                 );
-                return ToLocalAccountResource(account, principalId);
+                return new LocalAccountWithPrincipal(account, principalId);
             },
+            value => ToLocalAccountResource(value.Account, value.PrincipalId),
             cancellationToken
         );
     }
@@ -390,12 +403,6 @@ internal class LocalAccountApiEndpointHandler(
             return ManagementProblems.ResourceNotFound();
         }
 
-        var principalId = await FindSelfIssuedPrincipalIdAsync(
-            storeManager,
-            localAccountId,
-            cancellationToken
-        );
-
         var ifMatch = httpContext.Request.Headers.IfMatch.ToString();
         var error = await LocalAccountValidator.ValidateUpdateAsync(
             localAccountId,
@@ -410,18 +417,25 @@ internal class LocalAccountApiEndpointHandler(
             return ToErrorResult(error);
         }
 
+        var principalId = await FindSelfIssuedPrincipalIdAsync(
+            storeManager,
+            localAccountId,
+            cancellationToken
+        );
+
         account.UserName = request.UserName;
         account.Email = request.Email;
         account.EmailVerified = request.EmailVerified;
         await store.UpdateAsync(account, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        var resource = ToLocalAccountResource(account, principalId);
         await ManagementAuditRecorder.RecordLocalAccountChangedAsync(
             httpContext,
             tenantId,
             localAccountId,
             ResourceChangeTypes.Updated,
-            ToResourceValues(ToLocalAccountResource(account, principalId))
+            ToResourceValues(resource)
         );
 
         httpContext.Response.Headers.ETag = ManagementEntityTags.Format(account.ConcurrencyToken);
@@ -613,12 +627,13 @@ internal class LocalAccountApiEndpointHandler(
             );
         }
 
+        var resource = ToLocalAccountResource(account, principalId);
         await ManagementAuditRecorder.RecordLocalAccountChangedAsync(
             httpContext,
             tenantId,
             localAccountId,
             ResourceChangeTypes.Updated,
-            ToResourceValues(ToLocalAccountResource(account, principalId))
+            ToResourceValues(resource)
         );
 
         httpContext.Response.Headers.ETag = ManagementEntityTags.Format(account.ConcurrencyToken);
@@ -1003,10 +1018,15 @@ internal class LocalAccountApiEndpointHandler(
                 localAccountIds,
                 cancellationToken
             );
-        return identities.ToDictionary(
-            identity => identity.Subject,
-            identity => identity.PrincipalId,
+        var principalIds = new Dictionary<string, string>(
+            identities.Count,
             StringComparer.OrdinalIgnoreCase
         );
+        foreach (var identity in identities)
+        {
+            principalIds[identity.Subject] = identity.PrincipalId;
+        }
+
+        return principalIds;
     }
 }

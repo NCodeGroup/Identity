@@ -3,7 +3,8 @@
 
 using JetBrains.Annotations;
 using Microsoft.Extensions.DependencyInjection;
-using NCode.Identity.AspNetCore.Options;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using NCode.Identity.AspNetCore;
 
 namespace NCode.Identity.Server;
 
@@ -20,13 +21,14 @@ public static class DefaultRegistration
         /// Configures services and handlers for Identity Server.
         /// </summary>
         /// <remarks>
-        /// It registers <see cref="LocalDevelopmentOptions"/> so every consumer resolves them; the host binds the
-        /// <c>LocalDevelopment</c> section by calling <c>AddDeploymentSafety</c>, and the switch is off until it does.
+        /// It registers a <see cref="LocalDevelopmentMode"/> that is off, so every consumer resolves one and the strict
+        /// posture holds; the host's <c>AddLocalDevelopmentOptions</c> call replaces it with the mode its configuration
+        /// selects.
         /// </remarks>
         /// <returns>The <see cref="IIdentityServerBuilder"/> instance for additional configuration.</returns>
         public IIdentityServerBuilder AddIdentityServer()
         {
-            serviceCollection.AddOptions<LocalDevelopmentOptions>();
+            serviceCollection.TryAddSingleton(new LocalDevelopmentMode(false));
             return new IdentityServerBuilder(serviceCollection);
         }
     }

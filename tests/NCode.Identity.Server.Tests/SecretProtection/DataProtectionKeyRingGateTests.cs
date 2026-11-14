@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using Moq;
-using NCode.Identity.AspNetCore.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Secrets.Persistence.Protection;
 using NCode.Identity.Server.SecretProtection;
 using Xunit;
@@ -60,7 +60,7 @@ public class DataProtectionKeyRingGateTests : SecretProtectionTestBase
         new(
             keyManager,
             Options.Create(keyRingOptions ?? new DataProtectionKeyRingOptions()),
-            Options.Create(new LocalDevelopmentOptions { Enabled = localDevelopmentEnabled }),
+            new LocalDevelopmentMode(localDevelopmentEnabled),
             timeProvider,
             CreateLooseMock<ILogger<DataProtectionKeyRingGate>>().Object
         );

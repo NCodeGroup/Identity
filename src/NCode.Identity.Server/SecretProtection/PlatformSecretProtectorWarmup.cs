@@ -4,7 +4,7 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using NCode.Identity.AspNetCore.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Server.Logging;
@@ -24,7 +24,7 @@ namespace NCode.Identity.Server.SecretProtection;
 internal class PlatformSecretProtectorWarmup(
     PlatformSecretProtectorLoader loader,
     IOptions<SecretProtectionOptions> protectionOptions,
-    IOptions<LocalDevelopmentOptions> localDevelopmentOptions,
+    LocalDevelopmentMode localDevelopment,
     ILogger<PlatformSecretProtectorWarmup> logger
 ) : IHostedService
 {
@@ -33,8 +33,7 @@ internal class PlatformSecretProtectorWarmup(
     private IOptions<SecretProtectionOptions> ProtectionOptionsAccessor { get; } =
         protectionOptions;
 
-    private IOptions<LocalDevelopmentOptions> LocalDevelopmentOptionsAccessor { get; } =
-        localDevelopmentOptions;
+    private LocalDevelopmentMode LocalDevelopment { get; } = localDevelopment;
 
     private ILogger<PlatformSecretProtectorWarmup> Logger { get; } = logger;
 
@@ -44,7 +43,7 @@ internal class PlatformSecretProtectorWarmup(
         await Loader.LoadAsync(cancellationToken);
 
         if (
-            !LocalDevelopmentOptionsAccessor.Value.Enabled
+            !LocalDevelopment.Enabled
             && string.Equals(
                 ProtectionOptionsAccessor.Value.RootKeyProvider,
                 KeyWrapperNames.Local,

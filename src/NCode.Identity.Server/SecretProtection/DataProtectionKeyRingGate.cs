@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using NCode.Identity.AspNetCore.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Server.Logging;
 
 namespace NCode.Identity.Server.SecretProtection;
@@ -33,7 +33,7 @@ namespace NCode.Identity.Server.SecretProtection;
 internal class DataProtectionKeyRingGate(
     IKeyManager keyManager,
     IOptions<DataProtectionKeyRingOptions> optionsAccessor,
-    IOptions<LocalDevelopmentOptions> localDevelopmentOptions,
+    LocalDevelopmentMode localDevelopment,
     TimeProvider timeProvider,
     ILogger<DataProtectionKeyRingGate> logger
 ) : IHostedService
@@ -54,8 +54,7 @@ internal class DataProtectionKeyRingGate(
 
     private IOptions<DataProtectionKeyRingOptions> OptionsAccessor { get; } = optionsAccessor;
 
-    private IOptions<LocalDevelopmentOptions> LocalDevelopmentOptionsAccessor { get; } =
-        localDevelopmentOptions;
+    private LocalDevelopmentMode LocalDevelopment { get; } = localDevelopment;
 
     private TimeProvider TimeProvider { get; } = timeProvider;
 
@@ -88,7 +87,7 @@ internal class DataProtectionKeyRingGate(
             if (CanDecrypt(key, keyId))
                 continue;
 
-            if (LocalDevelopmentOptionsAccessor.Value.Enabled)
+            if (LocalDevelopment.Enabled)
             {
                 Revoke(keyId, LocalDevelopmentRevocationReason);
             }

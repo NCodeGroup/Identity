@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using NCode.Identity.AspNetCore;
-using NCode.Identity.AspNetCore.Options;
 using NCode.Identity.OpenId;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Identity.Server.OpenApi;
@@ -90,9 +89,7 @@ public static class IdentityServerApiReferenceEndpointRouteBuilderExtensions
                 return endpoints;
             }
 
-            var localDevelopment = services
-                .GetRequiredService<IOptions<LocalDevelopmentOptions>>()
-                .Value;
+            var localDevelopment = services.GetRequiredService<LocalDevelopmentMode>();
             var bootstrap = services.GetRequiredService<IOptions<BootstrapAdminOptions>>().Value;
 
             endpoints.MapScalarApiReference(

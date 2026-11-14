@@ -5,7 +5,7 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.OpenApi;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
-using NCode.Identity.AspNetCore.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId;
 
 namespace NCode.Identity.Server.DevelopmentEnvironment.OpenApi;
@@ -20,7 +20,7 @@ namespace NCode.Identity.Server.DevelopmentEnvironment.OpenApi;
 /// document, and runs after the generic token examples are added by the composition root.
 /// </summary>
 internal sealed class BootstrapTokenExampleDocumentTransformer(
-    IOptions<LocalDevelopmentOptions> localDevelopmentOptions,
+    LocalDevelopmentMode localDevelopment,
     IOptions<BootstrapAdminOptions> optionsAccessor
 ) : IOpenApiDocumentTransformer
 {
@@ -37,7 +37,7 @@ internal sealed class BootstrapTokenExampleDocumentTransformer(
     )
     {
         // The pre-filled example embeds the (decoded) bootstrap secret, so it is a local-development convenience.
-        if (!localDevelopmentOptions.Value.Enabled)
+        if (!localDevelopment.Enabled)
         {
             return Task.CompletedTask;
         }

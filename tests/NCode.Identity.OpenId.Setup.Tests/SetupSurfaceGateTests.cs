@@ -3,8 +3,7 @@
 
 using System.Net;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
-using NCode.Identity.AspNetCore.Options;
+using NCode.Identity.AspNetCore;
 
 namespace NCode.Identity.OpenId.Setup;
 
@@ -23,10 +22,7 @@ public sealed class SetupSurfaceGateTests : IDisposable
     #region Helpers
 
     private DefaultSetupSurfaceGate CreateGate(bool localDevelopmentEnabled = false) =>
-        new(
-            MockInstanceSetupService.Object,
-            Options.Create(new LocalDevelopmentOptions { Enabled = localDevelopmentEnabled })
-        );
+        new(MockInstanceSetupService.Object, new LocalDevelopmentMode(localDevelopmentEnabled));
 
     private void SetupIsInitialized(bool isInitialized) =>
         MockInstanceSetupService

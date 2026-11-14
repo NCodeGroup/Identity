@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.DataProtection.KeyManagement;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using NCode.Identity.AspNetCore.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.Secrets.KeyWrapping;
 using NCode.Identity.Secrets.Persistence.Options;
 using NCode.Identity.Secrets.Persistence.Protection;
@@ -57,7 +57,7 @@ public class PlatformSecretProtectorWarmupTests : BaseTests
                 CreateLooseMock<ILogger<PlatformSecretProtectorLoader>>().Object
             ),
             Options.Create(protectionOptions),
-            Options.Create(new LocalDevelopmentOptions { Enabled = localDevelopmentEnabled }),
+            new LocalDevelopmentMode(localDevelopmentEnabled),
             logger
         );
 

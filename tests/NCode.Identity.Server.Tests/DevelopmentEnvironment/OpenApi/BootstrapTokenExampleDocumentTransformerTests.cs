@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.OpenApi;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.OpenApi;
-using NCode.Identity.AspNetCore.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId;
 using NCode.Identity.Server.DevelopmentEnvironment;
 using NCode.Identity.Server.DevelopmentEnvironment.OpenApi;
@@ -26,11 +26,7 @@ public class BootstrapTokenExampleDocumentTransformerTests
     private static BootstrapTokenExampleDocumentTransformer CreateTransformer(
         bool localDevelopmentEnabled,
         BootstrapAdminOptions bootstrapOptions
-    ) =>
-        new(
-            Options.Create(new LocalDevelopmentOptions { Enabled = localDevelopmentEnabled }),
-            Options.Create(bootstrapOptions)
-        );
+    ) => new(new LocalDevelopmentMode(localDevelopmentEnabled), Options.Create(bootstrapOptions));
 
     private static BootstrapAdminOptions CreateConfiguredBootstrapOptions() =>
         new()

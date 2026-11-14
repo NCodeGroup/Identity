@@ -6,11 +6,11 @@
     Generates the reference host's OpenAPI document at build time and writes it to artifacts/openapi/v1.json.
 .DESCRIPTION
     The script builds the reference host (unless -NoBuild), then runs the GenerateOpenApiDocuments target of
-    Microsoft.Extensions.ApiDescription.Server in the Staging environment with an ephemeral root key and a static
-    issuer, so the host starts without a database or a secret store. The document describes the product whatever the
-    ApiReference switches say (ADR-1481). With -Version the script sets info.version of the document; the publish
-    workflow stamps the artifact version this way (ADR-1505). A version with a character outside [0-9A-Za-z.-] is
-    refused before any build. The script prints the document's path.
+    Microsoft.Extensions.ApiDescription.Server in the Staging environment with LocalDevelopment:Enabled, an ephemeral
+    root key and a static issuer, so the host starts without a database or a secret store. The document describes the
+    product whatever the ApiReference switches say (ADR-1481). With -Version the script sets info.version of the
+    document; the publish workflow stamps the artifact version this way (ADR-1505). A version with a character outside
+    [0-9A-Za-z.-] is refused before any build. The script prints the document's path.
 .PARAMETER Configuration
     The build configuration. Defaults to Release.
 .PARAMETER NoBuild
@@ -46,6 +46,7 @@ $environment = [ordered]@{
     'ASPNETCORE_ENVIRONMENT'                         = 'Staging'
     'OpenId__TenantResolution__StaticSingle__Issuer' = 'https://identity.example'
     'SecretProtection__RootKeyProvider'              = 'ephemeral'
+    'LocalDevelopment__Enabled'                      = 'true'
 }
 $saved = @{}
 foreach ($name in $environment.Keys) {

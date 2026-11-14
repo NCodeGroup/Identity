@@ -93,8 +93,6 @@ public sealed class BlazorBffApplication : WebApplicationFactory<App>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(Environments.Development);
-        // The host reads the switch while it registers services, before the in-memory configuration below applies.
-        builder.UseSetting(BffHostSetup.LocalDevelopmentKey, "true");
         builder.ConfigureLogging(logging => logging.ClearProviders());
         builder.ConfigureAppConfiguration(configuration =>
             configuration.AddInMemoryCollection(BffHostSetup.CreateConfiguration(Settings, Origin))

@@ -38,12 +38,13 @@ public sealed class TransportSecurityRegistrationTests : BaseTests
             new WebApplicationOptions { EnvironmentName = environmentName }
         );
         builder.Logging.ClearProviders();
-        if (localDevelopment)
-        {
-            builder.Configuration.AddInMemoryCollection(
-                new Dictionary<string, string?> { ["LocalDevelopment:Enabled"] = "true" }
-            );
-        }
+        // The value is always set so the process environment cannot change the test.
+        builder.Configuration.AddInMemoryCollection(
+            new Dictionary<string, string?>
+            {
+                ["LocalDevelopment:Enabled"] = localDevelopment ? "true" : "false",
+            }
+        );
         builder.WebHost.ConfigureKestrel(listen);
         builder.Services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
         builder.Services.AddTransportSecurity(builder.Configuration);
@@ -76,11 +77,8 @@ public sealed class TransportSecurityRegistrationTests : BaseTests
             {
                 ["Kestrel:Certificates:Default:Path"] = certificatePath,
                 ["Kestrel:Certificates:Default:KeyPath"] = keyPath,
+                ["LocalDevelopment:Enabled"] = localDevelopment ? "true" : "false",
             };
-            if (localDevelopment)
-            {
-                values["LocalDevelopment:Enabled"] = "true";
-            }
             builder.Configuration.AddInMemoryCollection(values);
             builder.WebHost.UseUrls(urls);
             builder.Services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));

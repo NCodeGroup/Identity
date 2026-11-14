@@ -65,8 +65,15 @@ try {
     if ($LASTEXITCODE -ne 0) { throw "GenerateOpenApiDocuments failed with exit code $LASTEXITCODE." }
 }
 finally {
+    # A variable that was unset is removed, because PowerShell passes $null to a .NET string as '', which Linux keeps
+    # as an empty value.
     foreach ($name in $environment.Keys) {
-        [Environment]::SetEnvironmentVariable($name, $saved[$name])
+        if ($null -eq $saved[$name]) {
+            Remove-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue
+        }
+        else {
+            [Environment]::SetEnvironmentVariable($name, $saved[$name])
+        }
     }
 }
 

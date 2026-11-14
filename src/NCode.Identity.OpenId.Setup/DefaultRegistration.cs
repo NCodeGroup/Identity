@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using NCode.Identity.AspNetCore;
 using NCode.Identity.OpenId.Management;
 using NCode.Identity.Registration;
 using NCode.Identity.Registration.AspNetCore;
@@ -37,9 +38,11 @@ public static class DefaultRegistration
         /// The section is bound strictly and checked when the host starts: a key that maps to no option, a configured
         /// token shorter than <see cref="SetupDefaults.MinimumTokenLength"/>, a generated-token lifetime outside one
         /// minute to twenty-four hours, and a root administrator with a username or a password alone stop the host
-        /// with an error naming the key.
+        /// with an error naming the key. The setup surface is served over HTTPS only, or also over plain HTTP from a
+        /// loopback remote address when the <c>LocalDevelopment:Enabled</c> switch is on.
         /// </remarks>
-        /// <param name="configuration">The <see cref="IConfiguration"/> read for the setup settings.</param>
+        /// <param name="configuration">The <see cref="IConfiguration"/> read for the setup settings and the
+        /// <c>LocalDevelopment</c> switch.</param>
         /// <param name="hostEnvironment">The <see cref="IHostEnvironment"/> whose content root anchors a relative
         /// bundle path.</param>
         /// <returns>The same <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>
@@ -68,6 +71,8 @@ public static class DefaultRegistration
                     )
                 )
                 .ValidateOnStart();
+
+            serviceCollection.AddLocalDevelopmentOptions(configuration);
 
             serviceCollection.TryAddSingleton(TimeProvider.System);
 

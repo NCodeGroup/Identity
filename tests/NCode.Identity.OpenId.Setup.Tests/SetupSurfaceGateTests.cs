@@ -1,9 +1,10 @@
 // Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
+using System.Net;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
-using HostEnvironments = Microsoft.Extensions.Hosting.Environments;
+using Microsoft.Extensions.Options;
+using NCode.Identity.AspNetCore.Options;
 
 namespace NCode.Identity.OpenId.Setup;
 
@@ -11,27 +12,21 @@ public sealed class SetupSurfaceGateTests : IDisposable
 {
     private MockRepository MockRepository { get; } = new(MockBehavior.Strict);
     private Mock<IInstanceSetupService> MockInstanceSetupService { get; }
-    private Mock<IHostEnvironment> MockHostEnvironment { get; }
 
     public SetupSurfaceGateTests()
     {
         MockInstanceSetupService = MockRepository.Create<IInstanceSetupService>();
-        MockHostEnvironment = MockRepository.Create<IHostEnvironment>();
     }
 
     public void Dispose() => MockRepository.Verify();
 
     #region Helpers
 
-    private DefaultSetupSurfaceGate CreateGate(string environmentName)
-    {
-        MockHostEnvironment.Setup(x => x.EnvironmentName).Returns(environmentName).Verifiable();
-
-        return new DefaultSetupSurfaceGate(
+    private DefaultSetupSurfaceGate CreateGate(bool localDevelopmentEnabled = false) =>
+        new(
             MockInstanceSetupService.Object,
-            MockHostEnvironment.Object
+            Options.Create(new LocalDevelopmentOptions { Enabled = localDevelopmentEnabled })
         );
-    }
 
     private void SetupIsInitialized(bool isInitialized) =>
         MockInstanceSetupService
@@ -39,10 +34,14 @@ public sealed class SetupSurfaceGateTests : IDisposable
             .ReturnsAsync(isInitialized)
             .Verifiable(Times.Once());
 
-    private static DefaultHttpContext CreateHttpContext(bool isHttps)
+    private static DefaultHttpContext CreateHttpContext(
+        bool isHttps,
+        IPAddress? remoteIpAddress = null
+    )
     {
         var httpContext = new DefaultHttpContext();
         httpContext.Request.Scheme = isHttps ? Uri.UriSchemeHttps : Uri.UriSchemeHttp;
+        httpContext.Connection.RemoteIpAddress = remoteIpAddress;
         return httpContext;
     }
 
@@ -54,7 +53,7 @@ public sealed class SetupSurfaceGateTests : IDisposable
     public async Task IsServedAsync_WhenTheInstanceIsNotInitialized_IsServed()
     {
         SetupIsInitialized(false);
-        var gate = CreateGate(HostEnvironments.Development);
+        var gate = CreateGate();
 
         var isServed = await gate.IsServedAsync(
             CreateHttpContext(isHttps: true),
@@ -68,7 +67,7 @@ public sealed class SetupSurfaceGateTests : IDisposable
     public async Task IsServedAsync_WhenTheInstanceIsInitialized_IsNotServed()
     {
         SetupIsInitialized(true);
-        var gate = CreateGate(HostEnvironments.Development);
+        var gate = CreateGate();
 
         var isServed = await gate.IsServedAsync(
             CreateHttpContext(isHttps: true),
@@ -79,12 +78,12 @@ public sealed class SetupSurfaceGateTests : IDisposable
     }
 
     [Fact]
-    public async Task IsServedAsync_WhenProductionAndTheRequestIsNotHttps_IsNotServedWithoutReadingTheInstance()
+    public async Task IsServedAsync_WhenTheSwitchIsOffAndTheRequestIsNotHttps_IsNotServedWithoutReadingTheInstance()
     {
-        var gate = CreateGate(HostEnvironments.Production);
+        var gate = CreateGate(localDevelopmentEnabled: false);
 
         var isServed = await gate.IsServedAsync(
-            CreateHttpContext(isHttps: false),
+            CreateHttpContext(isHttps: false, IPAddress.Loopback),
             CancellationToken.None
         );
 
@@ -92,10 +91,10 @@ public sealed class SetupSurfaceGateTests : IDisposable
     }
 
     [Fact]
-    public async Task IsServedAsync_WhenProductionAndTheRequestIsHttps_IsServed()
+    public async Task IsServedAsync_WhenTheSwitchIsOffAndTheRequestIsHttps_IsServed()
     {
         SetupIsInitialized(false);
-        var gate = CreateGate(HostEnvironments.Production);
+        var gate = CreateGate(localDevelopmentEnabled: false);
 
         var isServed = await gate.IsServedAsync(
             CreateHttpContext(isHttps: true),
@@ -106,31 +105,75 @@ public sealed class SetupSurfaceGateTests : IDisposable
     }
 
     [Fact]
-    public async Task IsServedAsync_WhenProductionAndTheInstanceIsInitialized_IsNotServed()
+    public async Task IsServedAsync_WhenTheSwitchIsOnAndTheRequestIsHttpsFromANonLoopbackAddress_IsServed()
+    {
+        SetupIsInitialized(false);
+        var gate = CreateGate(localDevelopmentEnabled: true);
+
+        var isServed = await gate.IsServedAsync(
+            CreateHttpContext(isHttps: true, IPAddress.Parse("203.0.113.7")),
+            CancellationToken.None
+        );
+
+        Assert.True(isServed);
+    }
+
+    [Theory]
+    [InlineData("127.0.0.1")]
+    [InlineData("::1")]
+    public async Task IsServedAsync_WhenTheSwitchIsOnAndTheRequestIsHttpFromALoopbackAddress_IsServed(
+        string remoteIpAddress
+    )
+    {
+        SetupIsInitialized(false);
+        var gate = CreateGate(localDevelopmentEnabled: true);
+
+        var isServed = await gate.IsServedAsync(
+            CreateHttpContext(isHttps: false, IPAddress.Parse(remoteIpAddress)),
+            CancellationToken.None
+        );
+
+        Assert.True(isServed);
+    }
+
+    [Fact]
+    public async Task IsServedAsync_WhenTheSwitchIsOnAndTheRequestIsHttpFromANonLoopbackAddress_IsNotServedWithoutReadingTheInstance()
+    {
+        var gate = CreateGate(localDevelopmentEnabled: true);
+
+        var isServed = await gate.IsServedAsync(
+            CreateHttpContext(isHttps: false, IPAddress.Parse("203.0.113.7")),
+            CancellationToken.None
+        );
+
+        Assert.False(isServed);
+    }
+
+    [Fact]
+    public async Task IsServedAsync_WhenTheSwitchIsOnAndTheRequestIsHttpWithoutARemoteAddress_IsNotServedWithoutReadingTheInstance()
+    {
+        var gate = CreateGate(localDevelopmentEnabled: true);
+
+        var isServed = await gate.IsServedAsync(
+            CreateHttpContext(isHttps: false, remoteIpAddress: null),
+            CancellationToken.None
+        );
+
+        Assert.False(isServed);
+    }
+
+    [Fact]
+    public async Task IsServedAsync_WhenTheSwitchIsOnAndTheInstanceIsInitialized_IsNotServed()
     {
         SetupIsInitialized(true);
-        var gate = CreateGate(HostEnvironments.Production);
+        var gate = CreateGate(localDevelopmentEnabled: true);
 
         var isServed = await gate.IsServedAsync(
-            CreateHttpContext(isHttps: true),
+            CreateHttpContext(isHttps: false, IPAddress.Loopback),
             CancellationToken.None
         );
 
         Assert.False(isServed);
-    }
-
-    [Fact]
-    public async Task IsServedAsync_WhenDevelopmentAndTheRequestIsNotHttps_IsServed()
-    {
-        SetupIsInitialized(false);
-        var gate = CreateGate(HostEnvironments.Development);
-
-        var isServed = await gate.IsServedAsync(
-            CreateHttpContext(isHttps: false),
-            CancellationToken.None
-        );
-
-        Assert.True(isServed);
     }
 
     #endregion

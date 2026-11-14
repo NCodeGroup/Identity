@@ -2,17 +2,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.HostFiltering;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using NCode.Identity.AspNetCore.Options;
 
 namespace NCode.Identity.ManagementConsole.Options;
 
 /// <summary>
-/// Validates <see cref="HostFilteringOptions"/> when the host starts, so a Production deployment that accepts any
-/// <c>Host</c> header stops at startup instead of serving the console for a host name it does not own.
+/// Validates <see cref="HostFilteringOptions"/> when the host starts, so a deployment that accepts any <c>Host</c>
+/// header stops at startup instead of serving the console for a host name it does not own. A host configured for
+/// local development (<c>LocalDevelopment:Enabled</c>) may accept any host.
 /// </summary>
-internal sealed class ManagementConsoleHostFilteringValidator(IHostEnvironment environment)
-    : IValidateOptions<HostFilteringOptions>
+internal sealed class ManagementConsoleHostFilteringValidator(
+    IOptions<LocalDevelopmentOptions> localDevelopmentOptions
+) : IValidateOptions<HostFilteringOptions>
 {
     private const string Wildcard = "*";
 
@@ -21,7 +23,7 @@ internal sealed class ManagementConsoleHostFilteringValidator(IHostEnvironment e
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        if (!environment.IsProduction())
+        if (localDevelopmentOptions.Value.Enabled)
         {
             return ValidateOptionsResult.Success;
         }
@@ -37,7 +39,7 @@ internal sealed class ManagementConsoleHostFilteringValidator(IHostEnvironment e
 
         var value = hosts is null ? string.Empty : string.Join(';', hosts);
         return ValidateOptionsResult.Fail(
-            $"AllowedHosts must list this deployment's host names and must not be empty or contain '{Wildcard}' in the Production environment (value: '{value}')."
+            $"AllowedHosts must list this deployment's host names and must not be empty or contain '{Wildcard}' unless LocalDevelopment:Enabled is true (value: '{value}')."
         );
     }
 }

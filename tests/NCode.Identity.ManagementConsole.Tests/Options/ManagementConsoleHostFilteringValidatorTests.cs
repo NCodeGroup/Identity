@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.HostFiltering;
-using Microsoft.Extensions.Hosting;
+using NCode.Identity.AspNetCore.Options;
 using NCode.Identity.ManagementConsole.Options;
 using Xunit;
 
@@ -21,21 +21,21 @@ public class ManagementConsoleHostFilteringValidatorTests : BaseTests
         return options;
     }
 
-    private ManagementConsoleHostFilteringValidator CreateValidator(
-        string environmentName = "Production"
-    )
-    {
-        var mockEnvironment = CreateStrictMock<IHostEnvironment>();
-        mockEnvironment.Setup(x => x.EnvironmentName).Returns(environmentName).Verifiable();
-        return new ManagementConsoleHostFilteringValidator(mockEnvironment.Object);
-    }
+    private static ManagementConsoleHostFilteringValidator CreateValidator(
+        bool localDevelopment = false
+    ) =>
+        new(
+            Microsoft.Extensions.Options.Options.Create(
+                new LocalDevelopmentOptions { Enabled = localDevelopment }
+            )
+        );
 
     #region Validate Tests
 
     [Theory]
     [InlineData("*", "*")]
     [InlineData("a.example;*", "a.example", "*")]
-    public void Validate_WhenProductionAllowsAnyHost_Fails(
+    public void Validate_WhenTheSwitchIsOffAndAnyHostIsAllowed_Fails(
         string expectedValue,
         params string[] hosts
     )
@@ -46,11 +46,12 @@ public class ManagementConsoleHostFilteringValidatorTests : BaseTests
         var failure = Assert.Single(result.Failures);
         Assert.Contains("AllowedHosts", failure);
         Assert.Contains("list this deployment's host names", failure);
+        Assert.Contains("LocalDevelopment:Enabled", failure);
         Assert.Contains($"'{expectedValue}'", failure);
     }
 
     [Fact]
-    public void Validate_WhenProductionListIsEmpty_Fails()
+    public void Validate_WhenTheSwitchIsOffAndTheListIsEmpty_Fails()
     {
         var result = CreateValidator().Validate(null, CreateOptions());
 
@@ -62,17 +63,21 @@ public class ManagementConsoleHostFilteringValidatorTests : BaseTests
     }
 
     [Fact]
-    public void Validate_WhenProductionListsHostNames_Succeeds()
+    public void Validate_WhenTheSwitchIsOffAndTheListNamesHosts_Succeeds()
     {
         var result = CreateValidator().Validate(null, CreateOptions("manage.example.com"));
 
         Assert.True(result.Succeeded);
     }
 
-    [Fact]
-    public void Validate_WhenDevelopmentAllowsAnyHost_Succeeds()
+    [Theory]
+    [InlineData("*")]
+    [InlineData("")]
+    public void Validate_WhenTheSwitchIsOn_AllowsAnyHost(string host)
     {
-        var result = CreateValidator("Development").Validate(null, CreateOptions("*"));
+        var options = host.Length == 0 ? CreateOptions() : CreateOptions(host);
+
+        var result = CreateValidator(localDevelopment: true).Validate(null, options);
 
         Assert.True(result.Succeeded);
     }
@@ -80,8 +85,7 @@ public class ManagementConsoleHostFilteringValidatorTests : BaseTests
     [Fact]
     public void Validate_WithNullOptions_Throws()
     {
-        var mockEnvironment = CreateStrictMock<IHostEnvironment>();
-        var validator = new ManagementConsoleHostFilteringValidator(mockEnvironment.Object);
+        var validator = CreateValidator();
 
         var exception = Assert.Throws<ArgumentNullException>(() => validator.Validate(null, null!));
 

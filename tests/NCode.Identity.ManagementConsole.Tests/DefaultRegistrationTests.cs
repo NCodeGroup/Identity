@@ -1,4 +1,4 @@
-// Copyright © NCode Group
+﻿// Copyright © NCode Group
 // SPDX-License-Identifier: Apache-2.0
 
 using Microsoft.AspNetCore.HostFiltering;
@@ -8,6 +8,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using NCode.Identity.AspNetCore;
+using NCode.Identity.AspNetCore.Options;
 using NCode.Identity.Bff;
 using NCode.Identity.Bff.Options;
 using NCode.Identity.ManagementConsole.Options;
@@ -17,13 +18,21 @@ namespace NCode.Identity.ManagementConsole.Tests;
 
 public class DefaultRegistrationTests : BaseTests
 {
-    private static IConfiguration CreateConfiguration(bool withFrontend = true)
+    private static IConfiguration CreateConfiguration(
+        bool withFrontend = true,
+        bool? localDevelopment = null
+    )
     {
         var values = new Dictionary<string, string?>
         {
             ["ManagementConsole:ManagementApiUrl"] = "https://id.example.com/api",
             ["ManagementConsole:BundleRootPath"] = "bundle",
         };
+
+        if (localDevelopment is { } enabled)
+        {
+            values["LocalDevelopment:Enabled"] = enabled ? "true" : "false";
+        }
 
         if (withFrontend)
         {
@@ -37,11 +46,13 @@ public class DefaultRegistrationTests : BaseTests
     }
 
     // The BFF reads the host environment, which a host's builder registers.
-    private static ServiceCollection CreateServices()
+    private static ServiceCollection CreateServices(string environmentName = "Production")
     {
         var serviceCollection = new ServiceCollection();
         serviceCollection.AddLogging();
-        serviceCollection.AddSingleton<IHostEnvironment>(new ProductionHostEnvironment());
+        serviceCollection.AddSingleton<IHostEnvironment>(
+            new ProductionHostEnvironment { EnvironmentName = environmentName }
+        );
         return serviceCollection;
     }
 
@@ -132,6 +143,65 @@ public class DefaultRegistrationTests : BaseTests
             "Bff:Frontends must configure the 'mgmt' frontend that serves the management console.",
             exception.Failures
         );
+    }
+
+    [Fact]
+    public async Task AddManagementConsole_WithoutTheLocalDevelopmentSection_LeavesTheSwitchOff()
+    {
+        var serviceCollection = CreateServices("Development");
+        serviceCollection.AddManagementConsole(CreateConfiguration());
+
+        await using var provider = serviceCollection.BuildServiceProvider();
+
+        Assert.False(
+            provider.GetRequiredService<IOptions<LocalDevelopmentOptions>>().Value.Enabled
+        );
+    }
+
+    [Fact]
+    public async Task AddManagementConsole_WithTheLocalDevelopmentSwitchOn_BindsTheSwitch()
+    {
+        var serviceCollection = CreateServices("Development");
+        serviceCollection.AddManagementConsole(CreateConfiguration(localDevelopment: true));
+
+        await using var provider = serviceCollection.BuildServiceProvider();
+
+        Assert.True(provider.GetRequiredService<IOptions<LocalDevelopmentOptions>>().Value.Enabled);
+    }
+
+    [Fact]
+    public async Task AddManagementConsole_WithTheLocalDevelopmentSwitchOnInProduction_FailsWhenTheSwitchIsRead()
+    {
+        var serviceCollection = CreateServices();
+        serviceCollection.AddManagementConsole(CreateConfiguration(localDevelopment: true));
+
+        await using var provider = serviceCollection.BuildServiceProvider();
+        var accessor = provider.GetRequiredService<IOptions<LocalDevelopmentOptions>>();
+
+        Assert.Throws<OptionsValidationException>(() => accessor.Value);
+    }
+
+    [Fact]
+    public async Task AddManagementConsole_WithoutAllowedHostsAndTheSwitchOff_FailsWhenTheHostFilteringOptionsAreRead()
+    {
+        var serviceCollection = CreateServices("Development");
+        serviceCollection.AddManagementConsole(CreateConfiguration());
+
+        await using var provider = serviceCollection.BuildServiceProvider();
+        var accessor = provider.GetRequiredService<IOptions<HostFilteringOptions>>();
+
+        Assert.Throws<OptionsValidationException>(() => accessor.Value);
+    }
+
+    [Fact]
+    public async Task AddManagementConsole_WithoutAllowedHostsAndTheSwitchOn_AcceptsTheHostFilteringOptions()
+    {
+        var serviceCollection = CreateServices("Development");
+        serviceCollection.AddManagementConsole(CreateConfiguration(localDevelopment: true));
+
+        await using var provider = serviceCollection.BuildServiceProvider();
+
+        Assert.NotNull(provider.GetRequiredService<IOptions<HostFilteringOptions>>().Value);
     }
 
     [Fact]

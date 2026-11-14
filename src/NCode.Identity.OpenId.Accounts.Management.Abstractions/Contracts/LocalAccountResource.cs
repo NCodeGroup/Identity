@@ -25,6 +25,12 @@ public sealed class LocalAccountResource : ISupportTenantId, ISupportConcurrency
     public required string LocalAccountId { get; init; }
 
     /// <summary>
+    /// Gets the identifier of the account's principal, which role assignments name to grant the account authority, or
+    /// <c>null</c> when the account has no self-issued identity.
+    /// </summary>
+    public required string? PrincipalId { get; init; }
+
+    /// <summary>
     /// Gets the account's username (login handle), unique within the tenant.
     /// </summary>
     public required string UserName { get; init; }

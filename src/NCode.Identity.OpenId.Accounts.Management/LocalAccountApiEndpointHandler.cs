@@ -192,11 +192,15 @@ internal class LocalAccountApiEndpointHandler(
             .ProducesProblem(StatusCodes.Status415UnsupportedMediaType);
     }
 
-    internal virtual LocalAccountResource ToLocalAccountResource(PersistedLocalAccount account) =>
+    internal virtual LocalAccountResource ToLocalAccountResource(
+        PersistedLocalAccount account,
+        string? principalId
+    ) =>
         new()
         {
             TenantId = account.TenantId,
             LocalAccountId = account.LocalAccountId,
+            PrincipalId = principalId,
             UserName = account.UserName,
             Email = account.Email,
             EmailVerified = account.EmailVerified,
@@ -251,7 +255,7 @@ internal class LocalAccountApiEndpointHandler(
         // record follows. See ADR-1237 and ADR-1351.
         await PostCommitSecurityEffects.ResetPasswordAttemptsAsync(tenantId, request.UserName);
 
-        var resource = ToLocalAccountResource(account);
+        var resource = ToLocalAccountResource(account, creation.PrincipalId);
 
         await ManagementAuditRecorder.RecordLocalAccountChangedAsync(
             httpContext,
@@ -291,12 +295,38 @@ internal class LocalAccountApiEndpointHandler(
                     cancellationToken
                 );
                 var store = storeManager.GetStore<ILocalAccountStore>();
-                return await store.GetPageAsync(
+                var page = await store.GetPageAsync(
                     new PageRequest { Cursor = cursor, Limit = effectiveLimit },
                     cancellationToken
                 );
+
+                var localAccountIds = new List<string>(page.Items.Count);
+                foreach (var account in page.Items)
+                {
+                    localAccountIds.Add(account.LocalAccountId);
+                }
+
+                var principalIds = await FindSelfIssuedPrincipalIdsAsync(
+                    storeManager,
+                    localAccountIds,
+                    cancellationToken
+                );
+
+                var items = new List<(PersistedLocalAccount Account, string? PrincipalId)>(
+                    page.Items.Count
+                );
+                foreach (var account in page.Items)
+                {
+                    items.Add((account, principalIds.GetValueOrDefault(account.LocalAccountId)));
+                }
+
+                return new PagedResult<(PersistedLocalAccount Account, string? PrincipalId)>
+                {
+                    Items = items,
+                    NextCursor = page.NextCursor,
+                };
             },
-            ToLocalAccountResource,
+            item => ToLocalAccountResource(item.Account, item.PrincipalId),
             cancellationToken
         );
     }
@@ -320,11 +350,22 @@ internal class LocalAccountApiEndpointHandler(
             async token =>
             {
                 await using var storeManager = await StoreManagerFactory.CreateAsync(token);
-                return await storeManager
+                var account = await storeManager
                     .GetStore<ILocalAccountStore>()
                     .GetByIdOrDefaultAsync(localAccountId, token);
+                if (account is null)
+                {
+                    return null;
+                }
+
+                var principalId = await FindSelfIssuedPrincipalIdAsync(
+                    storeManager,
+                    account.LocalAccountId,
+                    token
+                );
+                return new LocalAccountWithPrincipal(account, principalId);
             },
-            ToLocalAccountResource,
+            value => ToLocalAccountResource(value.Account, value.PrincipalId),
             cancellationToken
         );
     }
@@ -376,18 +417,25 @@ internal class LocalAccountApiEndpointHandler(
             return ToErrorResult(error);
         }
 
+        var principalId = await FindSelfIssuedPrincipalIdAsync(
+            storeManager,
+            localAccountId,
+            cancellationToken
+        );
+
         account.UserName = request.UserName;
         account.Email = request.Email;
         account.EmailVerified = request.EmailVerified;
         await store.UpdateAsync(account, cancellationToken);
         await storeManager.SaveChangesAsync(cancellationToken);
 
+        var resource = ToLocalAccountResource(account, principalId);
         await ManagementAuditRecorder.RecordLocalAccountChangedAsync(
             httpContext,
             tenantId,
             localAccountId,
             ResourceChangeTypes.Updated,
-            ToResourceValues(ToLocalAccountResource(account))
+            ToResourceValues(resource)
         );
 
         httpContext.Response.Headers.ETag = ManagementEntityTags.Format(account.ConcurrencyToken);
@@ -547,17 +595,21 @@ internal class LocalAccountApiEndpointHandler(
             return ManagementProblems.ResourceNotFound();
         }
 
-        // Disabling an account with a self-issued identity ends its principal's sessions, so the tenant's context is
-        // created before the account is written: a tenant that is not served refuses the request here, before anything
-        // is committed or audited. Enabling an account, or disabling one without a self-issued identity, ends no
-        // session and needs no context.
-        var principalId = isEnabled
-            ? null
-            : await FindSelfIssuedPrincipalIdAsync(storeManager, localAccountId, cancellationToken);
+        // The account's principal is resolved before the account is written, for the audit record and, when the account
+        // is disabled, to end its sessions. Disabling an account with a self-issued identity ends its principal's
+        // sessions, so the tenant's context is created before the account is written: a tenant that is not served
+        // refuses the request here, before anything is committed or audited. Enabling an account, or disabling one
+        // without a self-issued identity, ends no session and needs no context.
+        var principalId = await FindSelfIssuedPrincipalIdAsync(
+            storeManager,
+            localAccountId,
+            cancellationToken
+        );
 
-        await using var tenantContext = principalId is null
-            ? null
-            : await CreateTenantContextAsync(httpContext, tenantId, cancellationToken);
+        await using var tenantContext =
+            isEnabled || principalId is null
+                ? null
+                : await CreateTenantContextAsync(httpContext, tenantId, cancellationToken);
 
         account.IsEnabled = isEnabled;
         await store.UpdateAsync(account, cancellationToken);
@@ -575,12 +627,13 @@ internal class LocalAccountApiEndpointHandler(
             );
         }
 
+        var resource = ToLocalAccountResource(account, principalId);
         await ManagementAuditRecorder.RecordLocalAccountChangedAsync(
             httpContext,
             tenantId,
             localAccountId,
             ResourceChangeTypes.Updated,
-            ToResourceValues(ToLocalAccountResource(account))
+            ToResourceValues(resource)
         );
 
         httpContext.Response.Headers.ETag = ManagementEntityTags.Format(account.ConcurrencyToken);
@@ -946,5 +999,34 @@ internal class LocalAccountApiEndpointHandler(
                 cancellationToken
             );
         return identity?.PrincipalId;
+    }
+
+    // Resolves the principals behind the self-issued identities of a page of accounts in one store call, keyed by the
+    // local account id. An account with no self-issued identity has no entry.
+    private static async ValueTask<
+        IReadOnlyDictionary<string, string>
+    > FindSelfIssuedPrincipalIdsAsync(
+        IStoreManager storeManager,
+        IReadOnlyCollection<string> localAccountIds,
+        CancellationToken cancellationToken
+    )
+    {
+        var identities = await storeManager
+            .GetStore<IFederatedIdentityStore>()
+            .GetByIssuerSubjectsAsync(
+                AccountConstants.SelfIssuer,
+                localAccountIds,
+                cancellationToken
+            );
+        var principalIds = new Dictionary<string, string>(
+            identities.Count,
+            StringComparer.OrdinalIgnoreCase
+        );
+        foreach (var identity in identities)
+        {
+            principalIds[identity.Subject] = identity.PrincipalId;
+        }
+
+        return principalIds;
     }
 }

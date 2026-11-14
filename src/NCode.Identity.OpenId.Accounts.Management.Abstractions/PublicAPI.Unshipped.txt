@@ -79,6 +79,8 @@ NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.IsEnabl
 NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.LocalAccountId.get -> string!
 NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.LocalAccountId.init -> void
 NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.LocalAccountResource() -> void
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.PrincipalId.get -> string?
+NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.PrincipalId.init -> void
 NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.TenantId.get -> string!
 NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.TenantId.init -> void
 NCode.Identity.OpenId.Accounts.Management.Contracts.LocalAccountResource.UserName.get -> string!

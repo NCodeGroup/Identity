@@ -51,6 +51,21 @@ public interface IFederatedIdentityStore : IStore
     );
 
     /// <summary>
+    /// Gets the federated identities that the specified upstream issuer issued for any of the specified subjects, in
+    /// one call; a subject with no identity contributes none.
+    /// </summary>
+    /// <param name="issuer">The upstream issuer that authenticated the connection identities.</param>
+    /// <param name="subjects">The upstream subject values issued by the <paramref name="issuer"/>.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that may be used to cancel the asynchronous operation.</param>
+    /// <returns>The <see cref="ValueTask"/> that represents the asynchronous operation, containing the identities
+    /// that match the <paramref name="issuer"/> and any of the <paramref name="subjects"/>.</returns>
+    ValueTask<IReadOnlyList<PersistedFederatedIdentity>> GetByIssuerSubjectsAsync(
+        string issuer,
+        IReadOnlyCollection<string> subjects,
+        CancellationToken cancellationToken
+    );
+
+    /// <summary>
     /// Gets every federated identity owned by the specified principal.
     /// </summary>
     /// <param name="principalId">The identifier of the owning principal.</param>

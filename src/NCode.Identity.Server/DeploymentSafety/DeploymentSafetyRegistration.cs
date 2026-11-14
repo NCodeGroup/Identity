@@ -224,7 +224,8 @@ public static class DeploymentSafetyRegistration
 
             serviceCollection.AddLocalDevelopmentOptions(configuration);
 
-            // Kestrel serves HTTPS only, with a certificate that passes the transport checks (ADR-1504); inert when LocalDevelopment:Enabled is set, checked as the host finishes starting.
+            // Kestrel serves HTTPS only, with a certificate that passes the transport checks (ADR-1504); inert when
+            // LocalDevelopment:Enabled is set, checked as the host finishes starting.
             serviceCollection.AddTransportSecurity(configuration);
 
             if (configuration.IsLocalDevelopment())

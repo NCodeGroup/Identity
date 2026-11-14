@@ -43,7 +43,9 @@
     </ItemGroup>
 
     <ItemGroup>
-        <!-- The local-development overlays set LocalDevelopment:Enabled, so no published host carries them (ADR-1370). -->
+        <!--
+            The local-development overlays set LocalDevelopment:Enabled, so no published host carries them (ADR-1370).
+        -->
         <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
         <Content Update="appsettings.Conformance.json" CopyToPublishDirectory="Never" />
     </ItemGroup>

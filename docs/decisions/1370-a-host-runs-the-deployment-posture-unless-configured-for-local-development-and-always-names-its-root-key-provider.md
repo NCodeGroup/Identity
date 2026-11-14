@@ -4,7 +4,8 @@
 - **Date:** 2026-11-02
 - **Deciders:** NCode Group
 - **Refines:** [project-template ADR-0119](project-template/0119-production-refuses-development-only-settings.md)
-- **Supersedes:** project-template ADR-0119's decision 5, and decision 3's condition that the host environment is Production
+- **Supersedes:** project-template ADR-0119's decision 5, and decision 3's condition that the host environment is
+  Production
 
 ## Context
 
@@ -47,8 +48,8 @@ intercepts keys in memory, no root key provider is a default, and no development
   strictly and validates it when the host starts. `Enabled` is `false` by default, so an absent section is the strict
   posture. `AddLocalDevelopmentOptions(configuration)` registers it, and `IsLocalDevelopment()` reads it for the choices
   a host makes while it registers services.
-- **Fail-closed in both directions.** `LocalDevelopmentOptionsValidator` fails the start when `Enabled` is `true` and the
-  host environment is `Production`, which catches a leaked variable. It is the one place that reads an environment
+- **Fail-closed in both directions.** `LocalDevelopmentOptionsValidator` fails the start when `Enabled` is `true` and
+  the host environment is `Production`, which catches a leaked variable. It is the one place that reads an environment
   name, and it only tightens.
 - **The name never relaxes anything.** Development without the switch, Staging, Conformance-named deployments and
   custom names all run the strict posture.

@@ -116,10 +116,11 @@ public static class IdentityServerApiReferenceEndpointRouteBuilderExtensions
                     );
 
                     // Wire the non-secret parts of the client-credentials login in every host so an operator
-                    // can authenticate the dashboard out of the box (HTTP Basic credentials, matching the bootstrap client's
-                    // registered client_secret_basic, the token URL, and the audience-binding scope) -- this is the
-                    // deployment bootstrap path too. Only the secret is pre-filled, and only when LocalDevelopment:Enabled
-                    // is true, so it is never embedded in the served configuration of a deployment.
+                    // can authenticate the dashboard out of the box (HTTP Basic credentials, matching the bootstrap
+                    // client's registered client_secret_basic, the token URL, and the audience-binding scope) -- this
+                    // is the deployment bootstrap path too. Only the secret is pre-filled, and only when
+                    // LocalDevelopment:Enabled is true, so it is never embedded in the served configuration of a
+                    // deployment.
                     scalarOptions.AddClientCredentialsFlow(
                         SecuritySchemeDocumentTransformer.OAuth2SchemeName,
                         flow =>

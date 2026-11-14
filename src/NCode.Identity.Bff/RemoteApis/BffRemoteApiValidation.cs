@@ -18,7 +18,10 @@ internal static class BffRemoteApiValidation
     /// </summary>
     /// <param name="key">The configuration key that failure messages name, such as <c>Bff:Frontends:web:RemoteApis:orders</c>.</param>
     /// <param name="api">The options to validate.</param>
-    /// <param name="isLocalDevelopment">Whether the host is configured for local development (<c>LocalDevelopment:Enabled</c>), which allows an <c>http</c> destination.</param>
+    /// <param name="isLocalDevelopment">
+    /// Whether the host is configured for local development (<c>LocalDevelopment:Enabled</c>), which allows an
+    /// <c>http</c> destination.
+    /// </param>
     /// <param name="failures">The list that each failure is added to.</param>
     public static void Validate(
         string key,

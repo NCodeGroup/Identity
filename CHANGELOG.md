@@ -2964,8 +2964,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   (`private_key_jwt`, PAR, DPoP, back-channel logout) and listens on `https://localhost:5005` under the AppHost, which
   generates the console's keys per machine. The host refuses a missing or wildcard `AllowedHosts` unless
   `LocalDevelopment:Enabled` is set, trusts forwarded headers only from the proxies its `ForwardedHeaders` section
-  names, and sends `Strict-Transport-Security` unless that switch is set. The console's `ManagementConsole:Branding:FaviconUrl` (absolute
-  `https`) replaces the family's tab icon the same way
+  names, and sends `Strict-Transport-Security` unless that switch is set. The console's
+  `ManagementConsole:Branding:FaviconUrl` (absolute `https`) replaces the family's tab icon the same way
   ([#158](https://github.com/NCodeGroup/identity/issues/158),
   [#611](https://github.com/NCodeGroup/identity/issues/611),
   [#745](https://github.com/NCodeGroup/identity/issues/745),
@@ -4343,8 +4343,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   [#829](https://github.com/NCodeGroup/identity/issues/829),
   [ADR-1512](docs/decisions/1512-an-instance-is-set-up-once-through-a-one-time-setup-token-that-creates-a-root-global-administrator.md)).
 
-- **`AddDeploymentSafety` refuses the `BootstrapAdmin` section in a deployment.** The bootstrap client, a development and
-  test convenience whose secret confers `GlobalAdmin`, is refused like the other development seeders, and only the
+- **`AddDeploymentSafety` refuses the `BootstrapAdmin` section in a deployment.** The bootstrap client, a development
+  and test convenience whose secret confers `GlobalAdmin`, is refused like the other development seeders, and only the
   development environment (`AddDevelopmentEnvironment`) registers it, so a deployed instance's first administrator is
   the root that setup creates
   ([#777](https://github.com/NCodeGroup/identity/issues/777),
@@ -4512,8 +4512,8 @@ Until the first stable release, the [Unreleased] section describes the product a
   read over a loopback TLS handshake that also proves its private key, must be inside its validity period, have an RSA
   key of at least 2048 bits or an ECDSA key, be signed with SHA-256 or stronger and not be the ASP.NET Core development
   certificate. A self-signed certificate passes; the proxy decides whether to trust it. A deployment adds no HTTPS
-  redirection, because it has no plain-HTTP endpoint (`UseLocalDevelopmentHttpsRedirection` adds the framework's redirect
-  only when the switch is set), and a TLS-terminating
+  redirection, because it has no plain-HTTP endpoint (`UseLocalDevelopmentHttpsRedirection` adds the framework's
+  redirect only when the switch is set), and a TLS-terminating
   proxy that speaks plain HTTP to a pod is not supported. The image serves HTTPS on port 8443, and the chart's pods,
   probes, Service and Ingress backend do the same, with the proxy's verification of the pod's certificate on (a private
   CA per release is the default; a pinned self-signed certificate is accepted, and one with verification off is
@@ -4538,8 +4538,8 @@ Until the first stable release, the [Unreleased] section describes the product a
 - **The Data Protection key ring is encrypted at rest under a root key outside the database.** The host persists the key
   ring to the same database as the secrets it unprotects, and encrypts it under the platform master key, whose root key
   the `SecretProtection` section names and which lives outside the database, so a database dump or backup is useless
-  without it. Unless `LocalDevelopment:Enabled` is set, `AddDeploymentSafety` refuses to start the host when the key ring has no repository or no
-  `IXmlEncryptor`
+  without it. Unless `LocalDevelopment:Enabled` is set, `AddDeploymentSafety` refuses to start the host when the key
+  ring has no repository or no `IXmlEncryptor`
   ([ADR-1235](docs/decisions/1235-stored-secrets-and-grant-payloads-are-protected-by-a-key-hierarchy-under-an-external-root-key.md)).
 
 - **Forwarded headers are trusted only from configured proxies (`AddTrustedForwardedHeaders` /
@@ -4564,11 +4564,11 @@ Until the first stable release, the [Unreleased] section describes the product a
   are resolved through `IOptions<T>` ([ADR-1137](docs/decisions/1137-configuration-binds-strictly-and-every-option-timer-period-and-retention-is-validated-at-startup.md)).
 
 - **The reference host and the management console host send `Strict-Transport-Security` on every HTTPS response unless
-  `LocalDevelopment:Enabled` is set.** `AddStrictTransportSecurity` (`NCode.Identity.AspNetCore`) binds `StrictTransportSecurityOptions` strictly from
-  the `StrictTransportSecurity` section (`Enabled`, `MaxAge`, `IncludeSubDomains`, `Preload`, `ExcludedHosts`) and
-  validates it when the host starts, and `UseStrictTransportSecurity`, which a host calls right after
-  `UseTrustedForwardedHeaders`, adds the header to every response to a request that arrived over HTTPS, directly or
-  through a trusted proxy. The default is
+  `LocalDevelopment:Enabled` is set.** `AddStrictTransportSecurity` (`NCode.Identity.AspNetCore`) binds
+  `StrictTransportSecurityOptions` strictly from the `StrictTransportSecurity` section (`Enabled`, `MaxAge`,
+  `IncludeSubDomains`, `Preload`, `ExcludedHosts`) and validates it when the host starts, and
+  `UseStrictTransportSecurity`, which a host calls right after `UseTrustedForwardedHeaders`, adds the header to every
+  response to a request that arrived over HTTPS, directly or through a trusted proxy. The default is
   `max-age=31536000; includeSubDomains`; `Preload` requires `IncludeSubDomains` and a `MaxAge` of at least 365 days;
   `localhost`, `127.0.0.1` and `[::1]` never receive it; a deployment whose TLS-terminating proxy sends the header sets
   `StrictTransportSecurity:Enabled` to `false`
@@ -4812,9 +4812,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   setting; set `local`, `aws-kms`, `azure-key-vault`, `google-cloud-kms` or another registered provider, or `ephemeral`
   for local development and tests. The reference host's `appsettings.Development.json` and
   `appsettings.Conformance.json` select `ephemeral`, and the Helm chart refuses an empty
-  `secretProtection.rootKeyProvider` in every environment. A deployment refuses the ephemeral root key provider, an inline
-  local root key (whatever provider is selected), and running without a recovery-key decision, and reports them with
-  every other deployment-safety finding as "setting(s) are unsafe for a deployment"
+  `secretProtection.rootKeyProvider` in every environment. A deployment refuses the ephemeral root key provider, an
+  inline local root key (whatever provider is selected), and running without a recovery-key decision, and reports them
+  with every other deployment-safety finding as "setting(s) are unsafe for a deployment"
   ([ADR-1370](docs/decisions/1370-a-host-runs-the-deployment-posture-unless-configured-for-local-development-and-always-names-its-root-key-provider.md),
   [#495](https://github.com/NCodeGroup/identity/issues/495)).
 
@@ -4859,9 +4859,9 @@ Until the first stable release, the [Unreleased] section describes the product a
   `secretProtection` values, which the chart's schema, render-time refusals and CI releases check.
   `DataProtectionKeyRingGate` checks the live keys after the platform's protector loads and before Data Protection loads
   its key ring, and the host names each undecryptable key rather than letting Data Protection write a default key over
-  them; a host with `LocalDevelopment:Enabled` set revokes the key and logs a warning, and any other host stops. `DataProtectionKeyRing:RevokedKeyIds`
-  (`DataProtectionKeyRingOptions`) revokes keys by ID, and `AddConfiguration` registers Data Protection
-  ([ADR-1247](docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md),
+  them; a host with `LocalDevelopment:Enabled` set revokes the key and logs a warning, and any other host stops.
+  `DataProtectionKeyRing:RevokedKeyIds` (`DataProtectionKeyRingOptions`) revokes keys by ID, and `AddConfiguration`
+  registers Data Protection ([ADR-1247](docs/decisions/1247-the-platform-master-key-protects-the-data-protection-ring-and-an-unreadable-key-stops-the-host.md),
   [#239](https://github.com/NCodeGroup/identity/issues/239)).
 
 - **Every host signs with the keys tenant provisioning persists.** Tests included, no host signs with ephemeral
@@ -5855,10 +5855,10 @@ Until the first stable release, the [Unreleased] section describes the product a
   [ADR-1293](docs/decisions/1293-the-bff-ends-sessions-by-a-guarded-logout-form-post-and-by-back-channel-logout-through-indexes.md)).
 
 - **No published URL comes from the request's `Host`.** Each frontend's `PublicOrigin` is required: the absolute URL the BFF is
-  published at (scheme, host, optional port and path base; `https` unless `LocalDevelopment:Enabled` is set), from which it builds its
-  `redirect_uri` and `post_logout_redirect_uri`; set it to the URL the BFF's callback is registered under. The
-  interactive surface's login redirect is root-relative, so a forged `Host` header cannot choose where any of them point
-  ([#493](https://github.com/NCodeGroup/identity/issues/493),
+  published at (scheme, host, optional port and path base; `https` unless `LocalDevelopment:Enabled` is set), from which
+  it builds its `redirect_uri` and `post_logout_redirect_uri`; set it to the URL the BFF's callback is registered under.
+  The interactive surface's login redirect is root-relative, so a forged `Host` header cannot choose where any of them
+  point ([#493](https://github.com/NCodeGroup/identity/issues/493),
   [ADR-1365](docs/decisions/1365-no-url-the-server-publishes-or-compares-takes-its-origin-from-the-requests-host.md)).
 
 - **Every `/bff/*` response is uncacheable the same way the OP's are.** The BFF's endpoints send

@@ -21,8 +21,8 @@ public static class DefaultRegistration
         /// Composes the management console in one call: the backend for frontend (BFF) that serves it, configured from
         /// the <c>Bff</c> section of <paramref name="configuration"/>, and the console's own services, configured from
         /// the <c>ManagementConsole</c> section. The configuration must define the <c>mgmt</c> BFF frontend. The
-        /// <c>LocalDevelopment</c> section turns on the relaxations a local inner-loop host needs; without it the console
-        /// validates its hosts and URLs strictly.
+        /// <c>LocalDevelopment</c> section turns on the relaxations a local inner-loop host needs; without it the
+        /// console validates its hosts and URLs strictly.
         /// </summary>
         /// <param name="configuration">The configuration whose sections configure the BFF and the console.</param>
         /// <returns>The <see cref="IManagementConsoleBuilder"/> instance for additional configuration.</returns>

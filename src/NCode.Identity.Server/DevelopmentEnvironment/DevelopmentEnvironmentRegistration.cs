@@ -33,8 +33,8 @@ public static class DevelopmentEnvironmentRegistration
         /// <summary>
         /// Registers the development-only conveniences: the developer CORS policy, the bootstrap administrator client,
         /// the developer and conformance seeders, and the developer key pruning. Every one does nothing unless its
-        /// section is configured, and <c>AddDeploymentSafety</c> refuses each configured section in a deployment, a host
-        /// without <c>LocalDevelopment:Enabled</c>.
+        /// section is configured, and <c>AddDeploymentSafety</c> refuses each configured section in a deployment, a
+        /// host without <c>LocalDevelopment:Enabled</c>.
         /// </summary>
         /// <param name="configuration">The <see cref="IConfiguration"/> each convenience reads its own section from.</param>
         /// <returns>The same <see cref="IServiceBuilder{T}"/> instance for method chaining.</returns>

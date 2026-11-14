@@ -300,7 +300,8 @@ deployment posture under every environment value. The checks below are the chart
 {{- end }}
 {{- $secretProtection := .Values.secretProtection }}
 {{- if eq $secretProtection.rootKeyProvider "ephemeral" }}
-{{- fail "secretProtection.rootKeyProvider must name a root key held outside the pod: local, aws-kms, azure-key-vault or google-cloud-kms." }}
+{{- fail (print "secretProtection.rootKeyProvider must name a root key held outside the pod: "
+    "local, aws-kms, azure-key-vault or google-cloud-kms.") }}
 {{- end }}
 {{- if and (eq $secretProtection.rootKeyProvider "local") (not $secretProtection.local.keySecret) }}
 {{- fail "secretProtection.local.keySecret must name the Secret holding the local root key." }}

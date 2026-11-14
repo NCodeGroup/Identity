@@ -1399,6 +1399,9 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
         builder.UseSolutionRelativeContentRoot("hosts/NCode.Identity.OpenId.Host");
         builder.UseEnvironment(Microsoft.Extensions.Hosting.Environments.Development);
 
+        // The deployment gate reads the switch while the host registers its services, so it is also a host setting.
+        builder.UseSetting("LocalDevelopment:Enabled", "true");
+
         // A tenant is served only beneath its issuer, so the static tenant is pinned to the TestServer's own origin,
         // the way a deployment pins its public one. A derived factory that changes the tenant path or strategy layers
         // its own issuer over this one.
@@ -1406,6 +1409,7 @@ public class HostApplicationFactory : WebApplicationFactory<HostApiMarker>
             configurationBuilder.AddInMemoryCollection(
                 new Dictionary<string, string?>
                 {
+                    ["LocalDevelopment:Enabled"] = "true",
                     ["OpenId:TenantResolution:StaticSingle:Issuer"] = TestServerIssuer,
                     ["SecretProtection:RootKeyProvider"] = "local",
                     ["SecretProtection:RootKeyProviders:Local:Key"] = RootKey,

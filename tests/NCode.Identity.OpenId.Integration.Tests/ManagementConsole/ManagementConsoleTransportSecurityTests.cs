@@ -4,6 +4,7 @@
 using System.Net;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.Configuration;
 using NCode.Identity.ManagementConsole.Host;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
@@ -80,6 +81,8 @@ public sealed class ManagementConsoleTransportSecurityTests
     {
         var values = new Dictionary<string, string?>
         {
+            ["LocalDevelopment:Enabled"] = "false",
+            ["AllowedHosts"] = "console.integration.test",
             ["Bff:Frontends:mgmt:Authority"] = "https://id.integration.test",
             ["Bff:Frontends:mgmt:PublicOrigin"] = "https://console.integration.test",
             ["ManagementConsole:ManagementApiUrl"] = "https://id.integration.test/api",
@@ -91,12 +94,25 @@ public sealed class ManagementConsoleTransportSecurityTests
         }
 
         return factory.WithWebHostBuilder(builder =>
-            builder
-                .UseEnvironment(StagingEnvironment)
-                .ConfigureAppConfiguration(configurationBuilder =>
-                    configurationBuilder.AddInMemoryCollection(values)
-                )
-        );
+        {
+            builder.UseEnvironment(StagingEnvironment);
+
+            // The host reads the switch and the host names while it registers its services, so they are also host
+            // settings.
+            foreach (var (key, value) in values)
+            {
+                builder.UseSetting(key, value);
+            }
+
+            builder.ConfigureAppConfiguration(configurationBuilder =>
+                configurationBuilder.AddInMemoryCollection(values)
+            );
+
+            // TestServer is not Kestrel, so the transport check has no endpoint to inspect.
+            builder.ConfigureTestServices(
+                StrictPostureHostApplicationFactory.RemoveTransportSecurityStartupCheck
+            );
+        });
     }
 
     private static HttpClient CreateClient(

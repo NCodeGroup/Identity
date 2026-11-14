@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 using System.Net;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using NCode.Identity.OpenId.Host;
 using NCode.Identity.OpenId.Integration.Tests.Infrastructure;
@@ -18,18 +17,15 @@ public sealed class StrictTransportSecurityTests
 
     private const string HttpBaseAddress = "http://op.integration.test/";
 
-    // Qualified because the NCode.Identity.OpenId.Environments namespace shadows the framework's Environments class.
-    private static string StagingEnvironment { get; } =
-        Microsoft.Extensions.Hosting.Environments.Staging;
+    // The explicit AllowedHosts of the strict posture admits the host the clients' base addresses name.
+    private static Dictionary<string, string?> StrictSettings { get; } =
+        new() { ["AllowedHosts"] = "op.integration.test" };
 
     [Fact]
     public async Task GetHealth_OverHttpsOutsideDevelopment_SendsStrictTransportSecurity()
     {
-        using var factory = new HostApplicationFactory();
-        using var staging = factory.WithWebHostBuilder(builder =>
-            builder.UseEnvironment(StagingEnvironment)
-        );
-        using var client = CreateClient(staging, HttpsBaseAddress);
+        using var factory = new StrictPostureHostApplicationFactory(StrictSettings);
+        using var client = CreateClient(factory, HttpsBaseAddress);
 
         using var response = await client.GetAsync("/health/live");
 
@@ -55,11 +51,8 @@ public sealed class StrictTransportSecurityTests
     [Fact]
     public async Task GetHealth_OverHttpOutsideDevelopment_SendsNoStrictTransportSecurity()
     {
-        using var factory = new HostApplicationFactory();
-        using var staging = factory.WithWebHostBuilder(builder =>
-            builder.UseEnvironment(StagingEnvironment)
-        );
-        using var client = CreateClient(staging, HttpBaseAddress);
+        using var factory = new StrictPostureHostApplicationFactory(StrictSettings);
+        using var client = CreateClient(factory, HttpBaseAddress);
 
         using var response = await client.GetAsync("/health/live");
 
@@ -69,13 +62,13 @@ public sealed class StrictTransportSecurityTests
     [Fact]
     public async Task GetHealth_ForwardedAsHttpsByATrustedProxy_SendsStrictTransportSecurity()
     {
-        using var factory = new ConfiguredHostApplicationFactory(
-            new Dictionary<string, string?> { ["ForwardedHeaders:KnownProxies:0"] = "127.0.0.1" }
+        using var factory = new StrictPostureHostApplicationFactory(
+            new Dictionary<string, string?>(StrictSettings)
+            {
+                ["ForwardedHeaders:KnownProxies:0"] = "127.0.0.1",
+            }
         );
-        using var staging = factory.WithWebHostBuilder(builder =>
-            builder.UseEnvironment(StagingEnvironment)
-        );
-        using var client = CreateClient(staging, HttpBaseAddress);
+        using var client = CreateClient(factory, HttpBaseAddress);
         using var request = new HttpRequestMessage(HttpMethod.Get, "/health/live");
         request.Headers.Add("X-Forwarded-For", "203.0.113.7");
         request.Headers.Add("X-Forwarded-Proto", "https");
@@ -92,11 +85,8 @@ public sealed class StrictTransportSecurityTests
     [Fact]
     public async Task GetHealth_ForwardedAsHttpsWithoutATrustedProxy_SendsNoStrictTransportSecurity()
     {
-        using var factory = new HostApplicationFactory();
-        using var staging = factory.WithWebHostBuilder(builder =>
-            builder.UseEnvironment(StagingEnvironment)
-        );
-        using var client = CreateClient(staging, HttpBaseAddress);
+        using var factory = new StrictPostureHostApplicationFactory(StrictSettings);
+        using var client = CreateClient(factory, HttpBaseAddress);
         using var request = new HttpRequestMessage(HttpMethod.Get, "/health/live");
         request.Headers.Add("X-Forwarded-For", "203.0.113.7");
         request.Headers.Add("X-Forwarded-Proto", "https");

@@ -74,6 +74,7 @@ public class BffEndpointStartupCheckEndToEndTests
         builder.Configuration.AddInMemoryCollection(
             new Dictionary<string, string?>
             {
+                ["LocalDevelopment:Enabled"] = "true",
                 [$"{web}:Authority"] = "https://op.example",
                 [$"{web}:PublicOrigin"] = "https://bff.example",
                 [$"{web}:ClientId"] = "bff",

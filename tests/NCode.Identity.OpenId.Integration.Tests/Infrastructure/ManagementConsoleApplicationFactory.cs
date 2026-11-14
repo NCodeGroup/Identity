@@ -140,10 +140,14 @@ public sealed class ManagementConsoleApplicationFactory
         builder.UseSolutionRelativeContentRoot("hosts/NCode.Identity.ManagementConsole.Host");
         builder.UseEnvironment(Microsoft.Extensions.Hosting.Environments.Development);
 
+        // The host reads the switch while it registers its services, so it is also a host setting.
+        builder.UseSetting("LocalDevelopment:Enabled", "true");
+
         builder.ConfigureAppConfiguration(configurationBuilder =>
             configurationBuilder.AddInMemoryCollection(
                 new Dictionary<string, string?>
                 {
+                    ["LocalDevelopment:Enabled"] = "true",
                     ["Bff:Frontends:mgmt:Authority"] = HostApplicationFactory.TestServerIssuer,
                     ["ManagementConsole:ManagementApiUrl"] = "http://localhost/api",
                     ["ManagementConsole:BundleRootPath"] = BundleRootPath,

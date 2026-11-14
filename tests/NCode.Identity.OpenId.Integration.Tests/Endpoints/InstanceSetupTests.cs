@@ -61,7 +61,14 @@ public class InstanceSetupTests
         );
 
     private static HttpClient CreateClient(HostApplicationFactory factory) =>
-        factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                // TestServer derives the request's scheme from the base address, and the surface is served over HTTPS.
+                BaseAddress = new Uri("https://localhost"),
+                AllowAutoRedirect = false,
+            }
+        );
 
     private static async ValueTask<HttpResponseMessage> PostRootAsync(
         HttpClient client,
@@ -90,6 +97,42 @@ public class InstanceSetupTests
             new CheckSetupTokenRequest { Token = token },
             cancellationToken
         );
+
+    #endregion
+
+    #region Transport
+
+    [Fact]
+    public async Task GetStatus_OverPlainHttpWithoutTheLocalDevelopmentSwitch_ReturnsNotFound()
+    {
+        using var factory = new StrictPostureHostApplicationFactory(
+            new Dictionary<string, string?> { [$"{SetupOptions.SectionName}:Token"] = SetupToken }
+        );
+        using var client = factory.CreateClient(
+            new WebApplicationFactoryClientOptions
+            {
+                BaseAddress = new Uri("http://localhost"),
+                AllowAutoRedirect = false,
+            }
+        );
+
+        using var response = await client.GetAsync(StatusPath);
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetStatus_OverHttpsWithoutTheLocalDevelopmentSwitch_ReturnsTheStatus()
+    {
+        using var factory = new StrictPostureHostApplicationFactory(
+            new Dictionary<string, string?> { [$"{SetupOptions.SectionName}:Token"] = SetupToken }
+        );
+        using var client = CreateClient(factory);
+
+        using var response = await client.GetAsync(StatusPath);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+    }
 
     #endregion
 
